@@ -1,0 +1,619 @@
+# BC/AL poznámky — Specifické objekty, API & SaaS gotchas
+
+> Část rozděleného `bc-al-notes.md` (rozsekáno 2026-06-23; archiv: `bc-al-notes.archived-2026-06-23.md`).
+> Načítej, když řešíš: No. Series, Upgrade Tag, All Profile, Item Tracking/Lot, Unix timestamp, HttpClient na SaaS, Cloud-only gotchas, SecretText.
+>
+> Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
+
+Obsahuje:
+- **5.** Specifické objekty a API
+- **11.** SaaS gotchas — HttpClient a Cloud target
+
+## 5. Specifické objekty a API
+
+### 5.1 `All Profile` — vytvoření záznamu
+
+- Při `Scope::Tenant` musí být `App ID` **prázdný GUID** (výchozí po `Init()`)
+- Nastavení `AllProfile."App ID" := AppInfo.Id()` způsobí chybu při instalaci
+- `Scope::System` vyžaduje vyplněné `App ID`
+
+### 5.2 Upgrade Tag pattern
+
+- Upgrade tag definice v samostatné codeunitě s EventSubscriberem na
+  `OnGetPerCompanyUpgradeTags`
+- V Upgrade codeunitě: nejdřív `HasUpgradeTag` → pokud false, provést upgrade
+  → na konci `SetUpgradeTag`
+- V Install codeunitě: v `CompanyInitialize` subscriber volat
+  `UpgradeTag.SetAllUpgradeTags()`
+
+### 5.3 `No. Series` codeunit — `GetNextNo` vs `PeekNextNo`
+
+`Codeunit "No. Series"` (Business Foundation, ID 310) má dvě metody pro
+získání čísla z série, které se chovají rozdílně vůči counter advance.
+**Volba mezi nimi rozbíjí konzistenci s posting flow** — nedá se naslepo
+zaměnit, ohlásí se to off-by-one chybou typu *"Číslo dokladu musí být rovno
+'X+1'... Současná hodnota je 'X'."*
+
+#### `GetNextNo(seriesCode, usageDate)` — vrátí + posune
+
+- Vrátí příští dostupné číslo a **rovnou posune** "Last No. Used" v sérii.
+- Po volání už ten number patří **tobě** — nikdo jiný ho nedostane.
+- Žádný další subsystém ho už nemá kde "konzumovat".
+
+**Použít, když:** zapisuješ číslo na záznam a sám ho reálně používáš jako
+finální (např. `ItemJnlLine."Document No." := GetNextNo(...)` a pak voláš
+`Item Jnl.-Post Line.RunWithCheck(ItemJnlLine)` — direct posting bez
+průchodu deníkovou tabulkou).
+
+#### `PeekNextNo(seriesCode, usageDate)` — vrátí bez posunu
+
+- Vrátí příští dostupné číslo, **counter neposune**.
+- Volání je idempotentní — po něm je série ve stejném stavu.
+- Předpokládá, že **posun udělá někdo jinej** (typicky downstream posting
+  codeunit při zaúčtování dokumentu).
+
+**Použít, když:** předvyplňuješ Doc No. na záznamu, který se pak musí
+zaúčtovat přes batch posting codeunit (`Item Jnl.-Post` 23, `Gen. Jnl.-Post`
+80…). Ten codeunit si sérii konzumuje sám během postingu — pokud bys ji
+posunul ty (`GetNextNo`), posting pak vidí Doc No. < current next a hodí
+chybu *"Číslo dokladu musí být rovno..."*.
+
+#### Pravidlo palce
+
+| Posting cesta                                                    | Doc No. zdroj           |
+| ---------------------------------------------------------------- | ----------------------- |
+| `Item Jnl.-Post Line.RunWithCheck(ItemJnlLine)` — direct, bez Insert | `GetNextNo`            |
+| `ItemJnlLine.Insert(true)` + `Codeunit.Run(Codeunit::"Item Jnl.-Post", ItemJnlLine)` | `PeekNextNo` |
+| Manuální post z deníku (uživatel klikne Post)                    | `PeekNextNo` (ekvivalent) |
+| Plain Insert do tabulky bez postingu (audit log apod.)           | `GetNextNo`            |
+
+#### Praktické debug-flag
+
+Když ti během postingu vyletí chyba *"Číslo dokladu musí být rovno
+'5143250011'... Současná hodnota je '5143250010'."* a ty si jseš jistej,
+že jsi sérii volal jenom jednou — **používáš `GetNextNo` tam, kde patří
+`PeekNextNo`**. Nesnaž se odečítat 1 ručně, prostě přepni metodu.
+
+#### Caller přes batch flow — typické volání
+
+```al
+local procedure DetermineDocumentNo(ItemJnlBatch: Record "Item Journal Batch"): Code[20]
+var
+    NoSeries: Codeunit "No. Series";
+    HHTLbl: Label 'HHT-%1', Locked = true, Comment = '%1 - user id';
+begin
+    if ItemJnlBatch."No. Series" <> '' then
+        exit(NoSeries.PeekNextNo(ItemJnlBatch."No. Series", WorkDate()));
+    exit(CopyStr(StrSubstNo(HHTLbl, UserId()), 1, 20));
+end;
+```
+
+Fallback (no series defined) je `HHT-{UserId}` — informativní, žádná
+counter logika.
+
+#### Codeunit.Run("Item Jnl.-Post") vyžaduje napozicovaný Rec
+
+Posting codeunit `Item Jnl.-Post` (23) si na začátku dělá `ItemJnlLine.Copy(Rec)`
+a hned čte field values přímo (nikoli přes filtry):
+
+```al
+ItemJnlTemplate.Get(ItemJnlLine."Journal Template Name");
+TempJnlBatchName := ItemJnlLine."Journal Batch Name";
+```
+
+Když mu předáš Rec se SetRange filtry, ale neudělal jsi `FindFirst`/`FindSet`
+před `Codeunit.Run`, oba fieldy budou prázdné a `Get('')` rovnou padne
+chybou *"Šablona deníku zboží neexistuje. Identifikační pole a hodnoty:
+Název=''."*. Vždy napozicuj Rec před voláním:
+
+```al
+ItemJnlLine.SetRange("Journal Template Name", Setup."Pre-Receipt Item Jnl.Template");
+ItemJnlLine.SetRange("Journal Batch Name", Setup."Pre-Receipt Item Jnl.Batch");
+if ItemJnlLine.FindFirst() then
+    Codeunit.Run(Codeunit::"Item Jnl.-Post", ItemJnlLine);
+```
+
+### 5.4 Test `Document No.` proti číselné řadě žije JEN v `*-Post Batch`
+
+Validaci, že `Document No.` na řádku deníku odpovídá číselné řadě (a jejímu
+**období** podle zúčtovacího data), dělá standard **výhradně** v
+`*-Post Batch` codeunitě (`Job Jnl.-Post Batch` 1013, `Gen. Jnl.-Post Batch`
+13, `Item Jnl.-Post Batch` 23 …):
+
+```al
+if (Batch."No. Series" <> '') and ("Document No." <> LastDocNo) then
+    TestField("Document No.", NoSeriesBatch.GetNextNo(Batch."No. Series", "Posting Date"));
+```
+
+**`*-Check Line` ani `*-Post Line` ji NEvolají.** Ověřeno ve zdroji:
+`Job Jnl.-Check Line` (1011) testuje Job/Task/No./Posting Date/Quantity,
+dimenze, stav projektu, množství, bin… ale **ne** číslo dokladu. Důsledek:
+když si stavíš vlastní pre-posting kontrolu nad `*-Check Line` nebo
+per-řádek `*-Post Line.RunWithCheck`, **číslo dokladu ti propadne** a chyba
+*„Číslo dokladu musí být rovno 'X'…"* vyskočí až při ostrém účtování. Tu
+kontrolu musíš doplnit ručně.
+
+#### Nedestruktivní kontrola čísla dokladu — `No. Series - Batch` + simulation mode
+
+Pro **read-only** ověření (kontrola před účtováním, error-collect, náhled)
+replikuj logiku `*-Post Batch`, ale s `No. Series - Batch` (codeunit 308) v
+**simulation módu** — řada se posouvá jen v paměti a na DB se **nikdy**
+nezapíše:
+
+```al
+NoSeriesBatch.SetSimulationMode();   // pojistka: SaveState je no-op
+repeat
+    if (not Line.EmptyLine()) and (Line."Document No." <> LastDocNo) then begin
+        ExpectedNo := NoSeriesBatch.GetNextNo(Batch."No. Series", Line."Posting Date", true); // HideErrors
+        if (ExpectedNo <> '') and (Line."Document No." <> ExpectedNo) then
+            LogError(Line, ExpectedNo);   // sbírej místo TestField (které hodí Error a zastaví)
+    end;
+    if not Line.EmptyLine() then
+        LastDocNo := Line."Document No.";
+until Line.Next() = 0;
+```
+
+Klíčové detaily, ať to odpovídá ostrému postu:
+
+- **`No. Series - Batch` (308), ne `No. Series` (310).** 308 drží stav
+  **in-memory per No. Series Line** (období), takže mix dat 2025/2026 v jedné
+  dávce dostane správná čísla z příslušného období. 310 by šel pokaždé na DB.
+- **`SetSimulationMode()` + nikdy `SaveState()`** = zaručeně nedestruktivní.
+  308 má `InherentPermissions = X` → **netřeba** ho dávat do permission setu.
+- **`GetNextNo` jen pro NOVÉ `Document No.`** (≠ předchozí řádek) — pattern
+  `LastDocNo` z base app. Víc řádků na jeden doklad je tak legitimní.
+- **Stejný filtr a pořadí jako `*-Post Batch`** (`Copy` + `SetRange`
+  Template/Batch + `SetFilter Quantity <> 0`) → kontrola = přesná predikce
+  ostrého postu.
+- **`HideErrorsAndWarnings := true`** v `GetNextNo` → když řada nepokrývá
+  období, vrátí `''` místo erroru; ošetři jako samostatný nález, ať kontrola
+  nespadne.
+
+Reálně použito v `cust-mxb-bc` → `Check Job Jnl. Lines MXB.CheckDocumentNos`
+(deník projektů, task 63889).
+
+#### Generátor řádků deníku (suggest report) → `PeekNextNo` per `Posting Date`
+
+Když report/codeunit **navrhuje** řádky do deníku a přiřazuje `Document No.`,
+ber číslo z řady **podle `Posting Date` každého řádku** přes `No. Series.PeekNextNo`:
+
+```al
+if NoSeriesCode <> '' then
+    Line."Document No." := NoSeries.PeekNextNo(NoSeriesCode, Line."Posting Date");
+```
+
+- **`PeekNextNo`, ne `GetNextNo`.** PeekNextNo **neposouvá** řadu a je
+  idempotentní → všechny řádky **jednoho období** dostanou **totéž** číslo
+  (2025 řádky jedno, 2026 řádky druhé). To je žádaný stav deníku: **jeden
+  doklad per období**, ne per řádek. Řadu posune až ostrý post (`*-Post Batch`
+  přes `SaveState`).
+- **`GetNextNo` je tu špatně** — posouvá sekvenci, takže každé volání vrátí
+  jiné číslo → *N řádků = N dokladů*. (Platí i pro `No. Series - Batch` v
+  simulation módu: posun je sice jen in-memory, ale výsledek je pořád „číslo
+  per řádek/datum", ne „per období".) `GetNextNo` (simulation) patří do
+  **kontroly**, co replikuje posun postu (viz výše `CheckDocumentNos`), **ne**
+  do generátoru, kde chceš jedno číslo per období.
+- **Anti-pattern:** `PeekNextNo(code, Today())` volané **jednou** pro celý běh
+  → všem řádkům totéž číslo bez ohledu na období → 2025 řádky dostanou číslo
+  z 2026 řady a post je odmítne. (Přesně tahle chyba byla v
+  `ExtTimeSheetJobJournalMXB` (51700) — opraveno na `PeekNextNo` per
+  `Posting Date`.)
+- **Pozor na pořadí při více obdobích v jedné dávce.** `*-Post Batch` posouvá
+  řadu při každém *novém* `Document No.` (logika `LastDocNo2`). Aby „jedno
+  číslo per období" prošlo, musí být řádky jednoho období **souvislé** v pořadí
+  účtování (Line No.). Při chronologickém generování to obvykle platí; když se
+  období v dávce míchají nechronologicky, post u druhého výskytu období hlásí
+  *„Číslo dokladu musí být X"* — pak generuj řádky seřazené podle data (chytne
+  to i `CheckDocumentNos`).
+
+---
+
+### 5.5 Unix timestamp v AL — NE přes `GetCurrUTCDateTime().Date()/.Time()`
+
+**Trap:** `Type Helper.GetCurrUTCDateTime()` je interně `DotNet DateTime.UtcNow`
+a do AL `DateTime` se marshaluje jako **instant** (AL DateTime je vnitřně UTC).
+Následné `.Date()` / `.Time()` (DT2Date/DT2Time) pak fasádu zobrazí **v timezone
+session** — dekompozice tedy vrací lokální wall-clock, ne UTC číslice. Unix
+timestamp poskládaný z těchhle částí je posunutý o timezone offset (CEST = +2 h
+do budoucnosti).
+
+Reálný dopad (2026-06, Dotykačka connector): Connect endpoint má toleranci
+timestampu **±1 minuta** → podepsaný request vždy spadl na „platnost připojení
+vypršela", protože timestamp byl o 2 h jinde.
+
+**Správný pattern — duration od epochy:** rozdíl dvou `DateTime` hodnot běží
+nad UTC instanty a na timezone session nezávisí. Epochu naparsuj přes XML
+formát (9), kde se `Z` vyhodnotí jako skutečný UTC instant:
+
+```al
+local procedure CurrentUnixTimestamp(): BigInteger
+var
+    EpochDateTime: DateTime;
+    MsSinceEpoch: BigInteger;
+begin
+    Evaluate(EpochDateTime, '1970-01-01T00:00:00Z', 9);
+    MsSinceEpoch := CurrentDateTime() - EpochDateTime;
+    exit(MsSinceEpoch div 1000);
+end;
+```
+
+- `Format(UnixSeconds, 0, 9)` pro text bez oddělovačů tisíců.
+- Stejný trik (`Evaluate(..., 9)` s `Z` stringem) platí pro parsování
+  jakéhokoliv ISO 8601 UTC času — bez formátu 9 se string parsuje podle
+  regional settings a může selhat nebo posunout.
+- Ověření při debugování: porovnej vygenerovaný timestamp s `date -u` /
+  mtime staženého souboru — posun přesně o timezone offset = tenhle trap.
+
+### 5.x Item Tracking — filtrování/obohacení výběru šarže (Lot No.)
+
+Když potřebuješ **omezit nebo obohatit výběr šarže** při zadávání item trackingu
+(typicky consumption na Prod. Order Component — výběr Lot No. dle vlastního kritéria,
+zobrazení vlastních polí z Lot No. Information), **nepokoušej se rozšiřovat nativní
+výběrový dialog** `Item Tracking Summary` (page 6500 nad tabulkou `Entry Summary` 338).
+Dva tvrdé blokátory:
+
+- **`Entry Summary` (338) nemá `Item No.`** (jen Lot/Serial/Package No. + qty + Source
+  Subtype + Table ID). Lot No. Information (klíč Item No.+Variant+Lot No.) odtud
+  spolehlivě nedohledáš.
+- **`Item Tracking Data Collection` (6501) event `OnAfterRetrieveLookupData(TrackingSpecification;
+  FullDataSet; TempGlobalReservEntry; TempGlobalEntrySummary)` nepředává entry summary
+  buffer `var`** — subscriber ho neumí filtrovat ani plnit. (Ověřeno přes al-mcp
+  `al_search_object_members` — všechny parametry ByReference=false.)
+
+**Funkční pattern (Sonnentor 64042 — výběr šarže dle kvality):** vlastní výběrová stránka
+otevřená **akcí z `Item Tracking Lines` (page 6510, source `Tracking Specification` 336)**.
+Řádek 6510 (`Rec`) **má `Item No.`, `Variant Code`, `Location Code` i Source pole**, takže:
+
+- Komponentu VZ dohledáš ze Source: `Source Type = Database::"Prod. Order Component"`,
+  `Source Subtype`→Status (Option→Integer→`"Production Order Status".FromInteger`),
+  `Source ID`→Prod. Order No., `Source Prod. Order Line`→Prod. Order Line No.,
+  `Source Ref. No.`→Line No.
+- Kandidátní šarže naplníš do **temp buffer tabulky** (`TableType = Temporary` → žádný
+  permission/tabledata) z `Lot No. Information` (+ vlastní pole), zůstatek lotu vezmi
+  z **FlowField `Inventory`** (`CalcFields(Inventory)` s `SetRange("Location Filter", …)`)
+  — nemusíš sám sumarizovat Item Ledger Entry.
+- Výběrová `page` (List, `SourceTableTemporary`, lookup mode) si buffer plní v `OnOpenPage`;
+  „rozpustit filtr" = akce, která přenaplní buffer bez filtru (ne mazání řádků).
+- Po `RunModal = LookupOK` vrať Lot No. na řádek 6510 a v `OnAction` zavolej
+  `CurrPage.Update(true)` — tím proběhne standardní tracking validace, neobcházíš ji.
+
+Business logiku (resolve required code, build buffer) dej do codeunitu s **public**
+procedurami → testovatelné z test appky bez TestPage (UI tracking přes TestPage je fragile).
+
+### 5.x2 Item Tracking — mapování Source polí u řádku VZ (Prod. Order Line)
+
+`Reservation Entry` (337) i `Tracking Specification` (336) plní source pole pro
+**Prod. Order Line** takto (base app `Prod. Order Line-Reserve.InitFromProdOrderLine`):
+
+```al
+SetSource(Database::"Prod. Order Line", Status.AsInteger(), "Prod. Order No.", 0, '', "Line No.");
+//        Source Type                   Source Subtype      Source ID          ^Source Ref. No. = 0
+//                                                                             Source Prod. Order Line = "Line No."
+```
+
+**`Source Ref. No.` je 0** — číslo řádku VZ žije v **`Source Prod. Order Line`**!
+(U komponent 5407 je to jinak: `Source Prod. Order Line` = řádek VZ,
+`Source Ref. No.` = Line No. komponenty.) Důsledek: SubPageLink / filtr factboxu
+nad tracking daty pro Prod. Order Line **musí** linkovat
+`"Source Prod. Order Line" = field("Line No.")` — link přes `Source Ref. No.`
+nikdy nematchne a part je věčně prázdný (chyba ze Zlomek 64189; u Sales Line je
+naopak správně `Source Ref. No.`). Ověřeno extrakcí z BC 27.5 base app.
+
+### 5.x3 EM Net Make to Order — `Sales Production Ref. NMEBS` (64120) = vazba SO řádek ↔ VZ řádek
+
+Když potřebuješ z výrobní zakázky najít řádek prodejní objednávky (nebo obráceně)
+v repu závislém na **EM Net Make to Order** (NMEBS), **nepoužívej** navigaci přes
+`Production Order."Source No."` + předpoklad „Line No. VZ řádku = Line No.
+prodejního řádku" — ten u NMEBS-plánovaných VZ (merge/split, vlastní číslování)
+neplatí. Autoritativní mapování drží tabulka **`Sales Production Ref. NMEBS` (64120)**:
+
+- Klíčová pole: `"Sales Line Document Type"` / `"Sales Line Document No."` /
+  `"Sales Line No."` ↔ `"Prod. Order Status"` / `"Prod. Order No."` /
+  `"Prod. Order Line No."` (+ req. worksheet trojice pro fázi plánování).
+- Sekundární klíče **oběma směry** (Key002 podle sales řádku, Key003 podle VZ
+  řádku) → efektivní lookup z obou stran.
+- Řádky můžou mít `"Prod. Order Line No."` = 0 (fáze requisition) — při čtení
+  odfiltrovat.
+- Vzor použití: `UpdatePromisedDelDate.Report.al` a `ItemTrackingMgt.Codeunit.al`
+  v cust-zlomek-bc (factbox 64189 — serial čísla z prodejních řádků zobrazená
+  na navázaných řádcích Vydané VZ). (2026-07-08, pokyn DNEM.)
+
+### 5.y al-mcp `al_search_object_members` — `ByReference` u event parametrů NEVĚŘIT
+
+`al_search_object_members` vrací u **integration event** parametrů `ByReference: false`
+i tam, kde je parametr ve skutečnosti `var` (ověřeno 2026-07 na
+`Item Jnl.-Post Line.OnBeforeCalcExpirationDate` — tool hlásil všechno by-value,
+reálná signatura v BC28 zdrojáku je `var ItemJnlLine; var ExpirationDate; var IsHandled`).
+Var-ness eventu **vždy ověř extrakcí zdrojáku z .app** (MS .app = zip se 40B headerem,
+`unzip` to zvládne s warningem):
+
+```bash
+unzip -l "Microsoft_Base Application_*.app" | grep -i "NazevSouboru"   # najdi cestu
+unzip -o -j "….app" "src/…/Soubor.Codeunit.al" -d cil                  # vytáhni
+grep -n -B3 -A2 "procedure OnBeforeXxx" cil/Soubor.Codeunit.al          # signatura
+```
+
+Pozor zpětně: závěr v 5.x o `OnAfterRetrieveLookupData` (všechno by-value) byl
+podložený právě tímhle ByReference výstupem — při příštím použití toho eventu
+raději přeověřit ve zdrojáku.
+
+### 5.w Atributy zboží — filtrování items podle atributů = hotové base app API
+
+Když potřebuješ „nabídni/filtruj zboží podle hodnot atributů" (custom lookup,
+konfigurátor, výběrová stránka), **nestav vlastní logiku** — base app má celý
+mechanismus akce *Filter by Attributes* z Item Listu znovupoužitelný 1:1:
+
+- **Tabulky:** 7500 `Item Attribute` (ID AutoIncrement, Name), 7501 `Item
+  Attribute Value` (per atribut, ID AutoIncrement), **7505 `Item Attribute
+  Value Mapping`** = persistentní vazba (`Table ID, No., Item Attribute ID →
+  Item Attribute Value ID`). Pozor: 7504 `Item Attribute Value Selection` a
+  7506 `Filter Item Attributes Buffer` jsou **jen temporary buffery** — data
+  nikdy nehledej tam.
+- **Dialog:** page 7506 `Filter Items by Attribute` (StandardDialog nad temp
+  7506 bufferem, páry Attribute+Value, AssistEdit hodnot, OK → `Action::LookupOK`,
+  OnQueryClosePage maže řádky s prázdnou hodnotou). Jde volat
+  `Page.RunModal(Page::"Filter Items by Attribute", TempBuffer)` z vlastní appky.
+- **Výpočet:** codeunit 7500 `Item Attribute Management` —
+  `FindItemsByAttributes(TempBuffer, var TempItem)` (AND přes atributy) +
+  `GetItemNoFilterText(TempItem, var Count)` (komprimovaný `No.` filtr s
+  rozsahy; `'<>*'` = nic nematchuje). Value filtr umí výrazy (`>100`, `A|B`,
+  `*` = má atribut) přes `ItemAttributeValue.SetValueFilter` (numeric/date/text
+  attribute types řeší sama).
+- Buffer řádky s neexistujícím jménem atributu se v `FindItemsByAttributes`
+  **tiše přeskočí** (filtr se nezúží!) — když persistuješ atributové filtry,
+  validuj existenci atributů sám a ukládej **ID + jméno** (rename-safe resolve
+  dle ID). (2026-08-18, prod-ess-configurator-bc, PBI 58056 — Attribute Filter
+  na Table Lookup parametrech, vzor codeunit `Item Attr. Filter Mgt. COEBS`.)
+
+### 5.y2 Shopify Connector (BC28) — variant sync: co jde a nejde eventovat
+
+Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 2026-08):
+
+- **`Shpfy Variant`."Available For Sales" je BC-only mirror pole.** Export ho plní
+  (`FillInProductVariantData`: z Item Blocked/Sales Blocked), ale **neposílá do Shopify**
+  (není v update mutaci) a **neukládá lokálně**, pokud se nezměnilo žádné pole z mutace
+  (HasChange). Import ho přepisuje z `availableForSale` (computed hodnota Shopify).
+  Persist změny řeš subscriberem na `OnBeforeSendUpdateShopifyProductVariant(Shop,
+  var ShopifyVariant, xShopifyVariant)` — xShopifyVariant je DB stav, fires pro každou
+  variantu updatovaného produktu.
+- **Export lokální `Shpfy Variant` záznamy nikdy nemaže** — maže je jen import
+  (`Shpfy Product Import`.SetProduct), když varianta zmizela přímo v Shopify. Konektor
+  neposílá žádné variant-delete mutace ani `productSet`.
+- **Od BC28 export sync dovytváří chybějící varianty existujících produktů**
+  (`Shpfy Product Export`.UpdateProductData, 2. smyčka přes Item Variant →
+  `CreateProductVariant`). **Neexistuje IsHandled/cancel event** — vytvoření nejde z extension
+  zablokovat: `OnBeforeSendAddShopifyProductVariant` je uvnitř skládání mutace (všechna pole
+  if-guarded, poison-pill nejde), communication eventy (`OnClientSend`…) běží jen při
+  `IsTestInProgress`. Per-variant filtrování create path = jedině PR do microsoft/BCApps.
+- **Filtrování variant při Add Item to Shopify** jde čistě: `OnAfterCreateTempShopifyProduct
+  (Item, var TempProduct, var TempVariant, var TempTag)` — smaž nechtěné temp varianty
+  (mark-and-delete přes List of [BigInteger], ne Delete v FindSet smyčce); při vyprázdnění
+  setu resetni `TempProduct."Has Variants"` (zrcadlí standard při all-blocked variantách).
+- **Internal eventy konektoru jdou subscribovat z jiné appky** — `Shpfy Product Events` má
+  všechny publishery `internal procedure` + `[IntegrationEvent]`, subscription z per-tenant
+  extension funguje (ověřeno nasazeným kódem; direct call by neprošel).
+- Zdroják konektoru: **microsoft/BCApps**, `src/Apps/W1/Shopify/App/src/...`, branch
+  `releases/<major>.<minor>` — před použitím eventu ověř, že existuje ve verzi z CI
+  artifactu (`BC_ARTIFACT`), lokální `.alpackages` může být novější minor.
+
+### 5.z DateFormula — možnosti a limity (půlrok NEjde)
+
+Jednotky: `D`, `WD1–WD7` (den v týdnu), `W`, `M`, `Q`, `Y`. Prefix `C` = current
+(konec aktuálního období: `CM` = konec měsíce, `CQ` = konec kvartálu, `CY` = konec
+roku; se znaménkem minus začátek: `-CM` = první den měsíce). Vyhodnocuje se
+**sekvenčně zleva doprava**: `<CM+1M>` = konec měsíce, pak +1 měsíc.
+V CZ klientu lokalizované zkratky (R = rok, takže „+3R" = `<+3Y>`); v kódu vždy
+language-independent `<...>` literál nebo `Evaluate(..., 9)`.
+
+**Co NEjde:** žádná jednotka půlrok, žádné podmínky. Zaokrouhlení na konec
+pololetí (30.6./31.12.) **nelze** vyjádřit jedním DateFormula — kompozice
+CM/CQ/CY + pevných offsetů dává krokové funkce s periodou 1/3/12 měsíců, nikdy 6.
+Near-miss ukázka: `<CY+3Y-6M>` dá pro 11.4.26 → 30.6.29 ✓, ale pro 1.9.26 → 30.6.29 ✗
+(správně 31.12.29). Řešit enum (typ zaokrouhlení) + DateFormula, zaokrouhlení v kódu.
+(Zjištěno 2026-07, Sonnentor VYR-169 expirace šarže.)
+
+### 5.z2 CaptionClass resolver + jazyk dokumentu — `Translation Helper` (codeunit 53), ne holý `GlobalLanguage()`
+
+Subscriber `Caption Class.OnResolveCaptionClass(CaptionArea, CaptionExpr, Language,
+var Caption, var Resolved)` dostává **`Language`** (jazyk dokumentu/reportu) — když
+caption stavíš z dat závislých na jazyce (Field."Field Caption", captions z metadat),
+**nesmíš ho ignorovat**, jinak tištěný doklad dostane caption v jazyce session.
+Správný pattern = **`Codeunit "Translation Helper"` (Base App, ID 53)**:
+
+```al
+TranslationHelper: Codeunit "Translation Helper";
+if Language <> 0 then
+    TranslationHelper.SetGlobalLanguageById(Language);
+Caption := ...; // Field caption / metadata read runs in the requested language
+if Language <> 0 then
+    TranslationHelper.RestoreGlobalLanguage();
+```
+
+Holý `GlobalLanguage(x)` switch funguje taky, ale LinterCop **LC0022** ho hlásí —
+Translation Helper je base-app idiom (má i `SetGlobalLanguageByCode` a
+`GetTranslatedFieldCaption(LanguageCode, TableID, FieldId)`). User-defined texty ze
+setup tabulky (jednojazyčné Text pole) se nepřekládají — jazykový switch se týká jen
+fallbacku na Field caption. (2026-08, prod-epb-pricingMatrix-bc, CaptionClass os matice.)
+
+České termíny v BC mají ustálené EN ekvivalenty (názvy tabulek, polí,
+captionů). Nezaměňovat za "doslovný" překlad ze slovníku.
+
+| CZ                                | EN v BC                                 | Poznámka                                                       |
+| --------------------------------- | --------------------------------------- | -------------------------------------------------------------- |
+| Montáž                            | **Assembly**                            | Ne "Mounting"! Standardní moduly: Assembly Order, Assembly BOM |
+| Nastavení financí                 | **General Ledger Setup**                | Ne "Finance Setup". Tabulka 98, page 118                       |
+| Účto skupina zboží (DPH)          | **VAT Product Posting Group**           | Tabulka 324                                                    |
+| Účto skupina obch. partnerů (DPH) | **VAT Business Posting Group**          | Tabulka 325                                                    |
+| Účto skupina zboží                | **Gen. Product Posting Group**          | Tabulka 251                                                    |
+| Účto skupina obch. partnerů       | **Gen. Business Posting Group**         | Tabulka 250                                                    |
+| Záloha                            | **Advance** (CZZ) / **Prepayment** (W1) | V CZ se preferuje Advance (Advance Letter CZZ)                 |
+| Přijatá záloha                    | **Sales Advance Letter**                | CZZ extension                                                  |
+| Položka zboží                     | **Item Ledger Entry**                   | Ne "Skladová transakce". Page Item Ledger Entries = Položky zboží |
+| Řádek deníku zboží                | **Item Journal Line**                   | Page Item Journal = Deník zboží                                |
+| Lokace                            | **Location**                            |                                                                |
+| Sklad                             | **Warehouse**                           |                                                                |
+| Zboží                             | **Item**                                | Standardní BC CZ překlad. Ne "Položka".                        |
+| Přihrádka                         | **Bin**                                 | Bin Code = Kód přihrádky. Ne "Koš", ne "Kontejner".            |
+| Šarže                             | **Lot**                                 | Lot No. = Číslo šarže                                          |
+| Sériové číslo                     | **Serial No.**                          | Caption "Serial No." → "Sériové číslo" (ne "Sériové č.")        |
+| Datum expirace                    | **Expiration Date**                     | Ne "Datum platnosti", ne "Datum exspirace"                     |
+| Skladová příjemka                 | **Warehouse Receipt**                   | Posted Whse. Receipt = Zaúčtovaná skl. příjemka                |
+| Skladová dodávka                  | **Warehouse Shipment**                  |                                                                |
+| Šablona / List                    | **Template** / **Batch**                | Whse. Jnl. Template = Šablona skl. deníku, Batch = List        |
+| Přeřazení                         | **Reclassification**                    | Movement Reclass Journal = deník přeřazení                     |
+| Sledování (zboží)                 | **Tracking** / **Item Tracking**        | Ne "Trasování" — base app cs-CZ používá Sledování              |
+| Rezervační položka                | **Reservation Entry**                   |                                                                |
+| Cílová přihrádka                  | **Destination Bin** / **To Bin**        |                                                                |
+| Příjmová přihrádka                | **Receipt Bin**                         | Bin, kam se účtuje warehouse receipt                           |
+| Zachytit / Zachycený              | **Capture** / **Captured**              | "Capture lot/serial" = zachytit šarži/sériové číslo            |
+| Zbývající                         | **Outstanding** / **Remaining**         |                                                                |
+| Kód varianty                      | **Variant Code**                        |                                                                |
+| Měrná jednotka                    | **Unit of Measure**                     | Code → Kód měrné jednotky                                      |
+
+Když si nejsi jistý, podívej se do XLIFF (`Translations\*.cs-CZ.xlf`) base
+appky nebo do CZ lokalizační větve `cz-<major>` repa
+`StefanMaron/MSDyn365BC.Code.History` (viz 7.3).
+
+
+### 5.z3 CZZ Advance Payments — vazba záloha↔objednávka a scoped guard přes manual bind
+
+Poznatky z EF Advance CZ (WI 63636, 2026-08):
+
+- **Vazbu zálohy na doklad drží `Advance Letter Application CZZ` (31007)** (PK: Letter
+  Type, Letter No., Document Type, Document No.), ne pole na hlavičce zálohy. Pole
+  `"Order No."` na `Sales Adv. Letter Header CZZ` je jen zrcadlo: `OnDelete` tabulky
+  31007 ho **vymaže (i `"Posting Description"`) a standard ho při novém propojení
+  NIKDY neobnoví** — extension logika postavená na `Order No.` po unlink+relink tiše
+  přestane fungovat. Obnovu je nutné dopsat subscriberem na `OnAfterInsertEvent` 31007.
+- **Uživatelské odpojení** jde přes dialog `LinkAdvanceLetter` (page 31175 „Advance
+  Letter Appl. Edit CZZ", volá `SalesAdvLetterManagementCZZ.LinkAdvanceLetter`) —
+  chybějící řádky po LookupOK se mažou `Delete(true)` **bez IsHandled eventu**.
+  Tatáž tabulka se ale maže i systémově (`SalesPostHandlerCZZ` po vyfakturování,
+  `SalesAdvLetterPostCZZ` při Close, ApplyChanges při usage) — plošný subscriber na
+  `OnBeforeDeleteEvent` by rozbil účtování.
+- **Pattern „scoped guard": codeunit s `EventSubscriberInstance = Manual`** a
+  subscriberem na `OnBeforeDeleteEvent` + na page nahradit standardní akci vlastní,
+  která udělá `BindSubscription(Guard)` → volání standardní logiky → `Unbind`.
+  Kontrola tak platí přesně pro interaktivní dialog a systémové cesty nevidí.
+  Lokální codeunit proměnná v OnAction drží subscription po dobu volání. V guardu
+  nezapomenout `IsTemporary()` exit (dialog pracuje s temp buffery téže tabulky).
+
+## 11. SaaS gotchas — HttpClient a Cloud target
+
+### 11.1 HttpClient na SaaS — silent fail bez Allow HttpClient Requests
+
+V SaaS sandboxu / produkci `HttpClient.Get()` / `HttpClient.Send()` může
+vracet **`false` s prázdným `GetLastErrorText()`**, pokud extension nemá
+povolený outbound HTTP. Uživatel to musí povolit v:
+
+**Extension Management → najít extension → Configure → zapnout
+"Allow HttpClient Requests"**
+
+Důsledky pro vývoj:
+
+- **V README** příslušné appky to popsat — "tato extension volá X, vyžaduje
+  zapnutý Allow HttpClient Requests".
+- **V kódu** mít čistou error message — pokud `Send`/`Get` vrátí `false` a
+  `LastErrorText` je prázdný, je to skoro jistě tohle. Hlasit uživateli
+  konkrétně, ne generic "HTTP failed".
+- **V container / OnPrem buildu toggle neexistuje** — HTTP funguje vždycky.
+  Rozdíl mezi dev container a SaaS je častý zdroj zmatku ("u mě to fungovalo!").
+  Při hlášení problému vždycky řekni, **na jakém scope jsi testoval**.
+
+### 11.2 `HttpClient.UseDefaultNetworkWindowsAuthentication()` = OnPrem-only
+
+Compiler ji v `target: "Cloud"` extensionu **přijme** (!), ale runtime padne.
+Pro Cloud target tuhle metodu nepoužívej. Pokud potřebuješ autentizaci, jdi
+přes OAuth (`SecretText` token v `HttpRequestMessage` headerech) nebo Basic
+auth se secretem z Isolated Storage.
+
+### 11.3 Další Cloud-only gotchas
+
+- `HttpClient.SkipDefaultUserAgentSet := true` — funguje, ale BC ti pak
+  posílá header `User-Agent: Dynamics 365 Business Central` defaultně.
+  Pokud cílový endpoint kontroluje UA, nastav vlastní.
+- `Codeunit.IsolatedStorage` má **scope** parametr (`User`, `Company`,
+  `CompanyAndUser`, `Module`). Module je defaultní pro per-extension secrets
+  — sdílené napříč companies, izolované od jiných extension.
+
+### 11.4 `SecretText.Unwrap()` = OnPrem-only (AL0296)
+
+`SecretText` jde na Cloud targetu vytvořit i poslat do HttpClient headeru
+(`SecretStrSubstNo`), ale **zpátky na Text ho nedostaneš** — `Unwrap()` má
+scope OnPrem a compiler hodí `AL0296: ... has scope 'OnPrem' and cannot be
+used for 'Cloud' development`.
+
+Důsledky:
+
+- Hodnota, kterou někdy potřebuješ v plaintextu (HTML formulář ke stažení,
+  query string, obsah souboru), **nesmí žít jen v SecretText / Isolated
+  Storage** — ulož ji jako normální pole setup tabulky. Typicky OAuth
+  `client_id`: posílá se stejně v browser formuláři, není to secret (na
+  rozdíl od `client_secret`).
+- Crypto nad secretem řeš overloady, které berou SecretText jako parametr:
+  `Cryptography Management.GenerateHash(InputString: Text; Key: SecretText;
+  HashAlgorithmType: Option HMACMD5,HMACSHA1,HMACSHA256,HMACSHA384,HMACSHA512): Text`
+  spočítá HMAC bez unwrapu a vrátí **UPPERCASE hex** (ne Base64) jako plain
+  Text. Lowercase hex → `LowerCase()`.
+
+### 11.5 Text → SecretText — jde JEN přes `SecretStrSubstNo` s Text PROMĚNNOU
+
+Jak (ne)dostat Text do SecretText (ověřeno alc 17.0 / runtime 17, 2026-07,
+prod-ess-dotykackaConnector-bc testy):
+
+```al
+// NEfunguje — přiřazení: AL0122 Cannot implicitly convert type 'Text' to 'SecretText'
+MySecret := 'literal';
+MySecret := TextVar;
+
+// NEfunguje — Text LITERÁL jako substituční argument: AL0133 (Argument 2: Text→SecretText)
+MySecret := SecretStrSubstNo('%1', 'literal');
+
+// Funguje — Text PROMĚNNÁ jako substituční argument
+TextVar := 'literal';
+MySecret := SecretStrSubstNo('%1', TextVar);
+```
+
+Rozdíl literál vs. proměnná u `SecretStrSubstNo` je neintuitivní — literál
+kompilátor odmítne, proměnnou vezme. V testech (i kódu) proto secret hodnoty
+vždy nejdřív do lokální `Text` proměnné a pak `SecretStrSubstNo('%1', X)`.
+Asserty na hodnotu SecretText v Cloud testech nejde dělat vůbec (Unwrap =
+OnPrem, viz 11.4) — testuj přítomnost přes `SecretText.IsEmpty()` a chování
+(`HasCredentials()`, `HasValidToken()`…), ne obsah.
+
+---
+
+
+### 5.x4 Sales Line "Attached to Line No." (pole 80) — co standard s vazbou dělá
+
+Prověřeno kompletním grepem Base App **BC 28.3** (extrakce z .app). Pole plní
+extended texty, od BC20+ i user akce *Attach to inventory item line* (non-invt
+řádky) a CRM write-in produkty. Dá se bezpečně použít pro vlastní parent↔child
+vazbu item řádků (např. řádky generované konfigurátorem):
+
+- **Sales-Post žádnou kontrolu na poli nemá** — doklad se zaúčtuje normálně;
+  hodnota se přes `TransferFields` propíše do posted/archive tabulek (field 80
+  existuje všude). Prepayment logika pole používá jen na temp bufferu a přepisuje
+  si ho. `Release` ho nečte.
+- **Smazání hlavního řádku kaskádně smaže attached řádky** (`Sales Line.OnDelete`
+  → `DeleteAll(true)`, bez filtru na Type). Pokud attached řádek už má dodávky,
+  jeho Delete(true) spadne → hlavní řádek nejde smazat.
+- **Změna `No.` na hlavním řádku smaže attached řádky** — subformy volají
+  `TransferExtendedText.SalesCheckIfAnyExtText` → `DeleteSalesLines` (maže vše
+  s `Attached to Line No.` = řádek, bez filtru na Type; jen řádky s Line No. >
+  hlavní).
+- **Get Shipment Lines / Get Posted Doc Lines to Reverse** auto-přitahují s hlavním
+  jen attached řádky `Type = " "` (texty); item attached řádky si uživatel vybírá
+  sám. Vazba se přemapovává přes `Transfer Old Ext. Text Lines` buffer (plní se pro
+  každý vložený řádek) — když hlavní řádek není ve výběru, vazba skončí 0 (OK).
+- **Copy Document / Blanket→Order / VAT Rate Change** vazbu korektně přemapují.
+- **Setup „Auto Post Non-Invt. via Whse." = Attached/Assigned** (S&R Setup):
+  non-inventory attached řádky se při postingu whse shipmentu / inv. picku
+  automaticky dodají s hlavním (`Qty. to Ship := Outstanding Quantity`). Opt-in.
+- `IsExtendedText()` = `Type=" " AND Attached<>0 AND Qty=0` — item attached řádky
+  pod guardy pro texty nespadají.
+- FlowField 7011 „Attached Lines Count" na Sales Line počítá attached řádky s Qty<>0.
+
+(2026-08-19, cust-zlomek-bc task 65364 — konfigurátor v konfigurátoru; child řádky
+SL akcí dostávají Attached to Line No. subscriberem na
+`OnBeforeModifyNewSalesLineFromAction`.)
