@@ -617,3 +617,31 @@ vazbu item řádků (např. řádky generované konfigurátorem):
 (2026-08-19, cust-zlomek-bc task 65364 — konfigurátor v konfigurátoru; child řádky
 SL akcí dostávají Attached to Line No. subscriberem na
 `OnBeforeModifyNewSalesLineFromAction`.)
+
+### 5.x5 Requisition Line — `OnAfterGetDirectCost` jako hook „po přecenění" + past v Req. Wksh.-Make Order (BC 28.3)
+
+- `Requisition Line.GetDirectCost(CalledByFieldNo)` volá standard z OnValidate **8 polí**: `No.`
+  (přes `CopyFromItem`), `Vendor No.` (jen když Type = Item, `No.` <> '' a není prod. order),
+  `Variant Code`, `Location Code`, `Unit of Measure Code`, `Order Date`, `Currency Code`, `Quantity`.
+  Uvnitř `PriceCalculation.ApplyDiscount + ApplyPrice` a `Rec := Line` (přepíše `Direct Unit Cost`
+  i `Line Discount %` z ceníků) — jen pro `Replenishment System = Purchase` a ne subcontracting;
+  event **`OnAfterGetDirectCost(var Rec, CalledByFieldNo)` se ale volá VŽDY na konci** (i mimo
+  Purchase → filtruj sám). `OnBeforeGetDirectCost` s `IsHandled` → OnAfter se nevolá.
+- `Quantity (Base)` je při `Validate(Quantity)` spočtené **před** `GetDirectCost` → v subscriberu už sedí.
+- `Direct Unit Cost` (10) ani `Line Discount %` (7002) **nemají OnValidate** → `Validate` z subscriberu
+  nezpůsobí rekurzi. Base app nemá na Requisition Line obdobu ochrany `BlanketOrderIsRelated`
+  z Purchase Line → vlastní cenu musíš po každém `GetDirectCost` obnovit sám.
+- ⚠️ `Req. Wksh.-Make Order`: `OnAfterInsertPurchOrderLine(var PurchOrderLine, var NextLineNo,
+  var RequisitionLine, var PurchOrderHeader)` běží hned po `PurchOrderLine.Insert()` (bez následného
+  Modify — vlastní změny ulož sám), ale **řádek sešitu se maže až ve `FinalizeOrderHeader`** po
+  vložení všech řádků téže objednávky (stejný dodavatel/ship-to/měna/purchasing code). Logika, která
+  z řádků sešitu počítá „rezervace" (čerpání rámcovky apod.), tak během carry-out vidí souběžně řádek
+  sešitu i z něj vzniklý řádek NO → **dvojí započtení** pro další řádky téhož běhu. Fix: po přenosu
+  rezervaci na řádku sešitu zrušit (`Modify(false)` na var parametru), nebo vést seznam už
+  převedených RecordId.
+- `Carry Out Action Msg. - Req.` filtruje jen Worksheet Template Name + Journal Batch Name (celý list,
+  `Accept Action Message = true`) → v testech se sdíleným listem se provedou i cizí řádky s Accept.
+- Plánování (`Inventory Profile Offsetting`) maže řádky listu po jednom `Delete(true)` →
+  `OnAfterDeleteEvent` chodí per řádek (pattern „list prázdný → reset session stavu" funguje).
+
+(2026-08-28, cust-sonnentor-bc PBI 64046 — review větve BlanketOrders_64046.)
