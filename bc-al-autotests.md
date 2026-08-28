@@ -448,6 +448,25 @@ GIVEN (s komentářem), nebo každý negativní případ do vlastního testu. Za
 `CheckNumericFilterValue` s `SourceParam.Get` → exit) — stejný test i
 v prod-ess-configurator-bc PR 9375.
 
+### Carry Out Action Message v testu bere CELÝ list sešitu — každý carry-out test si zakládá vlastní batch
+
+`LibraryPlanning.CarryOutReqWksh(ReqLine, …)` → report 493 → `Req. Wksh.-Make Order.Code()`
+filtruje jen `Worksheet Template Name` + `Journal Batch Name` (+ `Accept Action Message = true`)
+podle předaného řádku — filtry na záznamu se sice kopírují (`ReqLine.Copy`), ale test je
+typicky nemá. A **každý řádek sešitu založený přes `Validate("No.")` má `Accept Action
+Message = true`** (`Requisition Line.CopyFromItem()` nastaví `Accept Action Message := true`
+a `Action Message := New`). Kombinace s AutoCommit (data dřívějších testů téhož codeunitu
+v DB zůstávají): carry-out ve **sdíleném** batchi (`FindFirst` na existující jméno listu)
+zpracuje i řádky, které tam nechaly předchozí testy — vzniknou další nákupky, vyskočí jejich
+confirmy (jiní dodavatelé/rámcovky → jiné cache klíče), případně to spadne na jejich datech.
+Typický příznak: assert na počet confirmů (`Expected 2, Actual 6`) nebo „záhadné" faily
+závislé na pořadí testů (první carry-out test v codeunitu projde, pozdější ne).
+
+**Fix:** carry-out test si vždy založí vlastní batch
+(`LibraryPlanning.CreateRequisitionWkshName(NewName, TemplateName)`) a řádky dává do něj;
+sdílený list nechat jen testům, které carry-out nevolají. Zachyceno 2026-08-28,
+cust-sonnentor-bc PR 9380 build 27993 (`ReqCarryOutRechecksRemainingQuantity`).
+
 ### Placeholdery v testech jsou škodlivější než žádné testy
 
 `Assert.IsTrue(true, ...)` nebo `[Test]` proceduralel který ve skutečnosti nic neověří **dělá test suite zelenou bez regresní ochrany**. Pokud nemůžeš testovaný scénář spolehlivě postavit (např. `OnBeforeActionEvent` subscribery vyžadují TestPage + nestabilní action names), je správné nechat soubor bez `[Test]` procedur a zaznamenat blokátor v `plan.md`/issue, ne psát fake testy.
