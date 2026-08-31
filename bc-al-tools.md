@@ -852,6 +852,12 @@ nejde sync mode nastavit** (literál, ani variable trik nefunguje).
 - **Příznak:** Build (kompilace+testy) zelený, Deploy Staging spadne na
   `TableExtension ... The field 'X' cannot be located. Removing fields is not
   allowed.` — destruktivní schema změna (smazané/přejmenované pole) vs. SyncMode Add.
+- **Force Sync NENÍ jen sandbox:** od BC19 jde PTE nasadit se *Schema Sync Mode = Force* i na
+  SaaS **produkci** (Extension Management → page 2507 *Upload And Deploy Extension*, Admin Center
+  → Manage Apps → Sync Mode, automation API `schemaSyncMode`). Cena = nenávratná ztráta dat
+  odstraněných polí (jen point-in-time restore). U appky s live zákazníkem proto radši
+  `ObsoleteState = Pending` (verze N, upgrade codeunit pole ještě přečte) → `Removed` (N+1).
+  (Ověřeno ve zdroji System Application 28.3 `UploadAndDeployExtension`, 2026-08-31.)
 - **Jednorázový fix:** appka je v tu chvíli už publikovaná (padá až sync fáze) →
   na deploy agentovi ručně:
   ```powershell

@@ -599,6 +599,28 @@ Když přidáváš pole na `Sales Header`/`Sales Line` (nebo Purchase ekvivalent
       (sekce 1.4)
 - [ ] Test: vytvoř doc → vyplň pole → Post → ověř hodnotu na posted dokumentu
 
+### 3.6b Sales Line `Validate("No.")` dělá `Init()` → vlastní pole se tiše ztratí v base cestách, které No. znovu validují
+
+`Sales Line."No."` OnValidate (BC 28.3, `SalesLine.Table.al` ř. ~70) dělá `TempSalesLine := Rec; Init();`
+a pak plní pole znovu ze zboží → **všechna extension pole na řádku se vynulují**. Stejné ID polí na
+posted/archive tabulkách (3.6) tenhle problém neřeší, protože jde o cesty, kde base po
+`TransferFields`/přiřazení recordu ještě zavolá `Validate("No.")`:
+
+| Cesta                                              | Kde                                                                                  | Hook pro obnovu vlastních polí                                                                              |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| **Restore z archivu**                              | `ArchiveManagement.RestoreSalesLines`: `TransferFields(Archive)` + `Insert` + `Validate("No.")` + Validate Variant/UoM/Qty/Unit Price | `OnAfterTransferFromArchToSalesLine(var SalesLine; var SalesLineArchive)` — běží po validacích, před `Modify(true)`; prosté přiřazení z archivu |
+| **Copy Document s Recalculate Lines**              | `Copy Document Mgt.CopySalesDocLine`: `ToSalesLine.Init()` + `Validate("No.")` + `Validate(UoM)` (bez recalc je `ToSalesLine := FromSalesLine` → OK) | `OnBeforeInsertToSalesLine(var ToSalesLine; var FromSalesLine; FromDocType; RecalcLines; …)` — kopírovat jen když `RecalculateLines` |
+| **RecreateSalesLines** (změna Sell-to apod.)       | `Sales Header.CreateSalesLine`: Validate Type/No./UoM/Variant/Qty                    | `OnBeforeSalesLineInsert(var SalesLine; var TempSalesLine; SalesHeader)` — Temp nese původní hodnoty         |
+
+Cesty, které jsou OK bez subscriberu: Quote → Order, Blanket → Order, Get Shipment Lines, Get Posted Doc Lines to
+Reverse, Undo Shipment (přiřazení recordu / `TransferFields` z posted). Sdílený helper `Reapply<Fields>(var SalesLine; …)`
+pro všechny tři subscribery. Pole odvozená z Item UoM se reverse-fillem „obnoví" sama, ale pole typu kód/varianta ne.
+(2026-08-31, prod-epb-pricingMatrix-bc plán 65842 — archive restore ztrácel `Sales Price Var. Code PMEBS`.)
+
+**Bonus — `fieldgroups` z tableextension:** `fieldgroups { addlast(DropDown; "My Field") }` v tableextension funguje
+(vzor base app `ReturnReasonExt.TableExt.al`) — nejlevnější způsob, jak vlastní atribut ukázat ve všech lookupech
+(např. Item UoM dropdown na Sales/Req./Price řádcích místo holého kódu).
+
 ### 3.7 `[EventSubscriber]` argumenty — identifier syntax, ne string literály (LC0028)
 
 V moderním AL piš event name i element name (field/action) v atributu
