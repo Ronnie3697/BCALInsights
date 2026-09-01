@@ -247,6 +247,16 @@ pole jedno po druhém. (Zachyceno 2026-07, prod-ess-configurator-bc:
 `CopyConditionResultValues` — PK má 5 polí, nastavovala se 3 → kolize na
 `Line No.` 10000 + `Result Type` ' '.)
 
+### 2.6b `Mark`/`MarkedOnly` + `Record.Copy` — nespoléhat, že marks přejdou na kopii
+
+Když engine označí záznamy (`Mark(true)` + `MarkedOnly(true)`) a pak pro dílčí hledání dělá `Other.Copy(Rec)`
+a hledá v `Other`, hrozí, že **marks na kopii nejsou** (`Copy` bez `ShareTable` přenáší filtry, klíč a stav
+`MarkedOnly`, o mark bufferu dokumentace mlčí — code review 2026-09-01 to označil za ztrátu marks, kopie by pak
+s `MarkedOnly = true` nenašla nic). `ShareTable = true` je jen pro temporary recordy. Bezpečný vzor: dílčí filtry
+a `SetCurrentKey` dělat **na téže instanci**, výsledek si odnést přiřazením (`Found := Rec`) a dočasné filtry
+po hledání zase `SetRange(pole)` sundat. Alternativa `SetFilter(Code, 'A|B|…')` místo marks škáluje špatně
+(stovky hodnot → dlouhý filtr). (prod-epb-pricingMatrix-bc `FindUoMByMode`, 2026-09-01.)
+
 ### 2.7 Nové flag/marker pole → projít i field-by-field copy procedury (šablony, buffery)
 
 Když do tabulky přidáváš nové pole (typicky Boolean marker jako `Has Value` /

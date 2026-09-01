@@ -524,6 +524,13 @@ naopak: `Evaluate(Dec, '4,5')` → **45** (čárka = tisíce), žádná chyba, j
   EN by četlo 45, CZ by nezparsovalo tečku).
 - Region session **nejde v testu přepnout** (`GlobalLanguage` mění jen jazyk captionů, ne
   number format) — proto testuj přes normalizační helper, ne přes „nastav CZ".
+- **Excel Buffer (`ReadSheet`) ukládá číselné buňky do `"Cell Value as Text"` přes `Format(Round(x), 0, 1)`**
+  = desetinný oddělovač podle **locale session, bez oddělovačů tisíců** (ověřeno ve zdroji BC 28.3
+  `ExcelBuffer.ParseCellValue`). Holý `Evaluate(Dec, "Cell Value as Text")` k tomu tedy sedí v každém
+  jazyce — normalizace na tečku + format 9 by tu naopak rozbila CZ (`62,5` → `62.5` OK, ale `Evaluate(...,9)`
+  na `1200` fajn, na CZ text s čárkou ne). Robustní vzor pro import: nejdřív locale `Evaluate`, až při
+  neúspěchu (textová buňka zadaná ručně s druhým oddělovačem) `DelChr` mezer/NBSP + `,`→`.` + `Evaluate(…, 9)`.
+  (2026-09-01, prod-epb-pricingMatrix-bc, code review importu matice.)
 
 ---
 
