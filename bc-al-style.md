@@ -717,6 +717,19 @@ Ověření konkrétního výskytu: App Insights `traces | where customDimensions
 
 ---
 
+### 4.9 `Visible = not Rec."Pole"` v pageextension — kompiluje, ale za běhu „The identifier … could not be found"
+
+`Visible`/`Enabled` výraz na page controlu **nesmí odkazovat na `Rec.<pole>`** (ani s `not`): alc to
+přeloží bez varování, ale web klient při otevření stránky hodí *„The identifier 'Use UoM Parameter
+Fields PMEBS' could not be found"* — runtime vyhodnocuje výrazy jen proti **proměnným stránky a jménům
+controlů**, ne proti recordu. Správný vzor: page (`protected`) `Boolean` proměnná, nastavit ji v
+`OnAfterGetRecord` (u karty i `OnAfterGetCurrRecord`) a v `OnValidate` řídícího pole + `CurrPage.Update()`,
+ať se závislá pole schovají hned po kliknutí a nečeká se na změnu záznamu. Jednoduché `Visible = Rec.Bool`
+bez `not` u base-app stránek občas funguje, ale nespoléhat — proměnná je vždy bezpečná.
+(2026-09-01, prod-epb-pricingMatrix-bc — setup page Sales & Receivables Setup, chyba reprodukovaná na sandboxu.)
+
+---
+
 ## 10. Moderní AL patterny — výběr podle `app.json`
 
 BC se hýbe rychle. Namespaces, interfaces, isolated storage, Cloud-first
