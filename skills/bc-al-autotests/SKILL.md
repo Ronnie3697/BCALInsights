@@ -35,7 +35,8 @@ v souboru.
    `bc-al`).
 3. Sousední témata: symboly test frameworku z MSSymbols feedu a lokální
    kompilace test appky → `bc-al-tools` (7.12); ID test objektů od konce range
-   → `bc-al-style` (1.12); ruleset konvence → `bc-al-workflow` (12.4).
+   → `bc-al-style` (1.12 „Přidělování ID"); ruleset konvence →
+   `bc-al-workflow` (12.4).
 
 ## TL;DR — nejtvrdší pravidla
 

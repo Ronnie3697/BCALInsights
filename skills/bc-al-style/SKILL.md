@@ -41,7 +41,10 @@ pravidla níže jsou výcuc; detail, příklady kódu a odůvodnění jsou v sou
   (`D365BASIC.PermissionSetExt.al`). Název permissionsetu **≤ 20 znaků**
   (AL0305), plný název do `Caption`. Base-app granty nesmí být přímo v setu,
   který jde do `permissionsetextension` (PTE0018) → neassignable „stavební
-  blok" + `IncludedPermissionSets`. Ruleset patří vedle `app.json` (12.4).
+  blok" + `IncludedPermissionSets`. Víc rolí = vrstvení **Read ⊂ Oper ⊂ Admin**
+  (`D365 READ` → Read, `D365 BASIC` → Oper, `D365 SETUP` → Admin); při
+  refactoru **nepřejmenovávej** existující admin set (Access Control váže na
+  Role ID). Ruleset patří vedle `app.json` (12.4 v `bc-al-workflow`).
 - **1.3** Doprovodný soubor = stejný název vč. sufixu typu (`X.Report.docx`,
   `Y.ControlAddIn.js`).
 - **1.4** `Description` (EN, 1–2 věty) na codeunit / report / tableextension /
@@ -51,16 +54,20 @@ pravidla níže jsou výcuc; detail, příklady kódu a odůvodnění jsou v sou
   ≤ ~200 znaků, žádný technický žargon.
 - **1.6 / 1.7** `[IntegrationEvent]` publishery na konec objektu; `actionref`
   na konec `actions {}`.
-- **1.8** Prefix `Temp` jen pro `Record X temporary` (AA0228 / AA0021).
-- **1.9** `StyleExpr` = Text/Boolean/Code proměnná, ne enum literal (LC0086).
+- **1.8** Prefix `Temp` jen pro `Record X temporary` (CodeCop AA0073 / AA0237).
+- **1.9** `StyleExpr` = Text/Boolean/Code proměnná plněná `Format(PageStyle::X)`;
+  string literal `'Favorable'` = LC0086, enum přímo = compile error.
 - **1.10** `Access = Internal` → **nepřepínat** na Public bez schválení;
   zvaž `internalsVisibleTo`.
 - **1.11** Page fieldy víceřádkově, žádné one-linery. `ApplicationArea` na
   page (pageextension fieldy ji ale potřebují), `DataClassification` na
-  tabulce. LC0035 → pole radši doplň na page než `AllowInCustomizations = Never`.
-- **1.12** Typed `Record` místo `RecordRef`, když tabulku znáš. Velikost array
-  v signaturách kompilátor nehlídá. **ID per typ objektu od začátku range**;
-  test objekty (všechny typy, ne jen codeunity) od konce range.
+  tabulce. LC0035 → pole radši doplň na page než `AllowInCustomizations = Never`;
+  `AllowInCustomizations = Always` je deprecated (AL0667) → `AsReadOnly` /
+  `AsReadWrite`.
+- **1.11b / 1.11c** Typed `Record` místo `RecordRef`, když tabulku znáš.
+  Velikost array v signaturách kompilátor nehlídá — drž ji všude stejnou.
+- **1.12** **ID per typ objektu od začátku range** (samostatný namespace per
+  typ); test objekty (všechny typy, ne jen codeunity) od konce range.
 - **1.13** `Format(enum)` = caption → nikdy jako strojově parsovaný token;
   explicitní mapovací procedura.
 - **1.14** Text ↔ Decimal v datové pipeline vždy `Format(x, 0, 9)` /
@@ -72,12 +79,15 @@ pravidla níže jsou výcuc; detail, příklady kódu a odůvodnění jsou v sou
   `false` pro destruktivní / nevratné.
 - **4.5** Factbox `SourceTableTemporary`: `Rec.Reset()` smaže SubPageLink
   (filter group 4) → ulož a obnov view kolem reloadu.
-- **4.6** CaptionClass captiony se cachují per session (Ctrl+F5, ne bug v kódu).
-- **4.7** `modify()` na kontrolu cizí pageextension jde s přímou dependency.
-  **Žádný zápis ani `CurrPage.Update()` v `OnAfterGetRecord` /
+- **4.6** CaptionClass captiony se cachují per session → nejdřív vyluč cache
+  (Ctrl+F5) a per-company setup, až pak hledej bug v kódu.
+- **4.7** `modify()` na kontrolu cizí pageextension jde s přímou dependency
+  (bez ní AL0270).
+- **4.8** **Žádný zápis ani `CurrPage.Update()` v `OnAfterGetRecord` /
   `OnAfterGetCurrRecord`** (smyčka aktualizace) → přepočty do akcí /
   `OnOpenPage`, idempotentně (`Modify` jen když se hodnota liší).
-- **10** Pattern vyber podle `app.json` (runtime / target / application),
-  nedowngraduj repo, které moderní patterny už má. Cloud target: žádný DotNet,
-  File, Automation, WindowsLanguage. API si **ověř** (MS Learn MCP, LinterCop
+- **10** Pattern vyber podle `app.json` (application / platform / target /
+  runtime), nedowngraduj repo, které moderní patterny už má. Cloud target: žádný
+  DotNet, File, Automation, WindowsLanguage. `DT.Date()` / `DT.Time()` místo
+  `DT2Date` / `DT2Time` (LC0083). API si **ověř** (MS Learn MCP, LinterCop
   wiki), nehádej z paměti — zvlášť BC22+ věci.

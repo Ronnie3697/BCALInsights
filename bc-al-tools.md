@@ -12,7 +12,7 @@
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
 Obsahuje:
-- **7.** Nástroje a workflow (7.1–7.15)
+- **7.** Nástroje a workflow (7.1–7.19)
 
 ## 7. Nástroje a workflow
 
@@ -431,6 +431,11 @@ extension — postupuj v tomhle pořadí:
 
 ### 7.7 Git commit / push / PR — **nikdy nedělat sám, ani commit**
 
+**Jediná výjimka: notes repo `C:\WorkTasks\BCALInsights`** (osobní poznámky,
+GitHub `Ronnie3697/BCALInsights`) — tam se nový poznatek commitne a pushne
+rovnou, bez ptaní; smyslem repa je verzovat každou změnu (viz skill `bc-al`).
+Všechno níže platí pro pracovní repa (cust-*, prod-*).
+
 Lokální git operace, které jsou OK bez vyžádání:
 
 - `git checkout` / `git checkout -b` (přepínání a vytváření branchů)
@@ -475,7 +480,7 @@ upstream a rovnou nastaví správný tracking). Zachyceno: cust-alumistr-bc 2026
 **⚠️ Vrátit cizí větev zpět NEJDE — dev nemá ForcePush.** V essencebs ADO běžný
 vývojář **nemá `Git 'ForcePush'` permission** na (sdílené) větve → jakýkoli
 non-fast-forward push (reset větve na starší commit) skončí `TF401027: You need
-the Git 'ForcePush' permission`. `--force-with-lease` na tom nic nezmění (право je
+the Git 'ForcePush' permission`. `--force-with-lease` na tom nic nezmění (právo je
 server-side). Takže když omylem posuneš cizí větev dopředu, **sám ji nevrátíš** —
 revert nech na **autorovi větve** (má práva na svou branch) nebo na **adminovi
 repa**. Nouzově jde přidat *revert-commity* dopředu (fast-forward, bez force), ale
@@ -523,6 +528,7 @@ Když uživatel zmíní číslo ticketu („task 64359", „bug 62667") nebo po�
   relations
 - `wit_my_work_items`, `search_workitem` (fulltext)
 - `wit_create_work_item`, `wit_update_work_item`, `wit_add_work_item_comment`
+  (zápisové — s read-only PAT vrátí 401, viz ⚠️ níže)
 - `repo_*`, `pipelines_*`, `wiki_*`, `core_*` — PRs, buildy, wiki, identity
 
 **Vazba na repo:** Ticket většinou neuvádí, do kterého repa patří — odvoď z
@@ -530,7 +536,7 @@ Když uživatel zmíní číslo ticketu („task 64359", „bug 62667") nebo po�
 Pricing Matrix…), z Area Path a Iteration Path.
 
 **PAT:** base64(`email:rawPAT`) v `env.PERSONAL_ACCESS_TOKEN` v `.claude.json`,
-scope min. Work Items R&W, expiruje ~90 dní (firemní policy). Po expiraci
+scope záměrně jen **Read** (viz ⚠️ níže), expiruje ~90 dní (firemní policy). Po expiraci
 vygeneruj nový na `https://dev.azure.com/essencebs/_usersSettings/tokens`,
 zakóduj a přepiš v `.claude.json` (session pak restartovat).
 
@@ -584,6 +590,13 @@ stejným major). Takže když v `app.json` deklaruješ dependency **starší, ne
 potřebuješ**, feed ti stáhne přesně tu starou verzi — a když v ní ještě nejsou pole /
 procedury, které tvůj kód volá, kompilace v CI padne na `AL0132 'Record X does not
 contain a definition for Y'`, i když aktuální zdroják té závislosti dané pole má.
+
+> **Update 2026-08 (šablona v2-0):** download jede s `versionConstraint = 'MajorMinor'`
+> a select **`LatestMatching`** — z deklarovaného minima `X.Y.Z.0` vznikne range
+> `[X.Y.0.0, X.Y+1.0.0)` a bere se v ní **nejnovější** publikovaná verze. Důsledek:
+> minimum dependency drž ve **stejné minor řadě**, jaká je na feedu publikovaná,
+> jinak range nic nenajde a Compile spadne (detail a případ Subcontracting v 7.17).
+> Dedupe past níže platí beze změny.
 
 **Příznak:** lokálně to „funguje" (máš v `.alpackages` novější symbol nebo jsi ho
 dočasně obešel), ale CI padá na chybějícím poli/proceduře cizí appky. `AL1076 name/
@@ -845,6 +858,29 @@ protože `BC_ARTIFACT` zůstal `28.0/cz/weekly` (Base App 28.0.46665 <
 Application 28.3.0.0 Subcontractingu). Definitivní fix: artifact `28.3/cz/weekly`
 + sjednocení minim `28.3.0.0` v obou app.json.
 
+**Downstream konzumenti (zákaznická repa závislá na appce se Subcontracting
+dependency):** Compile jim projde (alc tranzitivní symboly nepotřebuje), spadne
+až **Publish BC Apps** — server při instalaci závislé appky hlásí `AL1024:
+Symbols for the requested app Subcontracting ... could not be found in the
+database` + `AL0185 Enum '...' is missing`. Tranzitivní download je
+`allButMicrosoft`, takže NuGet výjimka nepomůže (funguje jen na PŘÍMÉ deps
+z app.json). **Fix: stačí bump `BC_ARTIFACT` na `28.3` — cz 28.3 artifact
+Subcontracting obsahuje jako vestavěnou appku** (důkaz: Publish log zeleného
+buildu 27679 hlásí „**Upgrading** Subcontracting", ne „Installing"; v 28.0
+artifactu není vůbec). Přímou dependency přidávat netřeba. Zachyceno:
+cust-zlomek-bc build 27682 (2026-08-05) — configuratorExtension po stažení
+Essence Configurator 28.0.8 z NuGetu.
+
+**Třetí vrstva — staging/deploy prostředí:** Deploy stage šablony instaluje
+build do dlouhoběžícího staging containeru (`BC_STAGING_CONTAINER` z variable
+group `BC28DeployCommonVariables`). Staging na BC 28.0 → instalace appky se
+Subcontracting 28.3 dependency spadne stejným `AL1024`. Temporary workaround
+(Igor, commit `072eb2d` 2026-08-05): zakomentovaná celá variable group v
+`azure-pipelines.yml` → Deploy joby se přeskočí (podmínka na existenci
+proměnných). ⚠️ Vedlejší efekt: vypne se tím i `DeployToFileShare` — release
+file share nedostává nové `.app`. Trvalé řešení: staging container přestavět
+z cz 28.3 artifactu a variable group vrátit.
+
 ### 7.18 Essence Deploy Staging — `sync_mode` je hardcoded 'Add', destruktivní schema změna ho shodí
 
 `ALBuildPipeline2.yml` (v2-0) má v Deploy stage job `DeployToStagingEnvironment`
@@ -881,35 +917,12 @@ nejde sync mode nastavit** (literál, ani variable trik nefunguje).
   smaže úplně** — odstranění pole, které bylo v předchozí nasazené verzi Removed,
   už destructive check nehlásí. Stuby tak v kódu žijí jen jednu verzi. Pozor:
   všechna cílová prostředí musí mezikrok (verzi N) opravdu dostat — prostředí,
-  které skočí rovnou z verze N−1 na N+1, spadne stejně.
+  které skočí rovnou z verze N−1 na N+1, spadne stejně. U live zákazníka to
+  skládej s bodem výše: `Pending` (N, migrace dat) → `Removed` (N+1) → smazat (N+2).
 - ⚠️ ForceSync **nenávratně zahodí data** odstraněných polí — u zákazníka v ostrém
   provozu patří před destruktivní změnu obsolete fáze + migrace, ne ForceSync.
   (Zachyceno 2026-08-05, prod-epb-pricingMatrix-bc build 27692 — odstranění
   Width/Height PMEBS při parametrizaci os; zákazník nebyl live → ForceSync OK.)
-
-**Downstream konzumenti (zákaznická repa závislá na appce se Subcontracting
-dependency):** Compile jim projde (alc tranzitivní symboly nepotřebuje), spadne
-až **Publish BC Apps** — server při instalaci závislé appky hlásí `AL1024:
-Symbols for the requested app Subcontracting ... could not be found in the
-database` + `AL0185 Enum '...' is missing`. Tranzitivní download je
-`allButMicrosoft`, takže NuGet výjimka nepomůže (funguje jen na PŘÍMÉ deps
-z app.json). **Fix: stačí bump `BC_ARTIFACT` na `28.3` — cz 28.3 artifact
-Subcontracting obsahuje jako vestavěnou appku** (důkaz: Publish log zeleného
-buildu 27679 hlásí „**Upgrading** Subcontracting", ne „Installing"; v 28.0
-artifactu není vůbec). Přímou dependency přidávat netřeba. Zachyceno:
-cust-zlomek-bc build 27682 (2026-08-05) — configuratorExtension po stažení
-Essence Configurator 28.0.8 z NuGetu.
-
-**Třetí vrstva — staging/deploy prostředí:** Deploy stage šablony instaluje
-build do dlouhoběžícího staging containeru (`BC_STAGING_CONTAINER` z variable
-group `BC28DeployCommonVariables`). Staging na BC 28.0 → instalace appky se
-Subcontracting 28.3 dependency spadne stejným `AL1024`. Temporary workaround
-(Igor, commit `072eb2d` 2026-08-05): zakomentovaná celá variable group v
-`azure-pipelines.yml` → Deploy joby se přeskočí (podmínka na existenci
-proměnných). ⚠️ Vedlejší efekt: vypne se tím i `DeployToFileShare` — release
-file share nedostává nové `.app`. Trvalé řešení: staging container přestavět
-z cz 28.3 artifactu a variable group vrátit.
-
 
 ### 7.19 Smíchané verze MS symbolů v `.alpackages` → falešné AL0132 na polích lokalizace (bez AL1022)
 

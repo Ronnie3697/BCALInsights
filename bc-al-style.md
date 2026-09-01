@@ -305,10 +305,12 @@ actions
 **Proč:** Čitelnost — nejdřív vidíš definici akce (co dělá), pak teprve kam
 se promuje. Obrácené pořadí nutí čtenáře skákat tam a zpět.
 
-### 1.8 Prefix `Temp` — jen pro skutečně temporary recordy (AA0228 / AA0021)
+### 1.8 Prefix `Temp` — jen pro skutečně temporary recordy (CodeCop AA0073 / AA0237)
 
 Prefix `Temp` u proměnné typu `Record` je v AL **rezervovaný pro
-`Record X temporary`**. LinterCop na to má pravidla AA0228 / AA0021.
+`Record X temporary`**. CodeCop na to má dvě pravidla: **AA0073** (temporary
+proměnná musí mít prefix `Temp`) a **AA0237** (ne-temporary proměnná ho mít
+nesmí). Obě jsou default Warning → na Essence CI (`failOn warning`) shodí build.
 
 ```al
 // Špatně — TempReqLine není temporary, jen filter holder
@@ -326,11 +328,13 @@ TempReqLine: Record "Requisition Line" temporary;
 do DB, isolated buffer) a linter to označí. Pojmenuj podle role: `Filter*`,
 `Buffer*`, `Existing*`, `New*`, …
 
-### 1.9 `StyleExpr` — vždy `Text`/`Boolean`/`Code`, ne enum literal (LC0086)
+### 1.9 `StyleExpr` — `Text`/`Boolean`/`Code` proměnná plněná `Format(PageStyle::X)`, ne string literal (LC0086)
 
-Property `StyleExpr` na page kontrolu **nepřijímá** `PageStyle` enum přímo. Akceptuje
-jen `Boolean`, `Text` nebo `Code`. Když tam šoupneš `PageStyle::Favorable`, vypadne
-LC0086.
+Property `StyleExpr` na page kontrolu **nepřijímá** `PageStyle` enum přímo — akceptuje
+jen `Boolean`, `Text` nebo `Code` (enum přímo = chyba kompilátoru). Na druhou stranu
+hardcoded string literál (`LineStyle := 'Favorable'`) hlásí LinterCop **LC0086**
+(„Use the new `PageStyle` datatype instead string literals"). Správná cesta je
+tedy kombinace obojího: pomocná proměnná + `Format(PageStyle::X)`.
 
 Správně — drž si pomocnou `Text` proměnnou a plň ji přes `Format(...)`:
 
@@ -405,7 +409,7 @@ custom pole, které nepřidáš na žádnou page přes pageextension, **explicit
   pole bylo na 6 routing/journal pages, jen na Planning Routing chybělo →
   doplněn pageextension místo potlačení.)
 
-### 1.12 Typed `Record` před `RecordRef.Open(...)` + ruční iterací polí
+### 1.11b Typed `Record` před `RecordRef.Open(...)` + ruční iterací polí
 
 `RecordRef` má své místo (generická utility, která nezná tabulku v compile-time —
 data export, validace napříč tabulkami…), ale pro běžnou business logiku, kde
@@ -424,7 +428,7 @@ SalesLine.SetRange("Document No.", SalesHeader."No.");
 if SalesLine.FindSet() then ...
 ```
 
-### 1.12b Array parametry — kompilátor NEkontroluje velikost (jen typ prvku)
+### 1.11c Array parametry — kompilátor NEkontroluje velikost (jen typ prvku)
 
 AL compiler (ověřeno alc 17.0) **nehlásí chybu**, když do `var` parametru typu
 `array[2] of Integer` předáš proměnnou `array[3] of Integer` — kompilace projde
@@ -456,7 +460,7 @@ permissionsetextension  60120, 60121, 60122
 
 Stejně tak **field ID** (per-table namespace — první custom pole na každé
 tabulce = začátek range; výjimka: posted/archive sady drží stejné field ID
-jako zdrojová tabulka kvůli `TransferFields`, viz 3.6) a **enum values**
+jako zdrojová tabulka kvůli `TransferFields`, viz 3.6 v `bc-al-data.md`) a **enum values**
 (per-enum namespace).
 
 **Proč:** Range se zbytečně nevyčerpává (20 ID stačí na 20 objektů *každého*
@@ -628,6 +632,22 @@ CurrPage.Update(false);
 Ukládej/obnovuj **přesně to, co tam bylo** (i prázdný view je validní stav — na
 page open ještě link nemusí být aplikovaný), nevymýšlej filtry ručně.
 
+### 4.6 Dynamické captiony přes `CaptionClass` — cache v session
+
+Pro pole, jejichž caption se řídí setupem (osy pricing matice, dimenze…), se
+používá `CaptionClass = '<Area>,<Expr>'` + subscriber na
+`Codeunit::"Caption Class"` `OnResolveCaptionClass` (vzor: `Features PMEBS`,
+`CaptionClass = 'PMEBS,A'` — priorita: uživatelský název ze setupu → fallback
+na `Field."Field Caption"` vybraného pole). Statický `Caption` nech jako
+fallback pro případ, že resolver nic nevrátí.
+
+**⚠️ Gotcha: resolvnuté captiony se cachují s metadaty stránek per session.**
+Po změně setupu, ze kterého resolver čte (přejmenování osy/parametru), web
+klient dál ukazuje staré captiony — nepomůže zavřít/otevřít stránku. Fix:
+**Ctrl+F5** (hard refresh) nebo odhlásit/přihlásit. Při ladění „proč se caption
+nezměnil" nejdřív vyluč cache a per-company setup, až pak hledej bug v kódu.
+(Ověřeno 2026-08, Zlomek 62464 / PMEBS parametry A/B.)
+
 ### 4.7 `modify()` na kontrolu z CIZÍ pageextension — jde to, s dependency
 
 Když jiná appka přidá na stejnou base page svoje pole a ty ho potřebuješ schovat
@@ -650,26 +670,9 @@ v `app.json`. Bez ní kompilátor kontrolu nevidí a hodí
 `Blanket Purchase Order` pole `Starting/Ending Date AAEBS` se stejným captionem jako
 naše SON pole → schováno přes modify.)
 
-### 4.6 Dynamické captiony přes `CaptionClass` — cache v session
-
-Pro pole, jejichž caption se řídí setupem (osy pricing matice, dimenze…), se
-používá `CaptionClass = '<Area>,<Expr>'` + subscriber na
-`Codeunit::"Caption Class"` `OnResolveCaptionClass` (vzor: `Features PMEBS`,
-`CaptionClass = 'PMEBS,A'` — priorita: uživatelský název ze setupu → fallback
-na `Field."Field Caption"` vybraného pole). Statický `Caption` nech jako
-fallback pro případ, že resolver nic nevrátí.
-
-**⚠️ Gotcha: resolvnuté captiony se cachují s metadaty stránek per session.**
-Po změně setupu, ze kterého resolver čte (přejmenování osy/parametru), web
-klient dál ukazuje staré captiony — nepomůže zavřít/otevřít stránku. Fix:
-**Ctrl+F5** (hard refresh) nebo odhlásit/přihlásit. Při ladění „proč se caption
-nezměnil" nejdřív vyluč cache a per-company setup, až pak hledej bug v kódu.
-(Ověřeno 2026-08, Zlomek 62464 / PMEBS parametry A/B.)
-
 ---
 
-
-### 4.7 „Smyčka aktualizace mezi aktivačními událostmi stránky" — zápis/Update uvnitř OnAfterGet*Record
+### 4.8 „Smyčka aktualizace mezi aktivačními událostmi stránky" — zápis/Update uvnitř OnAfterGet*Record
 
 Platformní chyba *„V rozšíření 'X' byla zjištěna smyčka průběžné aktualizace mezi
 aktivačními událostmi stránky"* (EN cca „update loop detected between page
@@ -718,7 +721,7 @@ podporuje — ne nejnovější pattern, který si pamatuješ.**
 
 1. **Otevři `app.json`** a podívej se na `application`, `platform`, `target`.
 2. **Pak vybírej:** modernější pattern preferuj, ale jen pokud ho runtime
-   uvezene.
+   uveze.
 3. **Nedowngraduj** repo, který už moderní patterny používá. Pokud existující
    kód má namespaces a interfaces, **drž to** — nezačínej míchat flat namespace
    a enum-with-Case-dispatch "pro jistotu".

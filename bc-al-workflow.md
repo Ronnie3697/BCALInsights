@@ -67,7 +67,8 @@ Po skriptu **zkompiluj** (`alc.exe`, viz 7.1) — chytíš tím poškozenou
 strukturu (escape `&` → `&amp;`, neuzavřený tag, špatná entita) hned, ne
 až při deploy.
 
-**Při překladu drž BC CZ konvence z tabulky výše** — zejména `Bin =
+**Při překladu drž BC CZ konvence z tabulky CZ ↔ EN** (sekce 5.z4
+v `bc-al-objects.md`) — zejména `Bin =
 Přihrádka` (ne "Koš"), `Item = Zboží` (ne "Položka"), `Lot = Šarže`. Tool
 sice nabídne `[NAB: SUGGESTION]Sériové č.` jako kratší variantu, ale base
 app cs-CZ používá `Sériové číslo` v plném tvaru — drž to.
@@ -233,6 +234,8 @@ Pokud `docs/` ještě neexistuje, vytvoř ji. **Žádná podsložka
   jeden codeunit), zmiň to v meta info v sekci „Sourozenecké PBI" a
   technickou dokumentaci napiš jen jednou (do MD toho hlavního PBI).
 - Odkazy na DevOps work itemy: `https://dev.azure.com/essencebs/Projects/_workitems/edit/<ID>`.
+- Aktuální **verzi appky nezmiňuj** jako součást scope ticketu — verze se
+  mění nezávisle na obsahu (viz 7.8 v `bc-al-tools.md`).
 
 **Proč:**
 

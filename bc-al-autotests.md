@@ -74,7 +74,7 @@ appky se tedy proti té OnPrem test DB normálně zkompiluje i odběhne. Cajk.
 ## Základy
 
 - Testovací objekty žijí v samostatném **test app** (vlastní `app.json`) – ne v produkčním extension
-- `app.json` test appky má `"target": "OnPrem"` nebo `"Cloud"` dle prostředí + závislost na produkčním extension a na `Tests-TestLibraries` / `System Application Test Library` / `Tests-TestRunner`
+- `app.json` test appky má `"target": "OnPrem"` nebo `"Cloud"` dle prostředí + závislost na produkčním extension a na `Tests-TestLibraries` / `System Application Test Library` / `Test Runner`
 - Codeunit s `Subtype = Test` – každá `[Test]` procedura je jeden testcase
 - Spuštění: VS Code → AL: Run Tests, nebo přes Test Tool stránku (130401) v BC klientu
 
@@ -100,7 +100,7 @@ appky se tedy proti té OnPrem test DB normálně zkompiluje i odběhne. Cajk.
 procedure MyMsgHandler(Message: Text) begin end;
 
 [ConfirmHandler]
-procedure MyConfirmHandler(Question: Text; var Reply: Boolean) begin Reply := true; end;
+procedure MyConfirmHandler(Question: Text[1024]; var Reply: Boolean) begin Reply := true; end;
 
 [ModalPageHandler]
 procedure MyPageHandler(var MyPage: TestPage "My Page") begin end;
@@ -196,7 +196,7 @@ Assert.ExpectedErrorCode('Dialog');
 
 - **Initialize() pattern**: každý test začíná `Initialize()` codeunit-level proceduru, která dělá one-time setup (`isInitialized` flag) a per-test reset. Standardní MS varianta jede přes `Library - Test Initialize` (`OnTestInitialize` → `if isInitialized exit` → `OnBeforeTestSuiteInitialize` → `Commit()` → `OnAfterTestSuiteInitialize`). **Pozor — LinterCop LC0002 vyžaduje komentář u každého `Commit()`** (i v testech), jinak warning. U suite-setup commitu použij např.: `Commit(); // Persist one-time suite setup as a savepoint so it survives the rollback between individual tests.`
 - **Žádné hard-coded ID** – vše přes `Library` helpery, které generují unikátní hodnoty
-- **Jeden test = jeden scénář** – nesmí na sobě záviset (rollback je default)
+- **Jeden test = jeden scénář** – nesmí na sobě záviset (Test Runner každý test odroluje, ale data commitnutá uvnitř codeunitu vidí testy, co běží po něm — viz `asserterror` níže → unikátní kódy, vlastní batch)
 - **Komentáře `[SCENARIO]`, `[GIVEN]`, `[WHEN]`, `[THEN]`** – čitelnost + automatické reporty
 - **Test data v testu, ne v setupu** – ať je vidět co se testuje
 - **Negative testy** – `asserterror` + `Assert.ExpectedError` pro očekávaná selhání
@@ -215,7 +215,7 @@ Assert.ExpectedErrorCode('Dialog');
   epochy (leden, CET +1) ≠ offset letního data (CEST +2), na CZ runneru to ujede
   o hodinu. Správně `Evaluate(ExpectedDT, '2024-06-11T14:40:00Z', 9)` (UTC-aware),
   viz 5.5 v bc-al-objects. Round-trip testy (tam a zpět touž funkcí) jsou OK s obojím.
-- `Commit()` v testovaném kódu = po testu zůstanou data → použij `[TransactionModel(TransactionModel::AutoRollback)]` opatrně, nebo cleanup ručně
+- `Commit()` v testovaném kódu z test runu neprosákne (TestIsolation odroluje i explicitní commity), ale commitnutá data **vidí následující testy v téže codeunit** → izoluj data (unikátní kódy, vlastní batch); `AutoRollback` model `Commit()` rovnou zakazuje (error)
 - Handler musí být v **stejné codeunit** jako test, který ho používá (nebo registrovaný přes `[HandlerFunctions]`)
 - Pokud test spustí UI a chybí handler → **test selže** s "no handler"
 - `TestPage` neumí všechno – pole s `AssistEdit`, některé FactBoxy a custom controly mají omezení
@@ -355,7 +355,7 @@ Vytvoř vlastní `Library - <Extension> ZLK` codeunit:
 
 ### `Library - Manufacturing` není vždycky dostupné
 
-Pokud chybí v `Tests-TestLibraries` build pro tvůj region (CZ build často chybí), Production BOM Header / Routing helper si musíš napsat sám:
+Pokud chybí v `Tests-TestLibraries` build pro tvůj region (u některých CZ buildů chybělo; `prod-ess-configurator-bc/test` ho normálně používá — ověř v symbolech / na MSSymbols feedu, viz 7.12), Production BOM Header / Routing helper si musíš napsat sám:
 
 ```al
 procedure CreateCertifiedProdBOMHeaderForItem(var ProdBOMHeader: Record "Production BOM Header"; ParentItem: Record Item)
@@ -469,7 +469,7 @@ cust-sonnentor-bc PR 9380 build 27993 (`ReqCarryOutRechecksRemainingQuantity`).
 
 ### Placeholdery v testech jsou škodlivější než žádné testy
 
-`Assert.IsTrue(true, ...)` nebo `[Test]` proceduralel který ve skutečnosti nic neověří **dělá test suite zelenou bez regresní ochrany**. Pokud nemůžeš testovaný scénář spolehlivě postavit (např. `OnBeforeActionEvent` subscribery vyžadují TestPage + nestabilní action names), je správné nechat soubor bez `[Test]` procedur a zaznamenat blokátor v `plan.md`/issue, ne psát fake testy.
+`Assert.IsTrue(true, ...)` nebo `[Test]` procedura, která ve skutečnosti nic neověří, **dělá test suite zelenou bez regresní ochrany**. Pokud nemůžeš testovaný scénář spolehlivě postavit (např. `OnBeforeActionEvent` subscribery vyžadují TestPage + nestabilní action names), je správné nechat soubor bez `[Test]` procedur a zaznamenat blokátor v `plan.md`/issue, ne psát fake testy.
 
 ### Essence prod moduly: test app `target: Cloud` + Tests-TestLibraries JE validní kombinace
 

@@ -29,7 +29,8 @@ ohledu na typ úkolu.
 1. **Router → notes.** Podle typu úkolu vyber řádky z tabulky níže a načti
    příslušné skilly (`Skill` tool) **nebo rovnou soubory** — každý skill jen
    říká „přečti `../../<soubor>.md` celý" + TL;DR. Nevíš rozsah → načti všech
-   pět hlavních `bc-al-*.md` (~400–950 řádků, každý se vejde do jednoho Read).
+   pět hlavních `bc-al-*.md` (~400–950 řádků; `bc-al-tools.md` se do jednoho
+   Read **nevejde** — ořízne se kolem ř. 740, zbytek dočti přes `offset`).
    ⚠️ **Každý soubor dočti DO KONCE.** Když Read vrátí oříznutý výstup
    („showing lines X–Y of Z"), okamžitě navaž dalším Read s `offset`.
    Částečně přečtený soubor = nepřečtený soubor.
@@ -102,8 +103,8 @@ Archiv monolitu `bc-al-notes.archived-2026-06-23.md` — **needituj, jen referen
   `bc-al-*.md`, zachovej číslování, mechanicky přes sed/skript, ne přepisem),
   aktualizuj Router tady, `README.md`, Copilot rozcestník
   `C:\Users\dnem\AppData\Roaming\Code\User\prompts\bc-al-notes.instructions.md`
-  a přidej nový skill-wrapper do `skills/`. Důvod: soubory přes ~800 řádků se
-  nevejdou do jednoho readu.
+  a přidej nový skill-wrapper do `skills/`. Důvod: soubory přes ~750 řádků se
+  nevejdou do jednoho readu (limit je ~25k tokenů, ne řádky).
 - **TL;DR ve skillech needituj kvůli novým gotchas** — tam patří jen stabilní
   pravidla; poznatky jdou do `bc-al-*.md`. Skill TL;DR uprav, jen když se
   mění pravidlo samo (a bumpni `version` v `.claude-plugin/plugin.json`).

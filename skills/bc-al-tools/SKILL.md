@@ -38,8 +38,8 @@ build logů jsou v souboru.
    `bc-al`). Soubor se blíží limitu 1000 řádků → při dalším větším doplnění
    ho rozděl (pravidlo ve skillu `bc-al`).
 3. Sousední témata: analyzery a ruleset → `bc-al-workflow` (12); test
-   appka a její symboly → `bc-al-autotests`; ID objektů a affixy →
-   `bc-al-style` (1.2, 1.12).
+   appka a její symboly → `bc-al-autotests`; přidělování object ID →
+   `bc-al-style` (1.12); affixy a permission sety nové appky jsou tady (7.5).
 
 ## TL;DR — nejtvrdší pravidla (čísla = sekce v souboru)
 
@@ -75,10 +75,12 @@ build logů jsou v souboru.
   parsuj pythonem. IPv6 reset → `--dns-result-order=ipv4first`.
 - **7.10** Case-only rename složky = obě cesty v merge → detekce
   `git ls-tree -r HEAD --name-only | sort -f | uniq -di`; rename dvoukrokově.
-- **7.11** NuGet earliest match + **dedupe minim per GUID (vyhrává první
-  app.json)** → sdílenou dependency deklaruj **stejnou verzí ve všech
-  app.json**; verze dependency = ta, kde člen vznikl. Kompatibilitu ověřuj
-  proti balíčku z feedu, ne z lokálních `.alpackages`.
+- **7.11** NuGet: šablona v2-0 jede `MajorMinor` range + `LatestMatching`
+  (dřív earliest match) → minimum dependency drž ve **stejné minor řadě jako
+  na feedu** (7.17). **Dedupe minim per GUID (vyhrává první app.json)** →
+  sdílenou dependency deklaruj **stejnou verzí ve všech app.json**; verze
+  dependency = ta, kde člen vznikl. Kompatibilitu ověřuj proti balíčku
+  z feedu, ne z lokálních `.alpackages`.
 - **7.12** Test symboly z veřejného MSSymbols feedu (flat2 index.json, `curl -L`);
   sandbox package cache + 4 CI analyzery.
 - **7.13** Kolize ID po merge: přečísluj **nenasazenou** stranu — zeptej se,

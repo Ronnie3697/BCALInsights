@@ -30,7 +30,6 @@ cesty) a příklady jsou v souboru.
 
 1. **Přečti `../../bc-al-objects.md` celý.** Vejde se do jednoho Read; když se
    výstup ořízne, okamžitě dočti přes `offset`. Bez přečtení nejednej.
-   Pozor: sekce 5.x4–5.x6 jsou **až za sekcí 11** na konci souboru.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
@@ -46,17 +45,20 @@ cesty) a příklady jsou v souboru.
   v Install `SetAllUpgradeTags()`.
 - **5.3** `No. Series`: **`GetNextNo`** posune řadu (direct posting
   `RunWithCheck`, plain insert); **`PeekNextNo`** neposune (před batch post
-  `Codeunit.Run("Item Jnl.-Post")`, generátory řádků — per `Posting Date`).
+  `Codeunit.Run("Item Jnl.-Post")`, codeunit 241).
   Chyba „Číslo dokladu musí být rovno X+1" = GetNextNo tam, kde patří Peek.
   `Codeunit.Run("Item Jnl.-Post", Rec)` chce napozicovaný Rec (`FindFirst`).
 - **5.4** Kontrola Doc No. vs řada žije **jen v `*-Post Batch`**; read-only
   replika = `No. Series - Batch` (308) + `SetSimulationMode()`, nikdy
-  `SaveState()`.
+  `SaveState()`. Generátor řádků (suggest report): `PeekNextNo` **per
+  `Posting Date`** (ne jednou `Today()` pro celý běh) a řádky jednoho období
+  drž souvisle v pořadí účtování, jinak post spadne.
 - **5.5** Unix timestamp = `CurrentDateTime() - Evaluate('1970-01-01T00:00:00Z', 9)`;
   ne přes `.Date()/.Time()` (timezone posun).
-- **5.x / 5.x2** Item Tracking: nerozšiřovat `Item Tracking Summary` (338 nemá
-  Item No., event bez `var`) → vlastní výběrová page z akce na `Item Tracking
-  Lines` (6510) + temp buffer + `CurrPage.Update(true)`. Prod. Order Line link
+- **5.x / 5.x2** Item Tracking: nerozšiřovat `Item Tracking Summary` (page 6500
+  nad `Entry Summary` 338, která nemá Item No.; event hlášen bez `var` — přeověř,
+  viz 5.y) → vlastní výběrová page z akce na `Item Tracking Lines` (6510) +
+  temp buffer + `CurrPage.Update(true)`. Prod. Order Line link
   přes `"Source Prod. Order Line"`, ne `Source Ref. No.` (= 0).
 - **5.x3** NMEBS: vazba SO řádek ↔ VZ řádek jen přes `Sales Production Ref. NMEBS`.
 - **5.y** al-mcp `ByReference` u event parametrů **nevěřit** → ověř zdroják
@@ -69,17 +71,18 @@ cesty) a příklady jsou v souboru.
   Item přes `OnAfterCreateTempShopifyProduct`.
 - **5.z** DateFormula: půlrok **nejde** → enum + zaokrouhlení v kódu.
 - **5.z2** CaptionClass resolver respektuj `Language` přes `Translation
-  Helper` (53), ne holý `GlobalLanguage()` (LC0022). CZ termíny podle
-  tabulky v souboru (Zboží = Item, Přihrádka = Bin, Šarže = Lot, Montáž =
-  Assembly…), ne doslovný překlad.
+  Helper` (53), ne holý `GlobalLanguage()` (LC0022).
+- **5.z4** CZ ↔ EN termíny podle tabulky v souboru (Zboží = Item, Přihrádka =
+  Bin, Šarže = Lot, Montáž = Assembly…), ne doslovný překlad ze slovníku.
 - **5.z3** CZZ: vazba záloha ↔ doklad v `Advance Letter Application CZZ`;
-  scoped guard přes `EventSubscriberInstance = Manual` + `BindSubscription`.
+  scoped guard přes `EventSubscriberInstance = Manual` + `BindSubscription`;
+  v guardu `IsTemporary()` exit (dialog jede nad temp buffery téže tabulky).
 - **5.x4** `Attached to Line No.` (80): posting bez kontroly, kaskádní delete
   a delete při změně `No.` hlavního řádku.
 - **5.x5** `Requisition Line.OnAfterGetDirectCost` běží vždy na konci
   (filtruj sám); `Req. Wksh.-Make Order` maže řádek sešitu až ve
   `FinalizeOrderHeader` → dvojí započtení; carry-out bere celý batch.
-- **5.x6** Consumption / Transfer nikdy do mínusu bez ohledu na Prevent
+- **5.x6** Consumption (i Assembly) / Transfer nikdy do mínusu bez ohledu na Prevent
   Negative Inventory (`VerifyOnInventory`); `Validate("Unit of Measure Code")`
   přepíše `Qty. per Unit of Measure` → vlastní qty-per až po něm + `Validate(Quantity)`.
 - **11.1** SaaS `HttpClient` vrací `false` s prázdným `GetLastErrorText()` bez
@@ -87,6 +90,8 @@ cesty) a příklady jsou v souboru.
 - **11.2** `UseDefaultNetworkWindowsAuthentication()` = OnPrem-only (compiler
   nehlásí). **11.3** Isolated Storage scope `Module` default.
 - **11.4 / 11.5** `SecretText.Unwrap()` = OnPrem-only (AL0296) → co
-  potřebuješ v plaintextu, nedrž jen v SecretText. Text → SecretText **jen**
+  potřebuješ v plaintextu, nedrž jen v SecretText; HMAC bez unwrapu přes
+  `Cryptography Management.GenerateHash(Text, SecretText, Option)` (vrací
+  UPPERCASE hex, ne Base64). Text → SecretText **jen**
   `SecretStrSubstNo('%1', TextVar)` (literál neprojde, AL0133). V testech
   `IsEmpty()` + chování, ne obsah.

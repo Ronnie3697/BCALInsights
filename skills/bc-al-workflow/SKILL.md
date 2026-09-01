@@ -34,7 +34,7 @@ příklady jsou v souboru.
    `bc-al`).
 3. Sousední témata: kompilace z CLI, al-mcp, GitHub source, git/PR → `bc-al-tools`
   (7.1–7.3, 7.7); moderní patterny a Cloud target → `bc-al-style` (10);
-  CZ↔EN terminologie → `bc-al-objects` (5.z2).
+  CZ↔EN terminologie → `bc-al-objects` (5.z4).
 
 ## TL;DR — nejtvrdší pravidla (čísla = sekce v souboru)
 
@@ -56,7 +56,7 @@ příklady jsou v souboru.
   (žádná podsložka), pořadí: meta → upravené appky → Description → AC → odkazy
   → příklad využití → technická dokumentace (jen když vznikly objekty/pole).
   Identifikátory EN, prózu CZ. Piš až po dokončení implementace; verzi appky
-  nezmiňuj.
+  nezmiňuj (7.8 v `bc-al-tools`).
 - **9.1 / 9.2** Před editem: hlavička objektu (id, namespace, co rozšiřuje)
   a **`app.json`** (`idRanges`, `dependencies`, `target`, `runtime`,
   `platform`, `application`).
@@ -74,6 +74,6 @@ příklady jsou v souboru.
   v kontextu.
 - **12.3** Runtime error → z hlášky a stacku nejpravděpodobnější fix → build →
   re-run na reálných datech. Žádné „co kdyby data vypadala takhle" smyčky.
-- **12.4** Essence build bere **první `*Ruleset*.json` rekurzivně ve složce
-  s `app.json`**; `ruleSetPath` v `app.json` = AL0124; `.vscode` je
+- **12.4** Essence build bere **první `*Ruleset*.json` (case-insensitive)
+  rekurzivně ve složce s `app.json`**; `ruleSetPath` v `app.json` = AL0124; `.vscode` je
   gitignored, `.code-workspace` řídí jen editor. `failOn = 'warning'`.

@@ -120,9 +120,10 @@ end;
 ```
 
 **Výjimka — triggery v tableextension:** Uvnitř `trigger OnBeforeInsert` /
-`OnAfterInsert` / `OnBeforeModify` / `OnAfterModify` **nevolej Insert ani
-Modify vůbec** (ani s argumentem) — zápis proběhne automaticky jako součást
-původní operace. Viz sekce 3.1.
+`OnAfterInsert` / `OnBeforeModify` **nevolej Insert ani Modify vůbec** (ani
+s argumentem) — zápis proběhne automaticky jako součást původní operace.
+**Jediná výjimka je `OnAfterModify`** — tam změnu musíš uložit
+`Rec.Modify(false)`, jinak se ztratí. Detail a odůvodnění v sekci 3.1.
 
 **Vždy explicitní `RunTrigger` (LinterCop LC0040):** parametr piš na **všech**
 build-in metodách, co ho mají — nejen `Insert`/`Modify`/`Delete`, ale i
@@ -596,7 +597,7 @@ Když přidáváš pole na `Sales Header`/`Sales Line` (nebo Purchase ekvivalent
       `Posted Sales Shipment`, `Posted Sales Credit Memo`, …)
 - [ ] Pokud zdroj je FlowField → subscriber na `OnAfter...Insert` cílové tabulky
 - [ ] Description property u všech nových tableextension / pageextension
-      (sekce 1.4)
+      (sekce 1.4 v `bc-al-style.md`)
 - [ ] Test: vytvoř doc → vyplň pole → Post → ověř hodnotu na posted dokumentu
 
 ### 3.6b Sales Line `Validate("No.")` dělá `Init()` → vlastní pole se tiše ztratí v base cestách, které No. znovu validují

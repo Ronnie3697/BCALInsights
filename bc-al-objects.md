@@ -1,7 +1,9 @@
 # BC/AL poznámky — Specifické objekty, API & SaaS gotchas
 
 > Část rozděleného `bc-al-notes.md` (rozsekáno 2026-06-23; archiv: `bc-al-notes.archived-2026-06-23.md`).
-> Načítej, když řešíš: No. Series, Upgrade Tag, All Profile, Item Tracking/Lot, Unix timestamp, HttpClient na SaaS, Cloud-only gotchas, SecretText.
+> Načítej, když řešíš: No. Series, Upgrade Tag, All Profile, Item Tracking/Lot, Reservation Entry u VZ, NMEBS vazba SO↔VZ, Unix timestamp,
+> atributy zboží, Shopify Connector, DateFormula, CaptionClass/Translation Helper, CZ↔EN terminologie, CZZ zálohy, Attached to Line No.,
+> Requisition Line / Req. Wksh.-Make Order, VerifyOnInventory, HttpClient na SaaS, Cloud-only gotchas, SecretText.
 >
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
@@ -53,8 +55,8 @@ průchodu deníkovou tabulkou).
   codeunit při zaúčtování dokumentu).
 
 **Použít, když:** předvyplňuješ Doc No. na záznamu, který se pak musí
-zaúčtovat přes batch posting codeunit (`Item Jnl.-Post` 23, `Gen. Jnl.-Post`
-80…). Ten codeunit si sérii konzumuje sám během postingu — pokud bys ji
+zaúčtovat přes batch posting codeunit (`Item Jnl.-Post` 241, `Gen. Jnl.-Post`
+231…). Ten codeunit si sérii konzumuje sám během postingu — pokud bys ji
 posunul ty (`GetNextNo`), posting pak vidí Doc No. < current next a hodí
 chybu *"Číslo dokladu musí být rovno..."*.
 
@@ -93,7 +95,7 @@ counter logika.
 
 #### Codeunit.Run("Item Jnl.-Post") vyžaduje napozicovaný Rec
 
-Posting codeunit `Item Jnl.-Post` (23) si na začátku dělá `ItemJnlLine.Copy(Rec)`
+Posting codeunit `Item Jnl.-Post` (241) si na začátku dělá `ItemJnlLine.Copy(Rec)`
 a hned čte field values přímo (nikoli přes filtry):
 
 ```al
@@ -435,6 +437,8 @@ Translation Helper je base-app idiom (má i `SetGlobalLanguageByCode` a
 setup tabulky (jednojazyčné Text pole) se nepřekládají — jazykový switch se týká jen
 fallbacku na Field caption. (2026-08, prod-epb-pricingMatrix-bc, CaptionClass os matice.)
 
+### 5.z4 CZ ↔ EN terminologie BC
+
 České termíny v BC mají ustálené EN ekvivalenty (názvy tabulek, polí,
 captionů). Nezaměňovat za "doslovný" překlad ze slovníku.
 
@@ -497,92 +501,6 @@ Poznatky z EF Advance CZ (WI 63636, 2026-08):
   Kontrola tak platí přesně pro interaktivní dialog a systémové cesty nevidí.
   Lokální codeunit proměnná v OnAction drží subscription po dobu volání. V guardu
   nezapomenout `IsTemporary()` exit (dialog pracuje s temp buffery téže tabulky).
-
-## 11. SaaS gotchas — HttpClient a Cloud target
-
-### 11.1 HttpClient na SaaS — silent fail bez Allow HttpClient Requests
-
-V SaaS sandboxu / produkci `HttpClient.Get()` / `HttpClient.Send()` může
-vracet **`false` s prázdným `GetLastErrorText()`**, pokud extension nemá
-povolený outbound HTTP. Uživatel to musí povolit v:
-
-**Extension Management → najít extension → Configure → zapnout
-"Allow HttpClient Requests"**
-
-Důsledky pro vývoj:
-
-- **V README** příslušné appky to popsat — "tato extension volá X, vyžaduje
-  zapnutý Allow HttpClient Requests".
-- **V kódu** mít čistou error message — pokud `Send`/`Get` vrátí `false` a
-  `LastErrorText` je prázdný, je to skoro jistě tohle. Hlasit uživateli
-  konkrétně, ne generic "HTTP failed".
-- **V container / OnPrem buildu toggle neexistuje** — HTTP funguje vždycky.
-  Rozdíl mezi dev container a SaaS je častý zdroj zmatku ("u mě to fungovalo!").
-  Při hlášení problému vždycky řekni, **na jakém scope jsi testoval**.
-
-### 11.2 `HttpClient.UseDefaultNetworkWindowsAuthentication()` = OnPrem-only
-
-Compiler ji v `target: "Cloud"` extensionu **přijme** (!), ale runtime padne.
-Pro Cloud target tuhle metodu nepoužívej. Pokud potřebuješ autentizaci, jdi
-přes OAuth (`SecretText` token v `HttpRequestMessage` headerech) nebo Basic
-auth se secretem z Isolated Storage.
-
-### 11.3 Další Cloud-only gotchas
-
-- `HttpClient.SkipDefaultUserAgentSet := true` — funguje, ale BC ti pak
-  posílá header `User-Agent: Dynamics 365 Business Central` defaultně.
-  Pokud cílový endpoint kontroluje UA, nastav vlastní.
-- `Codeunit.IsolatedStorage` má **scope** parametr (`User`, `Company`,
-  `CompanyAndUser`, `Module`). Module je defaultní pro per-extension secrets
-  — sdílené napříč companies, izolované od jiných extension.
-
-### 11.4 `SecretText.Unwrap()` = OnPrem-only (AL0296)
-
-`SecretText` jde na Cloud targetu vytvořit i poslat do HttpClient headeru
-(`SecretStrSubstNo`), ale **zpátky na Text ho nedostaneš** — `Unwrap()` má
-scope OnPrem a compiler hodí `AL0296: ... has scope 'OnPrem' and cannot be
-used for 'Cloud' development`.
-
-Důsledky:
-
-- Hodnota, kterou někdy potřebuješ v plaintextu (HTML formulář ke stažení,
-  query string, obsah souboru), **nesmí žít jen v SecretText / Isolated
-  Storage** — ulož ji jako normální pole setup tabulky. Typicky OAuth
-  `client_id`: posílá se stejně v browser formuláři, není to secret (na
-  rozdíl od `client_secret`).
-- Crypto nad secretem řeš overloady, které berou SecretText jako parametr:
-  `Cryptography Management.GenerateHash(InputString: Text; Key: SecretText;
-  HashAlgorithmType: Option HMACMD5,HMACSHA1,HMACSHA256,HMACSHA384,HMACSHA512): Text`
-  spočítá HMAC bez unwrapu a vrátí **UPPERCASE hex** (ne Base64) jako plain
-  Text. Lowercase hex → `LowerCase()`.
-
-### 11.5 Text → SecretText — jde JEN přes `SecretStrSubstNo` s Text PROMĚNNOU
-
-Jak (ne)dostat Text do SecretText (ověřeno alc 17.0 / runtime 17, 2026-07,
-prod-ess-dotykackaConnector-bc testy):
-
-```al
-// NEfunguje — přiřazení: AL0122 Cannot implicitly convert type 'Text' to 'SecretText'
-MySecret := 'literal';
-MySecret := TextVar;
-
-// NEfunguje — Text LITERÁL jako substituční argument: AL0133 (Argument 2: Text→SecretText)
-MySecret := SecretStrSubstNo('%1', 'literal');
-
-// Funguje — Text PROMĚNNÁ jako substituční argument
-TextVar := 'literal';
-MySecret := SecretStrSubstNo('%1', TextVar);
-```
-
-Rozdíl literál vs. proměnná u `SecretStrSubstNo` je neintuitivní — literál
-kompilátor odmítne, proměnnou vezme. V testech (i kódu) proto secret hodnoty
-vždy nejdřív do lokální `Text` proměnné a pak `SecretStrSubstNo('%1', X)`.
-Asserty na hodnotu SecretText v Cloud testech nejde dělat vůbec (Unwrap =
-OnPrem, viz 11.4) — testuj přítomnost přes `SecretText.IsEmpty()` a chování
-(`HasCredentials()`, `HasValidToken()`…), ne obsah.
-
----
-
 
 ### 5.x4 Sales Line "Attached to Line No." (pole 80) — co standard s vazbou dělá
 
@@ -669,3 +587,88 @@ SL akcí dostávají Attached to Line No. subscriberem na
   (`Code()`: `Quantity := "Quantity (Base)"`), nic nepřepočítává. Zachyceno 2026-09-01,
   prod-em-cuttingPlan-bc `Production Journal Mgt. CUEBS.InsertConsumptionJnlLine` (analýza chyby
   z kiosku: přiřazení qty-per z komponenty stojí PŘED `Validate("Unit of Measure Code")`).
+
+## 11. SaaS gotchas — HttpClient a Cloud target
+
+### 11.1 HttpClient na SaaS — silent fail bez Allow HttpClient Requests
+
+V SaaS sandboxu / produkci `HttpClient.Get()` / `HttpClient.Send()` může
+vracet **`false` s prázdným `GetLastErrorText()`**, pokud extension nemá
+povolený outbound HTTP. Uživatel to musí povolit v:
+
+**Extension Management → najít extension → Configure → zapnout
+"Allow HttpClient Requests"**
+
+Důsledky pro vývoj:
+
+- **V README** příslušné appky to popsat — "tato extension volá X, vyžaduje
+  zapnutý Allow HttpClient Requests".
+- **V kódu** mít čistou error message — pokud `Send`/`Get` vrátí `false` a
+  `LastErrorText` je prázdný, je to skoro jistě tohle. Hlasit uživateli
+  konkrétně, ne generic "HTTP failed".
+- **V container / OnPrem buildu toggle neexistuje** — HTTP funguje vždycky.
+  Rozdíl mezi dev container a SaaS je častý zdroj zmatku ("u mě to fungovalo!").
+  Při hlášení problému vždycky řekni, **na jakém scope jsi testoval**.
+
+### 11.2 `HttpClient.UseDefaultNetworkWindowsAuthentication()` = OnPrem-only
+
+Compiler ji v `target: "Cloud"` extensionu **přijme** (!), ale runtime padne.
+Pro Cloud target tuhle metodu nepoužívej. Pokud potřebuješ autentizaci, jdi
+přes OAuth (`SecretText` token v `HttpRequestMessage` headerech) nebo Basic
+auth se secretem z Isolated Storage.
+
+### 11.3 Další Cloud-only gotchas
+
+- `HttpClient.SkipDefaultUserAgentSet := true` — funguje, ale BC ti pak
+  posílá header `User-Agent: Dynamics 365 Business Central` defaultně.
+  Pokud cílový endpoint kontroluje UA, nastav vlastní.
+- `IsolatedStorage` (built-in objekt) má **scope** parametr (`User`, `Company`,
+  `CompanyAndUser`, `Module`). Module je defaultní pro per-extension secrets
+  — sdílené napříč companies, izolované od jiných extension.
+
+### 11.4 `SecretText.Unwrap()` = OnPrem-only (AL0296)
+
+`SecretText` jde na Cloud targetu vytvořit i poslat do HttpClient headeru
+(`SecretStrSubstNo`), ale **zpátky na Text ho nedostaneš** — `Unwrap()` má
+scope OnPrem a compiler hodí `AL0296: ... has scope 'OnPrem' and cannot be
+used for 'Cloud' development`.
+
+Důsledky:
+
+- Hodnota, kterou někdy potřebuješ v plaintextu (HTML formulář ke stažení,
+  query string, obsah souboru), **nesmí žít jen v SecretText / Isolated
+  Storage** — ulož ji jako normální pole setup tabulky. Typicky OAuth
+  `client_id`: posílá se stejně v browser formuláři, není to secret (na
+  rozdíl od `client_secret`).
+- Crypto nad secretem řeš overloady, které berou SecretText jako parametr:
+  `Cryptography Management.GenerateHash(InputString: Text; Key: SecretText;
+  HashAlgorithmType: Option HMACMD5,HMACSHA1,HMACSHA256,HMACSHA384,HMACSHA512): Text`
+  spočítá HMAC bez unwrapu a vrátí **UPPERCASE hex** (ne Base64) jako plain
+  Text. Lowercase hex → `LowerCase()`.
+
+### 11.5 Text → SecretText — jde JEN přes `SecretStrSubstNo` s Text PROMĚNNOU
+
+Jak (ne)dostat Text do SecretText (ověřeno alc 17.0 / runtime 17, 2026-07,
+prod-ess-dotykackaConnector-bc testy):
+
+```al
+// NEfunguje — přiřazení: AL0122 Cannot implicitly convert type 'Text' to 'SecretText'
+MySecret := 'literal';
+MySecret := TextVar;
+
+// NEfunguje — Text LITERÁL jako substituční argument: AL0133 (Argument 2: Text→SecretText)
+MySecret := SecretStrSubstNo('%1', 'literal');
+
+// Funguje — Text PROMĚNNÁ jako substituční argument
+TextVar := 'literal';
+MySecret := SecretStrSubstNo('%1', TextVar);
+```
+
+Rozdíl literál vs. proměnná u `SecretStrSubstNo` je neintuitivní — literál
+kompilátor odmítne, proměnnou vezme. V testech (i kódu) proto secret hodnoty
+vždy nejdřív do lokální `Text` proměnné a pak `SecretStrSubstNo('%1', X)`.
+Asserty na hodnotu SecretText v Cloud testech nejde dělat vůbec (Unwrap =
+OnPrem, viz 11.4) — testuj přítomnost přes `SecretText.IsEmpty()` a chování
+(`HasCredentials()`, `HasValidToken()`…), ne obsah.
+
+---

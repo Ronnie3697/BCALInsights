@@ -1,6 +1,6 @@
 # EW Mobile — UI / Control AddIn / JavaScript poznatky
 
-Poznatky z praxe specificky pro mobilní warehouse čtečky (Business Central AL). Doplněk k `bc-al-notes.md` — tam patří obecné BC/AL gotchas, sem patří všechno kolem rendering na mobilu, dotykového UI, Control AddInů, JS/HTML customizace a integrace s scannery.
+Poznatky z praxe specificky pro mobilní warehouse čtečky (Business Central AL). Doplněk k `bc-al-*.md` (hlavně `bc-al-style.md`) — tam patří obecné BC/AL gotchas, sem patří všechno kolem rendering na mobilu, dotykového UI, Control AddInů, JS/HTML customizace a integrace s scannery.
 
 Repo kde se to používá: `C:\WorkTasks\prod-ew-mobileBase-bc` (Essence Warehouse Mobile Base + CZ extension).
 
@@ -153,17 +153,26 @@ end;
 
 Platí i naopak — když má page **part** s vlastním Control AddInem, `SetData` na part musí buďto počkat na Ready jeho vnitřního addinu, nebo mít analogický `UIReady` flag uvnitř té part page.
 
-### Soubor layout konvence (dle bc-al-notes.md)
+### Soubor layout konvence (dle 1.3 v `bc-al-style.md`)
 
 - `MyCustomUI.ControlAddIn.al` ↔ `MyCustomUI.ControlAddIn/` složka
 - Uvnitř `startup.js`, `app.js`, `app.css`, případně `template.html`
 - Control AddIn property `Scripts` / `StyleSheets` cesty jsou **relativní k root projektu**, nikoli k `.al` souboru
 
-**Konkrétní zavedený split v tomto repu** (ew-mobile-base):
-- AL deklarace (page, controladdin) → `app/src/<Feature>/`
-- JS/CSS implementace → `app/src/controlAddIns/<Feature>/`
+**Skutečný stav v repu** (`base/app/src/`, ověřeno 2026-09-01): složky **podle typu
+objektu** (`page/`, `codeunit/`, `table/`, `tableextension/`, … — viz 1.2 v `bc-al-style.md`).
+Jediná feature složka je `Scanner/` (AL deklarace obou control addinů) a JS leží
+v `controlAddins/Scanner/js/` (`Scanner.Startup.js`, `SetFieldFocusAndBlur.js`).
+⚠️ Na disku je složka lowercase `controlAddins`, v AL property `StartupScript` /
+`Scripts` je `src\controlAddIns\Scanner\js\…` — na Windows to projde (case-insensitive),
+na Linux build agentovi by to spadlo; u nového addinu drž case shodný.
 
-Oddělené složky, ale stejný `<Feature>` segment, aby šlo oba páry najít. Viz existující `Scanner/` + `controlAddIns/Scanner/js/`.
+**Návrh splitu pro nové custom UI addiny** (zatím v repu nezavedený):
+- AL deklarace (page, controladdin) → `app/src/<Feature>/`
+- JS/CSS implementace → `app/src/controlAddins/<Feature>/`
+
+Oddělené složky, ale stejný `<Feature>` segment, aby šlo oba páry najít — vzor
+`Scanner/` + `controlAddins/Scanner/js/`.
 
 ### Velikost AddInu — default 100×100 je past
 
@@ -214,10 +223,50 @@ Hosting page volá `CurrPage.Bins.Page.SetData(...)` úplně stejně u obou typ�
 
 ## Scanner integration
 
-- Dedikovaná čtečka posílá scan jako **keyboard input** do focusovaného `<input>` elementu + `Enter`.
-- Pattern: mít v DOMu skrytý (nebo viditelný pro ruční fallback) `<input type="text">` s autofocusem; listener na `keydown Enter` → vezmi value → pošli do AL přes `InvokeExtensibilityMethod`.
+- Dedikovaná čtečka posílá scan jako **keyboard input** (burst znaků) do focusovaného elementu + **suffix `#`** (konfigurace čtečky; `Scanner.Startup.js` na `#` čeká — buffer musí mít ≥ 3 znaky a celý sken musí přijít do 200 ms okna, pak se buffer resetuje). Enter jako terminátor **není** — po přenastavení čtečky na Enter base scanner addin přestane fungovat.
+- Pattern: mít v DOMu skrytý (nebo viditelný pro ruční fallback) `<input type="text">` s autofocusem; listener na terminátor (`#` dle konfigurace čtečky, viz výše — ne Enter) → vezmi value → pošli do AL přes `InvokeExtensibilityMethod`.
 - V AL existuje `Scanner Control Add-in EXEBS` který to už dělá — dá se **kombinovat** s custom Control AddInem (oba usercontrols na page).
 - **SetFieldFocusAndBlurEXEBS** — pomocný control addin co drží focus na Manual Input field. Na custom UI Control AddInu se řeší focusem uvnitř iframe (ne hosting page field).
+- **Jak to base addiny dělají uvnitř:** `Scanner.Startup.js` = `window.parent.addEventListener('keypress', …)` (poslouchá na **celém parent dokumentu**, focus na konkrétním poli nepotřebuje) → `InvokeExtensibilityMethod('Scanned', [{ outScannedString: buffer }])`; `SetFieldFocusAndBlur.js` hledá v `window.parent.document` `<a>` s `innerHTML == caption` a dělá focus + blur na sousedním `<input>`. Oba jsou hack nad interním BC DOM (funguje díky same-origin iframu) — nový kód na tom nestavět.
+
+---
+
+## Zavedené AL vzory v base appce (ověřeno z repa 2026-09-01, HEAD 3d9edca)
+
+Skill `ew-mobile-ui` z téhle sekce cituje; při změně v repu ji aktualizuj.
+
+- **`Scanner Control Add-in EXEBS`** (`base/app/src/Scanner/ScannerControlAddIn.ControlAddin.al`,
+  JS `controlAddins/Scanner/js/Scanner.Startup.js`): jen `StartupScript`, žádné `Scripts`.
+  Eventy `ControlReady()`, `Scanned(content: JsonObject)` (klíč `outScannedString`),
+  `OperationRun(content: JsonObject)`; procedury `InitControls()`, `LoadContent(content: JsonObject)`.
+  JS poslouchá `keypress` na `window.parent`, skládá buffer, terminátor **`#`**,
+  min. 3 znaky, 200 ms okno (viz Scanner integration).
+- **`SetFieldFocusAndBlurEXEBS`** (1×1 px addin, event `Ready()`,
+  `SetFocusOnFieldAndBlur(FieldCaption: Text)`): pages volají
+  `CurrPage.SetFocusAndBlur.SetFocusOnFieldAndBlur('Manual Input')` po zpracování skenu/akce —
+  focus se vrátí do pole Manual Input a hned se udělá blur. Scanner sám focus nepotřebuje.
+- **Manual Input** — textové pole pro ruční zadání kódu; `ItemCardEWM` má navíc
+  `Manual Input Camera` s `ExtendedDatatype = Barcode` (kamera), přepínané
+  `Enabled / Editable / Visible = CameraEnabled` (`EWMFeatures.Codeunit.al` → `IsCameraEnabled()`).
+- **`EWM Interpret Barcode EXEBS`** (codeunit 62201): `InterpretBarcode(Barcode: Text; var NameValueBuffer: Record "Name/Value Buffer")`
+  → `OnBeforeInterpretBarcode(Barcode, NameValueBuffer, isHandled)` → řetězec
+  Item Reference → Item → Variant → Bin → Lot → Serial → Whse Pick → Sales Order →
+  Whse Shipment → Whse Receipt → Resource → Prod. Order Rtng Line (SystemId) → Batch Name →
+  Prod. Order → Machine Center → Work Center → Phys. Invt. Order; první match zapíše do
+  bufferu (jméno = `Enum "Barcode Buffer Name EWM EXEBS"`) a nastaví `isHandled` → zbytek se
+  přeskočí → `OnAfterInterpretBarcode(Barcode, NameValueBuffer)`.
+- **Page-level hook** `OnBeforeInterpretScannedBarcode(parNameValueBuffer: Record "Name/Value Buffer"; var IsHandled: Boolean)`
+  (`[IntegrationEvent(false, false)]`) — na všech 13 skenovacích pages (z 27 v base).
+- **ObjectId check** — skenovací pages kontrolují `CopyStr(CurrPage.ObjectId(false), 6) = Format(Page::…)`,
+  aby sken nezpracovaly, když běží jako subpage (13 pages).
+- **cuegroup Tile akce** (`Image = TileNew / TileRed / TileCyan / TileYellow / TileGreen / TileBlue /
+  TileBrickProducts…`, např. `EWMActivities`) místo action buttonů — větší hit target; pozor na
+  nekonzistentní velikosti tiles (Known limitations výše).
+- **`SourceTableTemporary` + `SetData`** — 5 zobrazovacích pages nad temporary tabulkou,
+  `internal procedure SetData(...)` ve 2 subformech.
+- **`Single Instance EXEBS`** (codeunit) — session state mezi stránkami:
+  `Set/GetSelectedLocation(Code[10])`, `Set/GetHHTPosting(Boolean)` (HHT posting režim čtou
+  subscribery, např. `EWMPreReceiptSubs`).
 
 ---
 
@@ -225,7 +274,7 @@ Hosting page volá `CurrPage.Bins.Page.SetData(...)` úplně stejně u obou typ�
 
 *(doplňuj jak narazíš)*
 
-- Control AddIn běží v **iframu** → žádný přístup k parentovi, žádné localStorage cross-page, sessionStorage OK.
+- Control AddIn běží v **iframu** (same-origin) → `window.parent` **přístupný je** a base addiny (`Scanner.Startup.js`, `SetFieldFocusAndBlur.js`) na něm stojí — je to ale hack závislý na interním BC DOM (může se rozbít s každým BC updatem); nový kód drž uvnitř iframu. localStorage cross-page ne, sessionStorage OK.
 - `CurrPage.UI.Method(...)` volání z AL je **asynchronní** — JS metoda se nespustí okamžitě, ale v dalším render tiku. Pokud hned po volání zavřeš page, metoda se nemusí stihnout zavolat.
 - V BC 27+ bude usercontrol v režimu strict CSP → inline scripty / `eval` nefungují. Všechno v externích JS souborech.
 - Když page má ještě i `field` mimo usercontrol, layout se rozpadne — custom AddIn chce **celou obrazovku**.
@@ -242,7 +291,7 @@ Hosting page volá `CurrPage.Bins.Page.SetData(...)` úplně stejně u obou typ�
 
 - [ ] Pre-Receipt Detail page — co konkrétně vypadá špatně na čtečce?
 - [ ] Whse Receipt Lines — rozmístění tlačítek, velikost fontů
-- [x] Universal — vizuální feedback po skenu → vyřešeno toast + flash animací v Item Card JS demu, pattern lze replikovat
+- [x] Universal — vizuální feedback po skenu → vyřešeno toast + flash animací v Item Card JS demu (demo není v repu, viz Reference), pattern lze replikovat
 - [x] Dlouhé Bin/Lot kódy — v custom AddInu řešíme `word-break: break-all` na bin code a chip komponentami pro meta; v native repeateru zůstává problém
 
 ---
@@ -252,7 +301,7 @@ Hosting page volá `CurrPage.Bins.Page.SetData(...)` úplně stejně u obou typ�
 - BC docs — Control AddIn: https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/developer/devenv-control-addin-object
 - Control AddIn JS API (`Microsoft.Dynamics.NAV.InvokeExtensibilityMethod`): https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/developer/devenv-control-add-in-methods-js
 - Existující v repu: `base/app/src/Scanner/ScannerControlAddIn.ControlAddin.al`, `base/app/src/Scanner/SetFieldFocusAndBlur.ControlAddin.al`
-- **Živý příklad custom UI AddInu v tomto repu** (mobile JS demo Item Card):
+- **Demo custom UI AddInu (mobile JS demo Item Card)** — ⚠️ **v repu NENÍ** (ověřeno 2026-09-01: working tree, všechny větve i historie; lokální experiment, nikdy necommitnutý). Cesty níže jsou jen popis, co demo pokrývalo:
   - AL: `base/app/src/ItemCardJS/ItemCardEWMJS.Page.al` (62250), `ItemCardSubformEWMJS.Page.al` (62251), `ItemCardUIJS.ControlAddin.al`, `ItemCardBinsUIJS.ControlAddin.al`
   - JS/CSS: `base/app/src/controlAddIns/ItemCardJS/itemCard.{js,css}`, `itemCardBins.{js,css}`
   - Demo pokrývá: dva AddIny na jedné Card page (hlavní + part), Ready race handling, fullscreen height pattern, bin cards s chipy, toast, flash animace. Akce na RoleCenter: `EWMActivities.Page.al` → "Item Detail (JS)" (červená dlaždice).
@@ -273,7 +322,7 @@ Před jakýmkoliv UI/JS tuningem v tomto repu nejdřív přečti tenhle soubor.
 
 ## Budoucí migrace všech page do JS kabátku — strategie
 
-Až bude zelená od šéfa na předělání všech mobilních page do Control AddIn stylu (jako je teď Item Card JS + Bin Content Card JS demo), nejdřív si zvědoměle rozhodnout tyhle tři věci, **než** začneme klonovat patterny do 20 page:
+Až bude zelená od šéfa na předělání všech mobilních page do Control AddIn stylu (jako bylo Item Card JS + Bin Content Card JS demo — necommitnuté, viz Reference), nejdřív si zvědoměle rozhodnout tyhle tři věci, **než** začneme klonovat patterny do 20 page:
 
 ### 1. Společná JS/CSS knihovna
 

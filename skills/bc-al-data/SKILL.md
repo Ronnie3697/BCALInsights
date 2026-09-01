@@ -50,7 +50,8 @@ jsou v souboru.
 - **2.4** `SetLoadFields(...)` před read-only `FindSet`/`Get` na širokých
   tabulkách; **ne** v cyklu s `Modify`.
 - **2.5** Wildcard + placeholder v `SetFilter` (`'*%1*'`) = LC0050 → string
-  poskládej `StrSubstNo` **předem**. Separátor multi-value pole `~`
+  poskládej `StrSubstNo` **předem** (hodnotu s filter operátory escapuj sám,
+  `StrSubstNo` to nedělá). Separátor multi-value pole `~`
   (ne `|`, `&`, `,`, `..`).
 - **2.6** `Init()` + `TransferFields(Src, false)` → nastav **VŠECHNA PK pole**
   explicitně v každé iteraci (TransferFields PK nepřenáší, Init PK nečistí).
