@@ -27,3 +27,41 @@ GitHub Copilot, Codex) před jakoukoliv AL prací — viz rozcestník
 
 Lokální klon: `C:\WorkTasks\BCALInsights` (do 2026-08-28 žilo v OneDrive
 `AI\BCALInsights`; `ShopifyConnector/` zůstal tam — má vlastní GitHub repo).
+
+## Claude Code skilly (plugin `bcal-insights`)
+
+Repo je zároveň **Claude Code plugin**: `.claude-plugin/plugin.json` +
+`skills/<název>/SKILL.md`. Každý skill je tenký wrapper nad jedním notes
+souborem — frontmatter `description` = trigger (Claude Code si skill načte
+sám podle typu úkolu), tělo = „přečti `../../<soubor>.md` celý" + TL;DR
+stabilních pravidel. **Notes soubory zůstávají zdrojem pravdy**, cesty pro
+Copilot rozcestník se nemění.
+
+| Skill | Soubor | Kdy |
+|---|---|---|
+| `bc-al` (user-invocable, `/bc-al`) | rozcestník = Router + startup checklist + pravidla údržby | první akce každé AL/BC seance |
+| `bc-al-style` | `bc-al-style.md` | konvence, naming, ToolTipy, UI, moderní patterny |
+| `bc-al-data` | `bc-al-data.md` | DB operace, event subscribery, propagace polí |
+| `bc-al-objects` | `bc-al-objects.md` | No. Series, Item Tracking, SaaS/SecretText gotchas… |
+| `bc-al-workflow` | `bc-al-workflow.md` | XLIFF, dokumentace, analyzery, ruleset |
+| `bc-al-tools` | `bc-al-tools.md` | alc, symboly, git/PR, ADO, NuGet, build gotchas |
+| `bc-al-autotests` | `bc-al-autotests.md` | testy + netriviální funkčnost |
+| `ew-mobile-ui` | `ew-mobile-ui-notes.md` | mobilní čtečky, Control AddIn, JS |
+
+**Instalace (osobní, bez marketplace — „skills-dir" auto-load):**
+
+```
+cmd /c mklink /J "%USERPROFILE%\.claude\skills\bcal-insights" "C:\WorkTasks\BCALInsights"
+```
+
+Příští seance Claude Code plugin načte jako `bcal-insights@skills-dir`.
+Ověření: `claude plugin validate C:\WorkTasks\BCALInsights`,
+`claude plugin details bcal-insights`.
+
+**Údržba skillů:**
+
+- Nové gotchas jdou **do notes souborů**, ne do `SKILL.md` — TL;DR ve skillu
+  se mění jen, když se mění pravidlo samo.
+- Při rozdělení notes souboru (> 1000 řádků) přidej nový wrapper do `skills/`
+  a řádek do Routeru ve `skills/bc-al/SKILL.md`.
+- Změna skillů → bump `version` v `.claude-plugin/plugin.json`.

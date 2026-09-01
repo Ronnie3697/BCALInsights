@@ -1,0 +1,18 @@
+{
+  "name": "bcal-insights",
+  "displayName": "BC/AL Insights",
+  "version": "1.0.0",
+  "description": "Poznámky z BC/AL praxe (Business Central, AL) jako Claude Code skilly: startup router bc-al + tematické wrappery nad bc-al-*.md — styl, DB/event subscribery, specifické objekty a SaaS gotchas, XLIFF/dokumentace/analyzery, build/git/Azure DevOps/NuGet, autotesty, mobilní UI čteček.",
+  "author": {
+    "name": "David Němeček",
+    "email": "dnem@essencebs.com"
+  },
+  "repository": "https://github.com/Ronnie3697/BCALInsights",
+  "license": "UNLICENSED",
+  "keywords": [
+    "business-central",
+    "al",
+    "essence",
+    "notes"
+  ]
+}
