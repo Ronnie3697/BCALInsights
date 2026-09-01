@@ -1,34 +1,33 @@
 ---
 name: bc-al-autotests
 description: >-
-  BC/AL automatizované testy z praxe (Business Central, AL test app): kdy jsou
-  autotesty povinné (netriviální funkčnost) a kdy ne, kanonický vzor Essence
-  prod modulů (prod-ess-configurator-bc/test: MS Assert 130000 + Library - *,
+  BC/AL automatizované testy z praxe (Business Central, AL test app): kdy
+  jsou autotesty povinné (netriviální funkčnost), kanonický vzor Essence prod
+  modulů (prod-ess-configurator-bc/test: MS Assert 130000 + Library - *,
   vlastní library jen pro custom tabulky, target Cloud + Test Runner /
   Tests-TestLibraries / System Application Test Library), atributy [Test] /
-  [HandlerFunctions] / [TransactionModel], handler funkce, AAA pattern,
-  TestPage, ExpectedError, TestPermissions = Disabled explicitně (default je
-  Restrictive), internalsVisibleTo a PTE0012, test app bez permissionsetu,
-  symboly test frameworku, Report.RunModal bez request page,
-  OnBeforeActionEvent jen přes TestPage, LibraryInventory.CreateItem base UoM
-  past, asserterror rollbackne GIVEN → Commit, carry-out vlastní batch,
-  placeholder testy zakázané, explicitní dependencies, flat src/, test
-  ruleset dědí hlavní + skrývá LC0015, folder-level ruleSetPath, SaaS-only
-  fallback helpery. Načti při psaní nebo opravě testů, zakládání test appky a
-  při implementaci netriviální funkčnosti.
+  [HandlerFunctions] / [TransactionModel], handlery, AAA pattern, TestPage,
+  ExpectedError, TestPermissions = Disabled explicitně (default Restrictive),
+  internalsVisibleTo a PTE0012, test app bez permissionsetu, symboly test
+  frameworku, Report.RunModal bez request page, OnBeforeActionEvent jen přes
+  TestPage, LibraryInventory.CreateItem base UoM past, asserterror rollbackne
+  GIVEN → Commit, carry-out vlastní batch, placeholder testy zakázané, test
+  ruleset dědí hlavní + skrývá LC0015, SaaS-only fallback helpery. Načti při
+  psaní nebo opravě testů, zakládání test appky a při implementaci
+  netriviální funkčnosti.
 user-invocable: true
 ---
 
 # BC/AL — Autotesty
 
-**Zdroj pravdy:** `../../bc-al-autotests.md` (lokální klon
-`C:\WorkTasks\BCALInsights\bc-al-autotests.md`). Tenhle skill je jen wrapper —
+**Zdroj pravdy:** `C:\WorkTasks\BCALInsights\bc-al-autotests.md`
+(v repu `../../bc-al-autotests.md` relativně k tomuto skillu). Tenhle skill je jen wrapper —
 pravidla níže jsou výcuc; detail, snippety handlerů, helperů a rulesetů jsou
 v souboru.
 
 ## Co udělat
 
-1. **Přečti `../../bc-al-autotests.md` celý.** Vejde se do jednoho Read; když
+1. **Přečti `C:\WorkTasks\BCALInsights\bc-al-autotests.md` celý.** Vejde se do jednoho Read; když
    se výstup ořízne, okamžitě dočti přes `offset`. Bez přečtení nejednej.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill

@@ -1,34 +1,33 @@
 ---
 name: bc-al-objects
 description: >-
-  BC/AL specifické objekty, API a SaaS gotchas z praxe (Business Central, AL):
-  All Profile, Upgrade Tag, No. Series GetNextNo vs PeekNextNo a kontrola
-  Document No. (No. Series - Batch, simulation mode, generátor řádků per
+  BC/AL specifické objekty, API a SaaS gotchas z praxe (Business Central,
+  AL): All Profile, Upgrade Tag, No. Series GetNextNo vs PeekNextNo a
+  kontrola Document No. (No. Series - Batch simulation, generátor řádků per
   Posting Date), Unix timestamp / UTC, Item Tracking a výběr šarže (Lot No.),
-  Reservation Entry source pole u Prod. Order Line, EM Net Make to Order
-  vazba SO ↔ VZ, al-mcp ByReference past, atributy zboží (Item Attribute
-  Management), Shopify Connector variant sync, DateFormula limity,
-  CaptionClass + Translation Helper, CZ ↔ EN terminologie BC, CZZ Advance
-  Payments, Sales Line Attached to Line No., Requisition Line
-  OnAfterGetDirectCost a Req. Wksh.-Make Order, VerifyOnInventory / negativní
-  sklad, Item Journal Line UoM qty-per; HttpClient na SaaS (Allow HttpClient
-  Requests), Windows auth OnPrem-only, Isolated Storage scope, SecretText
-  Unwrap / SecretStrSubstNo. Načti při práci s těmito objekty, číselnými
-  řadami, item trackingem, výrobou, HTTP a secrets na Cloud targetu, překladu
-  českých BC termínů.
+  Reservation Entry u Prod. Order Line, EM Net Make to Order vazba SO ↔ VZ,
+  al-mcp ByReference past, atributy zboží (Item Attribute Management),
+  Shopify Connector variant sync, DateFormula limity, CaptionClass +
+  Translation Helper, CZ ↔ EN terminologie BC, CZZ Advance Payments, Sales
+  Line Attached to Line No., Requisition Line OnAfterGetDirectCost a Req.
+  Wksh.-Make Order, VerifyOnInventory / negativní sklad, Item Journal Line
+  UoM qty-per; HttpClient na SaaS, Windows auth OnPrem-only, Isolated Storage
+  scope, SecretText Unwrap / SecretStrSubstNo. Načti při práci s těmito
+  objekty, číselnými řadami, item trackingem, výrobou, HTTP a secrets na
+  Cloud targetu, překladu českých BC termínů.
 user-invocable: true
 ---
 
 # BC/AL — Specifické objekty, API & SaaS gotchas (sekce 5, 11)
 
-**Zdroj pravdy:** `../../bc-al-objects.md` (lokální klon
-`C:\WorkTasks\BCALInsights\bc-al-objects.md`). Tenhle skill je jen wrapper —
+**Zdroj pravdy:** `C:\WorkTasks\BCALInsights\bc-al-objects.md`
+(v repu `../../bc-al-objects.md` relativně k tomuto skillu). Tenhle skill je jen wrapper —
 pravidla níže jsou výcuc; detail, signatury, tabulky (CZ↔EN termíny, posting
 cesty) a příklady jsou v souboru.
 
 ## Co udělat
 
-1. **Přečti `../../bc-al-objects.md` celý.** Vejde se do jednoho Read; když se
+1. **Přečti `C:\WorkTasks\BCALInsights\bc-al-objects.md` celý.** Vejde se do jednoho Read; když se
    výstup ořízne, okamžitě dočti přes `offset`. Bez přečtení nejednej.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill

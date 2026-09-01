@@ -19,15 +19,15 @@ user-invocable: true
 
 # BC/AL — Dependencies, CI build & deploy (sekce 7.11–7.19)
 
-**Zdroj pravdy:** `../../bc-al-build.md` (lokální klon
-`C:\WorkTasks\BCALInsights\bc-al-build.md`). Tenhle skill je jen wrapper —
+**Zdroj pravdy:** `C:\WorkTasks\BCALInsights\bc-al-build.md`
+(v repu `../../bc-al-build.md` relativně k tomuto skillu). Tenhle skill je jen wrapper —
 pravidla níže jsou výcuc; detail, příkazy, URL feedů, GUIDy a diagnostika
 build logů jsou v souboru. Vyčleněno z `bc-al-tools.md` 2026-09-01, číslování
 7.x je původní (7.1–7.10 zůstává ve skillu `bc-al-tools`).
 
 ## Co udělat
 
-1. **Přečti `../../bc-al-build.md` celý.** Vejde se do jednoho Read; když se
+1. **Přečti `C:\WorkTasks\BCALInsights\bc-al-build.md` celý.** Vejde se do jednoho Read; když se
    výstup ořízne, okamžitě dočti přes `offset`. Bez přečtení nejednej.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill

@@ -20,14 +20,14 @@ user-invocable: true
 
 # BC/AL — Database & Event subscribery (sekce 2, 3)
 
-**Zdroj pravdy:** `../../bc-al-data.md` (lokální klon
-`C:\WorkTasks\BCALInsights\bc-al-data.md`). Tenhle skill je jen wrapper —
+**Zdroj pravdy:** `C:\WorkTasks\BCALInsights\bc-al-data.md`
+(v repu `../../bc-al-data.md` relativně k tomuto skillu). Tenhle skill je jen wrapper —
 pravidla níže jsou výcuc; detail, signatury eventů, příklady a odůvodnění
 jsou v souboru.
 
 ## Co udělat
 
-1. **Přečti `../../bc-al-data.md` celý.** Vejde se do jednoho Read; když se
+1. **Přečti `C:\WorkTasks\BCALInsights\bc-al-data.md` celý.** Vejde se do jednoho Read; když se
    výstup ořízne, okamžitě dočti přes `offset`. Bez přečtení nejednej.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill

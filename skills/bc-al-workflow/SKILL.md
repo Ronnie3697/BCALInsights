@@ -20,14 +20,14 @@ user-invocable: true
 
 # BC/AL — Lokalizace, dokumentace & verifikace (sekce 6, 8, 9, 12)
 
-**Zdroj pravdy:** `../../bc-al-workflow.md` (lokální klon
-`C:\WorkTasks\BCALInsights\bc-al-workflow.md`). Tenhle skill je jen wrapper —
+**Zdroj pravdy:** `C:\WorkTasks\BCALInsights\bc-al-workflow.md`
+(v repu `../../bc-al-workflow.md` relativně k tomuto skillu). Tenhle skill je jen wrapper —
 pravidla níže jsou výcuc; detail, hash algoritmus, struktura dokumentace a
 příklady jsou v souboru.
 
 ## Co udělat
 
-1. **Přečti `../../bc-al-workflow.md` celý.** Vejde se do jednoho Read; když se
+1. **Přečti `C:\WorkTasks\BCALInsights\bc-al-workflow.md` celý.** Vejde se do jednoho Read; když se
    výstup ořízne, okamžitě dočti přes `offset`. Bez přečtení nejednej.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill

@@ -16,7 +16,12 @@ user-invocable: true
 
 Poznámky z praxe žijí v tomhle repu (`C:\WorkTasks\BCALInsights`, GitHub
 `Ronnie3697/BCALInsights`) jako soubory `bc-al-*.md` v kořeni; každý má tenký
-skill-wrapper ve `skills/`. Tenhle skill je rozcestník.
+skill-wrapper ve `skills/`. Tenhle skill je rozcestník — **jediné místo, kde žije
+Router.** Tentýž adresář `skills/` čtou Claude Code (plugin `bcal-insights`),
+Copilot a Codex (junction `~/.agents/skills`) i Antigravity (junction
+`~/.gemini/config/skills`); always-on soubory těch nástrojů (CLAUDE.md,
+`bc-al-notes.instructions.md`, `~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md`) na
+tenhle skill jen odkazují.
 
 **Platí pro:** cokoliv kolem AL / Business Central. **Neplatí pro:** PowerShell
 a jiné skripty, plánovací dokumenty, obecné dotazy, jiné jazyky — tam startup
@@ -27,8 +32,9 @@ ohledu na typ úkolu.
 ## Postup — jako první akce, bez pobídnutí, paralelně v jednom bloku
 
 1. **Router → notes.** Podle typu úkolu vyber řádky z tabulky níže a načti
-   příslušné skilly (`Skill` tool) **nebo rovnou soubory** — každý skill jen
-   říká „přečti `../../<soubor>.md` celý" + TL;DR. Nevíš rozsah → načti všech
+   příslušné skilly (Claude Code: `Skill` tool; Copilot `/název`, Codex
+   `$název`, Antigravity zmínkou jménem) **nebo rovnou soubory** — každý skill
+   jen říká „přečti `C:\WorkTasks\BCALInsights\<soubor>.md` celý" + TL;DR. Nevíš rozsah → načti všech
    šest hlavních `bc-al-*.md` (~400–800 řádků, každý se vejde do jednoho
    Read; kdyby se výstup přece ořízl, dočti přes `offset`).
    ⚠️ **Každý soubor dočti DO KONCE.** Když Read vrátí oříznutý výstup
@@ -38,10 +44,12 @@ ohledu na typ úkolu.
    úkol zahrnuje testy NEBO implementuješ netriviální funkčnost — autotesty jsou
    u netriviální funkčnosti **povinná součást úkolu** (u banalit typu přidání
    pole bez logiky ne).
-3. **al-mcp-server studený start.** Index je po startu seance prázdný →
+3. **al-mcp-server studený start** (pokud je MCP v daném nástroji
+   nakonfigurovaný). Index je po startu seance prázdný →
    `al_packages` s `action: "load"` a `path` = **root repa** (sdílená
    `.alpackages`; cesta na podsložku appky selže). Detail 7.2 v `bc-al-tools.md`.
-4. **bc-code-intelligence (Sam Coder)** — jen u netriviálních úkolů (viz níže):
+4. **bc-code-intelligence (Sam Coder)** — jen u netriviálních úkolů (viz níže)
+   a jen tam, kde je ten MCP nakonfigurovaný (jinak krok přeskoč a řekni to):
    `set_workspace_info` s aktuálním workspace rootem, pak `ask_bc_expert`
    s `preferred_specialist: "sam-coder"`. Bez `set_workspace_info` vrací
    všechny jeho tooly „Server Not Yet Initialized".
@@ -102,15 +110,16 @@ Archiv monolitu `bc-al-notes.archived-2026-06-23.md` — **needituj, jen referen
   (repo/PR/build/datum). Notes repo je **výjimka** z pravidla 7.7. Po doplnění
   `wc -l`: soubor **> 1000 řádků → rozděl** (vyčleň ucelené sekce do nového
   `bc-al-*.md`, zachovej číslování, mechanicky přes sed/skript, ne přepisem),
-  aktualizuj Router tady, `README.md`, Copilot rozcestník
-  `C:\Users\dnem\AppData\Roaming\Code\User\prompts\bc-al-notes.instructions.md`,
-  Antigravity `~/.gemini/GEMINI.md`, Codex `~/.codex/AGENTS.md`, seznam skillů
-  v `~/.claude/CLAUDE.md` a přidej nový skill-wrapper do `skills/` (vzor:
-  7.11–7.19 → `bc-al-build.md`, 2026-09-01). Důvod: soubory přes ~750 řádků se
+  aktualizuj Router tady, `README.md` a přidej nový skill-wrapper do `skills/`
+  (vzor: 7.11–7.19 → `bc-al-build.md`, 2026-09-01). Always-on soubory ostatních
+  nástrojů Router nedrží, jen odkazují sem — ty netřeba měnit; jen seznam skillů
+  v `~/.claude/CLAUDE.md`, pokud ho tam uživatel drží. Důvod: soubory přes ~750 řádků se
   nevejdou do jednoho readu (limit je ~25k tokenů, ne řádky).
 - **TL;DR ve skillech needituj kvůli novým gotchas** — tam patří jen stabilní
   pravidla; poznatky jdou do `bc-al-*.md`. Skill TL;DR uprav, jen když se
   mění pravidlo samo (a bumpni `version` v `.claude-plugin/plugin.json`).
-- **Fallback bez pluginu:** stejný rozcestník + Router žije v Copilot
-  instrukcích `C:\Users\dnem\AppData\Roaming\Code\User\prompts\bc-al-notes.instructions.md`
-  a soubory v `C:\WorkTasks\BCALInsights\`.
+- **Fallback bez skillů:** přečti přímo `C:\WorkTasks\BCALInsights\skills\bc-al\SKILL.md`
+  (tenhle soubor) a notes v `C:\WorkTasks\BCALInsights\`. Ostatní nástroje:
+  Copilot `~/.agents/skills` + `.instructions.md` (applyTo `*.al`), Codex
+  `~/.agents/skills` + `~/.codex/AGENTS.md`, Antigravity `~/.gemini/config/skills`
+  + `~/.gemini/GEMINI.md` — všechno junctiony na `skills/` v tomhle repu.

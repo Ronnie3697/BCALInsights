@@ -2,9 +2,9 @@
 
 Sbírka poznámek (known limitations, patterny, gotchas) pro vývoj Business Central
 extensions v AL. Slouží jako **povinný kontext pro AI asistenty** (Claude Code,
-GitHub Copilot, Codex) před jakoukoliv AL prací — viz rozcestník
-`bc-al-notes.instructions.md` ve VS Code `User/prompts`, který drží Router
-„typ úkolu → soubor" a startup checklist.
+GitHub Copilot, Codex, Antigravity) před jakoukoliv AL prací. Router „typ úkolu →
+soubor / skill" a startup checklist drží **skill `skills/bc-al/SKILL.md`** —
+jediný zdroj; always-on soubory jednotlivých nástrojů na něj jen odkazují.
 
 | Soubor | Obsah |
 |---|---|
@@ -22,8 +22,8 @@ GitHub Copilot, Codex) před jakoukoliv AL prací — viz rozcestník
 
 - Číslování sekcí (1–12) je napříč soubory původní kvůli odkazům „viz X.Y" — neměnit.
 - Soubor nad **1000 řádků** rozděl (vyčleň ucelené sekce do nového `bc-al-*.md`,
-  přidej skill-wrapper do `skills/`, aktualizuj Router ve `skills/bc-al/SKILL.md`,
-  Copilot rozcestník, `~/.gemini/GEMINI.md`, `~/.codex/AGENTS.md` + tento README).
+  přidej skill-wrapper do `skills/`, aktualizuj Router ve `skills/bc-al/SKILL.md`
+  + tento README; always-on soubory ostatních nástrojů Router nedrží).
   Prakticky: ~750+ řádků se už do jednoho Read (~25k tokenů) nevejde — děl dřív.
   Vzor: 7.11–7.19 → `bc-al-build.md` (2026-09-01).
 - Každý nový poznatek = commit s krátkou zprávou, co a odkud (repo, PR, datum).
@@ -53,9 +53,33 @@ Copilot rozcestník se nemění.
 | `ew-mobile-ui` | `ew-mobile-ui-notes.md` | mobilní čtečky, Control AddIn, JS |
 
 Všechny skilly mají `user-invocable: true` — jdou spustit i ručně (`/bc-al-tools`…);
-normálně si je Claude načítá sám podle `description`. Ostatní AI nástroje jedou
-přes rozcestník: Copilot `User/prompts/bc-al-notes.instructions.md`, Antigravity
-`~/.gemini/GEMINI.md`, Codex `~/.codex/AGENTS.md` — všechny drží stejný Router.
+normálně si je agent načítá sám podle `description` (limit 1024 znaků dle spec
+[agentskills.io](https://agentskills.io/specification), u `description` to hlídej).
+Skilly odkazují na notes **absolutní cestou** `C:\WorkTasks\BCALInsights\…` — přes
+junction by relativní `../../` nesedělo.
+
+### Stejné skilly pro Copilot, Codex a Antigravity
+
+`SKILL.md` je otevřený formát Agent Skills, který čtou i ostatní nástroje. Stačí
+junctiony na tenhle adresář `skills/`:
+
+```
+mkdir "%USERPROFILE%\.agents"
+cmd /c mklink /J "%USERPROFILE%\.agents\skills"        "C:\WorkTasks\BCALInsights\skills"   :: Copilot (VS Code) + Codex
+cmd /c mklink /J "%USERPROFILE%\.gemini\config\skills" "C:\WorkTasks\BCALInsights\skills"   :: Antigravity
+```
+
+| Nástroj | Odkud čte | Ruční spuštění |
+|---|---|---|
+| Claude Code | `~/.claude/skills/bcal-insights` (plugin, viz výše) | `/bc-al` |
+| Copilot (VS Code) | `~/.agents/skills/` (též `~/.copilot/skills/`, `~/.claude/skills/<skill>/`) | `/bc-al` |
+| Codex CLI/IDE | `~/.agents/skills/` (+ `.agents/skills/` v repu) | `$bc-al`, `/skills` |
+| Antigravity | `~/.gemini/config/skills/` (+ `.agents/skills/` v repu) | zmínit „bc-al" |
+
+Povinnost startupu („první akce = skill `bc-al`") drží always-on soubor každého
+nástroje: `~/.claude/CLAUDE.md`, Copilot `User/prompts/bc-al-notes.instructions.md`
+(`applyTo: **/*.al`), Codex `~/.codex/AGENTS.md`, Antigravity `~/.gemini/GEMINI.md`.
+Ty drží jen personu + odkaz na skill, **ne** Router.
 
 **Instalace (osobní, bez marketplace — „skills-dir" auto-load):**
 

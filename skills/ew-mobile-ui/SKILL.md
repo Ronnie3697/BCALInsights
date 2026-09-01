@@ -19,8 +19,8 @@ user-invocable: true
 
 # EW Mobile — UI / Control AddIn / JavaScript
 
-**Zdroj pravdy:** `../../ew-mobile-ui-notes.md` (lokální klon
-`C:\WorkTasks\BCALInsights\ew-mobile-ui-notes.md`). Tenhle skill je jen
+**Zdroj pravdy:** `C:\WorkTasks\BCALInsights\ew-mobile-ui-notes.md`
+(v repu `../../ew-mobile-ui-notes.md` relativně k tomuto skillu). Tenhle skill je jen
 wrapper — pravidla níže jsou výcuc; kostry AL/JS, CSS a strategie migrace
 jsou v souboru (sekce „Zavedené AL vzory v base appce" je ověřená přímo
 z repa, ostatní jsou poznámky z praxe). Repo, kde se to používá: `C:\WorkTasks\prod-ew-mobileBase-bc`
@@ -30,7 +30,7 @@ Card JS, Bin Content Card JS) žijí necommitnuté v druhém klonu téhož repa
 
 ## Co udělat
 
-1. **Přečti `../../ew-mobile-ui-notes.md` celý.** Vejde se do jednoho Read;
+1. **Přečti `C:\WorkTasks\BCALInsights\ew-mobile-ui-notes.md` celý.** Vejde se do jednoho Read;
    když se výstup ořízne, dočti přes `offset`. Před jakýmkoliv UI/JS tuningem
    v tom repu.
 2. Obecná AL pravidla platí dál: `bc-al-style` (naming doprovodných souborů
