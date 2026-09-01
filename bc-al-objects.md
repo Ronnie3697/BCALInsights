@@ -645,3 +645,27 @@ SL akcí dostávají Attached to Line No. subscriberem na
   `OnAfterDeleteEvent` chodí per řádek (pattern „list prázdný → reset session stavu" funguje).
 
 (2026-08-28, cust-sonnentor-bc PBI 64046 — review větve BlanketOrders_64046.)
+
+### 5.x6 „Nemáte dostatečné množství zboží … na skladě" u spotřeby/transferu — `VerifyOnInventory` ignoruje Prevent Negative Inventory
+
+- `Item Ledger Entry.VerifyOnInventory` volá `Item Jnl.-Post Line.InsertItemLedgEntry` **jen když je nová
+  položka `Open`**. Záporná položka, která zůstala Open (= po aplikaci zbylo `Remaining Quantity <> 0`),
+  skončí u **Consumption / Assembly Consumption / Transfer VŽDY chybou** `IsNotOnInventoryErr`
+  („You have insufficient quantity of Item %1 on inventory."); ostatní typy (Sale, Negative Adjmt.…)
+  padnou jen když `Item.PreventNegativeInventory()` (Item → Default → Inventory Setup). Spotřeba a
+  transfer prostě nesmí do mínusu (náklad musí odněkud přijít), setup je irelevantní.
+- „Open" vzniká v `ItemQtyPosting → ApplyItemLedgEntry`: filtr (`ApplyItemLedgEntrySetFilters`) =
+  **Item No. + Variant Code + Location Code + Open + Positive** (+ Lot/Serial/Package při specific
+  trackingu, + rezervační vazby); z každé kladné položky jde použít jen `Remaining Quantity −
+  Reserved Quantity`; výstup **téže VZ a téhož řádku VZ** se na spotřebu neaplikuje
+  (`AllowProdApplication`). **Bin Code ani Posting Date do aplikace nevstupují** (přihrádky hlídá
+  Whse. Jnl. jinou chybou).
+- Diagnostika: stav ber v **base MJ per Item + Variant + Location** (ILE `Open=true, Positive=true`,
+  minus rezervace) a porovnej s `Quantity (Base)` řádku deníku, ne s Quantity v MJ řádku.
+- ⚠️ `Item Journal Line.Validate("Unit of Measure Code")` **přepíše `Qty. per Unit of Measure`**
+  hodnotou z Item Unit of Measure (`UOMMgt.GetQtyPerUnitOfMeasure`). Vlastní qty-per (např. délkové
+  kusy komponenty z Cutting Planu) přiřazuj **až po** Validate UoM a pak znovu `Validate(Quantity)`,
+  jinak `Quantity (Base)` = Quantity × Item-UoM qty-per — posting bere uložené `Quantity (Base)`
+  (`Code()`: `Quantity := "Quantity (Base)"`), nic nepřepočítává. Zachyceno 2026-09-01,
+  prod-em-cuttingPlan-bc `Production Journal Mgt. CUEBS.InsertConsumptionJnlLine` (analýza chyby
+  z kiosku: přiřazení qty-per z komponenty stojí PŘED `Validate("Unit of Measure Code")`).

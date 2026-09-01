@@ -536,6 +536,11 @@ zakóduj a přepiš v `.claude.json` (session pak restartovat).
 
 **⚠️ PAT je read-only ZÁMĚRNĚ — 401 na zápisy NEobcházet:** MCP PAT má jen Read scopes **schválně** — Pull Requesty (a další zápisy do ADO) si uživatel dělá **sám**. Když `repo_create_pull_request` / `wit_link_work_item_to_pull_request` vrátí 401, **není to chyba k opravě** — je to záměrná zábrana. **Nikdy** neobcházet jiným credentialem (token z Git Credential Manageru přes `git credential fill`, az CLI, cokoliv jiného) — přesně to se stalo 2026-07-07 (PR 9096, prod-epb-pricingMatrix-bc) a uživatel to výslovně zakázal. Správný postup: připravit větev (merge, resoluce, push pokud je vyžádán), předat uživateli shrnutí + navrhovaný title/description PR a **nechat založení PR na něm**. Platí i když uživatel řekne „potřebuju udělat PR" — tím myslí, že ho udělá on, ne já.
 
+- **`search_code` vrací multi-MB blob (5–6 MB i pro 14 hitů)** — výsledek se uloží do souboru a
+  Read ho nepřečte. Repo + cestu vytáhni pythonem regexem (`"path":"..."`, `"repository":{"name"`),
+  pak soubor stáhni `repo_file get_content`. Hledá jen indexovaná repa — když CUEBS/… objekt
+  nenajde, ověř `repo_repository list` s `repoNameFilter`. (2026-09-01)
+
 **Gotcha — IPv6 reset (ECONNRESET):** Některé MS endpointy (`aex.dev.azure.com`)
 resolvují primárně na IPv6 a corp síť/firewall jejich spojení **resetuje**
 (`fetch failed` / „Failed to fetch tenant for ADO org essencebs"). IPv4 přes
