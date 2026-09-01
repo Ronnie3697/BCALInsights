@@ -5,7 +5,8 @@
 >
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 > Pozn.: sekci 6 byl v původním souboru chybějící `## 6` nadpis (jen v Obsahu) — zde doplněn.
-> **Sekce 7 (nástroje, build, git/PR, Azure DevOps, NuGet) od 2026-08-03 žije v `bc-al-tools.md`** — odkazy „viz 7.x" hledej tam.
+> **Sekce 7 žije mimo tento soubor:** 7.1–7.10 (nástroje, git/PR, Azure DevOps) od 2026-08-03 v `bc-al-tools.md`,
+> 7.11–7.19 (NuGet dependencies, CI build, deploy) od 2026-09-01 v `bc-al-build.md` — odkazy „viz 7.x" hledej tam.
 
 Obsahuje:
 - **6.** Lokalizace a CZ↔EN
@@ -338,10 +339,10 @@ Essence CI má `failOn = 'warning'`, takže jediný warning shodí build. Než o
 
 1. Zkompiluj **každou appku, které ses dotkl** — hlavní app I test app. Test
    appka se často zapomene; symboly test frameworku si půjč ze sibling repa
-   (`.alpackages` např. prod-ess-configurator-bc) nebo z MS feedu (viz 7.12) a
+   (`.alpackages` např. prod-ess-configurator-bc) nebo z MS feedu (viz 7.12 v `bc-al-build.md`) a
    poskládej temp package cache.
 2. Přidej **stejné analyzery jako CI**: `Analyzers.Common`, `CodeCop`,
-   `PerTenantExtensionCop`, `UICop` (test projekty jedou bez rulesetu, viz 7.12;
+   `PerTenantExtensionCop`, `UICop` (test projekty jedou bez rulesetu, viz 7.12 v `bc-al-build.md`;
    u hlavních appek CI přidává ruleset per konvence 12.4). V Git Bash prefix
    `MSYS2_ARG_CONV_EXCL="*"` a plné Windows cesty (viz 7.1).
 3. `info` nálezy build neshodí (dlouhodobý šum typu AA0247 klidně odfiltruj),

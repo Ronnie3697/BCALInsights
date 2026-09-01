@@ -355,7 +355,7 @@ Vytvoř vlastní `Library - <Extension> ZLK` codeunit:
 
 ### `Library - Manufacturing` není vždycky dostupné
 
-Pokud chybí v `Tests-TestLibraries` build pro tvůj region (u některých CZ buildů chybělo; `prod-ess-configurator-bc/test` ho normálně používá — ověř v symbolech / na MSSymbols feedu, viz 7.12), Production BOM Header / Routing helper si musíš napsat sám:
+Pokud chybí v `Tests-TestLibraries` build pro tvůj region (u některých CZ buildů chybělo; `prod-ess-configurator-bc/test` ho normálně používá — ověř v symbolech / na MSSymbols feedu, viz 7.12 v `bc-al-build.md`), Production BOM Header / Routing helper si musíš napsat sám:
 
 ```al
 procedure CreateCertifiedProdBOMHeaderForItem(var ProdBOMHeader: Record "Production BOM Header"; ParentItem: Record Item)

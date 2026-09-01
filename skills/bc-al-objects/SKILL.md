@@ -16,7 +16,7 @@ description: >-
   Unwrap / SecretStrSubstNo. Načti při práci s těmito objekty, číselnými
   řadami, item trackingem, výrobou, HTTP a secrets na Cloud targetu, překladu
   českých BC termínů.
-user-invocable: false
+user-invocable: true
 ---
 
 # BC/AL — Specifické objekty, API & SaaS gotchas (sekce 5, 11)

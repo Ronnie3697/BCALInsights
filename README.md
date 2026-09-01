@@ -12,7 +12,8 @@ GitHub Copilot, Codex) před jakoukoliv AL prací — viz rozcestník
 | `bc-al-data.md` | database operace, event subscribery (sekce 2, 3) |
 | `bc-al-objects.md` | specifické objekty/API, SaaS gotchas (sekce 5, 11) |
 | `bc-al-workflow.md` | lokalizace/XLIFF, dokumentace, verifikace (sekce 6, 8, 9, 12) |
-| `bc-al-tools.md` | nástroje, build, git/PR, Azure DevOps, NuGet (sekce 7) |
+| `bc-al-tools.md` | nástroje (alc, al-mcp, BC source), nová appka, git/PR, Azure DevOps (sekce 7.1–7.10) |
+| `bc-al-build.md` | NuGet dependencies, test symboly, kolize ID, major bump, Essence CI build & deploy gotchas (sekce 7.11–7.19) |
 | `bc-al-autotests.md` | automatizované testy — codeunits, libraries, runner, povinnost |
 | `ew-mobile-ui-notes.md` | UI poznámky k Essence Warehouse Mobile (čtečky) |
 | `bc-al-notes.archived-2026-06-23.md` | archiv původního monolitu — **needitovat**, jen reference |
@@ -21,8 +22,10 @@ GitHub Copilot, Codex) před jakoukoliv AL prací — viz rozcestník
 
 - Číslování sekcí (1–12) je napříč soubory původní kvůli odkazům „viz X.Y" — neměnit.
 - Soubor nad **1000 řádků** rozděl (vyčleň ucelené sekce do nového `bc-al-*.md`,
-  aktualizuj Router v rozcestníku + tento README). Důvod: delší soubory se do
-  jednoho readu AI nástrojů nevejdou.
+  přidej skill-wrapper do `skills/`, aktualizuj Router ve `skills/bc-al/SKILL.md`,
+  Copilot rozcestník, `~/.gemini/GEMINI.md`, `~/.codex/AGENTS.md` + tento README).
+  Prakticky: ~750+ řádků se už do jednoho Read (~25k tokenů) nevejde — děl dřív.
+  Vzor: 7.11–7.19 → `bc-al-build.md` (2026-09-01).
 - Každý nový poznatek = commit s krátkou zprávou, co a odkud (repo, PR, datum).
 
 Lokální klon: `C:\WorkTasks\BCALInsights` (do 2026-08-28 žilo v OneDrive
@@ -39,14 +42,20 @@ Copilot rozcestník se nemění.
 
 | Skill | Soubor | Kdy |
 |---|---|---|
-| `bc-al` (user-invocable, `/bc-al`) | rozcestník = Router + startup checklist + pravidla údržby | první akce každé AL/BC seance |
+| `bc-al` (`/bc-al`) | rozcestník = Router + startup checklist + pravidla údržby | první akce každé AL/BC seance |
 | `bc-al-style` | `bc-al-style.md` | konvence, naming, ToolTipy, UI, moderní patterny |
 | `bc-al-data` | `bc-al-data.md` | DB operace, event subscribery, propagace polí |
 | `bc-al-objects` | `bc-al-objects.md` | No. Series, Item Tracking, SaaS/SecretText gotchas… |
 | `bc-al-workflow` | `bc-al-workflow.md` | XLIFF, dokumentace, analyzery, ruleset |
-| `bc-al-tools` | `bc-al-tools.md` | alc, symboly, git/PR, ADO, NuGet, build gotchas |
+| `bc-al-tools` | `bc-al-tools.md` | alc, symboly, nová appka, git/PR, ADO |
+| `bc-al-build` | `bc-al-build.md` | NuGet, test symboly, kolize ID, major bump, CI build/deploy |
 | `bc-al-autotests` | `bc-al-autotests.md` | testy + netriviální funkčnost |
 | `ew-mobile-ui` | `ew-mobile-ui-notes.md` | mobilní čtečky, Control AddIn, JS |
+
+Všechny skilly mají `user-invocable: true` — jdou spustit i ručně (`/bc-al-tools`…);
+normálně si je Claude načítá sám podle `description`. Ostatní AI nástroje jedou
+přes rozcestník: Copilot `User/prompts/bc-al-notes.instructions.md`, Antigravity
+`~/.gemini/GEMINI.md`, Codex `~/.codex/AGENTS.md` — všechny drží stejný Router.
 
 **Instalace (osobní, bez marketplace — „skills-dir" auto-load):**
 

@@ -662,7 +662,7 @@ v `app.json`. Bez ní kompilátor kontrolu nevidí a hodí
   ne se source expression, takže internal access to neblokuje (číst/zapisovat to pole
   z vlastního kódu pořád nemůžeš).
 - Cena: přidání přímé dependency má dopad na CI (NuGet download + dedupe minim per GUID,
-  viz 7.11 v bc-al-tools). Když je appka už nainstalovaná tranzitivně, runtime se nemění.
+  viz 7.11 v `bc-al-build.md`). Když je appka už nainstalovaná tranzitivně, runtime se nemění.
 - Jméno kontroly zjistíš z al-mcp (`al_search_objects` s `packageName` té appky →
   `ControlChanges` → `Name`) nebo ze zdrojáku.
 

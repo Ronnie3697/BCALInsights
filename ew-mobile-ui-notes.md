@@ -3,6 +3,8 @@
 Poznatky z praxe specificky pro mobilní warehouse čtečky (Business Central AL). Doplněk k `bc-al-*.md` (hlavně `bc-al-style.md`) — tam patří obecné BC/AL gotchas, sem patří všechno kolem rendering na mobilu, dotykového UI, Control AddInů, JS/HTML customizace a integrace s scannery.
 
 Repo kde se to používá: `C:\WorkTasks\prod-ew-mobileBase-bc` (Essence Warehouse Mobile Base + CZ extension).
+JS/HTML/CSS experimenty pro page na čtečkách (Item Card JS, Bin Content Card JS…) žijí v **druhém klonu
+téhož ADO repa** `C:\WorkTasks\prod-ew-mobileBase-bc-JavaScript` — jako untracked/necommitnuté soubory, čistě lokální hřiště.
 
 ---
 
@@ -291,7 +293,7 @@ Skill `ew-mobile-ui` z téhle sekce cituje; při změně v repu ji aktualizuj.
 
 - [ ] Pre-Receipt Detail page — co konkrétně vypadá špatně na čtečce?
 - [ ] Whse Receipt Lines — rozmístění tlačítek, velikost fontů
-- [x] Universal — vizuální feedback po skenu → vyřešeno toast + flash animací v Item Card JS demu (demo není v repu, viz Reference), pattern lze replikovat
+- [x] Universal — vizuální feedback po skenu → vyřešeno toast + flash animací v Item Card JS demu (v JS klonu, viz Reference), pattern lze replikovat
 - [x] Dlouhé Bin/Lot kódy — v custom AddInu řešíme `word-break: break-all` na bin code a chip komponentami pro meta; v native repeateru zůstává problém
 
 ---
@@ -301,9 +303,13 @@ Skill `ew-mobile-ui` z téhle sekce cituje; při změně v repu ji aktualizuj.
 - BC docs — Control AddIn: https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/developer/devenv-control-addin-object
 - Control AddIn JS API (`Microsoft.Dynamics.NAV.InvokeExtensibilityMethod`): https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/developer/devenv-control-add-in-methods-js
 - Existující v repu: `base/app/src/Scanner/ScannerControlAddIn.ControlAddin.al`, `base/app/src/Scanner/SetFieldFocusAndBlur.ControlAddin.al`
-- **Demo custom UI AddInu (mobile JS demo Item Card)** — ⚠️ **v repu NENÍ** (ověřeno 2026-09-01: working tree, všechny větve i historie; lokální experiment, nikdy necommitnutý). Cesty níže jsou jen popis, co demo pokrývalo:
+- **Demo custom UI AddInu (mobile JS demo Item Card + Bin Content Card)** — žije v **druhém klonu**
+  `C:\WorkTasks\prod-ew-mobileBase-bc-JavaScript` (stejný ADO repo `prod-ew-mobileBase-bc`, větev master @ e38c8b1;
+  soubory jsou **untracked / necommitnuté** = lokální hřiště na JS/HTML/CSS pro page na čtečkách).
+  V hlavním klonu `prod-ew-mobileBase-bc` nejsou. Cesty v JS klonu:
   - AL: `base/app/src/ItemCardJS/ItemCardEWMJS.Page.al` (62250), `ItemCardSubformEWMJS.Page.al` (62251), `ItemCardUIJS.ControlAddin.al`, `ItemCardBinsUIJS.ControlAddin.al`
-  - JS/CSS: `base/app/src/controlAddIns/ItemCardJS/itemCard.{js,css}`, `itemCardBins.{js,css}`
+  - JS/CSS: `base/app/src/controlAddins/ItemCardJS/itemCard.{js,css}`, `itemCardBins.{js,css}`
+  - Bin Content Card JS: `base/app/src/BinContentCardJS/` + `base/app/src/controlAddins/BinContentCardJS/binContentCard.{js,css}`
   - Demo pokrývá: dva AddIny na jedné Card page (hlavní + part), Ready race handling, fullscreen height pattern, bin cards s chipy, toast, flash animace. Akce na RoleCenter: `EWMActivities.Page.al` → "Item Detail (JS)" (červená dlaždice).
 
 ---
@@ -322,7 +328,7 @@ Před jakýmkoliv UI/JS tuningem v tomto repu nejdřív přečti tenhle soubor.
 
 ## Budoucí migrace všech page do JS kabátku — strategie
 
-Až bude zelená od šéfa na předělání všech mobilních page do Control AddIn stylu (jako bylo Item Card JS + Bin Content Card JS demo — necommitnuté, viz Reference), nejdřív si zvědoměle rozhodnout tyhle tři věci, **než** začneme klonovat patterny do 20 page:
+Až bude zelená od šéfa na předělání všech mobilních page do Control AddIn stylu (jako Item Card JS + Bin Content Card JS demo v JS klonu, viz Reference), nejdřív si zvědoměle rozhodnout tyhle tři věci, **než** začneme klonovat patterny do 20 page:
 
 ### 1. Společná JS/CSS knihovna
 
@@ -372,7 +378,7 @@ Ne všechno najednou. Seřadit page podle:
 - **Bolest na čtečce** (kde si uživatelé stěžujou nejvíc)
 - **Komplexita** (jednodušší page jako proof of concept, složité na konec)
 
-Každá migrovaná page v repu žije vedle staré (jako teď Item Card JS vedle Item Card) — uživatel si nejdřív vyzkouší, až potvrdí, že JS verze je OK, stará se může odstranit. Nebo radši nechat jako fallback.
+Každá migrovaná page v repu žije vedle staré (jako Item Card JS vedle Item Card v JS klonu) — uživatel si nejdřív vyzkouší, až potvrdí, že JS verze je OK, stará se může odstranit. Nebo radši nechat jako fallback.
 
 ### 5. Testování
 

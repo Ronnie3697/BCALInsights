@@ -15,7 +15,7 @@ description: >-
   EventSubscriber identifier syntax (LC0028), deprecated eventy AL0432. Načti
   při práci s recordy, posting, event subscribery, tableextension triggery,
   propagaci vlastních polí.
-user-invocable: false
+user-invocable: true
 ---
 
 # BC/AL — Database & Event subscribery (sekce 2, 3)

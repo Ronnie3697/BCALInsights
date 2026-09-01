@@ -13,7 +13,7 @@ description: >-
   patterny podle app.json (namespaces, interfaces, SecretText, Cloud target,
   telemetrie). Načti při psaní nebo review AL kódu, naming, ToolTipů,
   page/pageextension, permission setů, výběru patternu.
-user-invocable: false
+user-invocable: true
 ---
 
 # BC/AL — Styl & psaní kódu (sekce 1, 4, 10)

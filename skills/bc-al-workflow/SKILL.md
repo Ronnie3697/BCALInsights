@@ -15,7 +15,7 @@ description: >-
   projekt (*Ruleset*.json vedle app.json). Načti při překladech / XLIFF,
   dokumentaci ticketu, před netriviálním editem, při řešení warningů,
   analyzerů a rulesetů.
-user-invocable: false
+user-invocable: true
 ---
 
 # BC/AL — Lokalizace, dokumentace & verifikace (sekce 6, 8, 9, 12)
@@ -33,7 +33,7 @@ příklady jsou v souboru.
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
 3. Sousední témata: kompilace z CLI, al-mcp, GitHub source, git/PR → `bc-al-tools`
-  (7.1–7.3, 7.7); moderní patterny a Cloud target → `bc-al-style` (10);
+  (7.1–7.3, 7.7); NuGet dependencies, CI build faily → `bc-al-build` (7.11+); moderní patterny a Cloud target → `bc-al-style` (10);
   CZ↔EN terminologie → `bc-al-objects` (5.z4).
 
 ## TL;DR — nejtvrdší pravidla (čísla = sekce v souboru)

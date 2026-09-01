@@ -14,7 +14,7 @@ description: >-
   (iframe, async CurrPage.UI, CSP BC27+), strategie migrace page do JS
   kabátku. Načti při práci s mobilními stránkami, control addiny, JS/CSS,
   skenováním, čtečkami, warehouse mobile UI.
-user-invocable: false
+user-invocable: true
 ---
 
 # EW Mobile — UI / Control AddIn / JavaScript
@@ -24,7 +24,9 @@ user-invocable: false
 wrapper — pravidla níže jsou výcuc; kostry AL/JS, CSS a strategie migrace
 jsou v souboru (sekce „Zavedené AL vzory v base appce" je ověřená přímo
 z repa, ostatní jsou poznámky z praxe). Repo, kde se to používá: `C:\WorkTasks\prod-ew-mobileBase-bc`
-(Essence Warehouse Mobile Base + CZ extension).
+(Essence Warehouse Mobile Base + CZ extension); JS/HTML/CSS experimenty (Item
+Card JS, Bin Content Card JS) žijí necommitnuté v druhém klonu téhož repa
+`C:\WorkTasks\prod-ew-mobileBase-bc-JavaScript`.
 
 ## Co udělat
 
@@ -104,5 +106,6 @@ z repa, ostatní jsou poznámky z praxe). Repo, kde se to používá: `C:\WorkTa
 - Migrace všech page do JS: nejdřív společná `_common/common.{js,css}`
   (v `Scripts` **před** feature.js), `_template/` skeleton, navigační model
   (doporučeno flat + Home button), pořadí podle frekvence/bolesti/komplexity;
-  testovat na reálné čtečce — web i nativní klient renderují různě. Dřívější
-  Item Card JS demo v repu **není** (necommitnutý lokální experiment).
+  testovat na reálné čtečce — web i nativní klient renderují různě. Item Card
+  JS / Bin Content Card JS demo žije necommitnuté v JS klonu
+  `C:\WorkTasks\prod-ew-mobileBase-bc-JavaScript`.

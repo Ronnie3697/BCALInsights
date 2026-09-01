@@ -16,7 +16,7 @@ description: >-
   ruleset dědí hlavní + skrývá LC0015, folder-level ruleSetPath, SaaS-only
   fallback helpery. Načti při psaní nebo opravě testů, zakládání test appky a
   při implementaci netriviální funkčnosti.
-user-invocable: false
+user-invocable: true
 ---
 
 # BC/AL — Autotesty
@@ -34,7 +34,7 @@ v souboru.
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
 3. Sousední témata: symboly test frameworku z MSSymbols feedu a lokální
-   kompilace test appky → `bc-al-tools` (7.12); ID test objektů od konce range
+   kompilace test appky → `bc-al-build` (7.12); ID test objektů od konce range
    → `bc-al-style` (1.12 „Přidělování ID"); ruleset konvence →
    `bc-al-workflow` (12.4).
 
@@ -79,4 +79,5 @@ v souboru.
   aby byl aktivní, `al.ruleSetPath` do `test/.vscode/settings.json`
   (folder-level), workspace-level se resolvuje na hlavní.
 - Symboly `Tests-TestLibraries` nejsou v `.alpackages` → Local-DevEnv
-  s `installTestLibraries` / `AL: Download Symbols` / MSSymbols feed (7.12).
+  s `installTestLibraries` / `AL: Download Symbols` / MSSymbols feed (7.12
+  v `bc-al-build`).

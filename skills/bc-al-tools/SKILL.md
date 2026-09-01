@@ -1,8 +1,8 @@
 ---
 name: bc-al-tools
 description: >-
-  BC/AL nástroje, build, git a Azure DevOps z praxe (Business Central, AL,
-  sekce 7): alc.exe kompilace z CLI (absolutní cesty, analyzery, Git Bash
+  BC/AL nástroje, git a Azure DevOps z praxe (Business Central, AL, sekce
+  7.1–7.10): alc.exe kompilace z CLI (absolutní cesty, analyzery, Git Bash
   MSYS2_ARG_CONV_EXCL, více package cache), al-mcp-server (studený start
   al_packages load, jen signatury → těla procedur na GitHubu, MCP
   CONNECT_TIMEOUT fix), BC source StefanMaron/MSDyn365BC.Code.History (větve
@@ -11,35 +11,31 @@ description: >-
   appky (sibling repo v C:\WorkTasks, extrakce z .app), git commit/push/PR
   nikdy sám + upstream past + ForcePush, verzování app.json, Azure DevOps MCP
   (org essencebs, PAT read-only záměrně, search_code blob, IPv6 reset),
-  case-only rename složky, NuGet earliest match / dedupe minim per GUID, test
-  symboly z MSSymbols feedu, kolize object ID po merge, major version bump
-  checklist, faily testů shazují build, squash merge a two-dot diff,
-  Subcontracting ≥ 28.3 + BC_ARTIFACT, Deploy Staging sync_mode Add /
-  ForceSync / obsolete dvoufázově, smíchané verze MS symbolů (falešné
-  AL0132). Načti při kompilaci, CI/build failech, práci s git / PR / Azure
-  DevOps, dependencies, symbolech, zakládání appky, upgrade BC majoru.
-user-invocable: false
+  case-only rename složky. Načti při kompilaci z CLI, práci se symboly, git /
+  PR / Azure DevOps, zakládání appky. (NuGet dependencies, CI build a deploy
+  gotchas → skill bc-al-build.)
+user-invocable: true
 ---
 
-# BC/AL — Nástroje, build, git & Azure DevOps (sekce 7)
+# BC/AL — Nástroje, git & Azure DevOps (sekce 7.1–7.10)
 
 **Zdroj pravdy:** `../../bc-al-tools.md` (lokální klon
 `C:\WorkTasks\BCALInsights\bc-al-tools.md`). Tenhle skill je jen wrapper —
-pravidla níže jsou výcuc; detail, příkazy, URL feedů, GUIDy a diagnostika
-build logů jsou v souboru.
+pravidla níže jsou výcuc; detail, příkazy, URL a GUIDy jsou v souboru.
+Sekce **7.11–7.19** (NuGet, test symboly, kolize ID, major bump, Essence
+build/deploy) žijí od 2026-09-01 v `bc-al-build.md` → skill `bc-al-build`.
 
 ## Co udělat
 
-1. **Přečti `../../bc-al-tools.md` celý.** Je to nejdelší z notes (~950
-   řádků) — Read ho **ořízne**, pokračuj přes `offset`, dokud nemáš 7.19.
-   Bez přečtení nejednej.
+1. **Přečti `../../bc-al-tools.md` celý.** Vejde se do jednoho Read; když se
+   výstup ořízne, okamžitě dočti přes `offset`. Bez přečtení nejednej.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
-   `bc-al`). Soubor se blíží limitu 1000 řádků → při dalším větším doplnění
-   ho rozděl (pravidlo ve skillu `bc-al`).
-3. Sousední témata: analyzery a ruleset → `bc-al-workflow` (12); test
-   appka a její symboly → `bc-al-autotests`; přidělování object ID →
-   `bc-al-style` (1.12); affixy a permission sety nové appky jsou tady (7.5).
+   `bc-al`).
+3. Sousední témata: dependencies, CI build, deploy → `bc-al-build` (7.11–7.19);
+   analyzery a ruleset → `bc-al-workflow` (12); test appka a její symboly →
+   `bc-al-autotests`; přidělování object ID → `bc-al-style` (1.12); affixy a
+   permission sety nové appky jsou tady (7.5).
 
 ## TL;DR — nejtvrdší pravidla (čísla = sekce v souboru)
 
@@ -75,29 +71,3 @@ build logů jsou v souboru.
   parsuj pythonem. IPv6 reset → `--dns-result-order=ipv4first`.
 - **7.10** Case-only rename složky = obě cesty v merge → detekce
   `git ls-tree -r HEAD --name-only | sort -f | uniq -di`; rename dvoukrokově.
-- **7.11** NuGet: šablona v2-0 jede `MajorMinor` range + `LatestMatching`
-  (dřív earliest match) → minimum dependency drž ve **stejné minor řadě jako
-  na feedu** (7.17). **Dedupe minim per GUID (vyhrává první app.json)** →
-  sdílenou dependency deklaruj **stejnou verzí ve všech app.json**; verze
-  dependency = ta, kde člen vznikl. Kompatibilitu ověřuj proti balíčku
-  z feedu, ne z lokálních `.alpackages`.
-- **7.12** Test symboly z veřejného MSSymbols feedu (flat2 index.json, `curl -L`);
-  sandbox package cache + 4 CI analyzery.
-- **7.13** Kolize ID po merge: přečísluj **nenasazenou** stranu — zeptej se,
-  co běží s daty.
-- **7.14** Major bump: všechny `app.json` (version/platform/application
-  `N.0.0.0`, runtime +1, dependencies minima `N.0.0.0`), `azure-pipelines.yml`
-  (`BC_ARTIFACT`, `Version.Major`), ověř externí deps na feedu.
-- **7.15** Faily testů shazují build (od 2026-07-15) — červený master po
-  nesouvisejícím PR = zpřísněná šablona, faily jsou reálné.
-- **7.16** Squash merge → falešné konflikty a **three-dot diff lže**; co větev
-  přináší = `git diff origin/master HEAD` (two-dot) / `--cached` uprostřed merge.
-- **7.17** Microsoft Subcontracting: minimum `28.3.0.0` ve **všech** app.json
-  **a** `BC_ARTIFACT` na `28.3/cz/…` (MajorMinor constraint; jinak matoucí
-  AL0118/AL0132). Downstream repa: stačí bump artifactu.
-- **7.18** Deploy Staging má `sync_mode: 'Add'` natvrdo → destruktivní schema
-  změna padá; ForceSync **nenávratně maže data** (jde i na SaaS produkci) →
-  u live zákazníka `ObsoleteState = Pending/Removed` dvoufázově.
-- **7.19** Smíchané řady MS symbolů v `.alpackages` (CZ pack 28.4 + Application
-  28.3) → falešné AL0132 bez AL1022; ověř `Application=` v `NavxManifest.xml`,
-  drž jednu řadu.

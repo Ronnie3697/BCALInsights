@@ -29,8 +29,8 @@ ohledu na typ úkolu.
 1. **Router → notes.** Podle typu úkolu vyber řádky z tabulky níže a načti
    příslušné skilly (`Skill` tool) **nebo rovnou soubory** — každý skill jen
    říká „přečti `../../<soubor>.md` celý" + TL;DR. Nevíš rozsah → načti všech
-   pět hlavních `bc-al-*.md` (~400–950 řádků; `bc-al-tools.md` se do jednoho
-   Read **nevejde** — ořízne se kolem ř. 740, zbytek dočti přes `offset`).
+   šest hlavních `bc-al-*.md` (~400–800 řádků, každý se vejde do jednoho
+   Read; kdyby se výstup přece ořízl, dočti přes `offset`).
    ⚠️ **Každý soubor dočti DO KONCE.** Když Read vrátí oříznutý výstup
    („showing lines X–Y of Z"), okamžitě navaž dalším Read s `offset`.
    Částečně přečtený soubor = nepřečtený soubor.
@@ -61,10 +61,11 @@ je drahý.
 | FindSet/locking, Insert/Modify/Delete, TempBlob, SetLoadFields, SetFilter, TransferFields, event subscribery, tableextension triggery, propagace vlastních polí přes posting/archive | `bc-al-data` | `bc-al-data.md` (sekce 2, 3) |
 | No. Series, Upgrade Tag, All Profile, Item Tracking/Lot, Unix timestamp, atributy zboží, Shopify Connector, DateFormula, CaptionClass/Translation Helper, CZ↔EN terminologie, CZZ zálohy, Attached to Line No., Requisition Line, VerifyOnInventory, HttpClient na SaaS, SecretText, Cloud-only gotchas | `bc-al-objects` | `bc-al-objects.md` (sekce 5, 11) |
 | Překlady/XLIFF (NAB AL Tools, trans-unit ID), dokumentace requirementů (`docs/*.md`), co číst před editem (app.json, .alpackages), analyzery AA/CA/PTE/LC, build diagnostika, ruleset | `bc-al-workflow` | `bc-al-workflow.md` (sekce 6, 8, 9, 12) |
-| Kompilace z CLI (alc), symboly (.alpackages, al-mcp, MSSymbols feed), BC source na GitHubu, AL-Go, nová appka v repu, git/commit/PR pravidla, verzování app.json, Azure DevOps MCP/PAT, NuGet dependencies, kolize ID, major version bump, Essence build/deploy gotchas | `bc-al-tools` | `bc-al-tools.md` (sekce 7) |
+| Kompilace z CLI (alc), symboly (.alpackages, al-mcp), BC source na GitHubu, AL-Go, nová appka v repu (GUID, idRanges, affixy, permission sety), source závislé appky, git/commit/PR pravidla, verzování app.json, Azure DevOps MCP/PAT, case-only rename | `bc-al-tools` | `bc-al-tools.md` (sekce 7.1–7.10) |
+| NuGet dependencies a minima (MajorMinor/LatestMatching, dedupe per GUID), symboly test frameworku z MSSymbols feedu, kolize object ID po merge, major version bump, Essence build faily (testy, squash merge, Subcontracting ≥ 28.3, BC_ARTIFACT), Deploy Staging sync mode/ForceSync/obsolete, smíchané verze MS symbolů | `bc-al-build` | `bc-al-build.md` (sekce 7.11–7.19) |
 | Cokoliv kolem automatizovaných testů (test app, libraries, handlery, runner, gotchas) — a implementace netriviální funkčnosti | `bc-al-autotests` | `bc-al-autotests.md` |
 | Mobilní warehouse čtečky (prod-ew-mobileBase-bc): Control AddIn, JS/CSS, scanner, dotykové UI, Interpret Barcode | `ew-mobile-ui` | `ew-mobile-ui-notes.md` |
-| Nejsi si jistý rozsahem | všech 5 hlavních `bc-al-*` | `bc-al-style/data/objects/workflow/tools.md` |
+| Nejsi si jistý rozsahem | všech 6 hlavních `bc-al-*` | `bc-al-style/data/objects/workflow/tools/build.md` |
 
 Číslování sekcí (1–12) je napříč soubory původní, ať fungují odkazy „viz X.Y".
 Archiv monolitu `bc-al-notes.archived-2026-06-23.md` — **needituj, jen reference.**
@@ -102,8 +103,10 @@ Archiv monolitu `bc-al-notes.archived-2026-06-23.md` — **needituj, jen referen
   `wc -l`: soubor **> 1000 řádků → rozděl** (vyčleň ucelené sekce do nového
   `bc-al-*.md`, zachovej číslování, mechanicky přes sed/skript, ne přepisem),
   aktualizuj Router tady, `README.md`, Copilot rozcestník
-  `C:\Users\dnem\AppData\Roaming\Code\User\prompts\bc-al-notes.instructions.md`
-  a přidej nový skill-wrapper do `skills/`. Důvod: soubory přes ~750 řádků se
+  `C:\Users\dnem\AppData\Roaming\Code\User\prompts\bc-al-notes.instructions.md`,
+  Antigravity `~/.gemini/GEMINI.md`, Codex `~/.codex/AGENTS.md`, seznam skillů
+  v `~/.claude/CLAUDE.md` a přidej nový skill-wrapper do `skills/` (vzor:
+  7.11–7.19 → `bc-al-build.md`, 2026-09-01). Důvod: soubory přes ~750 řádků se
   nevejdou do jednoho readu (limit je ~25k tokenů, ne řádky).
 - **TL;DR ve skillech needituj kvůli novým gotchas** — tam patří jen stabilní
   pravidla; poznatky jdou do `bc-al-*.md`. Skill TL;DR uprav, jen když se
