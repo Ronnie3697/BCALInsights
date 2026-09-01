@@ -665,5 +665,21 @@ Po opravě subscriberu na nový codeunit zkontroluj i **název procedury**
 subscriberu (ať odráží nový zdroj) a smaž osiřelé `var` proměnné po přesunu
 metody na tabulku. (2026-06, `prod-em-operOutputChaining-bc`, BC28.)
 
----
+### 3.9 Tableextension gotchas: `modify()` patří do `fields {}`, klíč smí mít jen vlastní pole, globální `var` jako guard
 
+- **`modify("Pole") { trigger OnAfterValidate() ... }` musí být UVNITŘ bloku `fields { }`** tableextensionu
+  (vedle `field(...)`), ne na úrovni objektu za ním — jinak kaskáda `AL0198` („Expected one of the application
+  object keywords…"), `AL0104` („'}' expected") a `AL0114` („integer literal expected"), která na první pohled
+  nevypadá jako chyba umístění.
+- **Klíč v tableextension smí obsahovat jen pole té extension.** `key(X; "Item No.", "My Field")` s base polem =
+  `AL0423: The property 'X' can only be set if the specified fields are from the same table`. Řešení: klíč jen
+  z vlastních polí + `SetRange` na base pole + `SetCurrentKey(vlastní pole)`; SQL si poradí (index bez base
+  pole), u malých tabulek OK. Temporary record ten klíč pro in-memory řazení používá taky.
+- **Globální `var` v tableextension je per instance recordu a přežije vnořené `Validate`** → hodí se jako guard
+  proti smyčce „OnValidate pole A → `Validate(UoM)` → modify-trigger UoM → přepis pole A": flag nastavit před
+  `Validate`, shodit po něm, modify-trigger na flag jen exituje. Guard přes `CurrFieldNo` **nefunguje**, když
+  pole validují jiné appky z kódu (`CurrFieldNo = 0`, typicky konfigurátory).
+
+(2026-09-01, prod-epb-pricingMatrix-bc task 65842 — reverse fill Parametr A/B ↔ Item Unit of Measure.)
+
+---

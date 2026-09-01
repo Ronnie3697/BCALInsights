@@ -287,6 +287,20 @@ k řešení. (Zachyceno: prod-ess-dotykackaConnector-bc, červen 2026.)
 
 V CI to řeší `Run-AlPipeline -installTestLibraries:$true` z `BcContainerHelper`. **Bez stažených symbolů test app vůbec nezkompiluje** (chybí `Library - Sales`, `Library - Inventory`, `Library Assert`, …).
 
+**Lokální kompilace test appky bez kontejneru (ověřeno 2026-09-01, prod-epb-pricingMatrix-bc):**
+`Tests-TestLibraries`, `Test Runner` a `System Application Test Library` `.app` bývají v `.alpackages` některého
+sibling repa — najít přes `ls /c/WorkTasks/*/.alpackages/*Tests-TestLibraries*` (2026-09: `prod-ess-dotykackaConnector-bc`;
+pozor, `ls … | grep -i test` matchne i složku `kalas-TEST-DNEM` jako hlavičku, soubory tam nejsou).
+`Tests-TestLibraries` má **tranzitivní závislosti** (Application Test Library, Permissions Mock, Any, Library Assert,
+Library Variable Storage, Business Foundation Test Libraries), takže alc potřebuje **celou tu `.alpackages` složku**,
+ne jen tři soubory: `/packagecachepath:"C:\…\sibling\.alpackages,C:\…uild-dir-s-hlavní-appkou"` (čárkou oddělený
+seznam, viz 7.1 v `bc-al-tools.md`; jiná minor verze Base App v sibling cache pro compile-check nevadí). MS test `.app`
+**neobsahují zdrojáky** (0 `.al` v ZIPu) → signatury `Library - *` procedur přes al-mcp (`al_packages load` na sibling
+repo, pak `al_search_object_members`); `al_packages load` index **nahrazuje**, po dohledání znovu load na vlastní repo.
+`AA0215` (název souboru bez affixu) v test appce vyřeší `test/AppSourceCop.json` s `mandatoryAffixes` — potvrzeno
+lokálně (alc + CodeCop). Compile main → test: test appka bere hlavní appku z build diru, takže po každé změně hlavní
+appky přeložit nejdřív ji.
+
 ### Spuštění reportu bez request page
 
 Když má report `ProcessingOnly = true` ale automaticky vygenerovanou request page (přítomnost `RequestFilterFields` na `dataitem`), pro automatizaci v testu:
