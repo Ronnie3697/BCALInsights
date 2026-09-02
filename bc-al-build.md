@@ -249,6 +249,15 @@ po mergi masteru vyšla **bit-identická s masterem** (`git diff --cached origin
 prázdný); její obsah tam doputoval už 2026-07-17 squashem PR 9168. Three-dot diff
 přitom hlásil 22 souborů / 511 řádků — přesně obsah toho dávno mergnutého PR.
 
+Podruhé tamtéž 2026-09-02, větev `BlanketOrders_64046` po squashi PR 9380 (`96a7513`): jediný
+„konflikt" byl trans-unit `Codeunit 1429337669 - NamedType 3648368596`, který obě strany přidaly
+na **jinou pozici** v `.cs-CZ.xlf` (HEAD o 12 řádků níž než master) — resoluce = nechat pozici
+masteru a HEAD blok zahodit (vzít obojí = AL0479 duplicita, viz 6.4). `git diff --cached
+origin/master` po resoluci prázdný → merge commit má strom bit-identický s masterem; kompilaci
+pak dokazuje zelený CI build masteru (28038) na tomtéž stromu, lokální `alc` netřeba. Bonus:
+symbol `Banking Documents Localization for Czech` (nová dependency z masteru) je na MSSymbols
+feedu jen ve verzích 27.0.x — pro lokální kompilaci proti 28.3 ho odtud nevezmeš.
+
 ### 7.17 Microsoft Subcontracting dependency — minimum ≥ 28.3.0.0, jinak build spadne
 
 **Microsoft „Subcontracting"** (GUID `1f32a50d-0057-4b95-b5df-cc04d7e89470`) je
