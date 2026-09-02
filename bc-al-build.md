@@ -138,6 +138,15 @@ https://dynamicssmb2.pkgs.visualstudio.com/DynamicsBCPublicFeeds/_packaging/MSSy
 - **curl s `-L`** (redirect na blob storage; bez něj 0 B soubor). `.nupkg` je ZIP,
   `.app` je uvnitř — rozbal a hoď do package cache.
 - Verzi ber ze stejné řady jako Base App symboly v cache (např. `27.5.46862.*`).
+- **⚠️ Lokalizační MS appky (CZ packy, Banking Documents…) mají na MSSymbols od BC 28
+  jiné package ID — s country infixem:** `microsoft.<název>.cz.symbols.<guid>`
+  (např. `microsoft.bankingdocumentslocalizationforczech.cz.symbols.8730dafb-13cd-42c9-987c-decb6354269d`,
+  stejně `corelocalizationpackforczech.cz.symbols…`, `advancedlocalizationpackforczech.cz.symbols…`).
+  Staré ID bez `.cz.` na feedu **dál existuje, ale končí u 27.0.x** — flat2 `index.json`
+  tak tiše vrátí jen staré verze a vypadá to, že 28.x nikdo nepublikoval. Když pro
+  balíček nenajdeš očekávanou řadu, projeď `…/MSSymbols/nuget/v3/query2/?q=<název-bez-mezer>`
+  — vypíše všechny varianty ID s nejnovější verzí. Zachyceno 2026-09-02 (cust-sonnentor-bc,
+  symbol Banking Documents Localization for Czech 28.3 po merge PR 9394 — nová dependency base/app).
 
 **Sandbox workflow** (ověření fixu test appky bez CI round-tripu): do temp složky
 poskládej package cache z (a) MS symbolů z jiného repa / feedu, (b) závislých
