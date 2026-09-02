@@ -418,6 +418,9 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
 - Zdroják konektoru: **microsoft/BCApps**, `src/Apps/W1/Shopify/App/src/...`, branch
   `releases/<major>.<minor>` — před použitím eventu ověř, že existuje ve verzi z CI
   artifactu (`BC_ARTIFACT`), lokální `.alpackages` může být novější minor.
+  Lokální rozcestník konektoru (DNEM, generovaný z w1-28): `C:\Users\dnem\OneDrive - Essence International s.r.o\AI\BCALInsights\ShopifyConnector`
+  — `shopify_codeunits|tables|pages|reports.md` (ID → název → GitHub link), `shopify_functional_breakdown.md`,
+  `VersionChanges/Changes27-28.md` + `Changes28.md` (minor diffy), update přes `python scratch/update_docs.py`.
 
 - **Nové varianty existujícího produktu zakládá JEN produktový sync, ne Add Item to Shopify.**
   `Shpfy Create Product.OnRun` produkt pro dvojici Shop Code + Item SystemId tiše přeskočí, když už
