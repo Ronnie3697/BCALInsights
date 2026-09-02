@@ -301,6 +301,27 @@ nad tracking daty pro Prod. Order Line **musí** linkovat
 nikdy nematchne a part je věčně prázdný (chyba ze Zlomek 64189; u Sales Line je
 naopak správně `Source Ref. No.`). Ověřeno extrakcí z BC 27.5 base app.
 
+### 5.x2b Item Tracking na Sales Quote — standard ho umí, přenáší se do Order
+
+**Prodejní nabídka má standardní item tracking.** Na `Sales Quote Subform` (95)
+je akce **„Item Tracking Lines"** (`Rec.OpenItemTrackingLines()`, jen pro
+`Type = Item`, ne pro ATO řádky) a tracking se ukládá do `Reservation Entry`
+(337) se `Source Type = 37`, **`Source Subtype = 0`** (Quote), `Source ID` =
+číslo nabídky, `Source Ref. No.` = Line No. Při **Make Order** (`Sales-Quote to
+Order`, 86) se rezervační položky přenesou na objednávkový řádek přes
+`SalesLineReserve.TransferSaleLineToSalesLine(SalesQuoteLine, SalesOrderLine,
+"Outstanding Qty. (Base)")` — SN/šarže zadané na nabídce tedy na SO nezmizí.
+Totéž platí pro Blanket Order → Order (87). Neplést s **rezervací** skladu:
+`Reserve` na nabídce nedělá nic užitečného, ale tracking (surplus entries
+s SN) na ní žije. Ověřeno w1-28 (2026-09-02, nacenění Zlomek 62661).
+
+**Praktický dopad:** report/factbox „rozpad SN z řádků nabídky" se čte z 337
+(+ 336 pro handled) s filtrem `Source Subtype = 0`, žádné vlastní pole na
+řádku není potřeba. U Zlomku to sbírá hotová codeunit `Item Tracking Mgt. ZLK`
+(`CollectForDocument(Database::"Sales Line", DocType, DocNo, TempBuffer)`,
+viz doc 64189 v `cust-zlomek-bc`) — při dalších reportech nad SN nabídky ji
+znovu použij, nepiš nový sběr.
+
 ### 5.x3 EM Net Make to Order — `Sales Production Ref. NMEBS` (64120) = vazba SO řádek ↔ VZ řádek
 
 Když potřebuješ z výrobní zakázky najít řádek prodejní objednávky (nebo obráceně)
