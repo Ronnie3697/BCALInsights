@@ -64,6 +64,17 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   — čárkou oddělený seznam. Hodí se, když symbol sesterské appky repa není
   v `.alpackages`, ale leží jako hotový build v její složce (`base/app/*.app`)
   — netřeba nic kopírovat. (Ověřeno 2026-08-28, cust-sonnentor-bc.)
+- **PowerShell `*> soubor` (i `> soubor`) zapisuje výstup alc jako UTF-16 LE** → následný
+  `grep`/`wc` na souboru nic nenajde a „0 errors / 0 warnings" je **falešné** (EXIT=0 přitom
+  platí). Před grepem `iconv -f UTF-16 -t UTF-8`, nebo v PS `| Out-File -Encoding utf8`.
+  (2026-09-02, cust-zlomek-bc)
+- **`.alpackages` prázdná (VS Code zrovna stahuje symboly / někdo ji vyčistil) → `AL1022` na
+  všech dependencies.** Nečekej a nesahej na cizí cache: poskládej **dočasnou package cache ve
+  scratchpadu z KOPIÍ** ze sibling rep (`ls C:/WorkTasks/*/.alpackages/*.app | grep <name>`) —
+  jedna řada MS symbolů (Application + Base App + System App + Business Foundation + System +
+  CZ packy stejné minor řady; starší CZ pack pod novější `Application` umbrellou nevadí,
+  obráceně ano — 7.19 v `bc-al-build.md`) + Essence appky z `prod-*/.alpackages` nebo
+  `prod-*/app/*.app`, a `/packagecachepath` nasměruj tam. (2026-09-02, cust-zlomek-bc)
 
 ### 7.2 Čtení symbolů z `.alpackages` — al-mcp-server
 

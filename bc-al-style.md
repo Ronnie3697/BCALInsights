@@ -732,6 +732,38 @@ bez `not` u base-app stránek občas funguje, ale nespoléhat — proměnná je 
 
 ---
 
+### 4.10 `MultiLine` pole má ve web klientu pevné ~3 řádky — výšku nezvětšíš; „vidět celé" = RichContent nebo control add-in
+
+`MultiLine = true` vykreslí web klient jako textareu s pevnou výškou cca 3 řádky + scrollbar.
+**Žádná AL property výšku neovlivní** (existuje jen `Width`), délka pole (`Text[250]` vs
+`Text[2048]` vs Blob) taky ne, `RowSpan` / grid / samostatná group to nemění (MS docs + komunita,
+ověřeno 2026-09-02). Base app `Work Description` na Sales Order je přesně tenhle vzor: Blob +
+Text proměnná + `MultiLine = true` + `ShowCaption = false` sama v root group `"Work Description"`
+→ **stejný třířádkový box**, Blob řeší jen délku.
+
+Když má uživatel vidět dlouhý text celý:
+
+- **Rich text editor** (BC23+ / runtime 12+): page field na **Text proměnnou** s
+  `ExtendedDatatype = RichContent` + `MultiLine = true`, control musí být **sám v root-level
+  group (FastTab)** — v pageextension tedy `addafter(General) { group(...) { field(...) } }`.
+  Hodnota je **HTML** → ukládat do **Blob** (Text[n] přeteče, obrázky jsou base64 inline;
+  `RichContent` na table field = compile error). Editor roste s obsahem do stropu (MS ho
+  nekvantifikuje), prázdný nejde zmenšit na jeden řádek, toolbar (obrázky, tabulky) nejde
+  omezit. Get/Set podle `Sales Header.GetWorkDescription/SetWorkDescription`: `CalcFields` +
+  `CreateInStream(InStream, TextEncoding::UTF8)` + `Type Helper.TryReadAsTextWithSepAndFieldErrMsg(InStream, TypeHelper.LFSeparator(), FieldCaption(...))`
+  / `Clear(Blob)` + `CreateOutStream(..., UTF8)` + `WriteText` + `Modify(false)`; proměnnou
+  plnit v `OnAfterGetCurrRecord`, ukládat v `OnValidate` pole. Na tisk je nutná konverze
+  HTML → text. Propagace Blobu do posted/archiv dokladů viz 3.6c v `bc-al-data.md`.
+- **Vlastní control add-in** (textarea s vlastní výškou, plain text) — když má zůstat čistý
+  text a nemá se sahat na posting/reporty; výška add-inu je přes `RequestedHeight` pevná,
+  iframe se obsahu nepřizpůsobí.
+- `Microsoft.Dynamics.Nav.Client.WebPageViewer` s vlastním HTML `<textarea style="height:100%">`
+  = totéž, ale HTML string v AL a ukládání přes `Callback` — hack, radši vlastní add-in.
+
+(2026-09-02, cust-zlomek-bc — prototyp RichContent na `Comment 2 ZLK`, Sales Order.)
+
+---
+
 ## 10. Moderní AL patterny — výběr podle `app.json`
 
 BC se hýbe rychle. Namespaces, interfaces, isolated storage, Cloud-first

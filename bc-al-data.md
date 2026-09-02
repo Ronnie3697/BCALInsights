@@ -632,6 +632,25 @@ pro všechny tři subscribery. Pole odvozená z Item UoM se reverse-fillem „ob
 (vzor base app `ReturnReasonExt.TableExt.al`) — nejlevnější způsob, jak vlastní atribut ukázat ve všech lookupech
 (např. Item UoM dropdown na Sales/Req./Price řádcích místo holého kódu).
 
+### 3.6c Blob pole na Sales Header → posted/archiv se přes `TransferFields` NEpřenese bez `CalcFields`; délky Text polí drž na celé sadě stejné (LC0044)
+
+- **Blob je lazy** — v bufferu recordu je jen po `CalcFields`. `TransferFields` /
+  `InitFromSalesHeader` proto nenačtený Blob **tiše nepřenese** (posted doklad má prázdný
+  Blob, žádná chyba). Base app to u `Work Description` dělá explicitně:
+  `SalesHeader.CalcFields("Work Description"); SalesOrderHeader."Work Description" := SalesHeader."Work Description";`
+  (codeunit Sales-Quote to Order, `CreateSalesHeader`; stejně Sales-Post, Copy Document,
+  Archive). Vlastní Blob pole na Sales Header tedy = subscriber na **každém** přenosu:
+  faktura, dodávka, dobropis, vratka, archiv + obnova, nabídka → objednávka, kopie dokladu
+  (Blob := Blob přiřazení mezi recordy funguje, jen zdroj napřed `CalcFields`). `Text[n]` tohle
+  nepotřebuje — přenese se sám (3.6).
+- **Stejné vlastní pole s jiným typem/délkou napříč Sales Header vs. posted/archive tabulkami**
+  (`Comment 1 ZLK` `Text[2048]` na Sales Header, `Text[250]` na Invoice/Shipment/Cr.Memo/
+  Return Receipt/Archive) hlásí LinterCop **`LC0044` „Conflicting ID, Name or Type with Table
+  X"** na všech dotčených tableextensions (warning → Essence CI fail) a při postingu delšího
+  textu hrozí overflow. Délku rozšiřuj vždy na celé sadě tabulek (checklist 3.6).
+
+(2026-09-02, cust-zlomek-bc — rich text prototyp `Comment 2 ZLK`.)
+
 ### 3.7 `[EventSubscriber]` argumenty — identifier syntax, ne string literály (LC0028)
 
 V moderním AL piš event name i element name (field/action) v atributu

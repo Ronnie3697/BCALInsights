@@ -347,6 +347,9 @@ Essence CI má `failOn = 'warning'`, takže jediný warning shodí build. Než o
    `MSYS2_ARG_CONV_EXCL="*"` a plné Windows cesty (viz 7.1).
 3. `info` nálezy build neshodí (dlouhodobý šum typu AA0247 klidně odfiltruj),
    **každý warning oprav před pushem**.
+4. `LC0072` (info) „documentation comment does not match the procedure syntax": `///` XML doc
+   komentář musí mít `<returns>` u procedury s návratovou hodnotou a `<param name="X">` pro
+   každý parametr — samotné `<summary>` nestačí. (2026-09-02, cust-zlomek-bc)
 
 (Zachyceno 2026-08-05, cust-alumistr-bc build 27693: `AA0137` unused variable
 v test codeunitě — lokálně se před pushem kompilovala jen hlavní appka bez
