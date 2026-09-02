@@ -721,3 +721,29 @@ OnPrem, viz 11.4) — testuj přítomnost přes `SecretText.IsEmpty()` a chován
 (`HasCredentials()`, `HasValidToken()`…), ne obsah.
 
 ---
+
+### 11.6 Notifikace do Power Automate z BC — External Business Events jsou PREVIEW, pragmaticky API page + trigger konektoru
+
+**External Business Events** (`[ExternalBusinessEvent('name','Display','Desc',
+EventCategory::X)]` na proceduře s prázdným tělem v codeunitu, kategorie přes
+`enumextension ... extends EventCategory`, payload = jen primitivní parametry) jsou
+k 2026-05 na Learn **stále „(preview)"** (BC 22+). Prerekvizity nejsou zadarmo:
+Dataverse Connection Setup se zapnutým „Enable virtual tables and events",
+instalace **Business Central Virtual Table** appky do Dataverse, po každé změně
+eventů ruční „Refresh Business Event Catalog" v Power Apps, v Power Automate
+**Dataverse** trigger „When an action is performed" (ne BC konektor). Subscription
+se zakládá pro všechny firmy naráz, bez překladů/verzování. Bez Dataverse
+prostředí u zákazníka to **nenacenit jako levnou variantu**. Notifikace odchází
+**až po commitu** transakce; při rollbacku vůbec.
+
+**Pragmatická varianta bez Dataverse (GA, BC konektor):** vlastní fronta —
+tabulka `... Notification Queue` (klíč Entry No., payload pole: doklad, kód,
+e-mail, priorita, DateTime, Sent), do ní `Insert` v OnValidate / subscriberu
+v momentě, kdy má notifikace vzniknout; nad tabulkou **API page** (`PageType =
+API`, APIPublisher/Group/Version, `ODataKeyFields = SystemId`); ve flow trigger
+BC konektoru **„When a record is created (V3)"** s výběrem custom API kategorie.
+Jeden insert = jedna notifikace, payload je celý záznam, žádné hlídání „které pole
+se změnilo". Trigger „When a record is modified (V3)" nad hlavičkou dokladu je
+horší: pálí při každé změně a nepředává starou hodnotu. HttpClient z BC přímo na
+PA trigger „When an HTTP request is received" jde taky, ale ten trigger je
+v Power Automate **Premium**. (Zlomek 62661 nacenění, 2026-09-02.)
