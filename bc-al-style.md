@@ -756,9 +756,11 @@ Když má uživatel vidět dlouhý text celý:
   HTML → text. Propagace Blobu do posted/archiv dokladů viz 3.6c v `bc-al-data.md`.
 - **Vlastní control add-in** (textarea s vlastní výškou, plain text) — když má zůstat čistý
   text a nemá se sahat na posting/reporty; výška add-inu je přes `RequestedHeight` pevná,
-  iframe se obsahu nepřizpůsobí. Hotový vzor: `Comment Editor ZLK` v cust-zlomek-bc
-  (`src/controladdin/CommentEditor.ControlAddIn.{al,js,css}`, cesty v `Scripts`/`StyleSheets`
-  relativní k app rootu): `RequestedHeight = 200`, `procedure LoadText(Text; MaxLength; IsEditable)`
+  iframe se obsahu nepřizpůsobí. Ověřený vzor (prototyp `Comment Editor ZLK` v cust-zlomek-bc
+  2026-09-02, kompiloval čistě; **v repu nezůstal** — uživatel ho odmítl jako „moc velké
+  obcházení standardu", takže u zákaznických rep počítej s tím, že add-in na kartě dokladu
+  neprojde): `src/controladdin/CommentEditor.ControlAddIn.{al,js,css}`, cesty v
+  `Scripts`/`StyleSheets` relativní k app rootu, `RequestedHeight = 200`, `procedure LoadText(Text; MaxLength; IsEditable)`
   → `window.LoadText`, eventy `ControlAddInReady()` (volá se na konci Scripts, `StartupScript`
   netřeba) a `TextChanged(Text)` (debounce 700 ms při psaní + okamžitě na `blur`/`change`, posílá
   jen když se hodnota liší od naposledy poslané); page: `Ready` flag + `LoadText` v
