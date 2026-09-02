@@ -59,6 +59,7 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
 - **Trans-unit ID do ručních překladů:** po CLI kompilaci (s feature
   `TranslationFile`) se přegeneruje `Translations/*.g.xlf` — ID nových
   trans-unitů opiš odtud, není nutné počítat FNV-1a hash ručně (viz 6.2).
+- **Claude Code Bash tool (Windows) sráží `\\` na `\` i v quoted heredocu (`<<'EOF'`).** Python skript v heredocu s `'\\'` dostane `'\'` (SyntaxError), a `"C:\\WorkTasks\\…"` se v ne-raw stringu změní na řídicí znaky (`\b`, `\a` → backspace/bell v zapsaném souboru). Backslash v heredocu skládej přes `chr(92)` (nebo skript ulož Write toolem a spusť ze souboru); raw stringy s JEDNÍM backslashem projdou beze změny. Zachyceno 2026-09-02 (cust-sonnentor-bc, oprava `logo` v app.json).
 - **Víc package cache najednou:** `/packagecachepath:"C:\repo\.alpackages,C:\repo\base\app"`
   — čárkou oddělený seznam. Hodí se, když symbol sesterské appky repa není
   v `.alpackages`, ale leží jako hotový build v její složce (`base/app/*.app`)
