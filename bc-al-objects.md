@@ -398,6 +398,34 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
   `releases/<major>.<minor>` — před použitím eventu ověř, že existuje ve verzi z CI
   artifactu (`BC_ARTIFACT`), lokální `.alpackages` může být novější minor.
 
+- **Nové varianty existujícího produktu zakládá JEN produktový sync, ne Add Item to Shopify.**
+  `Shpfy Create Product.OnRun` produkt pro dvojici Shop Code + Item SystemId tiše přeskočí, když už
+  existuje (`ShopifyProduct.IsEmpty` guard; `ConfirmAddItemToShopify` navíc už namapované shopy
+  z výběru vyřadí) — „přidám variantu a znovu kliknu Add Item" nikdy nic nepřidá. Chybějící varianty
+  dovytváří `Shpfy Product Export.UpdateProductData` (2. smyčka přes Item Variant), a ta běží jen
+  když shop má **`Sync Item = To Shopify`** a **`Can Update Shopify Products = true`** (pole je
+  vzájemně výlučné se `Shopify Can Update Items` — OnValidate druhé shodí). Bez toho sync produkty
+  vůbec nesáhne (výjimka: `Only Sync Price`, který ale varianty nezakládá — `CreateProductVariant`
+  při `OnlyUpdatePrice` exitne). Export žádný filtr „změněno od posledního syncu" nemá — bere všechny
+  `Shpfy Product` shopu s Item SystemId.
+- **`productVariantsBulkCreate` s `userErrors` = tichý neúspěch.** `Communication Mgt.ExecuteGraphQL`
+  vyhazuje `Error` jen na top-level `errors`; `userErrors` (chybějící option, duplicitní hodnota…) jen
+  označí `Has Error` v `Shpfy Log Entry` (a to pouze při `Logging Mode` All / Error Only).
+  `Variant API.AddProductVariant` pak vrátí false, `Shpfy Variant` se nezaloží, žádný Skipped Record,
+  žádná chyba job queue. Diagnostika: page **Shopify Log Entries** (filtr Has Error) + **Shopify
+  Skipped Records** (blokované zboží/varianty, Draft/Archived produkt).
+- **Produkt založený bez options už varianty přes sync nedostane.** Item bez variant (nebo se všemi
+  variantami odfiltrovanými/blokovanými) jde do `productCreate` bez `productOptions` → Shopify mu dá
+  jedinou „Default Title" variantu. Pozdější `CreateProductVariant` posílá `optionValues
+  [{optionName: "Variant"}]` na produkt, který option „Variant" nemá → userError → tiché nic.
+  Konektor `productOptionsCreate` nevolá. Náprava jen ručně v Shopify adminu (přidat option) nebo
+  smazat mapování a produkt nahrát znovu.
+- ⚠️ **`Product API.CreateProduct` volá `ShopifyVariant.FindSet()` bez ošetření návratu** — prázdný
+  temp set variant (všechny blokované / odfiltrované subscriberem `OnAfterCreateTempShopifyProduct`)
+  = runtime error při Add Item to Shopify. Subscriber, který varianty z temp bufferu maže, musí
+  nechat aspoň jednu, nebo produkt raději vůbec nezakládat (nejde — žádný IsHandled; jen Error
+  s vysvětlením). (Analýza cust-sonnentor-bc 63089, 2026-09-02, konektor 28.3.52162.53601.)
+
 ### 5.z DateFormula — možnosti a limity (půlrok NEjde)
 
 Jednotky: `D`, `WD1–WD7` (den v týdnu), `W`, `M`, `Q`, `Y`. Prefix `C` = current
