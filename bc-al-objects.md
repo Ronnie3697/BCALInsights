@@ -449,6 +449,25 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
   = runtime error při Add Item to Shopify. Subscriber, který varianty z temp bufferu maže, musí
   nechat aspoň jednu, nebo produkt raději vůbec nezakládat (nejde — žádný IsHandled; jen Error
   s vysvětlením). (Analýza cust-sonnentor-bc 63089, 2026-09-02, konektor 28.3.52162.53601.)
+- **Add to Shopify z karty zboží obchází report 30106** (pageext `Shpfy Item Card` → `Sync Products.AddItemToShopify`
+  → `Create Product.Run(Item)`), takže reportextension filtr na `Item` dataitemu neplatí. Item-level kontrolu dej do
+  subscriberu `OnAfterCreateTempShopifyProduct(Item, var TempProduct, var TempVariant, var TempTag)` — má shop
+  (`TempProduct."Shop Code"`) i zboží, běží před `FindShopifyProductVariant` (HTTP) i `productCreate` a pokryje i veřejnou
+  CU `Shpfy Product` (30234). `OnBeforeActionEvent` na akci karty nestačí: shop se vybírá až v dialogu uvnitř akce.
+  Při prázdném bufferu variant (filtr / všechny blokované) radši `Error` — konektor jinak spadne na `FindSet()`, nebo
+  založí produkt bez options („Default Title" past). (cust-sonnentor-bc 63089, 2026-09-03)
+- **Pole `Option 1..3 Name/Value` na BC `Shpfy Variant` nejsou důkaz stavu v Shopify.** Export je při update přepisuje
+  (`FillInProductVariantData` → `Option 1 Name := 'Variant'`, `Option 1 Value := Variant Code`) a `UpdateVariants` /
+  TitleChanged uloží celý buffer do DB, jenže options v update mutaci nejsou → Shopify klidně drží `Title / Default Title`.
+  Pravdu ukáže Shopify CSV export (`Option1 Name`) nebo `hasOnlyDefaultVariant`. Ruční oprava produktu bez options:
+  admin → „Add options like size or color" → název přesně `Variant`, hodnota = Variant Code namapované varianty; další
+  Synchronizace → Produkty zbylé varianty založí (ověřeno 2026-09-03 na dev shopu Sonnentor).
+- **Import produktu (jediný zapisovatel `Has Variants = false`) běží i mimo `Sync Item = From Shopify`:** `Shpfy Order
+  Mapping.MapVariant` při importu objednávky naimportuje produkt, když varianta v BC chybí nebo nemá `Item SystemId`;
+  dále `FindShopifyProductVariant` při Add Item (shoda SKU / barcode) a `Create Item`. `Item Variant SystemId` dopíše
+  i ruční akce **Map Variant** na stránce Shopify Variants nebo `Try Find Product Mapping` (SKU dle SKU Mapping).
+- **Kde spouštět sync nových variant:** `Shpfy Sync Products` (30108) filtruje jen shop; jediný report s filtrem na zboží
+  je `Add Item to Shopify` (30106), který existující produkt přeskočí — typická záměna u uživatelů.
 
 ### 5.z DateFormula — možnosti a limity (půlrok NEjde)
 
