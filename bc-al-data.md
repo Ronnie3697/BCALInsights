@@ -526,6 +526,12 @@ zaarchivuje nebo zaúčtuje.
 > **Tip:** Stejné field ID použij ve **všech** tabulkách dané sady — kód
 > propagace pak může být šablonový (kopírovat field-by-field bez mapování).
 
+> **⚠️ `AutoFormatExpression` u Decimal polí na posted řádcích:** `Sales Invoice Line` a `Sales Cr.Memo
+> Line` **nemají pole `Currency Code`** (žije na hlavičce) — `AutoFormatExpression = Rec."Currency Code"`
+> v tableextension skončí `AL0132`. Base vzor je `AutoFormatExpression = Rec.GetCurrencyCode();`
+> (procedura na obou tabulkách). `Sales Line`, `Sales Line Archive`, `Sales Shipment Line` a `Return
+> Receipt Line` `Currency Code` mají. (2026-09-04, cust-alumistr-bc, SK ceny na řádcích)
+
 #### Propagace probíhá automaticky přes `TransferFields` — ale **jen pokud existuje pole se stejným ID a typem**
 
 Standardní BC posting / archiving rutiny používají `TransferFields` mezi

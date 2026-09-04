@@ -60,6 +60,23 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   `TranslationFile`) se přegeneruje `Translations/*.g.xlf` — ID nových
   trans-unitů opiš odtud, není nutné počítat FNV-1a hash ručně (viz 6.2).
 - **Claude Code Bash tool (Windows) sráží `\\` na `\` i v quoted heredocu (`<<'EOF'`).** Python skript v heredocu s `'\\'` dostane `'\'` (SyntaxError), a `"C:\\WorkTasks\\…"` se v ne-raw stringu změní na řídicí znaky (`\b`, `\a` → backspace/bell v zapsaném souboru). Backslash v heredocu skládej přes `chr(92)` (nebo skript ulož Write toolem a spusť ze souboru); raw stringy s JEDNÍM backslashem projdou beze změny. Zachyceno 2026-09-02 (cust-sonnentor-bc, oprava `logo` v app.json).
+- **`/analyzer:` na `Microsoft.Dynamics.Nav.Analyzers.Common.dll` NEpředávat.** alc 17.0 pak u každého
+  spuštění hlásí `warning AL1003: An instance of analyzer ... cannot be created ... Could not load file or
+  assembly 'Microsoft.Dynamics.Nav.Analyzers.Common'` a část pravidel CodeCop/PTE (PermissionSet rules,
+  PTE0018, Rule026 AllowInCustomizations…) se **vůbec nenačte** — build vypadá čistší, než je. Common
+  analyzery jsou v alc vestavěné; z CLI stačí CodeCop + UICop + PerTenantExtensionCop (+ LinterCop). CI název
+  „Analyzers.Common" je jen jméno v BcContainerHelper. (2026-09-04, cust-alumistr-bc)
+- **Log alc přesměrovaný v Git Bash (`> log 2>&1`) je UTF-16 (BOM) a `iconv -f UTF-16` občas uprostřed
+  spadne** → fallback `cp` + `grep` pak hlásí 0 chyb / 0 warningů (falešně, stejně jako PS `*>` v bodě níže).
+  Spolehlivé: malý python dekodér, který zkusí `utf-8-sig` / `utf-16` / `utf-16-le` (i s posunem o 1 bajt)
+  a vezme variantu, ve které je vidět text `Compilation`. Pozor při grepu na `error`: LC0084 obsahuje
+  „error handling" — filtruj `: error ` / `: warning `. (2026-09-04, cust-alumistr-bc)
+- **Claude Code Bash tool (Windows): heredoc `<<'EOF'` s apostrofem v OBSAHU** (AL `item''s`, `can''t`,
+  python `'`) skončí `unexpected EOF while looking for matching `''` a **celý příkaz se neprovede** — u
+  `cd x && cat > a <<EOF …` se nezapíše nic, u příkazů na samostatných řádcích za spadlým `cd` se soubory
+  zapíšou do aktuální cwd (která mezi voláními přežívá). AL soubory s apostrofy (ToolTipy, Labely) zapisuj
+  **Write toolem**, Bash nech na příkazy; python patch skripty ukládej do souboru a spouštěj ze souboru.
+  (2026-09-04, cust-alumistr-bc)
 - **Víc package cache najednou:** `/packagecachepath:"C:\repo\.alpackages,C:\repo\base\app"`
   — čárkou oddělený seznam. Hodí se, když symbol sesterské appky repa není
   v `.alpackages`, ale leží jako hotový build v její složce (`base/app/*.app`)

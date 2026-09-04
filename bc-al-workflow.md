@@ -350,6 +350,10 @@ Essence CI má `failOn = 'warning'`, takže jediný warning shodí build. Než o
 4. `LC0072` (info) „documentation comment does not match the procedure syntax": `///` XML doc
    komentář musí mít `<returns>` u procedury s návratovou hodnotou a `<param name="X">` pro
    každý parametr — samotné `<summary>` nestačí. (2026-09-02, cust-zlomek-bc)
+5. **`&` v `///` XML doc komentáři = `warning AL0640: XML comment has badly formed XML`** (a s
+   `failOn warning` CI fail) — v `<summary>` piš `Sales &amp; Receivables Setup`, ne `Sales & Receivables
+   Setup`. Stejně `<` / `>`. Obyčejné `//` komentáře a `Description`/`ToolTip` property se to netýká.
+   (2026-09-04, cust-alumistr-bc)
 
 (Zachyceno 2026-08-05, cust-alumistr-bc build 27693: `AA0137` unused variable
 v test codeunitě — lokálně se před pushem kompilovala jen hlavní appka bez
