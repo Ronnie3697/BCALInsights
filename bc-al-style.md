@@ -655,6 +655,19 @@ klient dál ukazuje staré captiony — nepomůže zavřít/otevřít stránku. 
 nezměnil" nejdřív vyluč cache a per-company setup, až pak hledej bug v kódu.
 (Ověřeno 2026-08, Zlomek 62464 / PMEBS parametry A/B.)
 
+### 4.6b Přeměna pole na „expression" control — název controlu NEMĚŇ
+
+Když statické `field(Description; Rec.Description)` předěláváš na expression pole
+(statická hodnota vs. náhled formule, `field(...; DescriptionExpressionText)`), nech
+**název controlu původní** a změň jen `SourceExpr`. Jméno controlu je veřejné API
+stránky: závislé appky na ně kotví `addafter(Description)` / `modify(...)` (→ AL0270
+při kompilaci závislé appky, kterou v CI base appky nevidíš), personalizace i XLIFF
+trans-unit ID (hash z názvu controlu) na něm visí. Nové controly pojmenuj podle pole
+tabulky, ne `XyzExpression`. Po změně zkompiluj závislé appky proti novému buildu
+(alc `/packagecachepath` s kopií jejich `.alpackages` bez starého symbolu base appky,
+aby vyhrál nový build). (Ověřeno 2026-09, Configurator textové formule vs. Alumistr
+`addafter(Description)` na BOM/Routing/SL Action Lines.)
+
 ### 4.7 `modify()` na kontrolu z CIZÍ pageextension — jde to, s dependency
 
 Když jiná appka přidá na stejnou base page svoje pole a ty ho potřebuješ schovat
