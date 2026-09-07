@@ -564,6 +564,18 @@ v Sales Invoice Header / Sales Shipment Header automaticky. **Bez subscriberu.**
 
 #### Kdy přidat subscriber navíc
 
+**Pozor na vlastní celkovou částku řádku při částečném účtování.** Shodné ID
+zajistí kopii hodnoty, ale nepřepočítá ji na účtované množství. V BC 28.3
+`Sales Invoice Line.InitFromSalesLine` po `TransferFields(SalesLine)` přiřadí
+`Quantity := SalesLine."Qty. to Invoice"`; `Sales Shipment Line` obdobně
+`Quantity := SalesLine."Qty. to Ship"`. Vlastní `Total = Quantity × Unit Price`
+tak zůstane za CELÝ zdrojový řádek (10 × 132 = 1320 i při dodání 3 kusů).
+Jednotkovou cenu přenes 1:1, celkovou částku dopočítej např. v tabulkovém
+`OnAfterInitFromSalesLine` z cílového Quantity a zaokrouhlení měny. Analogicky
+prověř dobropis/vratku a storno dodávky. Test musí zahrnout částečné účtování;
+plná fakturace tuhle chybu neodhalí. (2026-09-07, cust-alumistr-bc 65916,
+code review; ověřeno ve zdrojích Microsoft Base Application 28.3.52162.53506.)
+
 Subscriber typu `OnAfterTransferFields` (nebo `OnBeforeInsertEvent` na cílové
 tabulce) potřebuješ jen v těchto případech:
 
