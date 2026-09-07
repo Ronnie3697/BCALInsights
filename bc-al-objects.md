@@ -607,6 +607,32 @@ vazbu item řádků (např. řádky generované konfigurátorem):
 SL akcí dostávají Attached to Line No. subscriberem na
 `OnBeforeModifyNewSalesLineFromAction`.)
 
+Doplněno 2026-09-07 (přesun vazby do base `prod-ess-configurator-bc`, větev `AttachedToLineNo`):
+
+- **Vazbu plní base přímo** v `SL Action Cond. Mgt. COEBS.InitNewSalesLineFromAction` (`"Attached to Line No." :=
+  SourceSalesLineNo`); zákaznický subscriber u Zlomka odstraněn. Přepočet návazných řádků při změně hlavního řádku
+  = `tableextension "Sales Line COEBS"` → `trigger OnAfterModify` porovnává `Rec` vs `xRec` (No./Variant Code/Quantity)
+  a volá `RecalculateConfigCreatedLines` (smaže + znovu vytvoří děti z uložené konfigurace varianty; **hlavní řádek
+  nemodifikuje a nedává Message**, protože běží uvnitř jeho vlastního Modify). `xRec` je v table triggerech dostupný —
+  base `Sales Line.OnModify` ho sám používá (`xRec.Type`, `xRec.Quantity`).
+- **`Sales Line.Validate("No.")` dělá `Init()` a `Attached to Line No.` NEobnovuje** (obnovuje jen Type/No./Line No./
+  SystemId…) → u vlastní parent↔child vazby obnov pole 80 i vlastní link pole z `xRec` v `modify("No.") OnAfterValidate`.
+- **Interaktivní vs. programová změna:** `CurrFieldNo = FieldNo(X)` jen při editaci na page; konfigurátor, Copy Document,
+  RecreateSalesLines i jiné appky validují s `CurrFieldNo = 0` → hlášky („řádek je svázaný s řádkem X") jen pro uživatele,
+  v testech ji vyvolá jen `TestPage.SetValue`, ne `Rec.Validate`.
+- `Sales Order Subform.QuantityOnAfterValidate` už pro Item řádky volá **`CurrPage.SaveRecord()`** → Modify (a tvůj
+  OnAfterModify) proběhne hned v OnValidate; aby se nově vložené řádky ukázaly, stačí v pageextension `OnAfterValidate`
+  `CurrPage.SaveRecord(); CurrPage.Update(false)` (vzor standardu `InsertExtendedText` → `UpdateForm(true)`).
+- **Mazání dětí při změně `No.` hlavního řádku dělá jen subform** (`NoOnAfterValidate` → `InsertExtendedText(false)` →
+  `SalesCheckIfAnyExtText` → `DeleteSalesLines`: `SalesLine2 := SalesLine; Find('>')` = jen řádky s vyšším Line No.);
+  table-level `Validate("No.")` děti nemaže → pokrýt vlastním přepočtem v OnAfterModify.
+- **Copy Document:** event `Copy Document Mgt.OnAfterCopySalesLineExtText(ToSalesHeader, var ToSalesLine, FromSalesHeader,
+  FromSalesLine, DocLineNo, var NextLineNo, var TransferOldExtLines, RecalculateLines)` běží hned po
+  `ToSalesLine."Attached to Line No." := TransferOldExtLines.TransferExtendedText(...)` a **před `Insert`** → ideální místo
+  pro přemapování vlastního „source line" pole (`:= "Attached to Line No."`; při Recalculate Lines i obnova flagu, Init
+  ho vynuloval). Quote→Order a Blanket→Order čísla řádků zachovávají, přemapování netřeba. Děti, které `Delete(true)`
+  odmítne (Quantity Shipped/Invoiced/Return Qty. Received ≠ 0), před přepočtem odfiltruj a uživatele informuj.
+
 ### 5.x5 Requisition Line — `OnAfterGetDirectCost` jako hook „po přecenění" + past v Req. Wksh.-Make Order (BC 28.3)
 
 - `Requisition Line.GetDirectCost(CalledByFieldNo)` volá standard z OnValidate **8 polí**: `No.`

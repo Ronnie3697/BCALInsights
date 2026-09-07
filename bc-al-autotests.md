@@ -208,6 +208,11 @@ Assert.ExpectedErrorCode('Dialog');
   `LibrarySetupStorage.Save(Database::"Sales & Receivables Setup")` + `Restore()` v `Initialize()` (Restore hned po
   `OnTestInitialize`, Save při prvním suite initu před `Commit`). Izoluje změny setupu i při lokálním běhu
   v dev kontejneru, kde po testu nezůstane v setupu testovací zákazník. (2026-09-04, cust-alumistr-bc 65916)
+- **Editace řádků prodejního dokladu přes `TestPage "Sales Order".SalesLines`** (`"No."`/`Quantity`/`"Variant Code"`
+  `.SetValue`) — před tím `LibrarySales.SetStockoutWarning(false)` + `LibrarySales.SetCreditWarningsToNoWarnings()`,
+  jinak base hlásí dostupnost/kreditní limit (notifikace/dialogy) a test padá na neobslouženém UI. Message z table
+  triggeru s guardem `CurrFieldNo = FieldNo(X)` vyvolá jen TestPage; `Rec.Validate` má `CurrFieldNo = 0` → negativní test
+  „změna z kódu je tichá" = test bez `[HandlerFunctions]`. (2026-09-07, prod-ess-configurator-bc `Attached Lines Tests COEBS`)
 - **`MinValue`/`MaxValue`/`NotBlank` na poli programový `Rec.Validate()` NEvynucuje** —
   jsou to UI-entry kontroly (TestPage `SetValue` je chytí, record Validate ne).
   `asserterror VATMap.Validate("Rate", -5)` nad polem jen s MinValue spadne na

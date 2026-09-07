@@ -77,6 +77,11 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   zapíšou do aktuální cwd (která mezi voláními přežívá). AL soubory s apostrofy (ToolTipy, Labely) zapisuj
   **Write toolem**, Bash nech na příkazy; python patch skripty ukládej do souboru a spouštěj ze souboru.
   (2026-09-04, cust-alumistr-bc)
+- **Volné object ID hledej BOM-aware.** `grep "^codeunit "` (kotva `^`) přeskočí soubory s UTF-8 BOM (první řádek
+  začíná `ï»¿`) → seznam ID je neúplný a nové ID kolidují až v kompilaci (`AL0264 … already declared by the
+  extension`). Použij `for f in src/**/*.al; do head -1 "$f" | sed 's/^ï»¿//'; done | grep -oE "codeunit [0-9]+"`
+  nebo grep bez `^`. (2026-09-07, prod-ess-configurator-bc: `Condition Tree Mgt.` 63156, `Configuration Copy Tests` 63189,
+  `Condition Tree Tests` 63182 měly BOM a v prvním výpisu chyběly — tři kolize za sebou.)
 - **Víc package cache najednou:** `/packagecachepath:"C:\repo\.alpackages,C:\repo\base\app"`
   — čárkou oddělený seznam. Hodí se, když symbol sesterské appky repa není
   v `.alpackages`, ale leží jako hotový build v její složce (`base/app/*.app`)
