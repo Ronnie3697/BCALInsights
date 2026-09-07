@@ -630,6 +630,12 @@ Doplněno 2026-09-07 (přesun vazby do base `prod-ess-configurator-bc`, větev `
   `LocationCodeOnAfterValidate`: SaveRecord → AutoReserve → Update); uvnitř table triggeru téhož řádku by druhá instance
   rozhodila row version buffer stránky. Na novém řádku (DelayedInsert) SaveRecord = Insert, OnAfterModify nefire → logika
   „po uložení" se chytne až na dalším Modify (typicky Quantity).
+- **Číslování generovaných child řádků: do mezery pod parent řádek, ne na konec dokladu.** Standard to dělá u rozšířených
+  textů (`TransferExtendedText.InsertSalesExtTextRetLast`: `LineSpacing := (NextLineNo - LineNo) div (1 + Count)`,
+  bez následujícího řádku 10000, při 0 error). Stejný vzor pro vlastní parent↔child: spočítej horní odhad počtu řádků,
+  mezeru rozděl (klidně cap 10000, ať jsou čísla hezká), při mezeře 0 radši fallback `poslední + 10000` než error.
+  Bonus: po smazání a znovuvytvoření dostanou děti **stejná čísla** (mezera se uvolní) — stabilní pořadí v UI.
+  (2026-09-07, prod-ess-configurator-bc `InitNewLineNumbering`; dřív `LastLineNo + 10000` = řádky utíkaly na konec.)
 - **Mazání dětí při změně `No.` hlavního řádku dělá jen subform** (`NoOnAfterValidate` → `InsertExtendedText(false)` →
   `SalesCheckIfAnyExtText` → `DeleteSalesLines`: `SalesLine2 := SalesLine; Find('>')` = jen řádky s vyšším Line No.);
   table-level `Validate("No.")` děti nemaže → pokrýt vlastním přepočtem v OnAfterModify.
