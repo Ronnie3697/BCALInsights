@@ -208,6 +208,18 @@ Assert.ExpectedErrorCode('Dialog');
   `LibrarySetupStorage.Save(Database::"Sales & Receivables Setup")` + `Restore()` v `Initialize()` (Restore hned po
   `OnTestInitialize`, Save při prvním suite initu před `Commit`). Izoluje změny setupu i při lokálním běhu
   v dev kontejneru, kde po testu nezůstane v setupu testovací zákazník. (2026-09-04, cust-alumistr-bc 65916)
+- **Negativní test `TestStatusOpen` po `ReleaseSalesDocument` — validuj na NOVÉ instanci recordu.** `Sales Line`
+  si hlavičku cachuje v globální proměnné instance (`GetSalesHeader` znovu nečte, když sedí Document Type + No.);
+  `SalesLine` proměnná, kterou prošel `LibrarySales.CreateSalesLine`, tak drží hlavičku se Status Open i po
+  release a `asserterror SalesLine.Validate(pole)` nespadne. Fix: `ReleasedSalesLine.Get(SalesLine."Document Type",
+  "Document No.", "Line No.")` a Validate na ní; chybu ověř `Assert.ExpectedTestFieldError(SalesHeader.FieldCaption(Status),
+  Format(SalesHeader.Status::Open))` (MS Assert 130000, BC 24+). Undo dodávky v testu bez dialogu: `SalesShipmentLine.SetRecFilter()`
+  + `UndoSalesShipmentLine.SetHideDialog(true)` + `.Run(SalesShipmentLine)` (bez `SetRecFilter` projde `Code()` celou
+  tabulku); `LibrarySales.UndoSalesShipmentLine` existuje, ale tělo (dialog) z MCP nevidíš. Kompilace test appky: temp
+  cache = MS 28.3 symboly + `Test Runner`, `Tests-TestLibraries`, `System Application Test Library`, `Application Test
+  Library`, `Permissions Mock` (z dotykacka `.alpackages`) + build hlavní appky — tranzitivní `Any` / `Library Assert` /
+  `Library Variable Storage` / `Business Foundation Test Libraries` v cache být NEMUSÍ, alc 17.0 projde.
+  (2026-09-07, cust-alumistr-bc 65916, 2. kolo review)
 - **Editace řádků prodejního dokladu přes `TestPage "Sales Order".SalesLines`** (`"No."`/`Quantity`/`"Variant Code"`
   `.SetValue`) — před tím `LibrarySales.SetStockoutWarning(false)` + `LibrarySales.SetCreditWarningsToNoWarnings()`,
   jinak base hlásí dostupnost/kreditní limit (notifikace/dialogy) a test padá na neobslouženém UI. Confirm/Message

@@ -698,6 +698,24 @@ Doplněno 2026-09-07 (přesun vazby do base `prod-ess-configurator-bc`, větev `
   prod-em-cuttingPlan-bc `Production Journal Mgt. CUEBS.InsertConsumptionJnlLine` (analýza chyby
   z kiosku: přiřazení qty-per z komponenty stojí PŘED `Validate("Unit of Measure Code")`).
 
+### 5.x7 Formát částek v textu (e-mail, export) — `Auto Format.ResolveAutoFormat` vrací `<C,CZK>` prefix; skládej `<Precision,x:y>` sám
+
+- Base app subscriber `Amount Auto Format` (codeunit 347, BC 26+ „Show Currency") do výsledku
+  `ResolveAutoFormat(AmountFormat/UnitAmountFormat, CurrencyCode)` **vždy přidá prefix `<C,<ISO kód>>`**
+  (`PrefixCurrencyCodeFormatString`) a podle GL Setup i symbol měny — je to formát pro klientský rendering
+  page fieldů, ne pro `Format(Decimal, 0, Fmt)` v serverovém textu (e-mail HTML, CSV). Nepoužívat naslepo.
+- Chceš-li v textu **stejnou přesnost jako pole na dokladu** (AutoFormatType 1 = částky, 2 = jednotkové
+  ceny), slož formát sám: `'<Precision,' + DecimalPlaces + '><Standard Format,0>'` (label
+  `'<Precision,%1><Standard Format,0>'`, Locked + Comment kvůli AA0470), kde `DecimalPlaces` =
+  `Currency."Amount Decimal Places"` / `"Unit-Amount Decimal Places"` pro FCY a `General Ledger Setup` totéž
+  pro LCY. **`Currency.Initialize('')` / `InitRoundingPrecision()` plní jen Rounding Precision, decimal places
+  NE** → pro LCY čti GL Setup přímo. Jedním `<Precision,2:2>` pro jednotkové ceny zaokrouhlíš 1,23456 na 1,23
+  a příjemce dostane jiný total než odesílatel (code review cust-alumistr-bc 65916, 2026-09-07).
+- Test: nastav GL Setup `Unit-Amount Decimal Places = '2:5'` / `Amount Decimal Places = '2:2'` (+ rounding
+  precision) přímo v testu (`Modify(false)`, GL Setup v `Library - Setup Storage`), expected přes
+  `Format(x, 0, '<Precision,2:5><Standard Format,0>')` — locale-nezávislé, jednotková cena musí vyjít
+  s pěti místy, total se dvěma.
+
 ## 11. SaaS gotchas — HttpClient a Cloud target
 
 ### 11.1 HttpClient na SaaS — silent fail bez Allow HttpClient Requests

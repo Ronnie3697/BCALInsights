@@ -570,11 +570,21 @@ zajistí kopii hodnoty, ale nepřepočítá ji na účtované množství. V BC 2
 `Quantity := SalesLine."Qty. to Invoice"`; `Sales Shipment Line` obdobně
 `Quantity := SalesLine."Qty. to Ship"`. Vlastní `Total = Quantity × Unit Price`
 tak zůstane za CELÝ zdrojový řádek (10 × 132 = 1320 i při dodání 3 kusů).
-Jednotkovou cenu přenes 1:1, celkovou částku dopočítej např. v tabulkovém
-`OnAfterInitFromSalesLine` z cílového Quantity a zaokrouhlení měny. Analogicky
-prověř dobropis/vratku a storno dodávky. Test musí zahrnout částečné účtování;
-plná fakturace tuhle chybu neodhalí. (2026-09-07, cust-alumistr-bc 65916,
-code review; ověřeno ve zdrojích Microsoft Base Application 28.3.52162.53506.)
+Jednotkovou cenu přenes 1:1, celkovou částku dopočítej v tabulkovém
+`OnAfterInitFromSalesLine` z cílového Quantity a zaokrouhlení měny — event je
+na **všech čtyřech** posted line tabulkách, ale s **různým pořadím parametrů**
+(ověřeno ve zdrojích 28.3): `Sales Invoice Line` / `Sales Cr.Memo Line`
+`(var Line, Header, SalesLine)`, `Sales Shipment Line` / `Return Receipt Line`
+`(Header, SalesLine, var Line)`; al-mcp u všech hlásí `ByReference: false`
+(5.y v `bc-al-objects.md`). Invoice/Cr.Memo Line nemají `Currency Code` → měnu
+ber ze `SalesLine`. **Storno dodávky / příjemky vratky** (`Undo Sales Shipment
+Line.InsertNewShipmentLine`, `Undo Return Receipt Line.InsertNewReceiptLine`)
+dělá `NewLine.Copy(OldLine)` + `Quantity := -Old.Quantity` → vlastní total
+zůstane kladný u záporného množství; otoč znaménko v
+`OnBeforeNewSalesShptLineInsert(var New, Old)` / `OnBeforeNewReturnRcptLineInsert`.
+Test musí zahrnout částečné účtování (order i return order) a undo; plná
+fakturace tuhle chybu neodhalí. (2026-09-07, cust-alumistr-bc 65916, code
+review; implementace `SK Branch Mgt. ALU`, zdroje Base Application 28.3.52162.53506.)
 
 Subscriber typu `OnAfterTransferFields` (nebo `OnBeforeInsertEvent` na cílové
 tabulce) potřebuješ jen v těchto případech:
