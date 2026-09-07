@@ -210,9 +210,12 @@ Assert.ExpectedErrorCode('Dialog');
   v dev kontejneru, kde po testu nezůstane v setupu testovací zákazník. (2026-09-04, cust-alumistr-bc 65916)
 - **Editace řádků prodejního dokladu přes `TestPage "Sales Order".SalesLines`** (`"No."`/`Quantity`/`"Variant Code"`
   `.SetValue`) — před tím `LibrarySales.SetStockoutWarning(false)` + `LibrarySales.SetCreditWarningsToNoWarnings()`,
-  jinak base hlásí dostupnost/kreditní limit (notifikace/dialogy) a test padá na neobslouženém UI. Message z table
-  triggeru s guardem `CurrFieldNo = FieldNo(X)` vyvolá jen TestPage; `Rec.Validate` má `CurrFieldNo = 0` → negativní test
-  „změna z kódu je tichá" = test bez `[HandlerFunctions]`. (2026-09-07, prod-ess-configurator-bc `Attached Lines Tests COEBS`)
+  jinak base hlásí dostupnost/kreditní limit (notifikace/dialogy) a test padá na neobslouženém UI. Confirm/Message
+  z table triggeru s guardem `CurrFieldNo = FieldNo(X)` vyvolá jen TestPage; `Rec.Validate` má `CurrFieldNo = 0` →
+  negativní test „změna z kódu je tichá" = test bez `[HandlerFunctions]`. Odmítnutý Confirm (`Error('')`) testuj
+  `[ConfirmHandler]` s `Reply := false` + `asserterror Page.Field.SetValue(...)`; GIVEN data před tím `Commit()`
+  (rollback k poslednímu commitu) a assertuj jen DB stav, ne `ExpectedError('')` (`StrPos(x, '')` = 0 → vždy fail).
+  (2026-09-07, prod-ess-configurator-bc `Attached Lines Tests COEBS`)
 - **`MinValue`/`MaxValue`/`NotBlank` na poli programový `Rec.Validate()` NEvynucuje** —
   jsou to UI-entry kontroly (TestPage `SetValue` je chytí, record Validate ne).
   `asserterror VATMap.Validate("Rate", -5)` nad polem jen s MinValue spadne na

@@ -618,8 +618,10 @@ Doplněno 2026-09-07 (přesun vazby do base `prod-ess-configurator-bc`, větev `
 - **`Sales Line.Validate("No.")` dělá `Init()` a `Attached to Line No.` NEobnovuje** (obnovuje jen Type/No./Line No./
   SystemId…) → u vlastní parent↔child vazby obnov pole 80 i vlastní link pole z `xRec` v `modify("No.") OnAfterValidate`.
 - **Interaktivní vs. programová změna:** `CurrFieldNo = FieldNo(X)` jen při editaci na page; konfigurátor, Copy Document,
-  RecreateSalesLines i jiné appky validují s `CurrFieldNo = 0` → hlášky („řádek je svázaný s řádkem X") jen pro uživatele,
-  v testech ji vyvolá jen `TestPage.SetValue`, ne `Rec.Validate`.
+  RecreateSalesLines i jiné appky validují s `CurrFieldNo = 0` → dotaz („řádek je svázaný s řádkem X… změnit přesto?")
+  jen pro uživatele, v testech ho vyvolá jen `TestPage.SetValue`, ne `Rec.Validate`. Odmítnutí řeš standardně
+  `if not ConfirmManagement.GetResponseOrDefault(Qst, true) then Error('')` — tichý error vrátí hodnotu pole bez
+  dalšího dialogu (v testu `asserterror TestPage.Field.SetValue(...)` + `Commit()` po GIVEN, TestPage chybu obalí).
 - `Sales Order Subform.QuantityOnAfterValidate` už pro Item řádky volá **`CurrPage.SaveRecord()`** → Modify (a tvůj
   OnAfterModify) proběhne hned v OnValidate; aby se nově vložené řádky ukázaly, stačí v pageextension `OnAfterValidate`
   `CurrPage.SaveRecord(); CurrPage.Update(false)` (vzor standardu `InsertExtendedText` → `UpdateForm(true)`).
