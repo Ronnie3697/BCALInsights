@@ -625,6 +625,11 @@ Doplněno 2026-09-07 (přesun vazby do base `prod-ess-configurator-bc`, větev `
 - `Sales Order Subform.QuantityOnAfterValidate` už pro Item řádky volá **`CurrPage.SaveRecord()`** → Modify (a tvůj
   OnAfterModify) proběhne hned v OnValidate; aby se nově vložené řádky ukázaly, stačí v pageextension `OnAfterValidate`
   `CurrPage.SaveRecord(); CurrPage.Update(false)` (vzor standardu `InsertExtendedText` → `UpdateForm(true)`).
+  **Úpravy téhož řádku, které jdou přes jinou instanci recordu** (`Get` + `Validate` + `Modify(true)` v codeunitě), dělej
+  na úrovni stránky **po `SaveRecord`** a pak `Rec.Get(...)` + `CurrPage.Update(false)` (vzor base
+  `LocationCodeOnAfterValidate`: SaveRecord → AutoReserve → Update); uvnitř table triggeru téhož řádku by druhá instance
+  rozhodila row version buffer stránky. Na novém řádku (DelayedInsert) SaveRecord = Insert, OnAfterModify nefire → logika
+  „po uložení" se chytne až na dalším Modify (typicky Quantity).
 - **Mazání dětí při změně `No.` hlavního řádku dělá jen subform** (`NoOnAfterValidate` → `InsertExtendedText(false)` →
   `SalesCheckIfAnyExtText` → `DeleteSalesLines`: `SalesLine2 := SalesLine; Find('>')` = jen řádky s vyšším Line No.);
   table-level `Validate("No.")` děti nemaže → pokrýt vlastním přepočtem v OnAfterModify.
