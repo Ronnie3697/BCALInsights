@@ -16,6 +16,8 @@ jediný zdroj; always-on soubory jednotlivých nástrojů na něj jen odkazují.
 | `bc-al-build.md` | NuGet dependencies, test symboly, kolize ID, major bump, Essence CI build & deploy gotchas (sekce 7.11–7.19) |
 | `bc-al-autotests.md` | automatizované testy — codeunits, libraries, runner, povinnost |
 | `ew-mobile-ui-notes.md` | UI poznámky k Essence Warehouse Mobile (čtečky) |
+| `bc-al-mcp-server.md` | **draft** — oficiální BC MCP server (konfigurace v BC, auth / device login, Claude Code `--mcp-config` + `headersHelper`); bez skill-wrapperu, v Routeru jen jako řádek |
+| `mcp-setup.md` | jednorázová instalace MCP serverů pro nový stroj / kolegu (npm, `claude mcp add`, PAT, timeouty) — **není notes**, skilly ho nenačítají |
 | `bc-al-notes.archived-2026-06-23.md` | archiv původního monolitu — **needitovat**, jen reference |
 
 ## Pravidla údržby
@@ -31,6 +33,15 @@ jediný zdroj; always-on soubory jednotlivých nástrojů na něj jen odkazují.
 Lokální klon: `C:\WorkTasks\BCALInsights` (do 2026-08-28 žilo v OneDrive
 `AI\BCALInsights`; `ShopifyConnector/` zůstal tam — má vlastní GitHub repo).
 
+## Nový stroj / kolega — od nuly
+
+1. `git clone` tohoto repa do `C:\WorkTasks\BCALInsights` (skilly odkazují absolutní cestou).
+2. Junction skillů pro svůj nástroj (sekce níže) + startup pravidlo v always-on souboru
+   (`~/.claude/CLAUDE.md`: „u AL/BC úkolu načti jako první akci skill `bc-al`").
+3. MCP servery (`al-mcp-server`, `bc-code-intelligence`, `azure-devops`, `d365bc-admin`):
+   **`mcp-setup.md`** — npm instalace, `claude mcp add`, read-only PAT, timeouty, ověření.
+   Číst jen jednou; skilly ho nenačítají.
+
 ## Claude Code skilly (plugin `bcal-insights`)
 
 Repo je zároveň **Claude Code plugin**: `.claude-plugin/plugin.json` +
@@ -45,7 +56,7 @@ Copilot rozcestník se nemění.
 | `bc-al` (`/bc-al`) | rozcestník = Router + startup checklist + pravidla údržby | první akce každé AL/BC seance |
 | `bc-al-style` | `bc-al-style.md` | konvence, naming, ToolTipy, UI, moderní patterny |
 | `bc-al-data` | `bc-al-data.md` | DB operace, event subscribery, propagace polí |
-| `bc-al-objects` | `bc-al-objects.md` | No. Series, Item Tracking, SaaS/SecretText gotchas… |
+| `bc-al-objects` | `bc-al-objects.md` | No. Series, Item Tracking, Shopify, Attached to Line No., SaaS/SecretText gotchas… |
 | `bc-al-workflow` | `bc-al-workflow.md` | XLIFF, dokumentace, analyzery, ruleset |
 | `bc-al-tools` | `bc-al-tools.md` | alc, symboly, nová appka, git/PR, ADO |
 | `bc-al-build` | `bc-al-build.md` | NuGet, test symboly, kolize ID, major bump, CI build/deploy |
@@ -95,6 +106,9 @@ Ověření: `claude plugin validate C:\WorkTasks\BCALInsights`,
 
 - Nové gotchas jdou **do notes souborů**, ne do `SKILL.md` — TL;DR ve skillu
   se mění jen, když se mění pravidlo samo.
+- **Nové téma** (nová sekce / objekt / nástroj) → doplň klíčové slovo do
+  `description` skillu a do Routeru, jinak si ho agent nenačte. Limit 1024 znaků
+  hlídá `python check-skills.py` (délky description + existence notes souborů).
 - Při rozdělení notes souboru (> 1000 řádků) přidej nový wrapper do `skills/`
   a řádek do Routeru ve `skills/bc-al/SKILL.md`.
 - Změna skillů → bump `version` v `.claude-plugin/plugin.json`.

@@ -1,8 +1,8 @@
 # BC/AL poznámky — Oficiální Business Central MCP server (DRAFT)
 
-> **Stav: draft „bokem", 2026-09-04.** Zatím **není v Routeru** ani ve skillech — až se ověří,
-> co všechno přes MCP server jde, přesune se jako sekce 7.20 do `bc-al-tools.md` (nebo zůstane
-> samostatný skill). Zdroj: test na `cust-sonnentor-bc`, prostředí **BC-DEV2**, konfigurace
+> **Stav: draft „bokem", 2026-09-04.** V Routeru (`skills/bc-al/SKILL.md`) je od 2026-09-07
+> jen jako řádek „draft, bez skill-wrapperu" — až se ověří, co všechno přes MCP server jde,
+> přesune se jako sekce 7.20 do `bc-al-tools.md` (nebo dostane vlastní skill). Zdroj: test na `cust-sonnentor-bc`, prostředí **BC-DEV2**, konfigurace
 > `ClaudeDNEM`, Claude Code 2.1.260, Windows 11.
 
 Obsahuje:

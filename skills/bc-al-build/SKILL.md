@@ -1,19 +1,20 @@
 ---
 name: bc-al-build
 description: >-
-  BC/AL dependencies, CI build a deploy z praxe (Business Central, AL, Essence
-  pipeline, sekce 7.11–7.19): NuGet download šablony v2-0 (MajorMinor range +
-  LatestMatching, dřív earliest match; dedupe minim per GUID → stejná verze
-  dependency ve všech app.json), symboly test frameworku z veřejného MSSymbols
-  feedu, kolize object ID po merge (rozhodují nasazená data), major version
-  bump checklist (app.json, azure-pipelines.yml BC_ARTIFACT), faily testů
-  shazují build, squash merge → falešné konflikty a three-dot diff lže,
-  Microsoft Subcontracting ≥ 28.3.0.0 + BC_ARTIFACT 28.3 (falešné
-  AL0118/AL0132), Deploy Staging sync_mode 'Add' natvrdo / ForceSync maže data
-  / obsolete dvoufázově, smíchané řady MS symbolů v .alpackages (falešné
-  AL0132 bez AL1022). Načti při CI/build failech, práci s dependencies a
-  symboly z feedu, upgrade BC majoru, deploy na staging, merge konfliktech po
-  squash.
+  BC/AL dependencies, CI build a deploy z praxe (Business Central, AL,
+  Essence pipeline, sekce 7.11–7.19): NuGet download šablony v2-0
+  (MajorMinor range + LatestMatching; dedupe minim per GUID → stejná verze
+  dependency ve všech app.json), symboly test frameworku z veřejného
+  MSSymbols feedu, lokalizační MS appky (CZ packy, Banking Documents) od BC
+  28 pod ID s .cz. infixem (staré ID končí u 27.0, hledej přes query2),
+  kolize object ID po merge (rozhodují nasazená data), major version bump
+  checklist (app.json, azure-pipelines.yml BC_ARTIFACT), faily testů shazují
+  build, squash merge → falešné konflikty a three-dot diff lže, Microsoft
+  Subcontracting ≥ 28.3.0.0 + BC_ARTIFACT 28.3 (falešné AL0118/AL0132),
+  Deploy Staging sync_mode 'Add' natvrdo / ForceSync maže data / obsolete
+  dvoufázově, smíchané řady MS symbolů v .alpackages (falešné AL0132 bez
+  AL1022). Načti při CI/build failech, práci s dependencies a symboly z
+  feedu, upgrade BC majoru, deploy na staging, merge konfliktech po squash.
 user-invocable: true
 ---
 
@@ -46,7 +47,9 @@ build logů jsou v souboru. Vyčleněno z `bc-al-tools.md` 2026-09-01, číslov�
   dependency = ta, kde člen vznikl. Kompatibilitu ověřuj proti balíčku
   z feedu, ne z lokálních `.alpackages`.
 - **7.12** Test symboly z veřejného MSSymbols feedu (flat2 index.json, `curl -L`);
-  sandbox package cache + 4 CI analyzery.
+  sandbox package cache + 4 CI analyzery. Lokalizační MS appky (CZ packy,
+  Banking Documents…) mají od BC 28 ID s infixem `.cz.` — staré ID končí
+  u 27.0.x; chybějící řadu hledej přes `…/MSSymbols/nuget/v3/query2/?q=<název>`.
 - **7.13** Kolize ID po merge: přečísluj **nenasazenou** stranu — zeptej se,
   co běží s daty.
 - **7.14** Major bump: všechny `app.json` (version/platform/application

@@ -35,8 +35,8 @@ ohledu na typ úkolu.
    příslušné skilly (Claude Code: `Skill` tool; Copilot `/název`, Codex
    `$název`, Antigravity zmínkou jménem) **nebo rovnou soubory** — každý skill
    jen říká „přečti `C:\WorkTasks\BCALInsights\<soubor>.md` celý" + TL;DR. Nevíš rozsah → načti všech
-   šest hlavních `bc-al-*.md` (~400–800 řádků, každý se vejde do jednoho
-   Read; kdyby se výstup přece ořízl, dočti přes `offset`).
+   šest hlavních `bc-al-*.md` (~400–870 řádků; `bc-al-objects.md` už cap
+   jednoho Read přesahuje → vždy druhý Read s `offset`, ostatní se vejdou).
    ⚠️ **Každý soubor dočti DO KONCE.** Když Read vrátí oříznutý výstup
    („showing lines X–Y of Z"), okamžitě navaž dalším Read s `offset`.
    Částečně přečtený soubor = nepřečtený soubor.
@@ -45,7 +45,9 @@ ohledu na typ úkolu.
    u netriviální funkčnosti **povinná součást úkolu** (u banalit typu přidání
    pole bez logiky ne).
 3. **al-mcp-server studený start** (pokud je MCP v daném nástroji
-   nakonfigurovaný). Index je po startu seance prázdný →
+   nakonfigurovaný; když chybí — v `claude mcp list` není — jednorázová
+   instalace všech MCP serverů je v `mcp-setup.md` v kořeni notes repa, jinak
+   ho nečti). Index je po startu seance prázdný →
    `al_packages` s `action: "load"` a `path` = **root repa** (sdílená
    `.alpackages`; cesta na podsložku appky selže). Detail 7.2 v `bc-al-tools.md`.
 4. **bc-code-intelligence (Sam Coder)** — jen u netriviálních úkolů (viz níže)
@@ -65,14 +67,15 @@ je drahý.
 
 | Děláš… | Skill | Soubor (kořen repa) |
 |---|---|---|
-| Konvence, naming, prefixy/affixy, Description/ToolTipy, page/UI patterny, permission sety, přidělování ID, výběr moderního patternu (namespaces, interfaces, SecretText, Cloud target) | `bc-al-style` | `bc-al-style.md` (sekce 1, 4, 10) |
-| FindSet/locking, Insert/Modify/Delete, TempBlob, SetLoadFields, SetFilter, TransferFields, event subscribery, tableextension triggery, propagace vlastních polí přes posting/archive | `bc-al-data` | `bc-al-data.md` (sekce 2, 3) |
-| No. Series, Upgrade Tag, All Profile, Item Tracking/Lot, Unix timestamp, atributy zboží, Shopify Connector, DateFormula, CaptionClass/Translation Helper, CZ↔EN terminologie, CZZ zálohy, Attached to Line No., Requisition Line, VerifyOnInventory, HttpClient na SaaS, SecretText, Cloud-only gotchas | `bc-al-objects` | `bc-al-objects.md` (sekce 5, 11) |
-| Překlady/XLIFF (NAB AL Tools, trans-unit ID), dokumentace requirementů (`docs/*.md`), co číst před editem (app.json, .alpackages), analyzery AA/CA/PTE/LC, build diagnostika, ruleset | `bc-al-workflow` | `bc-al-workflow.md` (sekce 6, 8, 9, 12) |
-| Kompilace z CLI (alc), symboly (.alpackages, al-mcp), BC source na GitHubu, AL-Go, nová appka v repu (GUID, idRanges, affixy, permission sety), source závislé appky, git/commit/PR pravidla, verzování app.json, Azure DevOps MCP/PAT, case-only rename | `bc-al-tools` | `bc-al-tools.md` (sekce 7.1–7.10) |
-| NuGet dependencies a minima (MajorMinor/LatestMatching, dedupe per GUID), symboly test frameworku z MSSymbols feedu, kolize object ID po merge, major version bump, Essence build faily (testy, squash merge, Subcontracting ≥ 28.3, BC_ARTIFACT), Deploy Staging sync mode/ForceSync/obsolete, smíchané verze MS symbolů | `bc-al-build` | `bc-al-build.md` (sekce 7.11–7.19) |
-| Cokoliv kolem automatizovaných testů (test app, libraries, handlery, runner, gotchas) — a implementace netriviální funkčnosti | `bc-al-autotests` | `bc-al-autotests.md` |
+| Konvence, naming, prefixy/affixy, Description/ToolTipy, page/UI patterny (Visible přes page proměnnou, názvy controlů / expression pole, MultiLine/RichContent), permission sety, přidělování ID, locale pasti (Format/Evaluate, Excel Buffer), výběr moderního patternu (namespaces, interfaces, SecretText, Cloud target) | `bc-al-style` | `bc-al-style.md` (sekce 1, 4, 10) |
+| FindSet/locking, Insert/Modify/Delete, TempBlob, SetLoadFields, SetFilter, TransferFields, Mark/Copy, event subscribery, tableextension triggery / klíče / modify(), propagace vlastních polí přes posting/archive (částečné účtování, Blob + CalcFields, AutoFormatExpression) | `bc-al-data` | `bc-al-data.md` (sekce 2, 3) |
+| No. Series, Upgrade Tag, All Profile, Item Tracking/Lot (i na Sales Quote), Unix timestamp, atributy zboží, Shopify Connector (varianty, sync vs Add Item), DateFormula, CaptionClass/Translation Helper, CZ↔EN terminologie, CZZ zálohy, Attached to Line No. / parent↔child řádky, Requisition Line, VerifyOnInventory, Auto Format / částky v textu, HttpClient na SaaS, SecretText, Cloud-only gotchas, Business Events / Power Automate | `bc-al-objects` | `bc-al-objects.md` (sekce 5, 11 — přesahuje cap jednoho Read, dočti přes `offset`) |
+| Překlady/XLIFF (NAB AL Tools, trans-unit ID), dokumentace requirementů (`docs/*.md`), co číst před editem (app.json, .alpackages), analyzery AA/CA/PTE/LC, XML doc komentáře, build diagnostika, ruleset | `bc-al-workflow` | `bc-al-workflow.md` (sekce 6, 8, 9, 12) |
+| Kompilace z CLI (alc, analyzery, UTF-16 logy, dočasná package cache, BOM-aware ID), Bash/heredoc pasti Claude Code, symboly (.alpackages, al-mcp), BC source na GitHubu, AL-Go, nová appka v repu (GUID, idRanges, affixy, permission sety), source závislé appky, git/commit/PR pravidla, verzování app.json, Azure DevOps MCP/PAT, case-only rename | `bc-al-tools` | `bc-al-tools.md` (sekce 7.1–7.10) |
+| NuGet dependencies a minima (MajorMinor/LatestMatching, dedupe per GUID), symboly test frameworku z MSSymbols feedu (lokalizační appky s `.cz.` infixem od BC 28), kolize object ID po merge, major version bump, Essence build faily (testy, squash merge, Subcontracting ≥ 28.3, BC_ARTIFACT), Deploy Staging sync mode/ForceSync/obsolete, smíchané verze MS symbolů | `bc-al-build` | `bc-al-build.md` (sekce 7.11–7.19) |
+| Cokoliv kolem automatizovaných testů (test app, libraries, handlery, runner, Setup Storage, TestPage vs Rec.Validate, lokální kompilace test appky, gotchas) — a implementace netriviální funkčnosti | `bc-al-autotests` | `bc-al-autotests.md` |
 | Mobilní warehouse čtečky (prod-ew-mobileBase-bc): Control AddIn, JS/CSS, scanner, dotykové UI, Interpret Barcode | `ew-mobile-ui` | `ew-mobile-ui-notes.md` |
+| Oficiální BC MCP server (`mcp.businesscentral.dynamics.com`): konfigurace v BC (page 8350/8351, Dynamic Tool Mode), Entra app registrace vs. device login, Claude Code `--mcp-config` + `headersHelper` | — (draft, bez skill-wrapperu) | `bc-al-mcp-server.md` |
 | Nejsi si jistý rozsahem | všech 6 hlavních `bc-al-*` | `bc-al-style/data/objects/workflow/tools/build.md` |
 
 Číslování sekcí (1–12) je napříč soubory původní, ať fungují odkazy „viz X.Y".
@@ -118,6 +121,13 @@ Archiv monolitu `bc-al-notes.archived-2026-06-23.md` — **needituj, jen referen
 - **TL;DR ve skillech needituj kvůli novým gotchas** — tam patří jen stabilní
   pravidla; poznatky jdou do `bc-al-*.md`. Skill TL;DR uprav, jen když se
   mění pravidlo samo (a bumpni `version` v `.claude-plugin/plugin.json`).
+- **Nové téma v notes = nové klíčové slovo ve skillu.** Když poznatek otevírá
+  novou sekci / nový objekt / nový nástroj (ne jen další odstavec k existující
+  sekci), doplň ho i do `description` příslušného skillu (to je trigger, podle
+  kterého si agent skill načte — bez klíčového slova se nenačte) a do Routeru
+  tady. `description` má limit **1024 znaků** → `python check-skills.py`
+  v kořeni repa hlídá délky; při přetečení zhusti, nemaž. Klidně to dělej
+  hromadně (audit 2026-09-07 dohnal 30 commitů notes najednou).
 - **Fallback bez skillů:** přečti přímo `C:\WorkTasks\BCALInsights\skills\bc-al\SKILL.md`
   (tenhle soubor) a notes v `C:\WorkTasks\BCALInsights\`. Ostatní nástroje:
   Copilot `~/.agents/skills` + `.instructions.md` (applyTo `*.al`), Codex

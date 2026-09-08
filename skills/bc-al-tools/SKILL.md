@@ -2,18 +2,20 @@
 name: bc-al-tools
 description: >-
   BC/AL nástroje, git a Azure DevOps z praxe (Business Central, AL, sekce
-  7.1–7.10): alc.exe kompilace z CLI (absolutní cesty, analyzery, Git Bash
-  MSYS2_ARG_CONV_EXCL, více package cache), al-mcp-server (studený start
-  al_packages load, jen signatury → těla procedur na GitHubu, MCP
-  CONNECT_TIMEOUT fix), BC source StefanMaron/MSDyn365BC.Code.History (větve
-  w1-/cz-<major>, core.longpaths), AL-Go, nová appka v multi-app repu (GUID,
-  idRanges, affix, workspace, permission sety, git worktree), source závislé
-  appky (sibling repo v C:\WorkTasks, extrakce z .app), git commit/push/PR
-  nikdy sám + upstream past + ForcePush, verzování app.json, Azure DevOps MCP
-  (org essencebs, PAT read-only záměrně, search_code blob, IPv6 reset),
-  case-only rename složky. Načti při kompilaci z CLI, práci se symboly, git /
-  PR / Azure DevOps, zakládání appky. (NuGet dependencies, CI build a deploy
-  gotchas → skill bc-al-build.)
+  7.1–7.10): alc.exe kompilace z CLI (absolutní cesty, bez
+  Analyzers.Common.dll (AL1003), Git Bash MSYS2_ARG_CONV_EXCL, více package
+  cache, dočasná cache ze sibling rep, UTF-16 logy (falešné 0 errors), Bash
+  heredoc pasti (backslash, apostrof), volné object ID BOM-aware),
+  al-mcp-server (studený start al_packages load, jen signatury → těla
+  procedur na GitHubu, MCP CONNECT_TIMEOUT fix), BC source
+  StefanMaron/MSDyn365BC.Code.History (w1-/cz-<major>, core.longpaths),
+  AL-Go, nová appka v repu (GUID, idRanges, affix, workspace, permission
+  sety, git worktree), source závislé appky (sibling repo, extrakce z .app),
+  git commit/push/PR nikdy sám + upstream past + ForcePush, verzování
+  app.json, Azure DevOps MCP (org essencebs, PAT read-only záměrně,
+  search_code blob, IPv6 reset), case-only rename složky. Načti při
+  kompilaci z CLI, práci se symboly, git / PR / Azure DevOps, zakládání
+  appky. (NuGet, CI build a deploy → skill bc-al-build.)
 user-invocable: true
 ---
 
@@ -43,6 +45,13 @@ build/deploy) žijí od 2026-09-01 v `bc-al-build.md` → skill `bc-al-build`.
   **absolutní cesty** (`/project:`, `/packagecachepath:` — víc cache čárkou),
   analyzery `/analyzer:<bin/Analyzers/…dll>`; v Git Bash
   `MSYS2_ARG_CONV_EXCL="*"`. Externí ruleset alc odmítne.
+  `Analyzers.Common.dll` do `/analyzer:` **nedávat** (AL1003 + část pravidel se
+  tiše nenačte; CodeCop/UICop/PTE/LinterCop stačí). Log alc z Git Bash i PS
+  `*>` je **UTF-16** → před grepem dekóduj, jinak falešné „0 errors". Bash tool
+  heredoc sráží `\\` a padá na apostrof v obsahu → AL/JSON s apostrofy či
+  backslashy piš Write toolem. Volné object ID hledej BOM-aware (grep bez `^`).
+  Prázdná `.alpackages` → dočasná cache z kopií sibling rep, jedna řada MS
+  symbolů.
 - **7.2** al-mcp: po startu seance `al_packages load` na **root repa**.
   Vrací **jen signatury** → tělo procedury vezmi z GitHubu
   (`ReferenceSourceFileName` → `gh api …/git/trees` → contents). MCP „není

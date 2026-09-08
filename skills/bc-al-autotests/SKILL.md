@@ -1,20 +1,22 @@
 ---
 name: bc-al-autotests
 description: >-
-  BC/AL automatizované testy z praxe (Business Central, AL test app): kdy
-  jsou autotesty povinné (netriviální funkčnost), kanonický vzor Essence prod
-  modulů (prod-ess-configurator-bc/test: MS Assert 130000 + Library - *,
-  vlastní library jen pro custom tabulky, target Cloud + Test Runner /
-  Tests-TestLibraries / System Application Test Library), atributy [Test] /
-  [HandlerFunctions] / [TransactionModel], handlery, AAA pattern, TestPage,
-  ExpectedError, TestPermissions = Disabled explicitně (default Restrictive),
-  internalsVisibleTo a PTE0012, test app bez permissionsetu, symboly test
-  frameworku, Report.RunModal bez request page, OnBeforeActionEvent jen přes
-  TestPage, LibraryInventory.CreateItem base UoM past, asserterror rollbackne
-  GIVEN → Commit, carry-out vlastní batch, placeholder testy zakázané, test
-  ruleset dědí hlavní + skrývá LC0015, SaaS-only fallback helpery. Načti při
-  psaní nebo opravě testů, zakládání test appky a při implementaci
-  netriviální funkčnosti.
+  BC/AL automatizované testy z praxe (Business Central): kdy jsou povinné
+  (netriviální funkčnost), vzor Essence (MS Assert + Library - *, vlastní
+  library jen pro custom tabulky, target Cloud + Test
+  Runner/Tests-TestLibraries/System Application Test Library),
+  [Test]/[HandlerFunctions]/[TransactionModel], handlery, AAA, TestPage,
+  ExpectedError, TestPermissions = Disabled, internalsVisibleTo, PTE0012,
+  test app bez permissionsetu, Report.RunModal bez request page,
+  OnBeforeActionEvent jen přes TestPage, CreateItem base UoM past,
+  asserterror rollbackne GIVEN → Commit, carry-out vlastní batch,
+  placeholder testy zakázány, test ruleset dědí hlavní, SaaS-only helpery,
+  Library - Setup Storage generický Save/Restore (wrappery OnPrem, AL0296),
+  negativní test na nové instanci, TestPage Sales Order řádky
+  (stockout/credit warning), ConfirmHandler Reply false + asserterror, undo
+  dodávky bez dialogu, kompilace ze sibling .alpackages. Načti při
+  psaní/opravě testů, zakládání test appky a implementaci netriviální
+  funkčnosti.
 user-invocable: true
 ---
 
@@ -32,8 +34,9 @@ v souboru.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
-3. Sousední témata: symboly test frameworku z MSSymbols feedu a lokální
-   kompilace test appky → `bc-al-build` (7.12); ID test objektů od konce range
+3. Sousední témata: symboly test frameworku z MSSymbols feedu a sandbox
+   package cache → `bc-al-build` (7.12); Confirm / `CurrFieldNo` chování
+   Sales Line → `bc-al-objects` (5.x4); ID test objektů od konce range
    → `bc-al-style` (1.12 „Přidělování ID"); ruleset konvence →
    `bc-al-workflow` (12.4).
 
@@ -62,6 +65,18 @@ v souboru.
 - `TransactionModel` default AutoCommit; `AutoRollback` → `Commit()` hodí error.
 - **`asserterror` rollbackne i GIVEN data** → před kontrolou DB stavu
   `Commit();` (s komentářem); dva `asserterror` za sebou → vlastní testy.
+- **Setup v testu:** `Library - Setup Storage` wrappery (`SaveSalesSetup()`…)
+  mají scope OnPrem (AL0296 v Cloud test appce) → generické
+  `Save(Database::"Sales & Receivables Setup")` + `Restore()` v `Initialize()`.
+- **Negativní test po release / s Confirm:** validuj na **nové instanci**
+  recordu (`Sales Line` si hlavičku cachuje, stará instance chybu nehodí).
+  Confirm z table triggeru s `CurrFieldNo` guardem vyvolá jen
+  `TestPage.SetValue` (z `Rec.Validate` je `CurrFieldNo = 0`) → odmítnutí =
+  `[ConfirmHandler]` `Reply := false` + `asserterror`, `Commit()` po GIVEN,
+  assertuj DB stav (ne `ExpectedError('')`). Řádky přes `TestPage "Sales
+  Order".SalesLines` → napřed `LibrarySales.SetStockoutWarning(false)` +
+  `SetCreditWarningsToNoWarnings()`. Undo dodávky bez dialogu:
+  `SetRecFilter()` + `SetHideDialog(true)` + `Run`.
 - `MinValue`/`MaxValue`/`NotBlank` programový `Validate` **nevynucuje** →
   explicitní `OnValidate` check nebo TestPage. Expected DateTime přes
   `Evaluate(DT, '…Z', 9)`, ne `CreateDateTime` (DST).
@@ -79,4 +94,6 @@ v souboru.
   (folder-level), workspace-level se resolvuje na hlavní.
 - Symboly `Tests-TestLibraries` nejsou v `.alpackages` → Local-DevEnv
   s `installTestLibraries` / `AL: Download Symbols` / MSSymbols feed (7.12
-  v `bc-al-build`).
+  v `bc-al-build`). Lokální kompilace bez kontejneru: **celá** `.alpackages`
+  sibling repa (tranzitivní deps) v `/packagecachepath` + build dir hlavní
+  appky; MS test `.app` nemají zdrojáky → signatury přes al-mcp.

@@ -114,8 +114,10 @@ Copilot CLI** i **Codex CLI**. Nástroje:
 - `al_get_object_definition` — plná definice objektu
 - `al_find_references` — kde se objekt/member používá
 
-**Konfigurace (globální, per-user):** Server běží přes `npx -y al-mcp-server`
-(vyžaduje Node 18+ a .NET SDK 8+). Cwd MCP procesu = cwd, ze které je AI
+**Konfigurace (globální, per-user):** kompletní jednorázový postup pro nový stroj
+(všechny čtyři MCP servery, PAT, `MCP_TIMEOUT`, ověření) je v `mcp-setup.md` v kořeni
+notes repa — níže jen původní varianta a proč se od ní odešlo. Server běží přes
+`npx -y al-mcp-server` (vyžaduje Node 18+ a .NET SDK 8+). Cwd MCP procesu = cwd, ze které je AI
 klient spuštěný, takže `.alpackages` se najde sám, pokud klienta pouštíš z
 root složky AL repa.
 

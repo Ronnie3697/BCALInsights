@@ -7,12 +7,15 @@ description: >-
   doprovodných souborů, Description a ToolTip (kam a jak), pořadí
   IntegrationEvent/actionref, Temp prefix, StyleExpr, Access = Internal,
   formát page fieldů, přidělování object/field ID per typ, Format(enum) a
-  Evaluate/Format locale pasti, UI patterny (RunModal, RoleCenter výběr,
-  ConfirmManagement default, factbox SubPageLink, CaptionClass cache, smyčka
-  aktualizace v OnAfterGetRecord, modify cizí pageextension), moderní AL
-  patterny podle app.json (namespaces, interfaces, SecretText, Cloud target,
-  telemetrie). Načti při psaní nebo review AL kódu, naming, ToolTipů,
-  page/pageextension, permission setů, výběru patternu.
+  Evaluate/Format locale pasti (Excel Buffer čísla), UI patterny (RunModal,
+  RoleCenter výběr, ConfirmManagement default, factbox SubPageLink,
+  CaptionClass cache, název controlu neměnit při přeměně na expression pole,
+  modify cizí pageextension, smyčka aktualizace v OnAfterGetRecord, Visible
+  = Rec.pole padá za běhu → page proměnná v OnOpenPage, MultiLine výška /
+  RichContent / control add-in), moderní AL patterny podle app.json
+  (namespaces, interfaces, SecretText, Cloud target, telemetrie). Načti při
+  psaní nebo review AL kódu, naming, ToolTipů, page/pageextension,
+  permission setů, výběru patternu.
 user-invocable: true
 ---
 
@@ -72,7 +75,8 @@ pravidla níže jsou výcuc; detail, příklady kódu a odůvodnění jsou v sou
   explicitní mapovací procedura.
 - **1.14** Text ↔ Decimal v datové pipeline vždy `Format(x, 0, 9)` /
   `Evaluate(..., 9)`; user input normalizuj (nbsp, `,` → `.`). Testy drž ve
-  tvaru produkčních dat.
+  tvaru produkčních dat. Excel Buffer `Cell Value as Text` je locale formát
+  bez tisíců → napřed locale `Evaluate`, až při neúspěchu normalizace + 9.
 - **4.1–4.3** RoleCenter CardPart: `RunModal` s návratovou hodnotou / `GetRecord`
   nefunguje → výběr přes SingleInstance codeunit + `CurrPage.Close()`.
 - **4.4** `ConfirmManagement.GetResponseOrDefault(Qst, true)` pro běžné akce,
@@ -81,11 +85,23 @@ pravidla níže jsou výcuc; detail, příklady kódu a odůvodnění jsou v sou
   (filter group 4) → ulož a obnov view kolem reloadu.
 - **4.6** CaptionClass captiony se cachují per session → nejdřív vyluč cache
   (Ctrl+F5) a per-company setup, až pak hledej bug v kódu.
+- **4.6b** Přeměna pole na expression control: **název controlu nech**, měň jen
+  `SourceExpr` (kotva `addafter`/`modify` závislých appek → AL0270, XLIFF ID,
+  personalizace); nové controly pojmenuj podle pole tabulky. Pak zkompiluj
+  závislé appky proti novému buildu.
 - **4.7** `modify()` na kontrolu cizí pageextension jde s přímou dependency
   (bez ní AL0270).
 - **4.8** **Žádný zápis ani `CurrPage.Update()` v `OnAfterGetRecord` /
   `OnAfterGetCurrRecord`** (smyčka aktualizace) → přepočty do akcí /
   `OnOpenPage`, idempotentně (`Modify` jen když se hodnota liší).
+- **4.9** `Visible = not Rec."Pole"` v pageextension **kompiluje, ale za běhu
+  padá** („identifier … could not be found") → page `Boolean` proměnná
+  nastavená už v `OnOpenPage` (+ `OnAfterGetRecord`, `OnValidate` řídícího
+  pole + `CurrPage.Update()`).
+- **4.10** `MultiLine` = pevné ~3 řádky, žádná property výšku nezvětší. Celý
+  dlouhý text = `ExtendedDatatype = RichContent` na Text proměnné v root group
+  (hodnota HTML → Blob, 3.6c v `bc-al-data`) nebo vlastní control add-in
+  (u zákaznických rep počítej s odmítnutím jako obcházení standardu).
 - **10** Pattern vyber podle `app.json` (application / platform / target /
   runtime), nedowngraduj repo, které moderní patterny už má. Cloud target: žádný
   DotNet, File, Automation, WindowsLanguage. `DT.Date()` / `DT.Time()` místo

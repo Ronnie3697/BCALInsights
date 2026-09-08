@@ -8,13 +8,14 @@ description: >-
   labelu s %n vyžaduje update <source> i <target> v XLF, duplicitní
   trans-unity po merge (AL0479), dokumentace requirementů PBI/Task →
   docs/*.md (struktura, konvence), co číst před editem AL objektu (hlavička,
-  app.json idRanges/dependencies/target/runtime, .alpackages je binární ZIP →
-  al-mcp, permission set), build a analyzery AA/CA/PTE/LC (lokální verifikace
-  všech dotčených appek s CI analyzery, failOn warning), hledání významu
-  pravidel, runtime errory bez spekulačních smyček, Essence ruleset per
-  projekt (*Ruleset*.json vedle app.json). Načti při překladech / XLIFF,
-  dokumentaci ticketu, před netriviálním editem, při řešení warningů,
-  analyzerů a rulesetů.
+  app.json idRanges/dependencies/target/runtime, .alpackages je binární ZIP
+  → al-mcp, permission set), build a analyzery AA/CA/PTE/LC (lokální
+  verifikace všech dotčených appek s CI analyzery, failOn warning), XML doc
+  komentáře (LC0072 returns/param, & = AL0640), hledání významu pravidel,
+  runtime errory bez spekulačních smyček, Essence ruleset per projekt
+  (*Ruleset*.json vedle app.json). Načti při překladech / XLIFF, dokumentaci
+  ticketu, před netriviálním editem, při řešení warningů, analyzerů a
+  rulesetů.
 user-invocable: true
 ---
 
@@ -68,7 +69,9 @@ příklady jsou v souboru.
   pushem: zkompiluj **každou dotčenou appku vč. test appky** se **stejnými
   analyzery jako CI** (`Analyzers.Common`, `CodeCop`, `PerTenantExtensionCop`,
   `UICop`); holý `alc` bez `/analyzer:` nic z AA/CA/PTE/LC neodhalí.
-  `info` neshodí build, **každý warning oprav**.
+  `info` neshodí build, **každý warning oprav**. `///` XML doc: `<returns>` +
+  `<param>` pro každý parametr (LC0072), `&` / `<` / `>` escapovat (AL0640 je
+  warning → CI fail).
 - **12.2** Warning neopravuj naslepo — AA/CA/PTE přes MS Learn, LC přes
   LinterCop wiki. Pravidla si občas odporují (LC0082 vs AA0233) → nejmenší zlo
   v kontextu.
