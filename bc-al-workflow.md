@@ -391,6 +391,13 @@ Workflow:
 Loop "fix → guess data → fix → guess data" bez skutečného běhu utopí hodinu
 za nic.
 
+**Ověření setupu / dat u zákazníka v prohlížeči (Claude in Chrome):** BC web client bere v URL přímo
+`?company=<Company>&page=<ID>&filter='<Field>' IS '<value>'` (URL-encoded: `%27No.%27%20IS%20%270058%27`) — otevře
+kartu i list rovnou na záznamu, bez klikání přes Tell me. Funguje pro vlastní stránky (`page=63141` karta definice
+konfigurace) i standardní (`page=42` prodejní objednávka, `page=30` karta zboží). Pak `zoom` na region místo
+celého screenshotu, ať se dají přečíst zkrácené buňky. (2026-09-08, Alumistr BC-TEST2, kontrola Table Lookup
+parametru pro textovou formuli.)
+
 ### 12.4 Essence build — ruleset per projekt konvencí
 
 Essence BC build (`azure-pipelines.yml` → template `ALBuildPipeline2.yml` →
