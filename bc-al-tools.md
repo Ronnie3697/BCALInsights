@@ -172,6 +172,15 @@ v `~/.claude.json` volat přímo shim z `%APPDATA%\npm` (`cmd /c bc-code-intelli
 pod 1 s místo 6–30 s; (b) pojistka `"env": {"MCP_TIMEOUT": "90000"}` v `~/.claude/settings.json`.
 V seanci jde spadlý server oživit přes `/mcp` → reconnect. Nevýhoda globální instalace: verze se
 sama neaktualizuje — občas `npm update -g`.
+**Codex CLI má tentýž 30s limit** (`MCP client for al-symbols-mcp timed out after 30 seconds`,
+config klíč `startup_timeout_sec`); `command = "npx"` tam naběhne za ~1,5 s, ale při pomalém
+startu Node (2026-09-08: i `node.exe` s azure-devops serverem startoval 29 s) to nestihne.
+Fix: `command = 'C:\Program Files\nodejs\node.exe'`,
+`args = ['<%APPDATA%>\npm\node_modules\al-mcp-server\dist\cli\install.js']`,
+`startup_timeout_sec = 60` (snippet v `README.md`, sekce Codex). Pozor na `cmd /c <shim>`:
+klient při ukončení zabije jen `cmd.exe`, `node` zůstane jako sirotek — proto raději `node.exe`
+přímo. Diagnostika Codexu: `~/.codex/logs_2.sqlite`, tabulka `logs`, target
+`codex_rmcp_client::stdio_server_launcher` (úspěch = „AL MCP Server started successfully").
 
 **Kdy co použít:**
 

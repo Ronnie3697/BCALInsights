@@ -141,6 +141,13 @@ Stejné npm balíčky (krok 1), jiný formát konfigu. Hotové snippety per nás
 sekce „Nový stroj / kolega — jak si to přidat", spolu s junctiony skillů a šablonou startup
 pravidla pro každý nástroj.
 
+- **Codex CLI:** stejný 30s limit na handshake (`startup_timeout_sec`, default 30). Neřeš to
+  `npx` — v Codexu volej `node.exe` + entry JS globálního balíčku
+  (`%APPDATA%\npm\node_modules\al-mcp-server\dist\cli\install.js`) a nastav
+  `startup_timeout_sec = 60`; detail a proč v `README.md` (sekce Codex). Ověření: `/mcp` v TUI,
+  nebo v `~/.codex/logs_2.sqlite` tabulka `logs`, target `codex_rmcp_client::stdio_server_launcher`
+  — úspěšný start má řádek „AL MCP Server started successfully".
+
 ## 8. Oficiální BC MCP server (data z BC)
 
 Zatím **draft** — `bc-al-mcp-server.md`: M1 konfigurace v BC (page 8350/8351), M2 oficiální

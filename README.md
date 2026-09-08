@@ -163,8 +163,9 @@ read-only záměrně (401 na zápis neobcházet). Jazyk kódu a UI textů anglic
 
   ```toml
   [mcp_servers.al-symbols-mcp]
-  command = "cmd"
-  args = ["/c", "al-mcp-server"]
+  command = 'C:\Program Files\nodejs\node.exe'
+  args = ['C:\Users\<user>\AppData\Roaming\npm\node_modules\al-mcp-server\dist\cli\install.js']
+  startup_timeout_sec = 60
 
   [mcp_servers.al-symbols-mcp.tools.al_packages]
   approval_mode = "approve"
@@ -181,6 +182,17 @@ read-only záměrně (401 na zápis neobcházet). Jazyk kódu a UI textů anglic
 
   Pracovní repa přidej do `[projects.'C:\WorkTasks\<repo>'] trust_level = "trusted"`, jinak
   Codex v nich nespouští nástroje. Kontrola: `/mcp` v TUI.
+
+  ⚠️ **Codex a `npx` / `cmd /c` shim (2026-09-08):** Codex dává MCP serveru stejných 30 s na
+  handshake jako Claude Code (`MCP client for al-symbols-mcp timed out after 30 seconds`).
+  `command = "npx"` naběhne obvykle za ~1,5 s, ale při pomalém startu Node (AV sken, síť) to
+  nestihne a server pro celou seanci zmizí — v `~/.codex/logs_2.sqlite` pak u
+  `stdio_server_launcher` chybí řádek „AL MCP Server started successfully". Proto v Codexu
+  volej rovnou `node.exe` + entry JS globálně nainstalovaného balíčku (cesta výše; po
+  `npm update -g` zůstává) a přidej `startup_timeout_sec = 60`. `cmd /c <shim>` funguje, ale
+  při ukončení seance klient zabije jen `cmd.exe` a `node` zůstane jako sirotek. Stejný vzor
+  jde použít i pro `bc-code-intelligence-mcp` (`dist/index.js`) a `@azure-devops/mcp`
+  (`dist/index.js`, argumenty `essencebs --authentication pat`).
 
 ### Antigravity
 
