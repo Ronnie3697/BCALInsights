@@ -34,7 +34,8 @@ Card JS, Bin Content Card JS) žijí necommitnuté v druhém klonu téhož repa
    když se výstup ořízne, dočti přes `offset`. Před jakýmkoliv UI/JS tuningem
    v tom repu.
 2. Obecná AL pravidla platí dál: `bc-al-style` (naming doprovodných souborů
-   1.3, UI patterny 4), `bc-al-data`, u netriviální logiky `bc-al-autotests`.
+   1.3), `bc-al-ui` (UI patterny 4), `bc-al-data`, u netriviální logiky
+   `bc-al-autotests`.
 3. Nový poznatek (rendering problém, JS trik, gotcha) → do souboru (living
    document) + commit + push (viz skill `bc-al`).
 

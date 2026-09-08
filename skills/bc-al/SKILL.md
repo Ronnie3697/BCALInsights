@@ -35,8 +35,8 @@ ohledu na typ úkolu.
    příslušné skilly (Claude Code: `Skill` tool; Copilot `/název`, Codex
    `$název`, Antigravity zmínkou jménem) **nebo rovnou soubory** — každý skill
    jen říká „přečti `C:\WorkTasks\BCALInsights\<soubor>.md` celý" + TL;DR. Nevíš rozsah → načti všech
-   šest hlavních `bc-al-*.md` (~400–870 řádků; `bc-al-objects.md` už cap
-   jednoho Read přesahuje → vždy druhý Read s `offset`, ostatní se vejdou).
+   osm hlavních `bc-al-*.md` (~250–750 řádků / ≤ 45 KB, každý se vejde do
+   jednoho Read; kdyby se výstup přece ořízl, dočti přes `offset`).
    ⚠️ **Každý soubor dočti DO KONCE.** Když Read vrátí oříznutý výstup
    („showing lines X–Y of Z"), okamžitě navaž dalším Read s `offset`.
    Částečně přečtený soubor = nepřečtený soubor.
@@ -67,16 +67,18 @@ je drahý.
 
 | Děláš… | Skill | Soubor (kořen repa) |
 |---|---|---|
-| Konvence, naming, prefixy/affixy, Description/ToolTipy, page/UI patterny (Visible přes page proměnnou, názvy controlů / expression pole, MultiLine/RichContent), permission sety, přidělování ID, locale pasti (Format/Evaluate, Excel Buffer), výběr moderního patternu (namespaces, interfaces, SecretText, Cloud target) | `bc-al-style` | `bc-al-style.md` (sekce 1, 4, 10) |
+| Konvence, naming, prefixy/affixy, Description/ToolTipy, formát page fieldů, permission sety, přidělování ID, locale pasti (Format/Evaluate, Excel Buffer), výběr moderního patternu (namespaces, interfaces, SecretText, Cloud target) | `bc-al-style` | `bc-al-style.md` (sekce 1, 10) |
+| Chování page/pageextension: RunModal a výběr na RoleCenter, ConfirmManagement default, factbox SubPageLink, CaptionClass cache, názvy controlů / expression pole, modify cizí pageextension, smyčka aktualizace v OnAfterGet*Record, Visible přes page proměnnou, MultiLine/RichContent/control add-in | `bc-al-ui` | `bc-al-ui.md` (sekce 4) |
 | FindSet/locking, Insert/Modify/Delete, TempBlob, SetLoadFields, SetFilter, TransferFields, Mark/Copy, event subscribery, tableextension triggery / klíče / modify(), propagace vlastních polí přes posting/archive (částečné účtování, Blob + CalcFields, AutoFormatExpression) | `bc-al-data` | `bc-al-data.md` (sekce 2, 3) |
-| No. Series, Upgrade Tag, All Profile, Item Tracking/Lot (i na Sales Quote), Unix timestamp, atributy zboží, Shopify Connector (varianty, sync vs Add Item), DateFormula, CaptionClass/Translation Helper, CZ↔EN terminologie, CZZ zálohy, Attached to Line No. / parent↔child řádky, Requisition Line, VerifyOnInventory, Auto Format / částky v textu, HttpClient na SaaS, SecretText, Cloud-only gotchas, Business Events / Power Automate | `bc-al-objects` | `bc-al-objects.md` (sekce 5, 11 — přesahuje cap jednoho Read, dočti přes `offset`) |
+| No. Series, Upgrade Tag, All Profile, Item Tracking/Lot (i na Sales Quote), Unix timestamp, atributy zboží, DateFormula, CaptionClass/Translation Helper, CZ↔EN terminologie, CZZ zálohy, Attached to Line No. / parent↔child řádky, Requisition Line, VerifyOnInventory, Auto Format / částky v textu | `bc-al-objects` | `bc-al-objects.md` (sekce 5) |
+| Shopify Connector (varianty, sync vs Add Item, eventy, userErrors), HttpClient na SaaS, Isolated Storage, SecretText, OAuth/secrets na Cloud targetu, Cloud-only gotchas, notifikace do Power Automate / Business Events | `bc-al-integrations` | `bc-al-integrations.md` (5.y2, sekce 11) |
 | Překlady/XLIFF (NAB AL Tools, trans-unit ID), dokumentace requirementů (`docs/*.md`), co číst před editem (app.json, .alpackages), analyzery AA/CA/PTE/LC, XML doc komentáře, build diagnostika, ruleset | `bc-al-workflow` | `bc-al-workflow.md` (sekce 6, 8, 9, 12) |
 | Kompilace z CLI (alc, analyzery, UTF-16 logy, dočasná package cache, BOM-aware ID), Bash/heredoc pasti Claude Code, symboly (.alpackages, al-mcp), BC source na GitHubu, AL-Go, nová appka v repu (GUID, idRanges, affixy, permission sety), source závislé appky, git/commit/PR pravidla, verzování app.json, Azure DevOps MCP/PAT, case-only rename | `bc-al-tools` | `bc-al-tools.md` (sekce 7.1–7.10) |
 | NuGet dependencies a minima (MajorMinor/LatestMatching, dedupe per GUID), symboly test frameworku z MSSymbols feedu (lokalizační appky s `.cz.` infixem od BC 28), kolize object ID po merge, major version bump, Essence build faily (testy, squash merge, Subcontracting ≥ 28.3, BC_ARTIFACT), Deploy Staging sync mode/ForceSync/obsolete, smíchané verze MS symbolů | `bc-al-build` | `bc-al-build.md` (sekce 7.11–7.19) |
 | Cokoliv kolem automatizovaných testů (test app, libraries, handlery, runner, Setup Storage, TestPage vs Rec.Validate, lokální kompilace test appky, gotchas) — a implementace netriviální funkčnosti | `bc-al-autotests` | `bc-al-autotests.md` |
 | Mobilní warehouse čtečky (prod-ew-mobileBase-bc): Control AddIn, JS/CSS, scanner, dotykové UI, Interpret Barcode | `ew-mobile-ui` | `ew-mobile-ui-notes.md` |
 | Oficiální BC MCP server (`mcp.businesscentral.dynamics.com`): konfigurace v BC (page 8350/8351, Dynamic Tool Mode), Entra app registrace vs. device login, Claude Code `--mcp-config` + `headersHelper` | — (draft, bez skill-wrapperu) | `bc-al-mcp-server.md` |
-| Nejsi si jistý rozsahem | všech 6 hlavních `bc-al-*` | `bc-al-style/data/objects/workflow/tools/build.md` |
+| Nejsi si jistý rozsahem | všech 8 hlavních `bc-al-*` | `bc-al-style/ui/data/objects/integrations/workflow/tools/build.md` |
 
 Číslování sekcí (1–12) je napříč soubory původní, ať fungují odkazy „viz X.Y".
 Archiv monolitu `bc-al-notes.archived-2026-06-23.md` — **needituj, jen reference.**
@@ -114,10 +116,11 @@ Archiv monolitu `bc-al-notes.archived-2026-06-23.md` — **needituj, jen referen
   `wc -l`: soubor **> 1000 řádků → rozděl** (vyčleň ucelené sekce do nového
   `bc-al-*.md`, zachovej číslování, mechanicky přes sed/skript, ne přepisem),
   aktualizuj Router tady, `README.md` a přidej nový skill-wrapper do `skills/`
-  (vzor: 7.11–7.19 → `bc-al-build.md`, 2026-09-01). Always-on soubory ostatních
+  (vzory: 7.11–7.19 → `bc-al-build.md` 2026-09-01; sekce 4 → `bc-al-ui.md`
+  a 5.y2 + 11 → `bc-al-integrations.md` 2026-09-08). Always-on soubory ostatních
   nástrojů Router nedrží, jen odkazují sem — ty netřeba měnit; jen seznam skillů
-  v `~/.claude/CLAUDE.md`, pokud ho tam uživatel drží. Důvod: soubory přes ~750 řádků se
-  nevejdou do jednoho readu (limit je ~25k tokenů, ne řádky).
+  v `~/.claude/CLAUDE.md`, pokud ho tam uživatel drží. Důvod: soubory přes ~750 řádků / ~50 KB
+  se nevejdou do jednoho readu (limit je ~25k tokenů ≈ 50 KB, ne řádky).
 - **TL;DR ve skillech needituj kvůli novým gotchas** — tam patří jen stabilní
   pravidla; poznatky jdou do `bc-al-*.md`. Skill TL;DR uprav, jen když se
   mění pravidlo samo (a bumpni `version` v `.claude-plugin/plugin.json`).

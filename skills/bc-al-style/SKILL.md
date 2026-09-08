@@ -1,25 +1,25 @@
 ---
 name: bc-al-style
 description: >-
-  BC/AL konvence kódu a stylu z praxe (Business Central, AL): jazyk
-  identifikátorů (EN), struktura src/ podle typu objektu, permission sety
-  (limit 20 znaků, PTE0018, vrstvení rolí Read/Oper/Admin), naming
+  BC/AL konvence kódu a stylu z praxe (Business Central, AL; sekce 1, 10):
+  jazyk identifikátorů (EN), struktura src/ podle typu objektu, permission
+  sety (limit 20 znaků, PTE0018, vrstvení rolí Read/Oper/Admin), naming
   doprovodných souborů, Description a ToolTip (kam a jak), pořadí
   IntegrationEvent/actionref, Temp prefix, StyleExpr, Access = Internal,
-  formát page fieldů, přidělování object/field ID per typ, Format(enum) a
-  Evaluate/Format locale pasti (Excel Buffer čísla), UI patterny (RunModal,
-  RoleCenter výběr, ConfirmManagement default, factbox SubPageLink,
-  CaptionClass cache, název controlu neměnit při přeměně na expression pole,
-  modify cizí pageextension, smyčka aktualizace v OnAfterGetRecord, Visible
-  = Rec.pole padá za běhu → page proměnná v OnOpenPage, MultiLine výška /
-  RichContent / control add-in), moderní AL patterny podle app.json
-  (namespaces, interfaces, SecretText, Cloud target, telemetrie). Načti při
-  psaní nebo review AL kódu, naming, ToolTipů, page/pageextension,
-  permission setů, výběru patternu.
+  formát page fieldů, ApplicationArea/DataClassification,
+  AllowInCustomizations (LC0035, AL0667), typed Record vs RecordRef, array
+  parametry, přidělování object/field ID per typ (test objekty od konce
+  range), Format(enum) = caption, Evaluate/Format locale pasti (formát 9,
+  Excel Buffer čísla), moderní AL patterny podle app.json (namespaces,
+  interfaces, Isolated Storage, SecretText, LC0083, LC0088, telemetrie,
+  Cloud target zakázaná API, ověřování API). Načti při psaní nebo review AL
+  kódu, naming, ToolTipů, permission setů, přidělování ID, výběru patternu.
+  (Chování page/pageextension — RunModal, ConfirmManagement, factbox,
+  Visible → skill bc-al-ui.)
 user-invocable: true
 ---
 
-# BC/AL — Styl & psaní kódu (sekce 1, 4, 10)
+# BC/AL — Styl & psaní kódu (sekce 1, 10)
 
 **Zdroj pravdy:** `C:\WorkTasks\BCALInsights\bc-al-style.md`
 (v repu `../../bc-al-style.md` relativně k tomuto skillu). Tenhle skill je jen wrapper —
@@ -32,7 +32,9 @@ pravidla níže jsou výcuc; detail, příklady kódu a odůvodnění jsou v sou
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
-3. Sousední témata: DB operace a subscribery → `bc-al-data`; analyzery,
+3. Sousední témata: UI patterny stránek (RunModal, ConfirmManagement, factbox,
+   Visible, MultiLine…) → `bc-al-ui` (sekce 4, vyčleněno 2026-09-08); DB operace
+   a subscribery → `bc-al-data`; analyzery,
    ruleset, co číst před editem → `bc-al-workflow`; nová appka, affixy,
    permission sety per appka → `bc-al-tools` (7.5).
 
@@ -77,31 +79,6 @@ pravidla níže jsou výcuc; detail, příklady kódu a odůvodnění jsou v sou
   `Evaluate(..., 9)`; user input normalizuj (nbsp, `,` → `.`). Testy drž ve
   tvaru produkčních dat. Excel Buffer `Cell Value as Text` je locale formát
   bez tisíců → napřed locale `Evaluate`, až při neúspěchu normalizace + 9.
-- **4.1–4.3** RoleCenter CardPart: `RunModal` s návratovou hodnotou / `GetRecord`
-  nefunguje → výběr přes SingleInstance codeunit + `CurrPage.Close()`.
-- **4.4** `ConfirmManagement.GetResponseOrDefault(Qst, true)` pro běžné akce,
-  `false` pro destruktivní / nevratné.
-- **4.5** Factbox `SourceTableTemporary`: `Rec.Reset()` smaže SubPageLink
-  (filter group 4) → ulož a obnov view kolem reloadu.
-- **4.6** CaptionClass captiony se cachují per session → nejdřív vyluč cache
-  (Ctrl+F5) a per-company setup, až pak hledej bug v kódu.
-- **4.6b** Přeměna pole na expression control: **název controlu nech**, měň jen
-  `SourceExpr` (kotva `addafter`/`modify` závislých appek → AL0270, XLIFF ID,
-  personalizace); nové controly pojmenuj podle pole tabulky. Pak zkompiluj
-  závislé appky proti novému buildu.
-- **4.7** `modify()` na kontrolu cizí pageextension jde s přímou dependency
-  (bez ní AL0270).
-- **4.8** **Žádný zápis ani `CurrPage.Update()` v `OnAfterGetRecord` /
-  `OnAfterGetCurrRecord`** (smyčka aktualizace) → přepočty do akcí /
-  `OnOpenPage`, idempotentně (`Modify` jen když se hodnota liší).
-- **4.9** `Visible = not Rec."Pole"` v pageextension **kompiluje, ale za běhu
-  padá** („identifier … could not be found") → page `Boolean` proměnná
-  nastavená už v `OnOpenPage` (+ `OnAfterGetRecord`, `OnValidate` řídícího
-  pole + `CurrPage.Update()`).
-- **4.10** `MultiLine` = pevné ~3 řádky, žádná property výšku nezvětší. Celý
-  dlouhý text = `ExtendedDatatype = RichContent` na Text proměnné v root group
-  (hodnota HTML → Blob, 3.6c v `bc-al-data`) nebo vlastní control add-in
-  (u zákaznických rep počítej s odmítnutím jako obcházení standardu).
 - **10** Pattern vyber podle `app.json` (application / platform / target /
   runtime), nedowngraduj repo, které moderní patterny už má. Cloud target: žádný
   DotNet, File, Automation, WindowsLanguage. `DT.Date()` / `DT.Time()` místo

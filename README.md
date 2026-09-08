@@ -8,9 +8,11 @@ jediný zdroj; always-on soubory jednotlivých nástrojů na něj jen odkazují.
 
 | Soubor | Obsah |
 |---|---|
-| `bc-al-style.md` | konvence, naming, ToolTipy, UI patterny, moderní patterny (sekce 1, 4, 10) |
+| `bc-al-style.md` | konvence, naming, ToolTipy, přidělování ID, locale pasti, moderní patterny (sekce 1, 10) |
+| `bc-al-ui.md` | UI patterny stránek — RunModal/RoleCenter, ConfirmManagement, factbox, CaptionClass, Visible, MultiLine/RichContent (sekce 4) |
 | `bc-al-data.md` | database operace, event subscribery (sekce 2, 3) |
-| `bc-al-objects.md` | specifické objekty/API, SaaS gotchas (sekce 5, 11) |
+| `bc-al-objects.md` | specifické objekty/API — No. Series, Item Tracking, Attached to Line No., Requisition Line… (sekce 5) |
+| `bc-al-integrations.md` | Shopify Connector, HttpClient na SaaS, SecretText/Isolated Storage, Business Events / Power Automate (5.y2, sekce 11) |
 | `bc-al-workflow.md` | lokalizace/XLIFF, dokumentace, verifikace (sekce 6, 8, 9, 12) |
 | `bc-al-tools.md` | nástroje (alc, al-mcp, BC source), nová appka, git/PR, Azure DevOps (sekce 7.1–7.10) |
 | `bc-al-build.md` | NuGet dependencies, test symboly, kolize ID, major bump, Essence CI build & deploy gotchas (sekce 7.11–7.19) |
@@ -27,7 +29,8 @@ jediný zdroj; always-on soubory jednotlivých nástrojů na něj jen odkazují.
   přidej skill-wrapper do `skills/`, aktualizuj Router ve `skills/bc-al/SKILL.md`
   + tento README; always-on soubory ostatních nástrojů Router nedrží).
   Prakticky: ~750+ řádků se už do jednoho Read (~25k tokenů) nevejde — děl dřív.
-  Vzor: 7.11–7.19 → `bc-al-build.md` (2026-09-01).
+  Vzory: 7.11–7.19 → `bc-al-build.md` (2026-09-01); sekce 4 → `bc-al-ui.md` a 5.y2 + 11 →
+  `bc-al-integrations.md` (2026-09-08, `bc-al-objects.md` měl 57 KB = 26k tokenů a Read ho ořízl).
 - Každý nový poznatek = commit s krátkou zprávou, co a odkud (repo, PR, datum).
 
 Lokální klon: `C:\WorkTasks\BCALInsights` (do 2026-08-28 žilo v OneDrive
@@ -54,9 +57,11 @@ Copilot rozcestník se nemění.
 | Skill | Soubor | Kdy |
 |---|---|---|
 | `bc-al` (`/bc-al`) | rozcestník = Router + startup checklist + pravidla údržby | první akce každé AL/BC seance |
-| `bc-al-style` | `bc-al-style.md` | konvence, naming, ToolTipy, UI, moderní patterny |
+| `bc-al-style` | `bc-al-style.md` | konvence, naming, ToolTipy, ID, moderní patterny |
+| `bc-al-ui` | `bc-al-ui.md` | chování page/pageextension, RoleCenter, factbox, Visible, MultiLine |
 | `bc-al-data` | `bc-al-data.md` | DB operace, event subscribery, propagace polí |
-| `bc-al-objects` | `bc-al-objects.md` | No. Series, Item Tracking, Shopify, Attached to Line No., SaaS/SecretText gotchas… |
+| `bc-al-objects` | `bc-al-objects.md` | No. Series, Item Tracking, Attached to Line No., Requisition Line… |
+| `bc-al-integrations` | `bc-al-integrations.md` | Shopify Connector, HttpClient/SecretText na SaaS, Power Automate |
 | `bc-al-workflow` | `bc-al-workflow.md` | XLIFF, dokumentace, analyzery, ruleset |
 | `bc-al-tools` | `bc-al-tools.md` | alc, symboly, nová appka, git/PR, ADO |
 | `bc-al-build` | `bc-al-build.md` | NuGet, test symboly, kolize ID, major bump, CI build/deploy |

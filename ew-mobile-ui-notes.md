@@ -1,6 +1,6 @@
 # EW Mobile — UI / Control AddIn / JavaScript poznatky
 
-Poznatky z praxe specificky pro mobilní warehouse čtečky (Business Central AL). Doplněk k `bc-al-*.md` (hlavně `bc-al-style.md`) — tam patří obecné BC/AL gotchas, sem patří všechno kolem rendering na mobilu, dotykového UI, Control AddInů, JS/HTML customizace a integrace s scannery.
+Poznatky z praxe specificky pro mobilní warehouse čtečky (Business Central AL). Doplněk k `bc-al-*.md` (hlavně `bc-al-style.md` a `bc-al-ui.md`) — tam patří obecné BC/AL gotchas, sem patří všechno kolem rendering na mobilu, dotykového UI, Control AddInů, JS/HTML customizace a integrace s scannery.
 
 Repo kde se to používá: `C:\WorkTasks\prod-ew-mobileBase-bc` (Essence Warehouse Mobile Base + CZ extension).
 JS/HTML/CSS experimenty pro page na čtečkách (Item Card JS, Bin Content Card JS…) žijí v **druhém klonu

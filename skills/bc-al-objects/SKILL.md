@@ -1,25 +1,25 @@
 ---
 name: bc-al-objects
 description: >-
-  BC/AL specifické objekty, API a SaaS gotchas z praxe (Business Central):
+  BC/AL specifické objekty a API z praxe (Business Central, AL; sekce 5):
   All Profile, Upgrade Tag, No. Series GetNextNo vs PeekNextNo, kontrola
-  Document No. (Batch simulation, per Posting Date), Unix timestamp, Item
-  Tracking (výběr šarže, Reservation Entry u Prod. Order Line, Sales Quote),
-  NMEBS vazba SO ↔ VZ, al-mcp ByReference past, atributy zboží, Shopify
-  varianty (sync vs Add Item, userErrors), DateFormula, CaptionClass +
-  Translation Helper, CZ↔EN terminologie, CZZ Advance Payments, Attached to
-  Line No. parent↔child (xRec/OnAfterModify, CurrFieldNo, číslování, Copy
-  Document), Requisition Line OnAfterGetDirectCost, Req. Wksh.-Make Order,
-  VerifyOnInventory, Item Jnl. Line qty-per, Auto Format <C,> prefix /
-  částky v textu; HttpClient na SaaS, Windows auth OnPrem, Isolated Storage
-  scope, SecretText Unwrap/SecretStrSubstNo, Business Events preview vs API
-  page + Power Automate. Načti při práci s číselnými řadami, item
-  trackingem, výrobou, Shopify, HTTP/secrets na Cloud targetu, překladu BC
-  termínů.
+  Document No. (Batch simulation, generátor per Posting Date), Unix
+  timestamp / UTC, Item Tracking (výběr šarže Lot No., Reservation Entry u
+  Prod. Order Line, Sales Quote → Order), EM Net Make to Order vazba SO ↔
+  VZ, al-mcp ByReference past, atributy zboží, DateFormula limity,
+  CaptionClass + Translation Helper, CZ ↔ EN terminologie BC, CZZ Advance
+  Payments, Sales Line Attached to Line No. parent↔child
+  (xRec/OnAfterModify, Validate(No.) Init, CurrFieldNo, číslování dětí do
+  mezery, Copy Document), Requisition Line OnAfterGetDirectCost a Req.
+  Wksh.-Make Order, VerifyOnInventory / negativní sklad, Item Jnl. Line UoM
+  qty-per, Auto Format <C,> prefix a formát částek v textu. Načti při práci
+  s číselnými řadami, item trackingem, výrobou, vazbami řádků dokladů,
+  překladu BC termínů. (Shopify Connector, HttpClient, SecretText, Power
+  Automate → skill bc-al-integrations.)
 user-invocable: true
 ---
 
-# BC/AL — Specifické objekty, API & SaaS gotchas (sekce 5, 11)
+# BC/AL — Specifické objekty & API (sekce 5)
 
 **Zdroj pravdy:** `C:\WorkTasks\BCALInsights\bc-al-objects.md`
 (v repu `../../bc-al-objects.md` relativně k tomuto skillu). Tenhle skill je jen wrapper —
@@ -28,16 +28,17 @@ cesty) a příklady jsou v souboru.
 
 ## Co udělat
 
-1. **Přečti `C:\WorkTasks\BCALInsights\bc-al-objects.md` celý.** Soubor (~830 řádků / 57 KB)
-   **přesahuje cap jednoho Read** (~25k tokenů) — první Read skončí kolem 5.x5,
-   **vždy** navaž druhým Read s `offset` na zbytek (5.x5–5.x7, 11.x). Bez
-   přečtení nejednej.
+1. **Přečti `C:\WorkTasks\BCALInsights\bc-al-objects.md` celý.** Vejde se do jednoho Read
+   (~700 řádků / 44 KB, po vyčlenění Shopify + SaaS do `bc-al-integrations.md`
+   2026-09-08); když se výstup ořízne, okamžitě dočti přes `offset`. Bez přečtení
+   nejednej.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
-3. Sousední témata: subscribery a propagace polí → `bc-al-data`; Cloud target
-   patterny obecně → `bc-al-style` (10); ověření signatur z .app → `bc-al-tools`
-   (7.2, 7.6).
+3. Sousední témata: Shopify Connector, HttpClient/SecretText na SaaS, Power
+   Automate → `bc-al-integrations` (5.y2, 11); subscribery a propagace polí →
+   `bc-al-data`; Cloud target patterny obecně → `bc-al-style` (10); ověření
+   signatur z .app → `bc-al-tools` (7.2, 7.6).
 
 ## TL;DR — nejtvrdší pravidla (čísla = sekce v souboru)
 
@@ -71,15 +72,6 @@ cesty) a příklady jsou v souboru.
 - **5.w** Filtrování zboží podle atributů = base app (`Item Attribute
   Management.FindItemsByAttributes`, page 7506, mapping 7505); persistuj
   ID + jméno.
-- **5.y2** Shopify Connector BC28: `Available For Sales` je BC-only mirror;
-  export varianty nemaže; create varianty nejde zablokovat. **Nové varianty
-  existujícího produktu zakládá jen produktový sync** (`Sync Item = To Shopify`
-  + `Can Update Shopify Products`), Add Item existující produkt přeskočí;
-  `userErrors` = tiché nic (Shopify Log Entries); produkt založený bez options
-  varianty už nedostane. Add z karty zboží obchází report 30106 → item-level
-  kontrola v `OnAfterCreateTempShopifyProduct` (prázdný buffer variant =
-  `Error`, jinak `CreateProduct` spadne na `FindSet`). Lokální rozcestník
-  `C:\WorkTasks\BCShopifyConnectorDocs`.
 - **5.z** DateFormula: půlrok **nejde** → enum + zaokrouhlení v kódu.
 - **5.z2** CaptionClass resolver respektuj `Language` přes `Translation
   Helper` (53), ne holý `GlobalLanguage()` (LC0022).
@@ -106,17 +98,3 @@ cesty) a příklady jsou v souboru.
   `<C,CZK>` prefix (jen pro page fieldy) → formát `<Precision,x:y><Standard
   Format,0>` slož sám z `Currency."Amount/Unit-Amount Decimal Places"` /
   GL Setup (`Currency.Initialize('')` decimal places **neplní**).
-- **11.1** SaaS `HttpClient` vrací `false` s prázdným `GetLastErrorText()` bez
-  **Allow HttpClient Requests** → čistá hláška, do README.
-- **11.2** `UseDefaultNetworkWindowsAuthentication()` = OnPrem-only (compiler
-  nehlásí). **11.3** Isolated Storage scope `Module` default.
-- **11.4 / 11.5** `SecretText.Unwrap()` = OnPrem-only (AL0296) → co
-  potřebuješ v plaintextu, nedrž jen v SecretText; HMAC bez unwrapu přes
-  `Cryptography Management.GenerateHash(Text, SecretText, Option)` (vrací
-  UPPERCASE hex, ne Base64). Text → SecretText **jen**
-  `SecretStrSubstNo('%1', TextVar)` (literál neprojde, AL0133). V testech
-  `IsEmpty()` + chování, ne obsah.
-- **11.6** Notifikace do Power Automate: External Business Events = **preview**
-  + Dataverse prerekvizity (nenacenit jako levné) → pragmaticky queue tabulka
-  + API page + BC trigger „When a record is created (V3)"; HTTP trigger v PA
-  je Premium.
