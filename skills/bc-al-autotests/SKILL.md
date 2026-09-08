@@ -4,19 +4,18 @@ description: >-
   BC/AL automatizované testy z praxe (Business Central): kdy jsou povinné
   (netriviální funkčnost), vzor Essence (MS Assert + Library - *, vlastní
   library jen pro custom tabulky, target Cloud + Test
-  Runner/Tests-TestLibraries/System Application Test Library),
+  Runner/Tests-TestLibraries/SysApp Test Library),
   [Test]/[HandlerFunctions]/[TransactionModel], handlery, AAA, TestPage,
   ExpectedError, TestPermissions = Disabled, internalsVisibleTo, PTE0012,
-  test app bez permissionsetu, Report.RunModal bez request page,
+  test app bez permissionsetu, RunModal bez request page,
   OnBeforeActionEvent jen přes TestPage, CreateItem base UoM past,
   asserterror rollbackne GIVEN → Commit, carry-out vlastní batch,
-  placeholder testy zakázány, test ruleset dědí hlavní, SaaS-only helpery,
-  Library - Setup Storage generický Save/Restore (wrappery OnPrem, AL0296),
-  negativní test na nové instanci, TestPage Sales Order řádky
-  (stockout/credit warning), ConfirmHandler Reply false + asserterror, undo
-  dodávky bez dialogu, kompilace ze sibling .alpackages, Library - Random
-  stejný seed per test (PK přes FindLast + 1). Načti při
-  psaní/opravě testů, zakládání test appky a implementaci netriviální
+  bez placeholder testů, test ruleset dědí hlavní, SaaS-only helpery,
+  Setup Storage generický Save/Restore (AL0296), negativní test na nové
+  instanci, TestPage Sales Order řádky (stockout/credit), ConfirmHandler
+  Reply false + asserterror, undo dodávky bez dialogu, kompilace ze sibling
+  .alpackages, Library - Random stejný seed per test → PK FindLast + 1.
+  Načti při psaní/opravě testů, zakládání test appky a netriviální
   funkčnosti.
 user-invocable: true
 ---
