@@ -135,10 +135,11 @@ seanci při prvním startu po restartu Windows.)
 
 ## 7. Jiné klienty (Copilot CLI, Codex, VS Code, Antigravity)
 
-Stejné npm balíčky, jiný formát konfigu — snippety pro Copilot (`~/.copilot/mcp-config.json`)
-a Codex (`~/.codex/config.toml`) jsou v 7.2 `bc-al-tools.md`; v nich nahraď
-`npx -y <balíček>` za globální shim (`cmd /c <shim>`) ze stejného důvodu jako v bodě 1.
-Skilly sdílejí všechny nástroje přes junction na `skills/` (README).
+Stejné npm balíčky (krok 1), jiný formát konfigu. Hotové snippety per nástroj — VS Code
+`mcp.json` (klíč `servers`), Copilot CLI `~/.copilot/mcp-config.json`, Codex
+`~/.codex/config.toml`, Antigravity `~/.gemini/config/mcp_config.json` — jsou v `README.md`,
+sekce „Nový stroj / kolega — jak si to přidat", spolu s junctiony skillů a šablonou startup
+pravidla pro každý nástroj.
 
 ## 8. Oficiální BC MCP server (data z BC)
 
