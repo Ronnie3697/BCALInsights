@@ -196,7 +196,7 @@ Assert.ExpectedErrorCode('Dialog');
 
 - **Initialize() pattern**: každý test začíná `Initialize()` codeunit-level proceduru, která dělá one-time setup (`isInitialized` flag) a per-test reset. Standardní MS varianta jede přes `Library - Test Initialize` (`OnTestInitialize` → `if isInitialized exit` → `OnBeforeTestSuiteInitialize` → `Commit()` → `OnAfterTestSuiteInitialize`). **Pozor — LinterCop LC0002 vyžaduje komentář u každého `Commit()`** (i v testech), jinak warning. U suite-setup commitu použij např.: `Commit(); // Persist one-time suite setup as a savepoint so it survives the rollback between individual tests.`
 - **Žádné hard-coded ID** – vše přes `Library` helpery, které generují unikátní hodnoty
-- **Jeden test = jeden scénář** – nesmí na sobě záviset (Test Runner každý test odroluje, ale data commitnutá uvnitř codeunitu vidí testy, co běží po něm — viz `asserterror` níže → unikátní kódy, vlastní batch)
+- **Jeden test = jeden scénář** – nesmí na sobě záviset (úklid DB běží až po celém codeunitu a AutoCommit data prošlých testů commitne, takže je vidí testy, co běží po nich — viz `asserterror` a `Library - Random` níže → unikátní kódy, vlastní batch)
 - **Komentáře `[SCENARIO]`, `[GIVEN]`, `[WHEN]`, `[THEN]`** – čitelnost + automatické reporty
 - **Test data v testu, ne v setupu** – ať je vidět co se testuje
 - **Negative testy** – `asserterror` + `Assert.ExpectedError` pro očekávaná selhání
@@ -240,6 +240,15 @@ Assert.ExpectedErrorCode('Dialog');
   epochy (leden, CET +1) ≠ offset letního data (CEST +2), na CZ runneru to ujede
   o hodinu. Správně `Evaluate(ExpectedDT, '2024-06-11T14:40:00Z', 9)` (UTC-aware),
   viz 5.5 v bc-al-objects. Round-trip testy (tam a zpět touž funkcí) jsou OK s obojím.
+- **`LibraryRandom.RandInt*` jako PK vlastního záznamu = kolize napříč testy téhož codeunitu.** `Library - Random`
+  je `SingleInstance` a před každou test metodou má stejný seed (starý `CAL Test Runner` volá v `OnBeforeTestRun`
+  `SetSeed(1)`, default bez seedu je taky `SetSeed(1)`; pod `Test Runner - Isol. Codeunit` v Essence CI to dopadá
+  stejně), takže první `RandIntInRange(100000, 999999)` vrátí **v každém testu totéž číslo**. Data prošlých testů
+  přitom v DB zůstávají do konce codeunitu (AutoCommit + TestIsolation Codeunit) → druhý test, který stejným helperem
+  zakládá záznam, spadne na `The record in table X already exists. Id='323801'`. Lokálně to neuvidíš (jeden test
+  = jeden seed). Pro Integer/BigInteger PK vlastního helperu použij **`FindLast` + 1** (nebo `LibraryUtility.GetNewRecNo`),
+  ne random; kódy přes `LibraryUtility.GenerateRandomCode` / `GenerateGUID` v témže runu nekolidovaly. Zachyceno
+  2026-09-08, cust-sonnentor-bc build 28134 (`TestWebshopFilterSON`, `Shpfy Product` Id 323801 ve třech testech).
 - `Commit()` v testovaném kódu z test runu neprosákne (TestIsolation odroluje i explicitní commity), ale commitnutá data **vidí následující testy v téže codeunit** → izoluj data (unikátní kódy, vlastní batch); `AutoRollback` model `Commit()` rovnou zakazuje (error)
 - Handler musí být v **stejné codeunit** jako test, který ho používá (nebo registrovaný přes `[HandlerFunctions]`)
 - Pokud test spustí UI a chybí handler → **test selže** s "no handler"

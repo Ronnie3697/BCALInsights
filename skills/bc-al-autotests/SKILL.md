@@ -14,7 +14,8 @@ description: >-
   Library - Setup Storage generický Save/Restore (wrappery OnPrem, AL0296),
   negativní test na nové instanci, TestPage Sales Order řádky
   (stockout/credit warning), ConfirmHandler Reply false + asserterror, undo
-  dodávky bez dialogu, kompilace ze sibling .alpackages. Načti při
+  dodávky bez dialogu, kompilace ze sibling .alpackages, Library - Random
+  stejný seed per test (PK přes FindLast + 1). Načti při
   psaní/opravě testů, zakládání test appky a implementaci netriviální
   funkčnosti.
 user-invocable: true
