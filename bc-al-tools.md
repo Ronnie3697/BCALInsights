@@ -90,6 +90,11 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   `grep`/`wc` na souboru nic nenajde a „0 errors / 0 warnings" je **falešné** (EXIT=0 přitom
   platí). Před grepem `iconv -f UTF-16 -t UTF-8`, nebo v PS `| Out-File -Encoding utf8`.
   (2026-09-02, cust-zlomek-bc)
+- **`sed -i` v Git Bash (Claude Code Bash tool) tiše přepíše CRLF → LF v celém souboru**, i když
+  měníš jediný řádek. Git s `core.autocrlf=true` to v diffu nezobrazí (normalizuje), ale working
+  copy `.al` / `.xlf` už není CRLF a `file` hlásí jen „ASCII text". Po `sed -i` na CRLF souboru
+  pusť `unix2dos -q <soubor>` (je v Git Bash), nebo drobné edity dělej Edit toolem. Kontrola:
+  `tr -cd '\r' < soubor | wc -c` (0 = CR pryč). (2026-09-08, cust-zlomek-bc, rename captionu 65648)
 - **`.alpackages` prázdná (VS Code zrovna stahuje symboly / někdo ji vyčistil) → `AL1022` na
   všech dependencies.** Nečekej a nesahej na cizí cache: poskládej **dočasnou package cache ve
   scratchpadu z KOPIÍ** ze sibling rep (`ls C:/WorkTasks/*/.alpackages/*.app | grep <name>`) —
