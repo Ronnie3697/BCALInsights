@@ -325,6 +325,13 @@ repo, pak `al_search_object_members`); `al_packages load` index **nahrazuje**, p
 `AA0215` (název souboru bez affixu) v test appce vyřeší `test/AppSourceCop.json` s `mandatoryAffixes` — potvrzeno
 lokálně (alc + CodeCop). Compile main → test: test appka bere hlavní appku z build diru, takže po každé změně hlavní
 appky přeložit nejdřív ji.
+**Dependency, která lokálně nikde není (`AI Test Toolkit` v prod-ess-configurator-bc/test):** pro compile-check
+nekopíruj `test/app.json` ručně — zkopíruj celou `test/` (src, app.json, AppSourceCop.json, logo) do scratchpadu,
+v kopii `app.json` závislost python skriptem vyhoď (zdrojáky testů ji nepoužívají) a kompiluj kopii proti vlastní
+cache (MS 28.3 symboly z vlastní `.alpackages` **bez** staré verze hlavní appky + čerstvý build hlavní appky +
+Tests-TestLibraries/Test Runner/SysApp Test Lib/App Test Lib/Permissions Mock z dotykacka `.alpackages`).
+Dvě verze téže appky v jedné cache (stará `.alpackages` + nový build) = nejasné, kterou alc vezme → do cache jen jednu.
+(2026-09-08, prod-ess-configurator-bc, typ řádku Parameter Value Name)
 
 ### Spuštění reportu bez request page
 
