@@ -1,23 +1,20 @@
 ---
 name: bc-al-autotests
 description: >-
-  BC/AL automatizované testy z praxe (Business Central): kdy jsou povinné
-  (netriviální funkčnost), vzor Essence (MS Assert + Library - *, vlastní
-  library jen pro custom tabulky, target Cloud + Test
-  Runner/Tests-TestLibraries/SysApp Test Library),
-  [Test]/[HandlerFunctions]/[TransactionModel], handlery, AAA, TestPage,
-  ExpectedError, TestPermissions = Disabled, internalsVisibleTo, PTE0012,
-  test app bez permissionsetu, RunModal bez request page,
-  OnBeforeActionEvent jen přes TestPage, CreateItem base UoM past,
-  asserterror rollbackne GIVEN → Commit, carry-out vlastní batch,
-  bez placeholder testů, test ruleset dědí hlavní, SaaS-only helpery,
-  Setup Storage generický Save/Restore (AL0296), negativní test na nové
-  instanci, TestPage Sales Order řádky (stockout/credit), ConfirmHandler
-  Reply false + asserterror, undo dodávky bez dialogu, kompilace ze sibling
-  .alpackages, Library - Random stejný seed per test → PK FindLast + 1,
-  Type nového řádku TestPage subformu (Type vs FilteredTypeField), čtení
-  CI logu (stejné Document No. = rollback). Načti při psaní/opravě testů,
-  zakládání test appky, netriviální funkčnosti a rozboru spadlých testů v CI.
+  BC/AL autotesty (Business Central): kdy jsou povinné (netriviální
+  funkčnost), vzor Essence (MS Assert + Library - *, vlastní library jen pro
+  custom tabulky, target Cloud + Test Runner/Tests-TestLibraries/SysApp Test
+  Library), [Test]/[HandlerFunctions]/[TransactionModel], TestPage,
+  TestPermissions Disabled, internalsVisibleTo, PTE0012, test app bez
+  permissionsetu, RunModal bez request page, OnBeforeActionEvent jen přes
+  TestPage, CreateItem base UoM past, asserterror rollbackne GIVEN → Commit,
+  carry-out vlastní batch, bez placeholder testů, test ruleset dědí hlavní,
+  SaaS-only helpery, Setup Storage Save/Restore (AL0296), negativní test nová
+  instance, TestPage Sales Order řádky (stockout/credit, Type vs
+  FilteredTypeField u nového řádku), ConfirmHandler Reply false + asserterror,
+  undo dodávky bez dialogu, kompilace ze sibling .alpackages, Library - Random
+  seed → PK FindLast + 1, čtení CI logu (Document No. = rollback). Načti při
+  psaní/opravě testů, test appce, netriviální funkčnosti a rozboru CI failů.
 user-invocable: true
 ---
 

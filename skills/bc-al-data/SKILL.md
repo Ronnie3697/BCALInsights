@@ -1,22 +1,21 @@
 ---
 name: bc-al-data
 description: >-
-  BC/AL databázové operace a event subscribery z praxe (Business Central):
-  FindSet, ReadIsolation::UpdLock vs LockTable,
-  Insert/Modify/Delete(true|false) (LC0040), Temp Blob, SetLoadFields,
-  SetFilter wildcard + %1 (LC0050), separátory, TransferFields + PK v copy
-  smyčce, Mark/MarkedOnly vs Record.Copy, field-by-field kopie,
-  tableextension triggery vs subscribery, modify() ve fields, klíč jen
-  vlastní pole (AL0423), var guard vs CurrFieldNo, xRec = Rec při Modify
-  z kódu (OnBeforeModify + Get uložené verze), IsTemporary, init
-  detection OnAfterValidateEvent, SkipOnMissingLicense/Permission, propagace
-  Sales Line → ILE / Whse. Shipment, vlastní pole Sales/Purchase Header/Line
-  vč. archive/posted (checklist), total při částečném účtování
-  (OnAfterInitFromSalesLine, undo), AutoFormatExpression GetCurrencyCode,
-  Blob = CalcFields + subscriber, délky Text polí (LC0044), Validate("No.")
-  Init() past (archive, Copy Document, Recreate), EventSubscriber identifier
-  syntax (LC0028), deprecated eventy AL0432. Načti při práci s recordy,
-  posting, subscribery, tableextension, propagaci polí.
+  BC/AL DB operace a event subscribery (Business Central): FindSet,
+  ReadIsolation::UpdLock vs LockTable, Insert/Modify/Delete(true|false)
+  (LC0040), Temp Blob, SetLoadFields, SetFilter wildcard + %1 (LC0050),
+  TransferFields + PK v copy smyčce, Mark/MarkedOnly vs Record.Copy,
+  field-by-field kopie, tableextension triggery vs subscribery, modify() ve
+  fields, klíč jen vlastní pole (AL0423), var guard vs CurrFieldNo, xRec = Rec
+  při Modify z kódu (OnBeforeModify + Get), IsTemporary, init detection
+  OnAfterValidateEvent, SkipOnMissingLicense/Permission, propagace Sales Line
+  → ILE / Whse. Shipment, vlastní pole Sales/Purchase Header/Line vč.
+  archive/posted, total při částečném účtování (OnAfterInitFromSalesLine,
+  undo), AutoFormatExpression GetCurrencyCode, Blob = CalcFields +
+  subscriber, délky Text polí (LC0044), Validate("No.") Init() past (archive,
+  Copy Document, Recreate), EventSubscriber identifier syntax (LC0028),
+  deprecated AL0432. Načti při práci s recordy, posting, subscribery,
+  tableextension, propagaci polí.
 user-invocable: true
 ---
 
