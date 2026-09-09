@@ -530,10 +530,17 @@ Doplněno 2026-09-07 (přesun vazby do base `prod-ess-configurator-bc`, větev `
 
 - **Vazbu plní base přímo** v `SL Action Cond. Mgt. COEBS.InitNewSalesLineFromAction` (`"Attached to Line No." :=
   SourceSalesLineNo`); zákaznický subscriber u Zlomka odstraněn. Přepočet návazných řádků při změně hlavního řádku
-  = `tableextension "Sales Line COEBS"` → `trigger OnAfterModify` porovnává `Rec` vs `xRec` (No./Variant Code/Quantity)
-  a volá `RecalculateConfigCreatedLines` (smaže + znovu vytvoří děti z uložené konfigurace varianty; **hlavní řádek
-  nemodifikuje a nedává Message**, protože běží uvnitř jeho vlastního Modify). `xRec` je v table triggerech dostupný —
-  base `Sales Line.OnModify` ho sám používá (`xRec.Type`, `xRec.Quantity`).
+  = `tableextension "Sales Line COEBS"` → `trigger OnBeforeModify` si přečte **uloženou verzi řádku** (`Get` +
+  `SetLoadFields` No./Variant Code/Quantity do instance codeunitu) a `trigger OnAfterModify` proti ní porovná `Rec` a volá
+  `RecalculateConfigCreatedLines` (smaže + znovu vytvoří děti z uložené konfigurace varianty; **hlavní řádek
+  nemodifikuje a nedává Message**, protože běží uvnitř jeho vlastního Modify).
+  ⚠️ **Původní verze porovnávala `Rec` vs `xRec` — a `xRec` je v `OnModify`/`OnAfterModify` při `Modify(true)` z kódu
+  shodný s `Rec`** (plní ho jen stránka; base `Sales Line.OnModify` ho používá jen jako pojistku pro UI). Přepočet z kódu
+  (`Validate("Variant Code")` + `Modify(true)`, Copy Document, split, API) proto nikdy neproběhl, testy přes TestPage
+  procházely — master build 28149 (2026-09-08): 15 červených testů. Ve field `OnValidate` je `xRec` spolehlivý i z kódu
+  (obnova vazby po `Validate("No.")` funguje). Obecné pravidlo + vzor viz 3.9 v `bc-al-data.md`. Druhý dopad: uvnitř
+  `ExecuteSalesLineActions` může CL Quantity override (Modify hlavního řádku) přepočet z triggeru spustit → úklid dětí
+  (`DeleteConfigCreatedLines`) musí běžet **až těsně před** jejich vytvořením, jinak dvě sady.
 - **`Sales Line.Validate("No.")` dělá `Init()` a `Attached to Line No.` NEobnovuje** (obnovuje jen Type/No./Line No./
   SystemId…) → u vlastní parent↔child vazby obnov pole 80 i vlastní link pole z `xRec` v `modify("No.") OnAfterValidate`.
 - **Interaktivní vs. programová změna:** `CurrFieldNo = FieldNo(X)` jen při editaci na page; konfigurátor, Copy Document,

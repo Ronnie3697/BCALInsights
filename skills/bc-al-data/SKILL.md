@@ -7,7 +7,8 @@ description: >-
   SetFilter wildcard + %1 (LC0050), separátory, TransferFields + PK v copy
   smyčce, Mark/MarkedOnly vs Record.Copy, field-by-field kopie,
   tableextension triggery vs subscribery, modify() ve fields, klíč jen
-  vlastní pole (AL0423), var guard vs CurrFieldNo, IsTemporary, init
+  vlastní pole (AL0423), var guard vs CurrFieldNo, xRec = Rec při Modify
+  z kódu (OnBeforeModify + Get uložené verze), IsTemporary, init
   detection OnAfterValidateEvent, SkipOnMissingLicense/Permission, propagace
   Sales Line → ILE / Whse. Shipment, vlastní pole Sales/Purchase Header/Line
   vč. archive/posted (checklist), total při částečném účtování
@@ -101,4 +102,6 @@ jsou v souboru.
   kaskáda AL0198/AL0104); klíč smí mít **jen vlastní pole** (AL0423) →
   `SetRange` na base pole + `SetCurrentKey(vlastní)`; guard proti smyčce
   validací = globální `var` flag (per instance, přežije vnořené Validate),
-  **ne** `CurrFieldNo` (z kódu jiných appek je 0).
+  **ne** `CurrFieldNo` (z kódu jiných appek je 0). **`xRec` v modify
+  triggerech je při `Modify(true)` z kódu = `Rec`** → změnu detekuj proti
+  uložené verzi načtené v `OnBeforeModify` (`Get`), ne proti xRec.

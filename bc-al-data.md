@@ -739,4 +739,14 @@ metody na tabulku. (2026-06, `prod-em-operOutputChaining-bc`, BC28.)
 
 (2026-09-01, prod-epb-pricingMatrix-bc task 65842 — reverse fill Parametr A/B ↔ Item Unit of Measure.)
 
+- **`xRec` v `OnModify` / `OnBeforeModify` / `OnAfterModify` (i `OnBeforeModifyEvent`) je při `Rec.Modify(true)` z kódu
+  SHODNÝ s `Rec`** — předchozí hodnoty dodá jen stránka (Kauffmann „How to get a reliable xRec", 2023; GitHub
+  microsoft/AL #3366). Change-detection `if Rec.Quantity <> xRec.Quantity then …` v modify triggeru tak z kódu nikdy
+  nezabere; testy přes `TestPage.SetValue` projdou, testy přes `Rec.Validate + Modify(true)` ne (a `Sales Line.OnModify`
+  base používá xRec jen jako UI pojistku, ne důkaz, že funguje z kódu). **Vzor:** v `OnBeforeModify` načti uloženou verzi
+  (`Old.SetLoadFields(pole); Old.Get(PK)` — DB má před zápisem ještě starý stav) do globální proměnné tableextension /
+  instance codeunitu a v `OnAfterModify` porovnej `Rec` proti ní (po zápisu už `Get` vrátí nové hodnoty). Field
+  `OnValidate` je jiný případ: tam `xRec` = stav před `Validate` i z kódu. Zachyceno 2026-09-08, prod-ess-configurator-bc
+  build 28149 (`Sales Line COEBS.OnAfterModify`, 15 červených testů; testy před merge neběžely).
+
 ---

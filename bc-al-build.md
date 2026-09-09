@@ -224,6 +224,15 @@ identicky už v „zeleném" buildu 27065 (2026-06-26); test helpery
 (`LibraryZlomek.CreateCustomer/CreateItem`) vytvářejí holé záznamy bez
 Gen. Bus. Posting Group / Base Unit of Measure a sales flow na tom padá.
 
+- **Pipeline bez PR validace = testy běží poprvé až na masteru.** `prod-ess-configurator-bc`
+  (definice 158) triggeruje jen `refs/heads/master` — `pipelines_build list` nemá pro feature
+  větev žádný build, PR se mergne bez jediného běhu testů a master zčervená hned po merge
+  (build 28149, 2026-09-08: 16 failů z čerstvě přidaných testů, viz 3.9 v `bc-al-data.md`).
+  Než ohlásíš „testy ověří CI", zkontroluj, jestli pro větev vůbec nějaký build vzniká; když ne,
+  netriviální testy prožeň lokálně v kontejneru, nebo aspoň projdi obě cesty (TestPage i
+  `Rec.Validate + Modify`) čtením kódu. Oprava pak jde novou větví z masteru (squash merge,
+  původní větev je obsahem identická s masterem — 7.16).
+
 ### 7.16 Squash merge PR → falešné konflikty při dalším mergi + three-dot diff klame
 
 Azure DevOps (a GitHub) umí PR zapsat jako **squash merge** — obsah větve doputuje

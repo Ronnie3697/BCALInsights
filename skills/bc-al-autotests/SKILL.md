@@ -14,9 +14,10 @@ description: >-
   Setup Storage generický Save/Restore (AL0296), negativní test na nové
   instanci, TestPage Sales Order řádky (stockout/credit), ConfirmHandler
   Reply false + asserterror, undo dodávky bez dialogu, kompilace ze sibling
-  .alpackages, Library - Random stejný seed per test → PK FindLast + 1.
-  Načti při psaní/opravě testů, zakládání test appky a netriviální
-  funkčnosti.
+  .alpackages, Library - Random stejný seed per test → PK FindLast + 1,
+  Type nového řádku TestPage subformu (Type vs FilteredTypeField), čtení
+  CI logu (stejné Document No. = rollback). Načti při psaní/opravě testů,
+  zakládání test appky, netriviální funkčnosti a rozboru spadlých testů v CI.
 user-invocable: true
 ---
 
@@ -75,8 +76,11 @@ v souboru.
   `[ConfirmHandler]` `Reply := false` + `asserterror`, `Commit()` po GIVEN,
   assertuj DB stav (ne `ExpectedError('')`). Řádky přes `TestPage "Sales
   Order".SalesLines` → napřed `LibrarySales.SetStockoutWarning(false)` +
-  `SetCreditWarningsToNoWarnings()`. Undo dodávky bez dialogu:
-  `SetRecFilter()` + `SetHideDialog(true)` + `Run`.
+  `SetCreditWarningsToNoWarnings()`; nový řádek (`New()`) nemá zaručený
+  `Type` → nastav ho (`Type` / `FilteredTypeField` podle `Visible()`).
+  Undo dodávky bez dialogu: `SetRecFilter()` + `SetHideDialog(true)` + `Run`.
+- Testuj **obě cesty** — TestPage i `Rec.Validate + Modify(true)`; logika
+  na `xRec` v modify triggeru z kódu nefunguje (3.9 v `bc-al-data`).
 - `MinValue`/`MaxValue`/`NotBlank` programový `Validate` **nevynucuje** →
   explicitní `OnValidate` check nebo TestPage. Expected DateTime přes
   `Evaluate(DT, '…Z', 9)`, ne `CreateDateTime` (DST).
