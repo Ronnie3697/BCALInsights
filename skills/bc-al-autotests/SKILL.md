@@ -70,8 +70,9 @@ v souboru.
   recordu (`Sales Line` si hlavičku cachuje, stará instance chybu nehodí).
   Confirm z table triggeru s `CurrFieldNo` guardem vyvolá jen
   `TestPage.SetValue` (z `Rec.Validate` je `CurrFieldNo = 0`) → odmítnutí =
-  `[ConfirmHandler]` `Reply := false` + `asserterror`, `Commit()` po GIVEN,
-  assertuj DB stav (ne `ExpectedError('')`). Řádky přes `TestPage "Sales
+  `[ConfirmHandler]` `Reply := false` (otázku si ulož), **bez `asserterror`**
+  (TestPage tichý `Error('')` spolkne), `Commit()` po GIVEN, assertuj DB stav
+  a položenou otázku (ne `ExpectedError('')`). Řádky přes `TestPage "Sales
   Order".SalesLines` → napřed `LibrarySales.SetStockoutWarning(false)` +
   `SetCreditWarningsToNoWarnings()`; nový řádek (`New()`) nemá zaručený
   `Type` → nastav ho (`Type` / `FilteredTypeField` podle `Visible()`).

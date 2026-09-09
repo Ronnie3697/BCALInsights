@@ -547,7 +547,8 @@ Doplněno 2026-09-07 (přesun vazby do base `prod-ess-configurator-bc`, větev `
   RecreateSalesLines i jiné appky validují s `CurrFieldNo = 0` → dotaz („řádek je svázaný s řádkem X… změnit přesto?")
   jen pro uživatele, v testech ho vyvolá jen `TestPage.SetValue`, ne `Rec.Validate`. Odmítnutí řeš standardně
   `if not ConfirmManagement.GetResponseOrDefault(Qst, true) then Error('')` — tichý error vrátí hodnotu pole bez
-  dalšího dialogu (v testu `asserterror TestPage.Field.SetValue(...)` + `Commit()` po GIVEN, TestPage chybu obalí).
+  dalšího dialogu (v testu **bez** `asserterror` — TestPage tichý error spolkne, `SetValue` doběhne; `Commit()` po GIVEN
+  a assert DB stavu + uložené otázky z ConfirmHandleru, viz `bc-al-autotests.md`).
 - `Sales Order Subform.QuantityOnAfterValidate` už pro Item řádky volá **`CurrPage.SaveRecord()`** → Modify (a tvůj
   OnAfterModify) proběhne hned v OnValidate; aby se nově vložené řádky ukázaly, stačí v pageextension `OnAfterValidate`
   `CurrPage.SaveRecord(); CurrPage.Update(false)` (vzor standardu `InsertExtendedText` → `UpdateForm(true)`).

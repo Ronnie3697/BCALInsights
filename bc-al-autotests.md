@@ -224,10 +224,13 @@ Assert.ExpectedErrorCode('Dialog');
   `.SetValue`) — před tím `LibrarySales.SetStockoutWarning(false)` + `LibrarySales.SetCreditWarningsToNoWarnings()`,
   jinak base hlásí dostupnost/kreditní limit (notifikace/dialogy) a test padá na neobslouženém UI. Confirm/Message
   z table triggeru s guardem `CurrFieldNo = FieldNo(X)` vyvolá jen TestPage; `Rec.Validate` má `CurrFieldNo = 0` →
-  negativní test „změna z kódu je tichá" = test bez `[HandlerFunctions]`. Odmítnutý Confirm (`Error('')`) testuj
-  `[ConfirmHandler]` s `Reply := false` + `asserterror Page.Field.SetValue(...)`; GIVEN data před tím `Commit()`
-  (rollback k poslednímu commitu) a assertuj jen DB stav, ne `ExpectedError('')` (`StrPos(x, '')` = 0 → vždy fail).
-  (2026-09-07, prod-ess-configurator-bc `Attached Lines Tests COEBS`)
+  negativní test „změna z kódu je tichá" = test bez `[HandlerFunctions]`. **Odmítnutý Confirm (`Error('')`) přes
+  TestPage NEtestuj `asserterror`** — tichý error s prázdnou hláškou TestPage spolkne (`SetValue` doběhne bez výjimky)
+  a `asserterror` spadne na „An error was expected inside an ASSERTERROR statement" (CI build 28157). Správně:
+  `[ConfirmHandler]` s `Reply := false`, který si otázku uloží do globální proměnné; `Commit()` po GIVEN (tichý error
+  přesto odroluje k poslednímu commitu); holé `Page.Field.SetValue(...)`; pak assert, že se otázka položila, a DB stav
+  (hodnota nezměněná). `ExpectedError('')` nikdy (`StrPos(x, '')` = 0 → vždy fail).
+  (2026-09-07 / oprava 2026-09-09, prod-ess-configurator-bc `Attached Lines Tests COEBS`)
 - **Nový řádek přes `TestPage "Sales Order".SalesLines.New()` nemá zaručený `Type`.** `Sales Order Subform.OnNewRecord`
   bere `Type` z `xRec` (řádek, na kterém subform stál; `InitType`) a default ze `Sales & Receivables Setup."Document
   Default Line Type"` jen když `xRec."Document No." = ''` (`SetDefaultType`) — v CI (build 28149) tak jeden ze dvou

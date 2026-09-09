@@ -247,6 +247,12 @@ pole jedno po druhém. (Zachyceno 2026-07, prod-ess-configurator-bc:
 `CopyConditionResultValues` — PK má 5 polí, nastavovala se 3 → kolize na
 `Line No.` 10000 + `Result Type` ' '.)
 
+Recidiva 2026-09-09 (tentýž repo, `CopyTextFormulaLinesForLine`): PK `Text Formula Line` má 6 polí, kopie nastavila 5 —
+enum `Field Type` (PK) zůstal ' ' → kopie „proběhla", ale řádky skončily pod prázdným typem pole a test hledající
+`Field Type = Search Name` našel 0 (master buildy 28149/28157). Zrádné: žádná chyba, s jedním typem pole ani kolize
+klíče; dvě skupiny formulí by se srazily na `Line No.` 10000. Při review copy kódu porovnej **každé** přiřazení po
+`TransferFields(…, false)` s PK — enum/option PK pole se přehlédnou nejsnáz.
+
 ### 2.6b `Mark`/`MarkedOnly` + `Record.Copy` — nespoléhat, že marks přejdou na kopii
 
 Když engine označí záznamy (`Mark(true)` + `MarkedOnly(true)`) a pak pro dílčí hledání dělá `Other.Copy(Rec)`
