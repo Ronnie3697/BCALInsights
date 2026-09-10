@@ -642,4 +642,12 @@ Doplněno 2026-09-07 (přesun vazby do base `prod-ess-configurator-bc`, větev `
   precision) přímo v testu (`Modify(false)`, GL Setup v `Library - Setup Storage`), expected přes
   `Format(x, 0, '<Precision,2:5><Standard Format,0>')` — locale-nezávislé, jednotková cena musí vyjít
   s pěti místy, total se dvěma.
+- **Prázdné `Amount Decimal Places` / `Unit-Amount Decimal Places` u měny = `<Precision,><Standard Format,0>` →
+  `Format(Dec, 0, Fmt)` padá za běhu.** Base `Amount Auto Format` (codeunit 347, w1-28) pro `AmountFormat` /
+  `UnitAmountFormat` u nalezené měny žádný fallback nemá (`GetFCYFormat` bere pole přímo); kontrola `<> ''` je jen
+  u `CurrencySymbolFormat` (`GetCurrencyAndAmount`). Vlastní skládání formátu tedy: měna → když prázdné, GL Setup →
+  když prázdné i tam, pevně `2:2` / `2:5` (Locked labely). Test: `LibraryERM.CreateCurrency` +
+  `CreateExchangeRate(Code, WorkDate(), 1, 1)`, pak `Modify(false)` s prázdnými decimal places a rounding precision
+  `0.01` / `0.00001` (jinak `Currency.Initialize` spadne na TestField), `SalesHeader.Validate("Currency Code")`.
+  (2026-09-10, cust-alumistr-bc 65916, code review `GetAmountFormats`.)
 

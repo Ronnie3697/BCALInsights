@@ -46,6 +46,11 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   potřeba smazat, pokud jde o test (nebude odpovídat podepsanému buildu).
 - Verze extension (`17.0.2273547`) se může lišit — najdi ji přes
   `ls ~/.vscode/extensions | grep ms-dynamics-smb.al`.
+- **AL extension 18.0.x (2026-09) změnila layout:** `alc.exe` i `Microsoft.Dynamics.Nav.CodeCop.dll` /
+  `PerTenantExtensionCop.dll` / `UICop.dll` leží přímo v `bin/` (žádné `bin/win32`, žádná `bin/Analyzers`);
+  `BusinessCentral.LinterCop.dll` v extensionu není vůbec (VS Code si ho stahuje jinam) → CLI check jede jen
+  s CodeCop + PTE + UICop, LinterCop nálezy hlídá VS Code / CI. Hledej `find <ext> -name alc.exe`, ne pevnou
+  cestu. (2026-09-10, cust-alumistr-bc)
 - **Analyzery z CLI:** `/analyzer:<path>\Microsoft.Dynamics.Nav.CodeCop.dll`
   (UICop, AppSourceCop a `BusinessCentral.LinterCop.dll` žijí v
   `<extension>/bin/Analyzers`). V **Git Bash** pozor — argumenty začínající

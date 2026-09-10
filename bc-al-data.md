@@ -662,6 +662,12 @@ Reverse, Undo Shipment (přiřazení recordu / `TransferFields` z posted). Sdíl
 pro všechny tři subscribery. Pole odvozená z Item UoM se reverse-fillem „obnoví" sama, ale pole typu kód/varianta ne.
 (2026-08-31, prod-epb-pricingMatrix-bc plán 65842 — archive restore ztrácel `Sales Price Var. Code PMEBS`.)
 
+**Totéž dělá `Validate(Type)`** (BC 28.3 `SalesLine.Table.al`, field 5 OnValidate: `TempSalesLine := Rec; Init();`
+a zpět jen Type, System-Created Entry, Currency Code) → přepnutí řádku Item → G/L Account / Resource z UI vynuluje
+vlastní pole samo. Code-review nález „změna typu nechá viset staré vlastní ceny" je tedy u UI cesty teoretický; přímé
+přiřazení `Type`/`No.` z kódu Init nespustí, proto guard `Type <> Item or No. = '' → Clear` v přepočtu stejně drž
+(levné, chování pak nezávisí na base Init). (2026-09-10, cust-alumistr-bc 65916, `SK Branch Mgt. ALU`.)
+
 **Bonus — `fieldgroups` z tableextension:** `fieldgroups { addlast(DropDown; "My Field") }` v tableextension funguje
 (vzor base app `ReturnReasonExt.TableExt.al`) — nejlevnější způsob, jak vlastní atribut ukázat ve všech lookupech
 (např. Item UoM dropdown na Sales/Req./Price řádcích místo holého kódu).
