@@ -651,3 +651,21 @@ Doplněno 2026-09-07 (přesun vazby do base `prod-ess-configurator-bc`, větev `
   `0.01` / `0.00001` (jinak `Currency.Initialize` spadne na TestField), `SalesHeader.Validate("Currency Code")`.
   (2026-09-10, cust-alumistr-bc 65916, code review `GetAmountFormats`.)
 
+
+### 5.x8 Item Charge Assignment (Sales) z kódu — `Validate("Qty. to Assign")` padá, když má cílový řádek `Quantity = 0`
+
+- `Item Charge Assgnt. (Sales).InsertItemChargeAssignmentWithValues(…)` (BC 28.3) při `QtyToAssign <> 0` volá
+  `ItemChargeAssgntSales.Validate("Qty. to Assign", QtyToAssign)`. Ten trigger (tabulka 5809) dělá
+  `SalesLineInvoiced()` = `SalesLine.Quantity = SalesLine."Quantity Invoiced"` na **řádku, ke kterému se poplatek
+  přiřazuje** → řádek s `Quantity = 0` (nic fakturováno) vyhodnotí jako „plně fakturovaný" a hodí
+  `You cannot assign item charges to the Sales Line because it has been invoiced…`. Zavádějící hláška, příčina je
+  nulové množství cílového řádku.
+- Typicky to trefí generátory řádků (konfigurátor, import), které poplatek zakládají dřív, než uživatel vyplní
+  množství hlavního řádku (sloupec Variant Code před Quantity). Guard: přiřazení dělej jen pro
+  `SourceSalesLine.Quantity <> 0` (a případně `Quantity <> "Quantity Invoiced"`), zbytek nech na přepočet po
+  změně množství / ruční přiřazení.
+- Dále v tom triggeru: `SalesLine.TestField("Qty. to Invoice")` na **řádku poplatku** (když S&R Setup „Default
+  Quantity to Ship" ≠ Blank) a `TestField("Applies-to Doc. Line No.")`; `Amount to Assign` se přepočítá jako
+  `Qty. to Assign × Unit Cost` (parametr AmountToAssign se přepíše).
+
+(2026-09-11, prod-ess-configurator-bc — analýza „SL Action Line Charge (Item) se nezaloží"; zdroj Base Application 28.3.52162.53506, extrakce z .app.)

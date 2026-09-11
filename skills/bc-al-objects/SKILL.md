@@ -12,7 +12,8 @@ description: >-
   (xRec/OnAfterModify, Validate(No.) Init, CurrFieldNo, číslování dětí do
   mezery, Copy Document), Requisition Line OnAfterGetDirectCost a Req.
   Wksh.-Make Order, VerifyOnInventory / negativní sklad, Item Jnl. Line UoM
-  qty-per, Auto Format <C,> prefix a formát částek v textu. Načti při práci
+  qty-per, Auto Format <C,> prefix a formát částek v textu, Item Charge
+  Assignment z kódu (Qty. to Assign vs Quantity = 0). Načti při práci
   s číselnými řadami, item trackingem, výrobou, vazbami řádků dokladů,
   překladu BC termínů. (Shopify Connector, HttpClient, SecretText, Power
   Automate → skill bc-al-integrations.)
