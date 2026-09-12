@@ -1,6 +1,6 @@
 ---
 name: bc-al-objects
-description: >-
+description: >-, poptávka → Requisition Line → Purchase Line (Order Planning, Get Sales Orders, Calculate Plan / Inventory Profile Offsetting, Order-to-Order, Carry Out).
   BC/AL specifické objekty a API z praxe (Business Central, AL; sekce 5):
   All Profile, Upgrade Tag, No. Series GetNextNo vs PeekNextNo, kontrola
   Document No. (Batch simulation, per Posting Date), Unix
