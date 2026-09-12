@@ -691,6 +691,15 @@ cesta vzniku řádku má jiný hook. Ověřeno ve zdrojích Base App 28.4 (cust-
   při `TransferFromPurchaseLine/TransLine`. Verze **28.0.3.0 to nemá** → dependency minimum zvedni na 28.0.3.1.
   Ověření obsahu symbolu bez MCP: python `zipfile` na `.app` od offsetu `PK\x03\x04`, `SymbolReference.json` →
   `TableExtensions[].Name` (MS test knihovny mají objekty vnořené v `Namespaces[]`, projdi rekurzivně).
+- **EM Net Make to Order (NMEBS)** přidává na Sales Order akci *Transfer Lines to Plan* (CZ „Přenést do sešitu požadavků",
+  za akcí Plánování) a na subform *Transfer Line to Plan*: report 64120 `CreateReqLineFromSales NMEBS` →
+  `Manufacturing Mgmt. NMEBS.InsertRequisitionLineFromSalesLine` skládá řádek sešitu **sám** (`Insert(false)` + Validate
+  No./Variant/Location/UoM/Quantity/Due Date, vazba `Target Order No./Line No./Type NMEBS` + `Sales Production Ref. NMEBS`;
+  nákup → Req. template, výroba → Planning template z Manufacturing Setup / User Setup). Žádná standardní cesta výše se nevolá;
+  do 28.0.3.0 jen `OnBeforeInsertRequisitionLineFromSalesLine` (IsHandled). Event
+  `OnInsertRequisitionLineFromSalesLineOnBeforeRequisitionLineModify(var ReqLine; var SalesLine; var SalesHeader; var Item)`
+  před `Modify(false)` přidán 2026-09-12 (větev `ReqLineFromSalesEvent`, čeká na release). Zdroj: sibling repo
+  `prod-em-netMakeToOrder-bc`; NMEBS nemá žádné dependencies, takže závislost zákaznické appky na ní je levná.
 - Test knihovny BC 28: `Library - Planning` / `Library - Manufacturing` / `Library - Sales` jsou v **Application Test
   Library**, ne v Tests-TestLibraries (tam zbyla jen `Library - Manufacturing OnPrem`). Užitečné: `CalcRequisitionPlanForReqWkshAndGetLines(var ReqLine; var Item; From; To)`,
   `CarryOutReqWksh(var ReqLine; ExpirationDate; OrderDate; PostingDate; ExpectedReceiptDate; YourRef)`,
