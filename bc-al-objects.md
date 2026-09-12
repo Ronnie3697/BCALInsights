@@ -669,3 +669,30 @@ Doplněno 2026-09-07 (přesun vazby do base `prod-ess-configurator-bc`, větev `
   `Qty. to Assign × Unit Cost` (parametr AmountToAssign se přepíše).
 
 (2026-09-11, prod-ess-configurator-bc — analýza „SL Action Line Charge (Item) se nezaloží"; zdroj Base Application 28.3.52162.53506, extrakce z .app.)
+
+### 5.x9 Poptávka → Requisition Line → Purchase Line: kde plánování tvoří řádek a jak přenést vlastní pole (BC 28.4)
+
+Vlastní pole z poptávky (Sales Line / Prod. Order Component) se na řádek sešitu požadavků samy nedostanou — každá
+cesta vzniku řádku má jiný hook. Ověřeno ve zdrojích Base App 28.4 (cust-alumistr-bc 65774, 2026-09-12):
+
+| Cesta | Kde řádek vzniká | Hook | Vazba |
+|---|---|---|---|
+| Order Planning (page 5522, Make Orders / Copy to Req. Wksh) | `Requisition Line.TransferFromUnplannedDemand` | table event `OnAfterTransferFromUnplannedDemand(var ReqLine; UnplannedDemand)` — Sales: `Demand SubType` = doc type, `Demand Order No.`/`Demand Line No.`; Production: `Demand SubType` = status, `Demand Order No.` = VZ, `Demand Line No.` = řádek VZ, `Demand Ref. No.` = komponenta | 1:1 |
+| Get Sales Orders (report 698, drop shipment / special order) | `InsertReqWkshLine` | `OnBeforeInsertReqWkshLine(var ReqLine; SalesLine; SpecOrder)` | 1:1 |
+| Calculate Plan (report 699 / 99001017) | `Inventory Profile Offsetting.MaintainPlanningLine` | `OnMaintainPlanningLineOnBeforeReqLineInsert(var ReqLine; var SupplyInvtProfile; …; var DemandInvtProfile; …)` — poptávka v `DemandInvtProfile."Source Type/Order Status/ID/Ref. No./Prod. Order Line"` (Sales Line: Ref. No. = Line No.; komponenta 5407: Prod. Order Line + Ref. No.) | jen když `SupplyInvtProfile.Binding = "Order-to-Order"` (Reordering Policy Order nebo MTO planning level, `PrepareOrderToOrderLink` + `TransferAttributes`); Lot-for-Lot / ROP agregují víc poptávek → nekopírovat |
+| Carry Out (sešit → NO) | `Req. Wksh.-Make Order.InsertPurchOrderLine` | `OnInsertPurchOrderLineOnAfterTransferFromReqLineToPurchLine(var PurchOrderLine; RequisitionLine)` | `Description`/`Description 2` kopíruje base sám v `InitPurchOrderLine`; `TransferFromReqLineToPurchLine` je v 28.4 prázdná obálka jen s eventem |
+
+- `Copy to Req. Wksh` (`Carry Out Action.CarryOutToReqWksh`) dělá `RequisitionLine2 := RequisitionLine` → extension pole
+  přejdou sama. Kontrolní guard na `SupplyInvtProfile."Action Message" = New` (jen nové řádky).
+- Base Sales Order (42/46/99000883) **nemá** akci „Přenést do sešitu požadavků" — takové akce dodávají jiné appky;
+  ptej se, kterou cestu volají, ne po captionu.
+- **EPB Pricing Matrix 28.0.3.1** má `Requisition Line PMEBS` (Parameter A/B, Sales Price Var. Code) a v `Price Mgt. PMEBS`
+  propagaci Sales Line → Req. Line pro Get Sales Orders + Order Planning (ne pro Calculate Plan) + reverse fill z UoM
+  při `TransferFromPurchaseLine/TransLine`. Verze **28.0.3.0 to nemá** → dependency minimum zvedni na 28.0.3.1.
+  Ověření obsahu symbolu bez MCP: python `zipfile` na `.app` od offsetu `PK\x03\x04`, `SymbolReference.json` →
+  `TableExtensions[].Name` (MS test knihovny mají objekty vnořené v `Namespaces[]`, projdi rekurzivně).
+- Test knihovny BC 28: `Library - Planning` / `Library - Manufacturing` / `Library - Sales` jsou v **Application Test
+  Library**, ne v Tests-TestLibraries (tam zbyla jen `Library - Manufacturing OnPrem`). Užitečné: `CalcRequisitionPlanForReqWkshAndGetLines(var ReqLine; var Item; From; To)`,
+  `CarryOutReqWksh(var ReqLine; ExpirationDate; OrderDate; PostingDate; ExpectedReceiptDate; YourRef)`,
+  `LibraryPurchase.CreateDropShipmentPurchasingCode`, `OrderPlanningMgt.PlanSpecificSalesOrder(var ReqLine; SONo)`,
+  `OrderPlanningMgt.SetDemandType("Demand Order Source Type"::"Production Demand") + GetOrdersToPlan(var ReqLine)`.

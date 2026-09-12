@@ -51,6 +51,15 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   `BusinessCentral.LinterCop.dll` v extensionu není vůbec (VS Code si ho stahuje jinam) → CLI check jede jen
   s CodeCop + PTE + UICop, LinterCop nálezy hlídá VS Code / CI. Hledej `find <ext> -name alc.exe`, ne pevnou
   cestu. (2026-09-10, cust-alumistr-bc)
+- **alc 18.0 při kompilaci PŘEPÍŠE Word layouty reportů (`*.docx`) v projektu** — po CLI buildu se objeví
+  změněný `.docx` v `git status`, i když jsi na report nesáhl. Před commitem `git checkout -- <report>.docx`.
+  Log alc 18 je UTF-8 (ne UTF-16 jako u 17) a chyby závislostí mají tvar `error AL1022: …` bez prefixu
+  souboru — parser logu nefiltruj na `: error `, ale na `\b(error|warning) [A-Z]{2,3}\d{4}`. (2026-09-12, cust-alumistr-bc)
+- **Extrakce z MS Base App `.app`:** `unzip -o -q -j app "src/*"` vytáhne jen zlomek souborů (tiše) — vždy nejdřív
+  `unzip -l app | grep <Name>` a pak jmenovitě; názvy s mezerou v ZIPu jsou URL-encoded
+  (`Translations/Base%20Application.cs-CZ.xlf`, 78 MB, 255k trans-unitů — CZ caption akce hledej v něm, ne pamětí).
+  V Bash smyčce `for n in "Test Runner" …; cp …_${n}_…` bez uvozovek kolem `${n}` kopie tiše selže (word split)
+  a alc pak hlásí `AL1022` na balíčky, které „v cache jsou". (2026-09-12, cust-alumistr-bc)
 - **Analyzery z CLI:** `/analyzer:<path>\Microsoft.Dynamics.Nav.CodeCop.dll`
   (UICop, AppSourceCop a `BusinessCentral.LinterCop.dll` žijí v
   `<extension>/bin/Analyzers`). V **Git Bash** pozor — argumenty začínající
