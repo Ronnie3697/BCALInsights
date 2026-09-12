@@ -1,23 +1,17 @@
 ---
 name: bc-al-objects
 description: >-
-  BC/AL specifické objekty a API z praxe (Business Central, AL; sekce 5):
-  All Profile, Upgrade Tag, No. Series GetNextNo vs PeekNextNo, kontrola
-  Document No. (Batch simulation, per Posting Date), Unix
-  timestamp / UTC, Item Tracking (Lot No., Reservation Entry u Prod. Order
-  Line, Sales Quote → Order), EM Net Make to Order vazba SO ↔
-  VZ, al-mcp ByReference past, atributy zboží, DateFormula limity,
-  CaptionClass + Translation Helper, CZ ↔ EN terminologie BC, CZZ Advance
-  Payments, Sales Line Attached to Line No. parent↔child
-  (xRec/OnAfterModify, Validate(No.) Init, CurrFieldNo, číslování dětí, Copy
-  Document), Requisition Line OnAfterGetDirectCost a Req.
-  Wksh.-Make Order, VerifyOnInventory, Item Jnl. Line UoM
-  qty-per, Auto Format <C,> prefix / částky v textu, Item Charge
-  Assignment z kódu (Qty. to Assign vs Quantity = 0). Načti při práci
-  s číselnými řadami, item trackingem, výrobou, vazbami řádků dokladů,
-  překladu BC termínů. (Shopify, HttpClient, SecretText, Power Automate → skill
-  bc-al-integrations.), poptávka → Requisition Line → Purchase Line (Order Planning, Get Sales
-  Orders, Calculate Plan / Inventory Profile Offsetting, Order-to-Order, Carry Out).
+  BC/AL specifické objekty a API z praxe (Business Central, AL; sekce 5): All Profile, Upgrade Tag,
+  No. Series GetNextNo vs PeekNextNo, kontrola Document No. (Batch simulation, per Posting Date), Unix
+  timestamp / UTC, Item Tracking (Lot No., Reservation Entry u Prod. Order Line, Sales Quote → Order),
+  EM Net Make to Order vazba SO ↔ VZ, al-mcp ByReference past, atributy zboží, DateFormula limity,
+  CaptionClass + Translation Helper, CZ ↔ EN terminologie BC, CZZ Advance Payments, Sales Line Attached to
+  Line No. parent↔child (xRec/OnAfterModify, Validate(No.) Init, CurrFieldNo, číslování dětí, Copy Document),
+  Requisition Line OnAfterGetDirectCost a Req. Wksh.-Make Order, poptávka → Requisition Line → Purchase Line
+  (Order Planning, Get Sales Orders, Calculate Plan / Inventory Profile Offsetting, Order-to-Order, Carry Out),
+  VerifyOnInventory, Item Jnl. Line UoM qty-per, Auto Format <C,> prefix / částky v textu, Item Charge
+  Assignment z kódu. Načti při práci s číselnými řadami, item trackingem, výrobou, plánováním, vazbami řádků
+  dokladů, překladu BC termínů. (Shopify, HttpClient, SecretText, Power Automate → skill bc-al-integrations.)
 user-invocable: true
 ---
 
