@@ -672,7 +672,10 @@ přiřazení `Type`/`No.` z kódu Init nespustí, proto guard `Type <> Item or N
 `Item Reference Management.EnterSalesItemReference`, který u řádku zboží znovu naplní texty z Item Reference / Item Variant / Item
 (+ `GetItemTranslation`) — ověřeno v Base App 28.4. Vlastní texty (z konfigurátoru, importu…) proto přiřazuj **až po** validaci
 varianty a MJ, jinak tiše zmizí; když má vlastní text stejnou hodnotu jako popis zboží, bug se maskuje a projeví se jen na `Description 2`.
-(2026-09-13, prod-ess-configurator-bc `SL Action Cond. Mgt.InitNewSalesLineFromAction` — Popis 2 z akčního řádku se ztrácel u řádků s MJ.)
+Totéž nepřímo přes **EPB Pricing Matrix**: `Validate("Parameter A/B PMEBS")` dohledá matricovou MJ a sám zavolá `Validate("Unit of Measure Code")`
+→ subscriber, který parametry validuje až po nastavení textů, texty smaže. Vzor: texty před validací uložit a po ní vrátit
+(`ValidateParametersKeepingTexts` v cust-alumistr-bc `Configurator Events COALU`).
+(2026-09-13, prod-ess-configurator-bc `SL Action Cond. Mgt.InitNewSalesLineFromAction` + COALU — Popis 2 z akčního řádku se ztrácel u řádků s MJ / s parametry.)
 
 **Bonus — `fieldgroups` z tableextension:** `fieldgroups { addlast(DropDown; "My Field") }` v tableextension funguje
 (vzor base app `ReturnReasonExt.TableExt.al`) — nejlevnější způsob, jak vlastní atribut ukázat ve všech lookupech
