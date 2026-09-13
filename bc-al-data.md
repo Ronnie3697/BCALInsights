@@ -668,6 +668,12 @@ vlastní pole samo. Code-review nález „změna typu nechá viset staré vlastn
 přiřazení `Type`/`No.` z kódu Init nespustí, proto guard `Type <> Item or No. = '' → Clear` v přepočtu stejně drž
 (levné, chování pak nezávisí na base Init). (2026-09-10, cust-alumistr-bc 65916, `SK Branch Mgt. ALU`.)
 
+**`Validate("Unit of Measure Code")` a `Validate("Variant Code")` na Sales Line PŘEPÍŠOU `Description` i `Description 2`.** Oba triggery volají
+`Item Reference Management.EnterSalesItemReference`, který u řádku zboží znovu naplní texty z Item Reference / Item Variant / Item
+(+ `GetItemTranslation`) — ověřeno v Base App 28.4. Vlastní texty (z konfigurátoru, importu…) proto přiřazuj **až po** validaci
+varianty a MJ, jinak tiše zmizí; když má vlastní text stejnou hodnotu jako popis zboží, bug se maskuje a projeví se jen na `Description 2`.
+(2026-09-13, prod-ess-configurator-bc `SL Action Cond. Mgt.InitNewSalesLineFromAction` — Popis 2 z akčního řádku se ztrácel u řádků s MJ.)
+
 **Bonus — `fieldgroups` z tableextension:** `fieldgroups { addlast(DropDown; "My Field") }` v tableextension funguje
 (vzor base app `ReturnReasonExt.TableExt.al`) — nejlevnější způsob, jak vlastní atribut ukázat ve všech lookupech
 (např. Item UoM dropdown na Sales/Req./Price řádcích místo holého kódu).
