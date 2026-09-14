@@ -232,6 +232,9 @@ Gen. Bus. Posting Group / Base Unit of Measure a sales flow na tom padá.
   netriviální testy prožeň lokálně v kontejneru, nebo aspoň projdi obě cesty (TestPage i
   `Rec.Validate + Modify`) čtením kódu. Oprava pak jde novou větví z masteru (squash merge,
   původní větev je obsahem identická s masterem — 7.16).
+  Stejně `prod-epb-pricingMatrix-bc` (build 28219, 2026-09-14): PR 9476 squash → první běh testů až
+  na masteru, 2 faily (assert přes `Get` generovaného kódu UoM, zbytečný `MessageHandler` — viz
+  `bc-al-autotests.md`, sekce CreateItem base UoM); fix novou větví z `origin/master`.
 
 ### 7.16 Squash merge PR → falešné konflikty při dalším mergi + three-dot diff klame
 

@@ -416,6 +416,19 @@ lokálně těžko reprodukovatelné).
   nepředpokládat, že base UoM nového itemu je „neutrální".
 - Zachyceno 2026-08-05, prod-epb-pricingMatrix-bc build 27690: test suite spadla
   až na 7. testu — CreateItem přiřadil itemu base UoM `1200/62.5` založenou 6. testem.
+- **Podruhé tamtéž (build 28219, 2026-09-14) — tentokrát v ASSERTU, ne v produkčním kódu:**
+  negativní kontrola `Assert.IsFalse(ItemUoM.Get(ItemNo, '1200/800'), 'no generated UoM')`
+  spadla, protože dřívější test založil globální UoM `1200/800` a `CreateItem` ji dal
+  novému itemu jako base UoM — „vygenerovaná" jednotka tam byla ještě před WHEN. Assert
+  „nic nového nevzniklo" piš přes **počet** Item UoM před/po (`SetRange("Item No.")` +
+  `Count()` → `Assert.RecordCount(ItemUoM, CountBefore)`), ne přes `Get` konkrétního kódu.
+- **`[HandlerFunctions('MessageHandler')]` jen tam, kde dialog opravdu vyskočí.** Registrovaný
+  handler, který se během testu nezavolá, shodí test na „The following UI handlers were not
+  executed: MessageHandler" — i když všechny asserty prošly. `LibraryWarehouse.CreateWhseShipmentFromSO`
+  (`CreateFromSalesOrderHideDialog`) ani `LibraryWarehouse.PostWhseShipment` žádnou zprávu
+  nezobrazí, stejně `LibrarySales.ReleaseSalesDocument` a `LibraryInventory.PostItemJournalLine`.
+  Handler přidávej až podle reálného dialogu (CI hláška „no handler" / dokumentovaný Message),
+  ne preventivně. (build 28219, `WarehouseShipmentLineGetsParametersAndPostsThem`)
 
 ### Library helper konvence pro per-extension testy
 
