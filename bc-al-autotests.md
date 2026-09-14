@@ -566,7 +566,9 @@ Offsetting.SetAcceptAction` nastaví `Accept Action Message := false` každému 
 date před planning starting date (Emergency/Exception). `Req. Wksh.-Make Order` bere jen `Accept Action Message
 = true` → report 493 skončí `Message('There is nothing to create.')` → „Unhandled UI: Message" (bez handleru).
 Fix: poptávku datovat do budoucna (`SalesLine.Validate("Shipment Date", CalcDate('<+2W>', WorkDate()))`,
-`ProductionOrder.Validate("Due Date", …)` **před** `RefreshProdOrder`) a před carry-out
+`ProductionOrder.SetUpdateEndDate()` + `Validate("Due Date", …)` **před** `RefreshProdOrder` — bez
+`SetUpdateEndDate` Validate z kódu (`CurrFieldNo = 0`) Starting/Ending Date hlavičky nepřepočítá, `Create Prod.
+Order Lines` je zkopíruje na řádek a komponenta zůstane na WorkDate → Emergency; build 28226) a před carry-out
 `Assert.IsTrue(ReqLine."Accept Action Message", …)`, ať fail mluví. Zdroj: `Inventory/Tracking/
 InventoryProfileOffsetting.Codeunit.al` (sparse clone `--filter=blob:none --sparse -b w1-28`, api.github.com
 z Claude Code sandboxu nejede — `http 000`; raw.githubusercontent ano). (2026-09-14, cust-alumistr-bc build 28223.)
