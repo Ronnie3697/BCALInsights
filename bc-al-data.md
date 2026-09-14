@@ -253,6 +253,17 @@ enum `Field Type` (PK) zůstal ' ' → kopie „proběhla", ale řádky skončil
 klíče; dvě skupiny formulí by se srazily na `Line No.` 10000. Při review copy kódu porovnej **každé** přiřazení po
 `TransferFields(…, false)` s PK — enum/option PK pole se přehlédnou nejsnáz.
 
+### 2.6a Remap helper s „chybí v mapě → vynuluj" — projdi VŠECHNY volající a jejich mapy
+
+Když sdílený remap helper (`TryRemapParamLineNo(var Field, Mapping)`) přepneš z „není v mapě → nech" na „není v mapě
+→ 0" (správně: kopie čísluje bez mezer, osiřelý odkaz by se tiše chytil cizího záznamu), pohlídej **každého volajícího
+a jak si mapu staví**. Kopie celé konfigurace má mapu úplnou, ale kopie **jednoho záznamu v téže konfiguraci**
+(`CopyParameter`) si do mapy dávala jen `zdroj → nový` a spoléhala na „nech" — odkazy na ostatní, existující parametry
+najednou skončily jako 0 (master build 28221, test `CopyParamReplicatesConditions`, 2026-09-14). Fix: doplnit do mapy
+identitu `X → X` pro všechny ostatní záznamy konfigurace (`AddIdentityMappingOfOtherParameters`), helper má jednu
+sémantiku. Lokální kompilace to neodhalí — teprve testy; proto při změně sémantiky helperu grep na jeho jméno **i na
+místa, kde se mapa plní** (`.Add(`), ne jen na volání.
+
 ### 2.6b `Mark`/`MarkedOnly` + `Record.Copy` — nespoléhat, že marks přejdou na kopii
 
 Když engine označí záznamy (`Mark(true)` + `MarkedOnly(true)`) a pak pro dílčí hledání dělá `Other.Copy(Rec)`
