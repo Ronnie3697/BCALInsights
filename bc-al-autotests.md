@@ -539,6 +539,14 @@ závislé na pořadí testů (první carry-out test v codeunitu projde, pozděj�
 sdílený list nechat jen testům, které carry-out nevolají. Zachyceno 2026-08-28,
 cust-sonnentor-bc PR 9380 build 27993 (`ReqCarryOutRechecksRemainingQuantity`).
 
+**Calculate Plan do vlastního batche:** `LibraryPlanning.CalcRequisitionPlanForReqWksh*` batch
+neberou (jedou do defaultního listu z `SelectRequisitionWkshName`), takže Calculate Plan + Carry Out
+test pusť report 699 přímo: `CalculatePlanReqWksh.SetTemplAndWorksheet(Template, Batch)` →
+`InitializeRequest(StartDate, EndDate)` → `Item.SetRange("No.", …)` + `SetTableView(Item)` →
+`UseRequestPage(false)` → `RunModal()`; řádky pak filtruj na Template + Batch + `"No."`. Report 699
+procedury al-mcp nevidí (`Procedures: []` u reportů) — signatury ověří kompilace. (2026-09-14,
+cust-alumistr-bc 65774, `Planning Transfer Tests ALU/PMALU` po code review.)
+
 ### Placeholdery v testech jsou škodlivější než žádné testy
 
 `Assert.IsTrue(true, ...)` nebo `[Test]` procedura, která ve skutečnosti nic neověří, **dělá test suite zelenou bez regresní ochrany**. Pokud nemůžeš testovaný scénář spolehlivě postavit (např. `OnBeforeActionEvent` subscribery vyžadují TestPage + nestabilní action names), je správné nechat soubor bez `[Test]` procedur a zaznamenat blokátor v `plan.md`/issue, ne psát fake testy.
