@@ -457,5 +457,5 @@ At ...\BcContainerHelper\6.1.18\HelperFunctions.ps1:130
   `ForceSync`, viz 7.18).
 
 Zachyceno 2026-09-14, cust-alumistr-bc release 14979 (28.0.29), stage „deploy to live". Totéž
-den předtím prod-epb-pricingMatrix-bc release 14970 (28.0.5): attempt #1 na APP22-2 identický
+týž den dopoledne prod-epb-pricingMatrix-bc release 14970 (28.0.5): attempt #1 na APP22-2 identický
 pád, attempt #2 (Redeploy) na BLD22-6 prošel — Redeploy jako workaround ověřený.
