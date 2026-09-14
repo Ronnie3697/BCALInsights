@@ -560,6 +560,22 @@ test pusť report 699 přímo: `CalculatePlanReqWksh.SetTemplAndWorksheet(Templa
 procedury al-mcp nevidí (`Procedures: []` u reportů) — signatury ověří kompilace. (2026-09-14,
 cust-alumistr-bc 65774, `Planning Transfer Tests ALU/PMALU` po code review.)
 
+**Calculate Plan + Carry Out: poptávka na `WorkDate()` = „There is nothing to create."** `Inventory Profile
+Offsetting.SetAcceptAction` nastaví `Accept Action Message := false` každému řádku, který má planning warning
+(`PlanningTransparency.ReqLineWarningLevel(ReqLine) <> 0`); poptávka na WorkDate s nulovým lead time dá order
+date před planning starting date (Emergency/Exception). `Req. Wksh.-Make Order` bere jen `Accept Action Message
+= true` → report 493 skončí `Message('There is nothing to create.')` → „Unhandled UI: Message" (bez handleru).
+Fix: poptávku datovat do budoucna (`SalesLine.Validate("Shipment Date", CalcDate('<+2W>', WorkDate()))`,
+`ProductionOrder.Validate("Due Date", …)` **před** `RefreshProdOrder`) a před carry-out
+`Assert.IsTrue(ReqLine."Accept Action Message", …)`, ať fail mluví. Zdroj: `Inventory/Tracking/
+InventoryProfileOffsetting.Codeunit.al` (sparse clone `--filter=blob:none --sparse -b w1-28`, api.github.com
+z Claude Code sandboxu nejede — `http 000`; raw.githubusercontent ano). (2026-09-14, cust-alumistr-bc build 28223.)
+
+**Testy volající `SL Action Cond. Mgt. COEBS.ExecuteSalesLineActions` potřebují `[HandlerFunctions('…MessageHandler')]`**
+— procedura končí nepodmíněným `Message('Sales Line actions have been executed …')`. Konfigurátorové testy to řeší
+`MessageHandler`, v cust-alumistr-bc `SLActionsExecutedMessageHandler` (před přidáním nového handleru grepni
+codeunit — duplicitní název = AL0518/AL0440). (2026-09-14, cust-alumistr-bc build 28223.)
+
 ### Placeholdery v testech jsou škodlivější než žádné testy
 
 `Assert.IsTrue(true, ...)` nebo `[Test]` procedura, která ve skutečnosti nic neověří, **dělá test suite zelenou bez regresní ochrany**. Pokud nemůžeš testovaný scénář spolehlivě postavit (např. `OnBeforeActionEvent` subscribery vyžadují TestPage + nestabilní action names), je správné nechat soubor bez `[Test]` procedur a zaznamenat blokátor v `plan.md`/issue, ne psát fake testy.
