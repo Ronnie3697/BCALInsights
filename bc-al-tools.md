@@ -240,6 +240,41 @@ Pro **třetí strany** je to obráceně: tělo procedury na GitHubu **není**, M
 z `.app` symbolů taky vrátí jen signaturu — plný kód jen když máš jejich source
 repo (sekce 7.6).
 
+#### 7.2b Oficiální AL MCP server od Microsoftu (`altool launchmcpserver`) — spouštění autotestů v BC
+
+Jiný server než komunitní `al-mcp-server` výše. Je součástí AL extensionu (`<ext>/bin/altool.exe`,
+od AL 18 vedle `alc.exe`) a kromě kompilace umí **`al_run_tests`** — spustí test codeunit přímo v BC
+(kontejner i SaaS, BC 28+) jako Test Explorer ve VS Code. Registrace do Claude Code (local scope repa):
+
+```bash
+claude mcp add --scope local al-official -- \
+  "C:\Users\<user>\.vscode\extensions\ms-dynamics-smb.al-<ver>\bin\altool.exe" launchmcpserver \
+  "C:\<repo>\base\app" "C:\<repo>\base\test" --packagecachepath "C:\<repo>\.alpackages"
+```
+
+- **Projekty vyjmenuj** (bez cest server nenastartuje), `--packagecachepath` až **za** projekty. Tooly se
+  objeví až v nové seanci Claude Code.
+- Připojení bere z `launch.json` projektu (`--project`), explicitní parametry mají přednost
+  (`--environmenttype Sandbox --environmentname X --tenant Y`).
+- **Windows: auth na SaaS jede rovnou** — `altool` sdílí s VS Code cache
+  `%LOCALAPPDATA%\Microsoft\BusinessCentral\DevTools\TokenCache.dat` („Using VS Code authentication").
+  Kopírování klíčů klíčenky je potřeba jen na macOS. `al_auth_login` netřeba.
+- Totéž z CLI bez MCP: `altool runtests <codeunitId> --project <test-app> --raw`; dále `publishapp`,
+  `auth login/logout`, `compile`, `graph`.
+- **„1 skipped" + EXIT 0 = test codeunit v prostředí NEEXISTUJE** (`Test codeunit with ID … not found`) —
+  server hlásí úspěch, čti text zprávy.
+- Server nic nenasazuje: v prostředí musí být **test toolkit** (Test Runner + `Tests-TestLibraries` +
+  `System Application Test Library`, tzn. i `Permissions Mock`) **a** hlavní i test appka. Na **SaaS
+  sandboxu** MS test toolkit **nejde** nahrát přes dev endpoint (`altool publishapp` → „vydavatel je
+  'Microsoft'… zakazuje publikování rozšíření Microsoftu na úrovni klienta") ani přes Admin Center API
+  (`install_app` → „Target app version was not found … Country Code CZ"); zbývá Extension Management v BC,
+  pokud tam MS appku nabízí. Plné runtime `.app` toolkitu (ne symbol-only) jsou na MSApps feedu
+  (`…/DynamicsBCPublicFeeds/_packaging/MSApps/nuget/v3/flat2/microsoft.tests-testlibraries.<guid>/index.json`).
+- `almcp.exe --help` se **nevrátí** (nastartuje HTTP server na 5000) — help ber z `altool launchmcpserver --help`.
+- Bash tool: cestu k `.app` skládej `"$DIR/$f"` (lomítko), `"$DIR\\$f"` se sráží na `\$f` a soubor „not found".
+
+(2026-09-15, cust-alumistr-bc, AL 18.0.2732683, sandbox BC-TEST2 — testy zatím nespuštěné, chybí toolkit.)
+
 ### 7.3 Práce s BC source na GitHubu
 
 Repo: `https://github.com/StefanMaron/MSDyn365BC.Code.History`
