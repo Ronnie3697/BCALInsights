@@ -13,7 +13,7 @@ jediný zdroj; always-on soubory jednotlivých nástrojů na něj jen odkazují.
 | `bc-al-data.md` | database operace, event subscribery (sekce 2, 3) |
 | `bc-al-objects.md` | specifické objekty/API — No. Series, Item Tracking, Attached to Line No., Requisition Line… (sekce 5) |
 | `bc-al-integrations.md` | Shopify Connector, HttpClient na SaaS, SecretText/Isolated Storage, Business Events / Power Automate (5.y2, sekce 11) |
-| `bc-al-workflow.md` | lokalizace/XLIFF, dokumentace, verifikace (sekce 6, 8, 9, 12) |
+| `bc-al-workflow.md` | lokalizace/XLIFF, dokumentace vč. uživatelské příručky, verifikace (sekce 6, 8, 9, 12) |
 | `bc-al-tools.md` | nástroje (alc, al-mcp, BC source), nová appka, git/PR, Azure DevOps (sekce 7.1–7.10) |
 | `bc-al-build.md` | NuGet dependencies, test symboly, kolize ID, major bump, Essence CI build & deploy gotchas (sekce 7.11–7.19) |
 | `bc-al-autotests.md` | automatizované testy — codeunits, libraries, runner, povinnost |
@@ -250,7 +250,7 @@ stabilních pravidel. **Notes soubory zůstávají zdrojem pravdy.**
 | `bc-al-data` | `bc-al-data.md` | DB operace, event subscribery, propagace polí |
 | `bc-al-objects` | `bc-al-objects.md` | No. Series, Item Tracking, Attached to Line No., Requisition Line… |
 | `bc-al-integrations` | `bc-al-integrations.md` | Shopify Connector, HttpClient/SecretText na SaaS, Power Automate |
-| `bc-al-workflow` | `bc-al-workflow.md` | XLIFF, dokumentace, analyzery, ruleset |
+| `bc-al-workflow` | `bc-al-workflow.md` | XLIFF, dokumentace + uživatelská příručka, analyzery, ruleset |
 | `bc-al-tools` | `bc-al-tools.md` | alc, symboly, nová appka, git/PR, ADO |
 | `bc-al-build` | `bc-al-build.md` | NuGet, test symboly, kolize ID, major bump, CI build/deploy |
 | `bc-al-autotests` | `bc-al-autotests.md` | testy + netriviální funkčnost |

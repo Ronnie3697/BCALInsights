@@ -58,6 +58,10 @@ příklady jsou v souboru.
   → příklad využití → technická dokumentace (jen když vznikly objekty/pole).
   Identifikátory EN, prózu CZ. Piš až po dokončení implementace; verzi appky
   nezmiňuj (7.8 v `bc-al-tools`).
+- **8.1** Uživatelská příručka větší featury (netechnická, pro školení a testery):
+  `docs/<PBI-ID>_<Nazev>-uzivatelska-prirucka.html`, **vždy soubor v repu, nikdy
+  jen publikovaný artefakt**. Obrázky base64 (soběstačné HTML), terminologie
+  z `Translations/*.cs-CZ.xlf`, odkaz z MD dokumentu ticketu.
 - **9.1 / 9.2** Před editem: hlavička objektu (id, namespace, co rozšiřuje)
   a **`app.json`** (`idRanges`, `dependencies`, `target`, `runtime`,
   `platform`, `application`).
@@ -77,6 +81,9 @@ příklady jsou v souboru.
   v kontextu.
 - **12.3** Runtime error → z hlášky a stacku nejpravděpodobnější fix → build →
   re-run na reálných datech. Žádné „co kdyby data vypadala takhle" smyčky.
+  Ověřování v BC přes prohlížeč: stránka i filtr jdou v URL. **Zápis do prostředí
+  zákazníka (vyplnit setup, založit doklad, naklikat scénář) smíš — ale jen
+  s výslovným svolením uživatele; vyžádej si ho DOPŘEDU**, než začneš fotit.
 - **12.4** Essence build bere **první `*Ruleset*.json` (case-insensitive)
   rekurzivně ve složce s `app.json`**; `ruleSetPath` v `app.json` = AL0124; `.vscode` je
   gitignored, `.code-workspace` řídí jen editor. `failOn = 'warning'`.
