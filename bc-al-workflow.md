@@ -393,6 +393,84 @@ Essence CI má `failOn = 'warning'`, takže jediný warning shodí build. Než o
 v test codeunitě — lokálně se před pushem kompilovala jen hlavní appka bez
 analyzerů, warning odhalil až CI. S krokem 1+2 by se chytil lokálně.)
 
+### 12.1b ALCops v CI NEJSOU — nálezy jsou lokální; zavedení na existující repo
+
+**Essence CI ALCops nespouští.** `CompileALApps2.ps1` (template repo `tools-devops-essence-bc-yaml-lib`,
+větev `v2-0`) volá `Compile-AppWithBcCompilerFolder` jen se switchi `-EnableCodeCop`,
+`-EnableUICop`, `-EnablePerTenantExtensionCop`, `-EnableAppSourceCop`; analyzery bere z compiler
+folderu BcContainerHelperu, kde žádné ALCops DLL nejsou. Takže **ALCops warning CI nikdy neshodí** —
+je to čistě kvalita kódu ve VS Code / lokálním `alc`. Praktický dopad: úklid ALCops nálezů na velkém
+repu je bezpečný (nehrozí, že rozbiješ zelený build), ale taky se sám neudrží — nový nález nikdo
+nezachytí, dokud se někdo nepodívá do VS Code.
+
+**Ruleset hledá CI jen UVNITŘ app folderu** (`Get-ChildItem -Path $appFolder -Recurse -Filter '*Ruleset*.json'`,
+první nalezený). Repo ruleset v rootu (`<repo>.ruleset.json`) se tedy do CI **nepředá**, jak už říká 12.4.
+Naopak jakmile `*Ruleset*.json` do app folderu přidáš, CI ho začne používat — a `externalRulesets`
+má v `CompileALApps2.yml` **default `'True'`**, takže remote `includedRuleSets` (essence-default)
+nespadne na `AL1033`. Remote `essence-default.ruleset.json` skrývá pět pravidel (`LC0010`, `LC0068`,
+`LC0084`, `AS0081`, `AA0247`), nic nezvyšuje — dědit ho je bezpečné.
+
+**Čísla z praxe (cust-sonnentor-bc, 2026-09-15, první zapnutí ALCops na repo s ~165 soubory):**
+hlavní appka 1176 diagnostik, z toho **313 warning/error**; test appka 217 / **97**. Zbytek je `info`
+(AC0031 chybějící tabledata permissions, PC0030 SetLoadFields, LC0098/LC0099 naming subscriberů,
+DC0004/DC0007 XML docs) — ty jde nechat. Rozpad warningů a co s nimi:
+
+| Pravidlo | Počet | Řešení |
+| --- | --- | --- |
+| `PC0037` Use Validate() instead of direct field assignment | 188 + 75 | pragma per procedura / Hidden v test rulesetu, viz 12.1c |
+| `LC0092` Field name should not contain special characters (`%`, `&`, `!`, `?`) | 71 | **ruleset Hidden** — nasazené pole `Content % SON` je business termín, přejmenování by rozbilo data |
+| `LC0090` Cognitive Complexity (threshold 15) | 18 | ruleset Hidden (konzistentní s `LC0010`), nebo zvednout `CognitiveComplexityThreshold` v `alcops.json` |
+| `LC0040` explicitní RunTrigger | 14 + 6 | opravit v kódu (`DeleteAll(false)`, `Modify(false)`, …) |
+| `LC0028` identifier syntax subscriberů | 9 + 1 | opravit (regex `, '(On[A-Za-z0-9_]+)', ''` → `, \1, ''`) |
+| `FC0005` metoda místo přiřazení | 4 | `Notification.Id(x)` / `.Scope(x)` / `.Message(x)`, `Rec.FilterGroup(40)` |
+| `FC0003` chybějící závorky | 2 + 2 | `RecordId()`, `Count()` |
+| `AA0021` řazení deklarací | 0 + 7 | pořadí Record → Report → **Codeunit** → XmlPort → Page → … → zbytek (Enum patří až za Codeunit) |
+| `AA0181` `Find()` jen s `Next()` | 0 + 1 | znovunačtení jednoho záznamu piš `Find('=')` (chování identické, default byl `'='`) |
+| `PC0035` CalcFields v cyklu | 1 | `SetAutoCalcFields(pole)` před `FindSet` |
+| `PC0034` počet placeholderů ≠ argumentů | 1 | **reálný bug** — `Error(MoreLotErr)` u labelu s `%1 %2`; ALCops tyhle chyby najde spolehlivě |
+| `PC0022` možný overflow | 1 | `CopyStr(Rec.GetFilter(pole), 1, MaxStrLen(cíl))` |
+| `LC0095` nepoužitý parametr | 1 | pragma, když je parametr součástí publikovaného podpisu |
+| `AC0010` objekt bez permission setu | 6 | v **test** rulesetu Hidden (test appka permissionset záměrně nemá, viz bc-al-autotests) |
+
+**`alcops.json`** (JSON schéma `raw.githubusercontent.com/ALCops/Analyzers/main/src/ALCops.Common/Settings/alcops.schema.json`,
+soubor vedle `app.json`) umí **jen thresholdy a patterny** — `CognitiveComplexityThreshold`,
+`CyclomaticComplexityThreshold`, `MaintainabilityIndexThreshold`, `SubscriberNamingPattern`,
+`NamingPatterns`, `ToolTipAllowedPunctuations`, `KnownAcronyms`, `LanguagesToTranslate`,
+`StatementBlockSpacing`, `Extends`. **Vypnout pravidlo se tam nedá** — to je pořád jen ruleset
+nebo `#pragma`.
+
+**Log `alc.exe` z AL 18 je UTF-8, z AL 17 UTF-16.** Dekóduj podle BOM (`raw[:2] in (b'\xff\xfe', b'\xfe\xff')`
+→ utf-16, jinak utf-8), ne natvrdo — `iconv -f UTF-16` na UTF-8 logu vyrobí CJK „čínštinu" a
+vypadá to jako rozbitý build (7.1 mluví o UTF-16 logu, od AL 18 to tak být nemusí).
+
+### 12.1c `PC0037` (Validate místo přiřazení) — pragma per procedura, ne globální vypnutí
+
+`PC0037` je nejhlasitější ALCops pravidlo na běžném BC kódu, protože direct assignment je
+v hromadě situací **správný** pattern: plnění temporary bufferu, nastavení polí primárního klíče
+před `Insert`, propagace hodnot v event subscriberu, stamp pole bez `OnValidate`. Přesto ho
+nevypínej globálně — hodí se tam, kde `Validate` opravdu chybí.
+
+**Zavedený postup (cust-sonnentor-bc, 263 výskytů):**
+
+- **hlavní appka** → `#pragma warning disable PC0037` **hned za `begin` procedury** a `restore`
+  před jejím koncovým `end;`, s krátkým důvodem v komentáři. Scope procedury je kompromis:
+  ztiší vědomý blok přiřazení, ale nové chybějící `Validate` v jiné proceduré pořád vidíš.
+  74 procedur ve 22 souborech; skriptovatelné — hranice procedury poznáš podle indentace
+  deklarace (`^(\s*)(local |internal |protected )?(procedure|trigger)\s`), jejího `begin`
+  a prvního `end;` na téže indentaci. **Pragma dávej mezi příkazy, nikdy mezi `if ... then`
+  a jeho příkaz.**
+- **test appka** → `PC0037` rovnou `Hidden` v test rulesetu; testy staví data přímo záměrně
+  a `Validate` by rozjel business logiku, kterou test izoluje.
+
+**Test ruleset** (doplnění k 12.4 a k bc-al-autotests): `base/test/<repo>-test.ruleset.json`
+dědí hlavní ruleset přes `includedRuleSets` a skrývá `AC0010` + `LC0015` (permission set coverage),
+`PC0037`, `DC0004` + `DC0007` (XML docs na testech). **CI si ho najde sám** (konvence výše),
+ale **VS Code ne** — workspace `al.ruleSetPath` (`..\..\<repo>.ruleset.json`) se z test folderu
+resolvuje zpátky na hlavní ruleset, takže je potřeba folder-level `base/test/.vscode/settings.json`
+s `al.ruleSetPath` na test ruleset. Pozor: `.vscode` bývá v `.gitignore` (tak je to v cust-sonnentor-bc),
+takže ten soubor zůstane lokální a kolegům se nerozdistribuuje — buď výjimka v `.gitignore`,
+nebo to každý má u sebe.
+
 ### 12.2 Když nevíš, co pravidlo znamená — vyhledej
 
 Neopravuj warning naslepo přepsáním kódu. **Najdi popis pravidla:**
