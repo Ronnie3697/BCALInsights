@@ -219,6 +219,24 @@ Assert.ExpectedErrorCode('Dialog');
   cache = MS 28.3 symboly + `Test Runner`, `Tests-TestLibraries`, `System Application Test Library`, `Application Test
   Library`, `Permissions Mock` (z dotykacka `.alpackages`) + build hlavní appky — tranzitivní `Any` / `Library Assert` /
   `Library Variable Storage` / `Business Foundation Test Libraries` v cache být NEMUSÍ, alc 17.0 projde.
+- **Undo dodávky označí `Correction = true` i na PŮVODNÍM řádku dodávky** (`Undo Sales Shipment Line.Code`: původní řádek
+  dostane `Quantity Invoiced := Quantity`, `Correction := true`, `Modify`; teprve pak `InsertNewShipmentLine` vloží korekční
+  řádek se záporným množstvím, taky `Correction = true`). `SetRange(Correction, true) + FindFirst` tedy vrátí původní řádek
+  (+4) → `Expected -4, Actual 4`. Korekční řádek filtruj `SetFilter(Quantity, '<0')` (nebo `Line No.` > původní).
+  (2026-09-15, cust-alumistr-bc build 28247, `UndoShipmentNegatesSKEndCustomerTotalOnCorrectionLine`.)
+- **`LibrarySales.CreateCustomer` si založí firemní kontakt + Contact Business Relation sám** (Marketing Setup v CRONUS má
+  `Bus. Rel. Code for Customers`). Když v testu založíš k tomu zákazníkovi DALŠÍ kontakt přes `LibraryMarketing.CreateCompanyContact`
+  + `CreateBusinessRelationBetweenContactAndCustomer` a použiješ ho jako Sell-to Contact dokladu, `Sales Header` OnInsert →
+  `Bill-to Contact No.` OnValidate → `CheckContactRelatedToCustomerCompany` spadne *„Contact X is related to a different company
+  than customer Y"* (`ContBusRel.FindByRelation(Customer, CustNo)` najde první relaci = auto-kontakt). Správně vezmi existující
+  kontakt: `ContactBusinessRelation.FindByRelation(ContactBusinessRelation."Link to Table"::Customer, Customer."No.")` →
+  `Contact.Get(ContactBusinessRelation."Contact No.")` (fallback na CreateCompanyContact jen když relace není).
+  (2026-09-15, cust-alumistr-bc build 28247, `QuoteFromOpportunityIsBilledToOpportunityBillToCustomer`.)
+- **Chybové hlášky spadlých testů z CI:** MCP `testplan_show_test_results_from_build_id` vrací jen id/outcome a build log
+  „Run Tests in container" jen jména testů. Text chyby + stack: REST
+  `https://dev.azure.com/essencebs/Projects/_apis/test/Runs/<runId>/results?outcomes=Failed&api-version=7.1` — s MCP PAT
+  vrací HTML (chybí scope Test), ale otevřený v přihlášeném Chromu (Claude in Chrome tab) vrátí JSON
+  (`errorMessage`, `stackTrace`). `runId` je v logu kroku Publish Test Results. (2026-09-15)
   (2026-09-07, cust-alumistr-bc 65916, 2. kolo review)
 - **Editace řádků prodejního dokladu přes `TestPage "Sales Order".SalesLines`** (`"No."`/`Quantity`/`"Variant Code"`
   `.SetValue`) — před tím `LibrarySales.SetStockoutWarning(false)` + `LibrarySales.SetCreditWarningsToNoWarnings()`,
