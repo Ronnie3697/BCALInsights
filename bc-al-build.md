@@ -80,6 +80,18 @@ krok „Download Dependencies from NuGet" v témže build logu klidně ukazuje
 - Feed `BCNugetPackages` (pkgs.dev.azure.com/essencebs/Projects) jde číst i
   lokálně s MCP PAT (Basic auth, flat2 URL) — stažený `.nupkg` rozbal a ověř
   kompilaci proti reálnému balíčku (viz 7.12).
+  - **Stahování `.nupkg` z pythonu: `index.json` projde, ale `.nupkg` vrátí 302 na
+    blob storage a `urllib` redirect přenese `Authorization` hlavičku → `403 Server
+    failed to authenticate`.** Redirect zachyť (`HTTPRedirectHandler.redirect_request`
+    → `None`) a `Location` otevři **bez** Basic auth. Corp síť navíc resetuje IPv6 →
+    `socket.getaddrinfo` monkeypatch jen na `AF_INET`, jinak 120s timeout. Skript
+    vzor: cust-zlomek-bc 65148 (`dl.py`, 2026-09-15).
+  - **Mapa verze ↔ obsah bez stahování:** `pipelines_build list` na definici prod repa
+    (`branchName: refs/heads/master`, `minTime`) — `buildNumber` = verze balíčku
+    (`28.0.13`), `sourceVersion` = commit merge PR. Spadlý build (`result: 8`) číslo
+    verze **spotřebuje, ale nepublikuje** (PR 9348 s `Has Value` = 28.0.12 failed →
+    první verze s polem na feedu je 28.0.13). Minimum dependency ber z feedu
+    (`flat2 index.json`), ne z čísla buildu PR.
 - **Konvence package ID na BCNugetPackages:** `<Publisher><Name>.<guid>`,
   kde publisher i name jsou zbavené mezer a interpunkce („Essence International
   s.r.o." + „Essence Configurator" → `essenceinternationalsro.essenceconfigurator.45c32b8e-…`;
@@ -232,6 +244,9 @@ Gen. Bus. Posting Group / Base Unit of Measure a sales flow na tom padá.
   netriviální testy prožeň lokálně v kontejneru, nebo aspoň projdi obě cesty (TestPage i
   `Rec.Validate + Modify`) čtením kódu. Oprava pak jde novou větví z masteru (squash merge,
   původní větev je obsahem identická s masterem — 7.16).
+  Stejně `prod-epb-pricingMatrix-bc` (build 28219, 2026-09-14): PR 9476 squash → první běh testů až
+  na masteru, 2 faily (assert přes `Get` generovaného kódu UoM, zbytečný `MessageHandler` — viz
+  `bc-al-autotests.md`, sekce CreateItem base UoM); fix novou větví z `origin/master`.
 
 ### 7.16 Squash merge PR → falešné konflikty při dalším mergi + three-dot diff klame
 
@@ -414,3 +429,45 @@ tiše nepřipojí**. Nepomůže ani Base App 28.4 — rozhoduje právě `Applica
 
 Zachyceno 2026-08-28, cust-sonnentor-bc (větev BlanketOrders_64046 po merge PR 9378
 Disposal Protocol): hodinu podezírán cizí kód, přitom šlo o cache s CZ 28.4 + Application 28.3.
+
+### 7.20 Release deploy: „You must install .NET to run this application" (altool.exe) = agent bez .NET 10 runtime
+
+Classic Release (`Publish-PerTenantExtensionApps`, SaaS deploy přes Automation API) spadne
+po pár sekundách s `PowerShell exited with code '1'`; v logu těsně před tím:
+
+```
+You must install .NET to run this application.
+App: C:\ProgramData\BcContainerHelper\alLanguageExtension\18.0.2732683\extension\bin\altool.exe
+App host version: 10.0.12
+.NET location: Not found
+  Environment variable: DOTNET_ROOT_X64 = <not set> / DOTNET_ROOT = <not set>
+  Default location: C:\Program Files\dotnet
+ExitCode: -2147450749
+Commandline: ...altool.exe GetPackageManifest "<appka>.app"
+At ...\BcContainerHelper\6.1.18\HelperFunctions.ps1:130
+```
+
+- **Příčina:** BcContainerHelper (od 6.1.18 ověřeno) čte manifest `.app` přes **`altool.exe`
+  z nejnovější AL Language extension** (18.x), která je **apphost pro .NET 10**. Agent
+  bez .NET 10 x64 runtime (má třeba jen .NET 6/8 — „.NET tam určitě je") to nespustí.
+  Není to chyba appky ani repa — **retry na tomtéž agentovi nepomůže.**
+- **Diagnóza:** řádek `Agent: <jméno>` v hlavičce jobu. Srovnej s posledním zeleným
+  deployem / druhou stage téhož releasu — v poolu `Essence` se agenti liší výbavou
+  (2026-09-14: `LAB-DOCK-APP22-2` padá, `LAB-DOCK-BLD22-6` s tímtéž helperem 6.1.18
+  prošel). Pool přiděluje agenta náhodně, proto „dvakrát stejná chyba" = dvakrát
+  ten samý agent.
+- **Fix na agentovi (pipeline tým / Igor):** doinstalovat **.NET 10 Runtime x64**
+  (odkaz z logu `aka.ms/dotnet-core-applaunch?...apphost_version=10.0.12`), nebo
+  nastavit `DOTNET_ROOT` na existující instalaci .NET 10. Alternativa v šabloně:
+  `$bcContainerHelperConfig.alToolVersion`/pinnout starší AL extension, ale to je
+  workaround, ne řešení.
+- **Workaround hned:** Redeploy, dokud stage nepadne na agenta, který .NET 10 má
+  (nebo dočasně `demands` na jméno agenta v release definici).
+- Bonus z téhož dne: `-schemaSyncMode ForceSync` u `Publish-PerTenantExtensionApps`
+  **není platná hodnota** — ValidateSet je jen `Add, Force` (sandbox attempt #1 releasu
+  14979). V release variables tedy `Force`, ne `ForceSync` (Sync-NavApp má naopak
+  `ForceSync`, viz 7.18).
+
+Zachyceno 2026-09-14, cust-alumistr-bc release 14979 (28.0.29), stage „deploy to live". Totéž
+týž den dopoledne prod-epb-pricingMatrix-bc release 14970 (28.0.5): attempt #1 na APP22-2 identický
+pád, attempt #2 (Redeploy) na BLD22-6 prošel — Redeploy jako workaround ověřený.

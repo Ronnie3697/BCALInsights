@@ -253,6 +253,17 @@ enum `Field Type` (PK) zůstal ' ' → kopie „proběhla", ale řádky skončil
 klíče; dvě skupiny formulí by se srazily na `Line No.` 10000. Při review copy kódu porovnej **každé** přiřazení po
 `TransferFields(…, false)` s PK — enum/option PK pole se přehlédnou nejsnáz.
 
+### 2.6a Remap helper s „chybí v mapě → vynuluj" — projdi VŠECHNY volající a jejich mapy
+
+Když sdílený remap helper (`TryRemapParamLineNo(var Field, Mapping)`) přepneš z „není v mapě → nech" na „není v mapě
+→ 0" (správně: kopie čísluje bez mezer, osiřelý odkaz by se tiše chytil cizího záznamu), pohlídej **každého volajícího
+a jak si mapu staví**. Kopie celé konfigurace má mapu úplnou, ale kopie **jednoho záznamu v téže konfiguraci**
+(`CopyParameter`) si do mapy dávala jen `zdroj → nový` a spoléhala na „nech" — odkazy na ostatní, existující parametry
+najednou skončily jako 0 (master build 28221, test `CopyParamReplicatesConditions`, 2026-09-14). Fix: doplnit do mapy
+identitu `X → X` pro všechny ostatní záznamy konfigurace (`AddIdentityMappingOfOtherParameters`), helper má jednu
+sémantiku. Lokální kompilace to neodhalí — teprve testy; proto při změně sémantiky helperu grep na jeho jméno **i na
+místa, kde se mapa plní** (`.Add(`), ne jen na volání.
+
 ### 2.6b `Mark`/`MarkedOnly` + `Record.Copy` — nespoléhat, že marks přejdou na kopii
 
 Když engine označí záznamy (`Mark(true)` + `MarkedOnly(true)`) a pak pro dílčí hledání dělá `Other.Copy(Rec)`
@@ -661,6 +672,17 @@ Cesty, které jsou OK bez subscriberu: Quote → Order, Blanket → Order, Get S
 Reverse, Undo Shipment (přiřazení recordu / `TransferFields` z posted). Sdílený helper `Reapply<Fields>(var SalesLine; …)`
 pro všechny tři subscribery. Pole odvozená z Item UoM se reverse-fillem „obnoví" sama, ale pole typu kód/varianta ne.
 (2026-08-31, prod-epb-pricingMatrix-bc plán 65842 — archive restore ztrácel `Sales Price Var. Code PMEBS`.)
+
+**`RecreateSalesLines` (změna Sell-to / Bill-to / Currency…) nejdřív udělá `Modify()` hlavičky** (BC 28
+`SalesHeader.Table.al`, hned po potvrzení `RecreateSalesLinesMsg`) a teprve pak řádky znovu vytvoří přes
+`CreateSalesLine`: `Validate(Type)` → `Validate("No.")` → `GetUnitCost` → `Validate("Unit Cost (LCY)")` → UoM →
+Variant → `Validate(Quantity)`. Subscriber na řádku, který si hlavičku čte z DB (`SalesHeader.Get`), tedy vidí už
+**nového** plátce — cenotvorba závislá na hlavičce se při přepnutí plátce na existujících řádcích spočítá sama; ručně
+zadané hodnoty na řádku ale projdou Init a je třeba je vrátit z `TempSalesLine` v `OnBeforeSalesLineInsert`.
+Code-review nález „změna Bill-to nechá na řádcích starou cenu" je proto planý, dokud přepočet visí na `Unit Cost (LCY)`
+/ `OnAfterUpdateUnitPrice`. Signatura Copy Document hooku: `OnBeforeInsertToSalesLine(var ToSalesLine; var FromSalesLine;
+FromDocType: Option; RecalcLines: Boolean; var ToSalesHeader; DocLineNo: Integer; var NextLineNo: Integer;
+RecalculateAmount: Boolean; var IsHandled: Boolean)`. (2026-09-15, cust-alumistr-bc 65916 code review.)
 
 **Totéž dělá `Validate(Type)`** (BC 28.3 `SalesLine.Table.al`, field 5 OnValidate: `TempSalesLine := Rec; Init();`
 a zpět jen Type, System-Created Entry, Currency Code) → přepnutí řádku Item → G/L Account / Resource z UI vynuluje

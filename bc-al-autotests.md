@@ -416,6 +416,19 @@ lokálně těžko reprodukovatelné).
   nepředpokládat, že base UoM nového itemu je „neutrální".
 - Zachyceno 2026-08-05, prod-epb-pricingMatrix-bc build 27690: test suite spadla
   až na 7. testu — CreateItem přiřadil itemu base UoM `1200/62.5` založenou 6. testem.
+- **Podruhé tamtéž (build 28219, 2026-09-14) — tentokrát v ASSERTU, ne v produkčním kódu:**
+  negativní kontrola `Assert.IsFalse(ItemUoM.Get(ItemNo, '1200/800'), 'no generated UoM')`
+  spadla, protože dřívější test založil globální UoM `1200/800` a `CreateItem` ji dal
+  novému itemu jako base UoM — „vygenerovaná" jednotka tam byla ještě před WHEN. Assert
+  „nic nového nevzniklo" piš přes **počet** Item UoM před/po (`SetRange("Item No.")` +
+  `Count()` → `Assert.RecordCount(ItemUoM, CountBefore)`), ne přes `Get` konkrétního kódu.
+- **`[HandlerFunctions('MessageHandler')]` jen tam, kde dialog opravdu vyskočí.** Registrovaný
+  handler, který se během testu nezavolá, shodí test na „The following UI handlers were not
+  executed: MessageHandler" — i když všechny asserty prošly. `LibraryWarehouse.CreateWhseShipmentFromSO`
+  (`CreateFromSalesOrderHideDialog`) ani `LibraryWarehouse.PostWhseShipment` žádnou zprávu
+  nezobrazí, stejně `LibrarySales.ReleaseSalesDocument` a `LibraryInventory.PostItemJournalLine`.
+  Handler přidávej až podle reálného dialogu (CI hláška „no handler" / dokumentovaný Message),
+  ne preventivně. (build 28219, `WarehouseShipmentLineGetsParametersAndPostsThem`)
 
 ### Library helper konvence pro per-extension testy
 
@@ -538,6 +551,32 @@ závislé na pořadí testů (první carry-out test v codeunitu projde, pozděj�
 (`LibraryPlanning.CreateRequisitionWkshName(NewName, TemplateName)`) a řádky dává do něj;
 sdílený list nechat jen testům, které carry-out nevolají. Zachyceno 2026-08-28,
 cust-sonnentor-bc PR 9380 build 27993 (`ReqCarryOutRechecksRemainingQuantity`).
+
+**Calculate Plan do vlastního batche:** `LibraryPlanning.CalcRequisitionPlanForReqWksh*` batch
+neberou (jedou do defaultního listu z `SelectRequisitionWkshName`), takže Calculate Plan + Carry Out
+test pusť report 699 přímo: `CalculatePlanReqWksh.SetTemplAndWorksheet(Template, Batch)` →
+`InitializeRequest(StartDate, EndDate)` → `Item.SetRange("No.", …)` + `SetTableView(Item)` →
+`UseRequestPage(false)` → `RunModal()`; řádky pak filtruj na Template + Batch + `"No."`. Report 699
+procedury al-mcp nevidí (`Procedures: []` u reportů) — signatury ověří kompilace. (2026-09-14,
+cust-alumistr-bc 65774, `Planning Transfer Tests ALU/PMALU` po code review.)
+
+**Calculate Plan + Carry Out: poptávka na `WorkDate()` = „There is nothing to create."** `Inventory Profile
+Offsetting.SetAcceptAction` nastaví `Accept Action Message := false` každému řádku, který má planning warning
+(`PlanningTransparency.ReqLineWarningLevel(ReqLine) <> 0`); poptávka na WorkDate s nulovým lead time dá order
+date před planning starting date (Emergency/Exception). `Req. Wksh.-Make Order` bere jen `Accept Action Message
+= true` → report 493 skončí `Message('There is nothing to create.')` → „Unhandled UI: Message" (bez handleru).
+Fix: poptávku datovat do budoucna (`SalesLine.Validate("Shipment Date", CalcDate('<+2W>', WorkDate()))`,
+`ProductionOrder.SetUpdateEndDate()` + `Validate("Due Date", …)` **před** `RefreshProdOrder` — bez
+`SetUpdateEndDate` Validate z kódu (`CurrFieldNo = 0`) Starting/Ending Date hlavičky nepřepočítá, `Create Prod.
+Order Lines` je zkopíruje na řádek a komponenta zůstane na WorkDate → Emergency; build 28226) a před carry-out
+`Assert.IsTrue(ReqLine."Accept Action Message", …)`, ať fail mluví. Zdroj: `Inventory/Tracking/
+InventoryProfileOffsetting.Codeunit.al` (sparse clone `--filter=blob:none --sparse -b w1-28`, api.github.com
+z Claude Code sandboxu nejede — `http 000`; raw.githubusercontent ano). (2026-09-14, cust-alumistr-bc build 28223.)
+
+**Testy volající `SL Action Cond. Mgt. COEBS.ExecuteSalesLineActions` potřebují `[HandlerFunctions('…MessageHandler')]`**
+— procedura končí nepodmíněným `Message('Sales Line actions have been executed …')`. Konfigurátorové testy to řeší
+`MessageHandler`, v cust-alumistr-bc `SLActionsExecutedMessageHandler` (před přidáním nového handleru grepni
+codeunit — duplicitní název = AL0518/AL0440). (2026-09-14, cust-alumistr-bc build 28223.)
 
 ### Placeholdery v testech jsou škodlivější než žádné testy
 

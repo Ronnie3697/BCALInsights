@@ -220,6 +220,14 @@ po kliknutí a nečeká se na změnu záznamu. Jednoduché `Visible = Rec.Bool`
 bez `not` u base-app stránek občas funguje, ale nespoléhat — proměnná je vždy bezpečná.
 (2026-09-01, prod-epb-pricingMatrix-bc — setup page Sales & Receivables Setup, chyba reprodukovaná na sandboxu.)
 
+**Sales Order / Sales Quote (BC 28) nemají control `"Bill-to Customer No."`** — plátce se mění přes `BillToOptions`
++ lookup na `field("Bill-to Name")`, který v `OnAfterLookup` volá `Rec.Validate("Bill-to Customer No.", …)` a pak
+`CurrPage.Update()`. Důsledky: (a) `modify("Bill-to Customer No.")` v pageextension **nezkompiluje** (control neexistuje) —
+code-review návrh „přidej OnAfterValidate na Bill-to Customer No." na kartách dokladů zahoď; (b) `CurrPage.Update()` po
+lookupu spustí `OnAfterGetCurrRecord`, takže page proměnná pro `Visible` akce plněná v `OnOpenPage` +
+`OnAfterGetRecord` + `OnAfterGetCurrRecord` se po změně plátce přepočítá sama, bez vlastního triggeru.
+(2026-09-15, cust-alumistr-bc 65916 — akce Send to SK Branch.)
+
 ---
 
 ### 4.10 `MultiLine` pole má ve web klientu pevné ~3 řádky — výšku nezvětšíš; „vidět celé" = RichContent nebo control add-in
