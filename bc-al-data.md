@@ -722,6 +722,38 @@ Totéž nepřímo přes **EPB Pricing Matrix**: `Validate("Parameter A/B PMEBS")
 
 (2026-09-02, cust-zlomek-bc — rich text prototyp `Comment 2 ZLK`.)
 
+### 3.6d Kontrola dokladu před účtováním: `OnBeforeIsApprovedForPosting` platí JEN pro účtování z UI
+
+`Sales Header.OnBeforeIsApprovedForPosting` (a `Purchase Header` ekvivalent) vyvolává
+**`Sales-Post (Yes/No)`**, tedy cesta „uživatel klikne Účtovat". **`Sales-Post.Run` sám ho
+nevolá** — takže kontrola zavěšená na tomhle eventu **neplatí** pro:
+
+- programové účtování z kódu a integrací (`SalesPost.Run(SalesHeader)`),
+- importy a job queue,
+- **testy** (`LibrarySales.PostSalesDocument` jde přes `Sales-Post` přímo).
+
+Příznak v testech je zákeřný: negativní test `asserterror LibrarySales.PostSalesDocument(...)`
+spadne na **„An error was expected inside an ASSERTERROR statement."** — doklad se zaúčtoval,
+protože kontrola vůbec neproběhla. Vypadá to jako chyba testu, ale je to díra v produkčním kódu:
+přes API / integraci projde i doklad, který by uživatel z UI nezaúčtoval.
+
+**Správné místo pro kontrolu celého dokladu, která má platit vždy: `Codeunit "Sales-Post"`
+`OnAfterCheckSalesDoc`** — běží po standardních kontrolách v každé cestě účtování.
+Signatura (BC 28.4): `(var SalesHeader; CommitIsSuppressed: Boolean; WhseShip: Boolean;
+WhseReceive: Boolean; PreviewMode: Boolean; ErrorMessageMgt: Codeunit "Error Message Management")`;
+nepoužité parametry se v subscriberu smí vynechat. Alternativa na samý začátek je
+`OnBeforePostSalesDoc`. UI subscriber si klidně nech vedle (chyba pak přijde dřív, před
+zahájením účtování) — read-only kontrola dvakrát nic nezkazí; počítej ale s tím, že nový
+subscriber běží na **každém** prodejním dokladu, takže z něj rychle vyskoč, když se ho netýká.
+
+**Pozor na `var` u parametru subscriberu:** al-mcp hlásí u těchhle eventů `ByReference: false`
+i tam, kde publisher má `var` (5.y v `bc-al-objects.md`) — ze symbolů to tedy nepoznáš.
+Chybějící `var` chytí ALCops **`PC0010`** („Parameter must use the 'var' keyword if the publisher
+parameter is 'var'"), takže lokální build s ALCops to řekne za tebe.
+
+(2026-09-15, cust-sonnentor-bc build 28271 — kontrola plné hodnoty uplatněného poukazu
+visela na `OnBeforeIsApprovedForPosting` a při programovém účtování se nespustila.)
+
 ### 3.7 `[EventSubscriber]` argumenty — identifier syntax, ne string literály (LC0028)
 
 V moderním AL piš event name i element name (field/action) v atributu

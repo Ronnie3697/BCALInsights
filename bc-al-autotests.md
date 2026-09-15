@@ -612,6 +612,32 @@ Prodejní (kladná) strana téhož scénáře projde bez zboží, takže „prod
 je typický příznak právě tohohle. (2026-09-15, cust-sonnentor-bc build 28270, `RedemptionWithWrongUnitPrice-
 CannotBePosted` + `FullVoucherCycleWithReplacementKeepsValueAndExpiration`.)
 
+### Negativní test účtování: `asserterror` „An error was expected" = kontrola se nespustila, ne že je test špatný
+
+Když `asserterror LibrarySales.PostSalesDocument(...)` skončí na **„An error was expected inside
+an ASSERTERROR statement."**, doklad se zaúčtoval. Nejčastější příčina u vlastních kontrol:
+kontrola visí na `Sales Header.OnBeforeIsApprovedForPosting`, který vyvolává jen `Sales-Post
+(Yes/No)` (účtování z UI) — `LibrarySales.PostSalesDocument` jde přes `Sales-Post` přímo, takže
+kontrolu mine. Fix je v produkčním kódu, ne v testu: přesunout / doplnit subscriber na
+`Sales-Post.OnAfterCheckSalesDoc` (detail v 3.6d v `bc-al-data.md`). Test pak testuje i tu
+cestu, kterou jedou integrace.
+
+Druhá příčina téže hlášky u TestPage: **guard v `OnModifyRecord` se spustí až při opuštění řádku**,
+ne při `SetValue`. `asserterror Page.SubForm."Pole".SetValue(x)` tedy chybu nedostane — dej do
+`asserterror` i opuštění řádku:
+
+```al
+asserterror begin
+    SalesOrder.SalesLines."Variant Code".SetValue('');
+    SalesOrder.SalesLines.Next();
+end;
+Assert.ExpectedError('cannot be changed');
+```
+
+Naopak guard v `OnBeforeValidate` field triggeru (page `modify(...)`) chybu vrátí hned při
+`SetValue` — proto může jeden test ze dvou „stejných" projít a druhý ne.
+(2026-09-15, cust-sonnentor-bc buildy 28270/28271.)
+
 ### `TestPage.<pole>.SetValue` na skrytém controlu → „The field with ID = N is not found on the page"
 
 `TestPage` vidí jen controly, které jsou na stránce **viditelné**. `SetValue`/`AssertEquals` na
