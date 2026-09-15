@@ -496,7 +496,10 @@ Doplněk k 12.1c (tam je jen `PC0037`). Čísla z druhého úklidu — **cust-zl
   „posted/archive sady drží stejné field ID" (3.6 v `bc-al-data.md`).
   ⚠️ Než začneš dorovnávat, ověř `git diff`, jestli tu nerovnost nezavedla **něčí rozpracovaná
   změna** ve working tree — u Zlomka pocházelo všech 10 hlášení z necommitnutého prototypu,
-  který zvedl `Comment 1 ZLK` na `Text[2048]` jen na hlavičce.
+  který zvedl `Comment 1 ZLK` na `Text[2048]` jen na hlavičce. Dorovnání zbylých pěti tabulek
+  bylo správné, ale zbytečné: prototyp šel nakonec pryč a s ním i nález, takže se v repu nic
+  měnit nemuselo. **Pořadí práce: nejdřív se zeptej, co z working tree zůstane, pak uklízej** —
+  jinak uklidíš cizí rozdělanou práci a pak to revertuješ.
 - **`LC0092`** hlásí i **název pole se speciálním znakem** (`Advance % ZLK`, `Value %`).
   Přejmenovat pole s daty v produkci nejde → `#pragma warning disable/restore LC0092` kolem
   deklarace pole s důvodem. Pravidlo hlásí i **parametry** (`parItemNo` → `ItemNo`); ty
