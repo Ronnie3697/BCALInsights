@@ -612,6 +612,41 @@ Prodejní (kladná) strana téhož scénáře projde bez zboží, takže „prod
 je typický příznak právě tohohle. (2026-09-15, cust-sonnentor-bc build 28270, `RedemptionWithWrongUnitPrice-
 CannotBePosted` + `FullVoucherCycleWithReplacementKeepsValueAndExpiration`.)
 
+### `Assert.ExpectedError` na `TestField` hlášce: caption pole může projít `CaptionClass`
+
+`SalesLine.TestField("Unit Price", 500)` nehlásí „Unit Price must be equal to…", ale
+**„Unit Price Excl. VAT must be equal to '199.47' in Sales Line: …"** — pole `Unit Price` má
+`CaptionClass`, která podle `Prices Including VAT` vyrobí `Unit Price Excl. VAT` /
+`Unit Price Incl. VAT`. `Assert.ExpectedError('Unit Price must be equal to')` proto **nikdy
+nematchne** (hledá se podřetězec). K tomu je částka formátovaná v locale session (`199.47`
+vs `199,47`), takže hardcoded číslo v expected textu je druhá past.
+
+**Pravidlo:** u `TestField` asertů matchni **stabilní střed hlášky** (`'must be equal to'`),
+nebo použij `Assert.ExpectedTestFieldError(Rec.FieldCaption(Pole), Format(Hodnota))` a ověř,
+že `FieldCaption` u daného pole opravdu vrací to, co runtime vypíše. Pole s `CaptionClass`
+(ceny, dimenze, matricové parametry) sem patří vždycky.
+
+### `TestPage` repeater: opuštění řádku vyžaduje řádek, kam jít
+
+`SubForm.Next()` / `.First()` na dokladu s **jediným řádkem** nikam nepřejde, takže
+`OnModifyRecord` stránky se nespustí a guard v něm nic nehlásí — negativní test spadne na
+„An error was expected". Dej na doklad **ještě jeden řádek** (běžné zboží) a pak na
+kontrolovaný řádek `Last()`, hodnotu zapiš a odejdi `First()`:
+
+```al
+AddPlainItemLine(SalesHeader, 1);            // něco, kam se dá odejít
+VoucherMgt.InsertNewVoucherOnSalesLine(…);   // testovaný řádek přijde poslední
+…
+SalesOrder.SalesLines.Last();
+asserterror begin
+    SalesOrder.SalesLines."Variant Code".SetValue('');
+    SalesOrder.SalesLines.First();
+end;
+```
+
+(2026-09-15, cust-sonnentor-bc, `VariantOfVoucherLineCannotBeChangedOnOrderPage` +
+`RedemptionWithWrongUnitPriceCannotBePosted`.)
+
 ### Negativní test účtování: `asserterror` „An error was expected" = kontrola se nespustila, ne že je test špatný
 
 Když `asserterror LibrarySales.PostSalesDocument(...)` skončí na **„An error was expected inside
