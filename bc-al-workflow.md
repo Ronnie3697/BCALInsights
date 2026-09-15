@@ -471,6 +471,40 @@ s `al.ruleSetPath` na test ruleset. Pozor: `.vscode` bývá v `.gitignore` (tak 
 takže ten soubor zůstane lokální a kolegům se nerozdistribuuje — buď výjimka v `.gitignore`,
 nebo to každý má u sebe.
 
+### 12.1d Další ALCops pravidla, na která narazíš při úklidu repa
+
+Doplněk k 12.1c (tam je jen `PC0037`). Čísla z druhého úklidu — **cust-zlomek-bc, 2026-09-15**,
+4 projekty: hlavní appka `Zlomek Extension` **89 warningů**, její testy **10**, zákaznická
+`configuratorExtension` **11 + 55**. Po úklidu 0/0/0/0.
+
+- **`AC0010` „object is not covered by any PermissionSet"** (nástupce `LC0015`) u **tabulky**
+  nezmizí, když máš jen `tabledata "X" = RIMD` — ⚠️ chce **`table "X" = X`**, tedy execute
+  permission na objekt tabulky. Vzor `prod-ess-configurator-bc` má obojí vedle sebe
+  (`table "Action Formula Line COEBS" = X,` + `tabledata "Action Formula Line COEBS" = RMID,`).
+  Rozdělení práv přes `IncludedPermissionSets` (READ = R ⊂ EDIT = IMD) pravidlo neřeší,
+  ani zvýšení na `RIMD` — chybí mu ten `table` řádek. V test appce se `AC0010` naopak skrývá
+  rulesetem (12.1c).
+- **`AA0181` nehlásí jen `FindSet()` bez `Next()`, ale i holé `Find()`** („must be used only in
+  connection with the Next() method"). Typický výskyt: refresh záznamu v testu
+  (`SalesLine.Find();` po akci, pak assert). Fix je jednořádkový a sémanticky identický:
+  **`Find('=')`** (holé `Find()` = `Find('=')`), nebo `Get(...)`.
+- **`PC0020` „incompatible field type between TransferFields-coupled tables"** hlídá, že vlastní
+  pole se stejným ID má stejný typ/délku na **Sales Header ↔ Archive / Invoice / Cr.Memo /
+  Shipment / Return Receipt** (a obdobně u nákupu). Je to **reálný nález, ne kosmetika** —
+  `TransferFields` delší text tiše ořízne. Fix = dorovnat délku na všech tabulkách sady
+  (rozšíření je nedestruktivní, sync mode Add projde; zmenšení dat NE). Souvisí s pravidlem
+  „posted/archive sady drží stejné field ID" (3.6 v `bc-al-data.md`).
+  ⚠️ Než začneš dorovnávat, ověř `git diff`, jestli tu nerovnost nezavedla **něčí rozpracovaná
+  změna** ve working tree — u Zlomka pocházelo všech 10 hlášení z necommitnutého prototypu,
+  který zvedl `Comment 1 ZLK` na `Text[2048]` jen na hlavičce.
+- **`LC0092`** hlásí i **název pole se speciálním znakem** (`Advance % ZLK`, `Value %`).
+  Přejmenovat pole s daty v produkci nejde → `#pragma warning disable/restore LC0092` kolem
+  deklarace pole s důvodem. Pravidlo hlásí i **parametry** (`parItemNo` → `ItemNo`); ty
+  přejmenuj, jsou lokální a volající se nemění (v AL se parametry při volání nepojmenovávají).
+- **`LC0090` Cognitive Complexity** (threshold z `lintercop.json`, u Zlomka 15) se u běžného
+  kódu spraví vytažením vnitřní smyčky / vnořených `if` do samostatné procedury; bývá to
+  i čitelnější než pragma. `LC0010` (cyclomatic) má essence-default na `Hidden`, `LC0090` ne.
+
 ### 12.2 Když nevíš, co pravidlo znamená — vyhledej
 
 Neopravuj warning naslepo přepsáním kódu. **Najdi popis pravidla:**
