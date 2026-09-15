@@ -84,6 +84,9 @@ neudělal a uživatel se zeptá, přiznej to a naprav.
 Notes jsou závazné; rozpor s tvou expertizou → upozorni uživatele, nepřepisuj potichu. Router
 žije JEN ve skillu `bc-al` — tady ho neduplikuj. Nový BC/AL poznatek → doplň do příslušného
 `bc-al-*.md` + commit + push v `C:\WorkTasks\BCALInsights` (jediná výjimka z „git nikdy sám").
+Pushuje se **do obou remotů**: `git push origin master && git push essence master` (`origin` =
+`Ronnie3697/BCALInsights`, `essence` = firemní fork `essencebs/BCALInsights`) — platí pro notes,
+skilly i README.
 V pracovních repech commit / push / PR nikdy bez pokynu, verzi `app.json` nepovyšuj, ADO PAT je
 read-only záměrně (401 na zápis neobcházet). Jazyk kódu a UI textů anglicky, čeština jen do XLIFF.
 ```

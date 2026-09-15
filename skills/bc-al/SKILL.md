@@ -15,8 +15,9 @@ user-invocable: true
 # BC/AL startup — povinný kontext před AL prací
 
 Poznámky z praxe žijí v tomhle repu (`C:\WorkTasks\BCALInsights`, GitHub
-`Ronnie3697/BCALInsights`) jako soubory `bc-al-*.md` v kořeni; každý má tenký
-skill-wrapper ve `skills/`. Tenhle skill je rozcestník — **jediné místo, kde žije
+`Ronnie3697/BCALInsights` = remote `origin` + firemní fork
+`essencebs/BCALInsights` = remote `essence`, pushuje se do obou) jako soubory
+`bc-al-*.md` v kořeni; každý má tenký skill-wrapper ve `skills/`. Tenhle skill je rozcestník — **jediné místo, kde žije
 Router.** Tentýž adresář `skills/` čtou Claude Code (plugin `bcal-insights`),
 Copilot a Codex (junction `~/.agents/skills`) i Antigravity (junction
 `~/.gemini/config/skills`); always-on soubory těch nástrojů (CLAUDE.md,
@@ -111,9 +112,12 @@ Archiv monolitu `bc-al-notes.archived-2026-06-23.md` — **needituj, jen referen
   záměrně — 401 na zápis neobcházet (7.9).
 - **Nový poznatek → zapiš.** Když během práce zjistíš něco užitečného pro
   BC/AL, doplň to do příslušného `bc-al-*.md` (nebo to nabídni) a **rovnou
-  commitni + pushni** v `C:\WorkTasks\BCALInsights` — krátká zpráva co + odkud
-  (repo/PR/build/datum). Notes repo je **výjimka** z pravidla 7.7. Po doplnění
-  `wc -l`: soubor **> 1000 řádků → rozděl** (vyčleň ucelené sekce do nového
+  commitni + pushni do obou remotů** v `C:\WorkTasks\BCALInsights`
+  (`git push origin master && git push essence master`) — krátká zpráva co +
+  odkud (repo/PR/build/datum). Notes repo je **výjimka** z pravidla 7.7.
+  **Každá** změna tady (notes, skilly, README) jde do obou remotů: `origin` =
+  `Ronnie3697/BCALInsights`, `essence` = `essencebs/BCALInsights` (firemní fork).
+  Po doplnění `wc -l`: soubor **> 1000 řádků → rozděl** (vyčleň ucelené sekce do nového
   `bc-al-*.md`, zachovej číslování, mechanicky přes sed/skript, ne přepisem),
   aktualizuj Router tady, `README.md` a přidej nový skill-wrapper do `skills/`
   (vzory: 7.11–7.19 → `bc-al-build.md` 2026-09-01; sekce 4 → `bc-al-ui.md`
