@@ -95,8 +95,15 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   spuštění hlásí `warning AL1003: An instance of analyzer ... cannot be created ... Could not load file or
   assembly 'Microsoft.Dynamics.Nav.Analyzers.Common'` a část pravidel CodeCop/PTE (PermissionSet rules,
   PTE0018, Rule026 AllowInCustomizations…) se **vůbec nenačte** — build vypadá čistší, než je. Common
-  analyzery jsou v alc vestavěné; z CLI stačí CodeCop + UICop + PerTenantExtensionCop (+ LinterCop). CI název
-  „Analyzers.Common" je jen jméno v BcContainerHelper. (2026-09-04, cust-alumistr-bc)
+  analyzery jsou v alc vestavěné; z CLI stačí CodeCop + UICop + PerTenantExtensionCop (+ ALCops, viz 12.1
+  v `bc-al-workflow.md`). CI název „Analyzers.Common" je jen jméno v BcContainerHelper. (2026-09-04, cust-alumistr-bc)
+- **⚠️ Seznam `/analyzer:` skládaný ve smyčce v Bash toolu = falešně čistý build.** `AN="$AN /analyzer:$BINW\\$a.dll"`
+  vypadá správně, ale Bash tool sráží `\\` na `\`, takže `\$a` je escapovaný dollar → do alc jde literál
+  `…\bin$a.dll` a každý analyzer skončí `warning AL1003: … could not be found`. Kompilace přitom **projde**
+  (EXIT=0) a bez čtení AL1003 řádků to vypadá jako „0 nálezů", i když neběželo **žádné** pravidlo.
+  Fix: cesty k analyzerům (i `/project:` a `/packagecachepath:`) skládej s **forward slashes**
+  (`C:/Users/…/bin/ALCops.Common.dll`) — alc je bere bez problému. Kontrola: v logu nesmí být AL1003.
+  (2026-09-15, cust-zlomek-bc 65148)
 - **Log alc přesměrovaný v Git Bash (`> log 2>&1`) je UTF-16 (BOM) a `iconv -f UTF-16` občas uprostřed
   spadne** → fallback `cp` + `grep` pak hlásí 0 chyb / 0 warningů (falešně, stejně jako PS `*>` v bodě níže).
   Spolehlivé: malý python dekodér, který zkusí `utf-8-sig` / `utf-16` / `utf-16-le` (i s posunem o 1 bajt)

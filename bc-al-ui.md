@@ -273,3 +273,54 @@ Když má uživatel vidět dlouhý text celý:
 
 ---
 
+### 4.11 Výšku factboxu (partu) z AL nastavit NEJDE — a factbox ve factbox panelu se nedá sbalit
+
+Klasický požadavek „ten ListPart ve factboxu scrolluje, zvětši ho". **Nejde to a není to
+o hledání správné property.** MS docs [Page parts overview → Design considerations → Part
+size](https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/developer/devenv-designing-parts):
+*„The size of a part is automatically determined by the user interface and will vary depending on
+where the part has been embedded on the page, other content surrounding the part, and the overall
+available space of the display target. **Developers can't specify the preferred, minimum, or maximum
+height or width of a part.**"*
+
+Ověřeno alc 18 (všechno `error AL0124: The property … cannot be used in this context`):
+
+| Kde | Zkoušené properties |
+|---|---|
+| `page … { PageType = ListPart; }` | `Height`, `MinHeight`, `RequestedHeight`, `RowsPerPage` |
+| `part(X; "…")` v `addfirst(factboxes)` | `Height`, `RequestedHeight`, `RowsPerPage`, `RowSpan`, `ColumnSpan` |
+
+(`RowSpan` / `ColumnSpan` existují jen na `field` / `group` v `grid`, ne na partu; `RequestedHeight`
+je property **control add-inu**, ne page/partu — proto ten jediný pevnou výšku umí, viz 4.10.)
+
+Další fakta z téhož docs, která se u toho hodí:
+
+- **Part ve `FactBoxes` / `RoleCenter` area nejde sbalit** („parts can't be collapsed"); sbalit jde
+  jen part v `Content` area na task dialog / card / document page a mimo FastTab. Takže „ať si
+  uživatel ostatní factboxy sbalí" **není řešení** — jde jen **skrýt** je personalizací, a to
+  uvolněnou výšku zbylým factboxům opravdu dá.
+- Document page při prvním otevření automaticky rozbalí **první dvě** části/FastTaby, zbytek sbalí;
+  vývojář počáteční stav neurčí.
+- `addfirst(factboxes)` posune factbox nahoru (užitečné, uživatel na něj nemusí scrollovat), ale
+  na výšku nemá vliv.
+
+**Co reálně pomůže, když má uživatel vidět víc řádků:**
+
+1. **Personalizace — skrýt ostatní factboxy** na té stránce (per uživatel, nulový kód).
+2. **Přesunout part do `area(Content)` jako vlastní FastTab** (`addlast(Content)`): roztáhne se přes
+   celou šířku, dostane víc vertikálního prostoru a jde sbalit. **`Provider = SalesLines` +
+   `SubPageLink = field(...)` funguje i mimo factbox area** (ověřeno kompilací na `Sales Order`),
+   takže vazba na aktivní řádek zůstane. Cena: není to vedle řádků, ale pod nimi.
+3. Akce / `OnDrillDown` otevírající plnou list page s týmž filtrem.
+4. Control add-in s `RequestedHeight` — jediná cesta k pevné výšce, u zákaznických rep počítej
+   s odmítnutím (4.10).
+5. Zvětšit okno / zmenšit zoom prohlížeče — banální, ale funguje.
+
+`MultiLine = true` na poli ve factboxu výšku **řádku** zvětší (a tím zmenší počet viditelných
+řádků) — opak toho, co uživatel chce.
+
+(2026-09-15, cust-zlomek-bc 65148 — factbox „Detail konfigurace varianty" nad `Variant
+Configuration COEBS` na Sales Order / Sales Quote.)
+
+---
+
