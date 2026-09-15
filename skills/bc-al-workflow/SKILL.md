@@ -70,9 +70,12 @@ příklady jsou v souboru.
   Procedura, kterou nejde potvrdit, **neexistuje**.
 - **9.4** Změna permission-relevantního objektu → aktualizuj `permissionset`.
 - **12.1** Po každé netriviální změně **build**. Před „kompilace čistá" /
-  pushem: zkompiluj **každou dotčenou appku vč. test appky** se **stejnými
-  analyzery jako CI** (`Analyzers.Common`, `CodeCop`, `PerTenantExtensionCop`,
-  `UICop`); holý `alc` bez `/analyzer:` nic z AA/CA/PTE/LC neodhalí.
+  pushem: zkompiluj **každou dotčenou appku vč. test appky** se sadou analyzerů
+  z workspace repa — MS `CodeCop`, `PerTenantExtensionCop`, `UICop` + **všech
+  šest `ALCops.*` a povinně `ALCops.Common.dll`** (jinak `AD0001` a falešně
+  čistý build). **Samostatný `BusinessCentral.LinterCop.dll` už ne** — LC*
+  pravidla dodávají ALCops; MS `Analyzers.Common.dll` se naopak nepředává
+  (AL1003). Holý `alc` bez `/analyzer:` neodhalí nic.
   `info` neshodí build, **každý warning oprav**. `///` XML doc: `<returns>` +
   `<param>` pro každý parametr (LC0072), `&` / `<` / `>` escapovat (AL0640 je
   warning → CI fail).

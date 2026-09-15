@@ -61,8 +61,9 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   V Bash smyčce `for n in "Test Runner" …; cp …_${n}_…` bez uvozovek kolem `${n}` kopie tiše selže (word split)
   a alc pak hlásí `AL1022` na balíčky, které „v cache jsou". (2026-09-12, cust-alumistr-bc)
 - **Analyzery z CLI:** `/analyzer:<path>\Microsoft.Dynamics.Nav.CodeCop.dll`
-  (UICop, AppSourceCop a `BusinessCentral.LinterCop.dll` žijí v
-  `<extension>/bin/Analyzers`). V **Git Bash** pozor — argumenty začínající
+  (v AL 17 UICop, AppSourceCop a `BusinessCentral.LinterCop.dll` v
+  `<extension>/bin/Analyzers`; **v AL 18 je všechno přímo v `bin/` a samostatný
+  LinterCop nahradily ALCops** — viz bullet níž). V **Git Bash** pozor — argumenty začínající
   `/analyzer:` MSYS přepíše na cestu (`C:\Program Files\Git\analyzer;…`).
   Oprava: prefixni volání `MSYS2_ARG_CONV_EXCL="*"` (pak ale musí být
   všechny cesty plné Windows cesty, žádné `~`).

@@ -43,10 +43,11 @@ build/deploy) žijí od 2026-09-01 v `bc-al-build.md` → skill `bc-al-build`.
 
 - **7.1** `alc.exe` z `~/.vscode/extensions/ms-dynamics-smb.al-*/bin/win32/`,
   **absolutní cesty** (`/project:`, `/packagecachepath:` — víc cache čárkou),
-  analyzery `/analyzer:<bin/Analyzers/…dll>`; v Git Bash
-  `MSYS2_ARG_CONV_EXCL="*"`. Externí ruleset alc odmítne.
-  `Analyzers.Common.dll` do `/analyzer:` **nedávat** (AL1003 + část pravidel se
-  tiše nenačte; CodeCop/UICop/PTE/LinterCop stačí). Log alc z Git Bash i PS
+  analyzery `/analyzer:` (AL 18: vše přímo v `bin/`); v Git Bash
+  `MSYS2_ARG_CONV_EXCL="*"`. Externí ruleset alc odmítne. Sada = CodeCop, UICop,
+  PTE + **šest `ALCops.*` a povinně `ALCops.Common.dll`** (bez ní `AD0001`
+  a falešně čistý build); samostatný `BusinessCentral.LinterCop.dll` **už ne**.
+  MS `Analyzers.Common.dll` do `/analyzer:` naopak **nedávat** (AL1003). Log alc z Git Bash i PS
   `*>` je **UTF-16** → před grepem dekóduj, jinak falešné „0 errors". Bash tool
   heredoc sráží `\\` a padá na apostrof v obsahu → AL/JSON s apostrofy či
   backslashy piš Write toolem. Volné object ID hledej BOM-aware (grep bez `^`).

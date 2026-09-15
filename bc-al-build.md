@@ -166,9 +166,9 @@ appek z `.alpackages` sousedních klonů, (c) chybějící produktové appky zko
 ze sibling repa (`BC<major>` větev; **verzi v jejím `app.json`** zvedni na deklarované
 minimum — alc matchuje podle vnitřní verze, ne filename, viz 7.11), (d) appky
 z vlastního repa zkompiluj ze zdrojáků do téže cache. Pak `alc /project:<test>
-/packagecachepath:<cache>` + 4 CI analyzery (`Analyzers.Common`, `CodeCop`,
-`PerTenantExtensionCop`, `UICop` — pro test projekty Essence build ruleset
-nepředává). `info` diagnostiky build neshodí, `failOn = 'warning'` → warning ano.
+/packagecachepath:<cache>` + analyzery (`CodeCop`, `PerTenantExtensionCop`, `UICop`
+a od 2026-09 šest **ALCops** + povinná `ALCops.Common.dll` místo samostatného LinterCopu,
+viz 12.1 v `bc-al-workflow.md`; pro test projekty Essence build ruleset nepředává). `info` diagnostiky build neshodí, `failOn = 'warning'` → warning ano.
 Zachyceno: cust-alumistr-bc PR 9116 (build 27287, 2026-07-10) — testy z forku psané
 proti neexistujícímu COEBS schématu (`"Configuration No."` Integer na Configuration
 Definition; reálně `"No."` Code[20] po refactoringu 97c5ce7), ~90 chyb AL0122/0132/

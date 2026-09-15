@@ -353,7 +353,9 @@ Diagnostika přijde ve čtyřech rodinách rulů — všechny mají svůj smysl:
 - **AA-series** — Microsoft AL analyzer (oficiální AL rules)
 - **CA-series** — CodeCop (style + best practices od MS)
 - **PTE-series** — Per-Tenant Extension rules (specifické pro PTE distribution)
-- **LC-series** — LinterCop (community analyzer, často nejpřísnější)
+- **ALCops** (`arthurvdv.alcops`, od 2026-09 **náhrada samostatného LinterCopu**, DLL přímo
+  v `<al-ext>/bin/ALCops.*.dll`): `AC` ApplicationCop, `DC` DocumentationCop, `FC` FormattingCop,
+  **`LC` LinterCop** (převzatá community sada), `PC` PlatformCop, `TC` TestAutomationCop
 
 Některá pravidla jsou informational (`LC0082` info-level "Count > 1"), jiná
 warning, jiná error. Default behavior závisí na `ruleset.json` v repu —
@@ -368,10 +370,15 @@ Essence CI má `failOn = 'warning'`, takže jediný warning shodí build. Než o
    appka se často zapomene; symboly test frameworku si půjč ze sibling repa
    (`.alpackages` např. prod-ess-configurator-bc) nebo z MS feedu (viz 7.12 v `bc-al-build.md`) a
    poskládej temp package cache.
-2. Přidej **stejné analyzery jako CI**: `Analyzers.Common`, `CodeCop`,
-   `PerTenantExtensionCop`, `UICop` (test projekty jedou bez rulesetu, viz 7.12 v `bc-al-build.md`;
-   u hlavních appek CI přidává ruleset per konvence 12.4). V Git Bash prefix
-   `MSYS2_ARG_CONV_EXCL="*"` a plné Windows cesty (viz 7.1).
+2. Přidej **stejnou sadu analyzerů, jakou má repo ve workspace** — od 2026-09 to jsou
+   MS `CodeCop`, `PerTenantExtensionCop`, `UICop` **plus všech šest ALCops**
+   (`ALCops.ApplicationCop/DocumentationCop/FormattingCop/LinterCop/PlatformCop/TestAutomationCop`)
+   **a povinně `ALCops.Common.dll`** — bez něj každé ALCops pravidlo spadne na `AD0001` a build
+   vypadá falešně čistý. **Samostatný `BusinessCentral.LinterCop.dll` už nepoužívej**, v AL 18
+   extensionu není a jeho pravidla (LC*) dodávají ALCops. `Analyzers.Common.dll` (Microsoft) se
+   naopak **nepředává** (AL1003, viz 7.1) — nezaměň ty dvě „Common" knihovny. Test projekty jedou
+   bez rulesetu (7.12 v `bc-al-build.md`), u hlavních appek CI přidává ruleset per konvence 12.4.
+   V Git Bash prefix `MSYS2_ARG_CONV_EXCL="*"` a plné Windows cesty (viz 7.1).
 3. `info` nálezy build neshodí (dlouhodobý šum typu AA0247 klidně odfiltruj),
    **každý warning oprav před pushem**.
 4. `LC0072` (info) „documentation comment does not match the procedure syntax": `///` XML doc
@@ -392,8 +399,9 @@ Neopravuj warning naslepo přepsáním kódu. **Najdi popis pravidla:**
 
 - **AA / CA / PTE** — Microsoft Learn MCP server (`microsoft_docs_search` s
   kódem pravidla, např. `AA0233`)
-- **LC** — Microsoft Learn nepokrývá; jdi web search na `LC0086` nebo přímo
-  LinterCop wiki na GitHubu (`StefanMaron/BusinessCentral.LinterCop` wiki).
+- **LC / AC / DC / FC / PC / TC** — Microsoft Learn nepokrývá; dokumentace ALCops
+  (`arthurvdv/ALCops`), u LC* pravidel dál platí i původní wiki
+  `StefanMaron/BusinessCentral.LinterCop` (ALCops sadu převzaly).
 
 Některá pravidla jsou v rozporu (typický příklad: `LC0082` říká "nahraď
 `Count() > 1` smyslem `FindFirst() + Next()`", ale tím triggeruješ `AA0233`
