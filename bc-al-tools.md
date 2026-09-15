@@ -244,16 +244,24 @@ repo (sekce 7.6).
 
 Jiný server než komunitní `al-mcp-server` výše. Je součástí AL extensionu (`<ext>/bin/altool.exe`,
 od AL 18 vedle `alc.exe`) a kromě kompilace umí **`al_run_tests`** — spustí test codeunit přímo v BC
-(kontejner i SaaS, BC 28+) jako Test Explorer ve VS Code. Registrace do Claude Code (local scope repa):
+(kontejner i SaaS, BC 28+) jako Test Explorer ve VS Code. Tooly: `al_addproject`, `al_compile`, `al_build`,
+`al_getdiagnostics`, `al_run_tests`, `al_publish`, `al_downloadsymbols`, `al_symbolsearch`, `al_symbolrelations`,
+`al_getpackagedependencies`, `al_getnextobjectid`, `al_inspectpage`, `al_searchtranslations`,
+`al_writetranslation`, `al_auth_login/logout`.
 
-```bash
-claude mcp add --scope local al-official -- \
-  "C:\Users\<user>\.vscode\extensions\ms-dynamics-smb.al-<ver>\bin\altool.exe" launchmcpserver \
-  "C:\<repo>\base\app" "C:\<repo>\base\test" --packagecachepath "C:\<repo>\.alpackages"
+**Registrace do Claude Code — user scope pro všechna repa** (AL 18 startuje i bez projektů: „No projects
+specified at startup. Use the al_addproject tool"; na AL 17 Petr hlásil, že bez cest nenastartuje). Wrapper
+`~/.claude/al-mcp.cmd` najde nejnovější `ms-dynamics-smb.al-*` a spustí
+`altool.exe launchmcpserver --transport stdio %*` → přežije update extensionu. Záznam v `~/.claude.json`:
+
+```json
+"al-official": { "type": "stdio", "command": "cmd", "args": ["/c", "C:\\Users\\<user>\\.claude\\al-mcp.cmd"], "env": {} }
 ```
 
-- **Projekty vyjmenuj** (bez cest server nenastartuje), `--packagecachepath` až **za** projekty. Tooly se
-  objeví až v nové seanci Claude Code.
+- `claude mcp add … -- cmd /c <path>` z Git Bash **nepoužívat** — MSYS přepíše `/c` na `C:/` a server se
+  nepřipojí (timeout 90 s); záznam zapiš/oprav přímo v `~/.claude.json`.
+- Projekt v seanci přidej `al_addproject` (cesta ke složce s `app.json`). Alternativa per repo: local scope
+  s vyjmenovanými projekty a `--packagecachepath` **za** projekty. Tooly se objeví až v nové seanci.
 - Připojení bere z `launch.json` projektu (`--project`), explicitní parametry mají přednost
   (`--environmenttype Sandbox --environmentname X --tenant Y`).
 - **Windows: auth na SaaS jede rovnou** — `altool` sdílí s VS Code cache
