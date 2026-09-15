@@ -66,6 +66,22 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   `/analyzer:` MSYS přepíše na cestu (`C:\Program Files\Git\analyzer;…`).
   Oprava: prefixni volání `MSYS2_ARG_CONV_EXCL="*"` (pak ale musí být
   všechny cesty plné Windows cesty, žádné `~`).
+- **ALCops (arthurvdv.alcops) nahradily samostatný LinterCop** (cust-alumistr-bc, prod-ess-configurator-bc, 2026-09).
+  DLL jsou v `<al-ext>/bin/ALCops.*.dll`: `ApplicationCop` (AC*), `DocumentationCop` (DC*), `FormattingCop` (FC*),
+  `LinterCop` (LC*), `PlatformCop` (PC*), `TestAutomationCop` (TC*). **`ALCops.Common.dll` MUSÍŠ předat jako další
+  `/analyzer:`** — jinak každé pravidlo vyhodí `warning AD0001 … Could not load file or assembly 'ALCops.Common'`
+  a **nenajde se nic** (tiché falešné „čisto"; pozor, jinde platí opak — `Microsoft.Dynamics.Nav.Analyzers.Common`
+  se předávat NESMÍ). Ve skriptu skládej argumenty s **lomítkem** `"$E/$c.dll"`; `"$E\\$c.dll"` v bash smyčce
+  s proměnnou uvnitř dvojitých uvozovek skončí jako literál `bin$c.dll` → `AL1006 Metadata file … could not be found`.
+- **Nejhlučnější nové pravidlo je `PC0037` „Use Validate() instead of direct field assignment"** (cust-alumistr-bc: 86
+  nálezů v base + 58 v testech). Plošné přepnutí na `Validate` **mění chování** (triggery, `TestStatusOpen`, přepočty),
+  takže u legitimních míst (přenos polí v event subscriberech, temp buffery, texty z poptávky, kopie base-app logiky)
+  patří `#pragma warning disable PC0037` / `restore` s jednořádkovým komentářem proč — ne vypnutí v rulesetu pro celé
+  repo. Pragma kolem **deklarace objektu / pole** funguje, ale `restore` dávej až za uzavírací `}` bloku, ne mezi název
+  a `{`. V **test appce** naopak ruleset dává smysl: `AC0010` + `LC0015` (permission set v testech nemáme) a `PC0037`
+  (testovací data se plní přímo) na `Hidden`, soubor `test/<repo>-test.ruleset.json` (CI ho najde konvencí, viz 12.4
+  v `bc-al-workflow.md`); include hlavního rulesetu je zbytečný a riskuje cestu — vzor `prod-ess-configurator-bc/test`.
+  (2026-09-15, cust-alumistr-bc.)
 - **`/ruleset` s externím (https) includem** alc odmítne — „external rulesets
   are not allowed" a žádný CLI přepínač to nepovoluje (funguje jen ve VS Code
   přes `al.allowExternalRulesets`). Pro CLI check pusť analyzery bez rulesetu
