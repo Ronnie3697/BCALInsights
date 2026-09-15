@@ -80,6 +80,18 @@ krok „Download Dependencies from NuGet" v témže build logu klidně ukazuje
 - Feed `BCNugetPackages` (pkgs.dev.azure.com/essencebs/Projects) jde číst i
   lokálně s MCP PAT (Basic auth, flat2 URL) — stažený `.nupkg` rozbal a ověř
   kompilaci proti reálnému balíčku (viz 7.12).
+  - **Stahování `.nupkg` z pythonu: `index.json` projde, ale `.nupkg` vrátí 302 na
+    blob storage a `urllib` redirect přenese `Authorization` hlavičku → `403 Server
+    failed to authenticate`.** Redirect zachyť (`HTTPRedirectHandler.redirect_request`
+    → `None`) a `Location` otevři **bez** Basic auth. Corp síť navíc resetuje IPv6 →
+    `socket.getaddrinfo` monkeypatch jen na `AF_INET`, jinak 120s timeout. Skript
+    vzor: cust-zlomek-bc 65148 (`dl.py`, 2026-09-15).
+  - **Mapa verze ↔ obsah bez stahování:** `pipelines_build list` na definici prod repa
+    (`branchName: refs/heads/master`, `minTime`) — `buildNumber` = verze balíčku
+    (`28.0.13`), `sourceVersion` = commit merge PR. Spadlý build (`result: 8`) číslo
+    verze **spotřebuje, ale nepublikuje** (PR 9348 s `Has Value` = 28.0.12 failed →
+    první verze s polem na feedu je 28.0.13). Minimum dependency ber z feedu
+    (`flat2 index.json`), ne z čísla buildu PR.
 - **Konvence package ID na BCNugetPackages:** `<Publisher><Name>.<guid>`,
   kde publisher i name jsou zbavené mezer a interpunkce („Essence International
   s.r.o." + „Essence Configurator" → `essenceinternationalsro.essenceconfigurator.45c32b8e-…`;
