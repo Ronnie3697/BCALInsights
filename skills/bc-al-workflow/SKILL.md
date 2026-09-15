@@ -3,19 +3,20 @@ name: bc-al-workflow
 description: >-
   BC/AL lokalizace, dokumentace a verifikace z praxe (Business Central, AL):
   NAB AL Tools XLIFF workflow ([NAB: NOT TRANSLATED] / [NAB: SUGGESTION],
-  jeden target, Xliff Generator note nemazat, hromadné překlady), trans-unit
-  ID hash (FNV-1a) a past u více extensionů na stejný objekt (LC0091), změna
-  labelu s %n vyžaduje update <source> i <target> v XLF, duplicitní
-  trans-unity po merge (AL0479), dokumentace requirementů PBI/Task →
-  docs/*.md (struktura, konvence), co číst před editem AL objektu (hlavička,
-  app.json idRanges/dependencies/target/runtime, .alpackages je binární ZIP
-  → al-mcp, permission set), build a analyzery AA/CA/PTE/LC (lokální
-  verifikace všech dotčených appek s CI analyzery, failOn warning), XML doc
-  komentáře (LC0072 returns/param, & = AL0640), hledání významu pravidel,
-  runtime errory bez spekulačních smyček, Essence ruleset per projekt
-  (*Ruleset*.json vedle app.json). Načti při překladech / XLIFF, dokumentaci
-  ticketu, před netriviálním editem, při řešení warningů, analyzerů a
-  rulesetů.
+  jeden target, Xliff Generator note nemazat), trans-unit ID hash (FNV-1a)
+  a past u více extensionů na stejný objekt (LC0091), změna labelu s %n =
+  update <source> i <target>, duplicitní trans-unity po merge (AL0479),
+  dokumentace requirementů PBI/Task → docs/*.md, uživatelská příručka /
+  prezentace featury jako HTML se screenshoty v docs/ (base64, obsah, focení
+  BC přes Claude in Chrome a jeho pasti), co číst před editem AL objektu
+  (hlavička, app.json idRanges/dependencies/target/runtime, .alpackages je
+  binární ZIP → al-mcp, permission set), build a analyzery AA/CA/PTE/LC
+  (lokální verifikace všech dotčených appek, failOn warning), XML doc
+  komentáře (LC0072, & = AL0640), hledání významu pravidel, runtime errory
+  bez spekulačních smyček, Essence ruleset per projekt (*Ruleset*.json vedle
+  app.json). Načti při překladech / XLIFF, dokumentaci ticketu, psaní
+  uživatelské příručky, před netriviálním editem, při řešení warningů,
+  analyzerů a rulesetů.
 user-invocable: true
 ---
 

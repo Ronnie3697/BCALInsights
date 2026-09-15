@@ -250,6 +250,33 @@ ujistí se, že popis odpovídá tomu, co je opravdu nasazené, a že
 technická dokumentace nezakonzervuje původní (pravděpodobně neaktuální)
 představu z PBI descriptionu.
 
+### 8.1 Uživatelská příručka větší featury — HTML se screenshoty vedle MD dokumentu
+
+U větších funkcionalit (nový business proces, ne jednotlivé pole) se kromě technického
+`docs/<PBI-ID> - … .md` dělá **netechnická příručka pro uživatele a testery**:
+
+```
+docs/<PBI-ID>_<Nazev-featury>-uzivatelska-prirucka.html
+```
+
+**Vždy jako soubor v `docs/` daného repa, nikdy jen jako publikovaný artefakt** — příručka
+patří k verzované dokumentaci (přání uživatele, 2026-09-15). Obrázky **embeduj jako base64
+`data:` URI**, ať je HTML soběstačné a otevře se dvojklikem; pracuj přes šablonu s placeholdery
+(`@@IMG:jmeno@@`) a malý skript, který je nahradí, aby šlo znovu vygenerovat. Soubor dopiš
+o plnou HTML kostru (`<!DOCTYPE>`, `<head>`, `<body>`). Do MD dokumentu ticketu přidej odkaz.
+
+**Obsah** (řazení podle toho, co uživatel dělá, ne podle objektů): princip v jedné větě +
+propočítaný příklad → nastavení (tabulka kde / pole / co s ním) → co vyplňuje uživatel a co
+systém → akce krok za krokem → co se děje při účtování a archivaci → co proces **záměrně
+nedělá** (otevřené business otázky z RFC, ať to testeři hlídají) → testovací scénář
+k odškrtání. Terminologii ber **z `Translations/*.cs-CZ.xlf`** (captiony polí a akcí), ne
+z hlavy — uživatel musí najít přesně ten popisek, který vidí na obrazovce.
+
+**Screenshoty z reálného prostředí** (Claude in Chrome, detail a pasti v 12.3): nafoť
+nastavení, kartu s klíčovým polem, hlavičku dokladu s akcí a řádky; k obrázku vždy popisek
+„kde to v BC je". Obrazovky, které se do okna nevejdou (tělo e-mailu), radši **přečti z DOM
+a vykresli jako tabulku** přímo v příručce.
+
 ---
 
 ## 9. Před úpravou AL objektu — co si přečíst
@@ -397,6 +424,25 @@ kartu i list rovnou na záznamu, bez klikání přes Tell me. Funguje pro vlastn
 konfigurace) i standardní (`page=42` prodejní objednávka, `page=30` karta zboží). Pak `zoom` na region místo
 celého screenshotu, ať se dají přečíst zkrácené buňky. (2026-09-08, Alumistr BC-TEST2, kontrola Table Lookup
 parametru pro textovou formuli.)
+
+**Focení BC do dokumentace — co zdržuje** (2026-09-15, BC-TEST2, příručka SK pobočky, viz 8.1):
+
+- **Celé BC běží v `<iframe>`.** `document.body.innerText` hlavního dokumentu je prázdný a `find` nic nenajde;
+  pracuj přes `document.querySelector('iframe').contentDocument`. Skupiny na kartě hledej podle
+  `.ms-nav-group-caption` a `scrollIntoView({block:'center'})` — pole ve spodních záložkách jinak nenafotíš.
+- **Rozepsaná editace hodí „Leave site?" a navigace se neprovede** (nástroj vrátí chybu, stránka zůstane).
+  Před odchodem `window.onbeforeunload = null` i na `contentWindow` iframu; zavřít a otevřít novou záložku
+  je pomalejší a tab ID z předchozí skupiny už neplatí.
+- **Sloupce řádků dokladu jsou daleko vpravo** (u vlastních polí za standardními). Kolečko s nimi nehne,
+  funguje **tažení vodorovného posuvníku** (`left_click_drag` po ose x) po malých krocích a mezitím screenshot.
+  Jména všech sloupců si nejdřív vypiš přes `[role="columnheader"]`, ať víš, kam táhnout.
+- **Modální okna (editor e-mailu) mají malý viewport.** Maximalizační ikona pomůže jen částečně; obsah delší
+  tabulky **vyparsuj z DOM** (`[...doc.querySelectorAll('table')]` → řádky) a vykresli ho v dokumentaci sám.
+  `javascript_tool` vrací `[BLOCKED: Cookie/query string data]`, když výsledek obsahuje celé `innerHTML`
+  s URL a tokeny — vracej jen extrahovaná data (texty buněk), ne HTML.
+- **Zápis do sdíleného prostředí (vyplnění setupu, založení dokladu) může odmítnout permission classifier**
+  („Modify Shared Resources") — data pak musí připravit uživatel, nebo je potřeba povolit browser tooly
+  v `settings.json`. Domluv se dopředu, ať nefotíš prázdné obrazovky.
 
 ### 12.4 Essence build — ruleset per projekt konvencí
 
