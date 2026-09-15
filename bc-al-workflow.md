@@ -440,9 +440,16 @@ parametru pro textovou formuli.)
   tabulky **vyparsuj z DOM** (`[...doc.querySelectorAll('table')]` → řádky) a vykresli ho v dokumentaci sám.
   `javascript_tool` vrací `[BLOCKED: Cookie/query string data]`, když výsledek obsahuje celé `innerHTML`
   s URL a tokeny — vracej jen extrahovaná data (texty buněk), ne HTML.
-- **Zápis do sdíleného prostředí (vyplnění setupu, založení dokladu) může odmítnout permission classifier**
-  („Modify Shared Resources") — data pak musí připravit uživatel, nebo je potřeba povolit browser tooly
-  v `settings.json`. Domluv se dopředu, ať nefotíš prázdné obrazovky.
+- **Zápis do prostředí zákazníka (vyplnění setupu, založení zákazníka a dokladu, naklikání testovacího
+  scénáře) smíš dělat — ale JEN s výslovným svolením uživatele** pro dané prostředí a seanci. Bez něj
+  jen čti a foť; data připraví uživatel. Svolení si vyžádej **dopředu**, než začneš fotit, ať nevzniknou
+  screenshoty prázdných obrazovek a nemusí se kolo opakovat (2026-09-15, BC-TEST2: nejdřív nafoceno
+  prázdné nastavení a nabídka s nulovými cenami, pak se muselo znovu).
+  Technicky to bez povolení stopne **permission classifier** hláškou „Modify Shared Resources" (čtení,
+  navigace a screenshoty projdou, takže to vypadá jako částečné právo v BC — přitom práva v BC jsou,
+  `altool`/prohlížeč sdílí přihlášení s VS Code). Trvalé povolení = allow pravidlo na
+  `mcp__claude-in-chrome__computer` / `form_input` v `settings.json`; **nenastavuj ho sám**, nech to
+  na uživateli. Po nafocení po sobě testovací data ukliď, pokud se uživatel nedomluví jinak.
 
 ### 12.4 Essence build — ruleset per projekt konvencí
 
