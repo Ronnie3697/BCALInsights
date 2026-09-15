@@ -673,6 +673,17 @@ Reverse, Undo Shipment (přiřazení recordu / `TransferFields` z posted). Sdíl
 pro všechny tři subscribery. Pole odvozená z Item UoM se reverse-fillem „obnoví" sama, ale pole typu kód/varianta ne.
 (2026-08-31, prod-epb-pricingMatrix-bc plán 65842 — archive restore ztrácel `Sales Price Var. Code PMEBS`.)
 
+**`RecreateSalesLines` (změna Sell-to / Bill-to / Currency…) nejdřív udělá `Modify()` hlavičky** (BC 28
+`SalesHeader.Table.al`, hned po potvrzení `RecreateSalesLinesMsg`) a teprve pak řádky znovu vytvoří přes
+`CreateSalesLine`: `Validate(Type)` → `Validate("No.")` → `GetUnitCost` → `Validate("Unit Cost (LCY)")` → UoM →
+Variant → `Validate(Quantity)`. Subscriber na řádku, který si hlavičku čte z DB (`SalesHeader.Get`), tedy vidí už
+**nového** plátce — cenotvorba závislá na hlavičce se při přepnutí plátce na existujících řádcích spočítá sama; ručně
+zadané hodnoty na řádku ale projdou Init a je třeba je vrátit z `TempSalesLine` v `OnBeforeSalesLineInsert`.
+Code-review nález „změna Bill-to nechá na řádcích starou cenu" je proto planý, dokud přepočet visí na `Unit Cost (LCY)`
+/ `OnAfterUpdateUnitPrice`. Signatura Copy Document hooku: `OnBeforeInsertToSalesLine(var ToSalesLine; var FromSalesLine;
+FromDocType: Option; RecalcLines: Boolean; var ToSalesHeader; DocLineNo: Integer; var NextLineNo: Integer;
+RecalculateAmount: Boolean; var IsHandled: Boolean)`. (2026-09-15, cust-alumistr-bc 65916 code review.)
+
 **Totéž dělá `Validate(Type)`** (BC 28.3 `SalesLine.Table.al`, field 5 OnValidate: `TempSalesLine := Rec; Init();`
 a zpět jen Type, System-Created Entry, Currency Code) → přepnutí řádku Item → G/L Account / Resource z UI vynuluje
 vlastní pole samo. Code-review nález „změna typu nechá viset staré vlastní ceny" je tedy u UI cesty teoretický; přímé
