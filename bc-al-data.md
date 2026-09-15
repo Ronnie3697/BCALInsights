@@ -722,6 +722,34 @@ Totéž nepřímo přes **EPB Pricing Matrix**: `Validate("Parameter A/B PMEBS")
 
 (2026-09-02, cust-zlomek-bc — rich text prototyp `Comment 2 ZLK`.)
 
+### 3.6e Guard na page `OnModifyRecord` nestav na diffu `Rec` vs `xRec` — hlídej invarianty
+
+Page trigger `OnModifyRecord` dostane **spolehlivý `xRec` jen z reálného UI vstupu**. Guard
+napsaný jako „co se změnilo" (`if Rec.Pole <> xRec.Pole then Error`) proto **tiše propustí**:
+
+- programovou změnu záznamu (`Rec.Modify` z kódu, integrace, import) — tam je `xRec = Rec`
+  (viz 3.9),
+- **`TestPage`** — negativní test spadne na „An error was expected inside an ASSERTERROR
+  statement.", protože se nic nedetekovalo (ověřeno na třech různých variantách testu: samotný
+  `SetValue`, `SetValue` + `Next()`, i s druhým řádkem a `Last()`/`First()`).
+
+**Pravidlo:** guard piš jako **invarianty záznamu** („co musí platit"), ne jako diff:
+
+```al
+// místo: if Rec."Variant Code" <> xRec."Variant Code" then Error(...)
+if not IsVoucherLine(SalesLine) then exit;
+SalesLine.TestField("Variant Code");                     // nesmí být prázdný
+if (SalesLine.Quantity <> 1) and (SalesLine.Quantity <> -1) then Error(QtyErr, …);
+if (SalesLine."Line Discount %" <> 0) or (SalesLine."Line Discount Amount" <> 0) then Error(…);
+```
+
+Invarianty se navíc dají **testovat přímo** (`asserterror Mgt.CheckLine(SalesLine)`) bez TestPage
+a platí i pro cesty, kam page trigger nedosáhne. Hodnoty, které se legitimně mění (Qty. to Ship /
+Invoice, data, texty), do invariantů nedávej — tím zůstane doklad normálně použitelný.
+Diff proti `xRec` si nech jen tam, kde opravdu jde o „uživatel přepsal ručně zadanou hodnotu",
+a počítej s tím, že z kódu ani z testu to nezabere. (2026-09-15, cust-sonnentor-bc,
+`CheckVoucherLineModify` na Sales Order Subform, buildy 28270–28273.)
+
 ### 3.6d Kontrola dokladu před účtováním: `OnBeforeIsApprovedForPosting` platí JEN pro účtování z UI
 
 `Sales Header.OnBeforeIsApprovedForPosting` (a `Purchase Header` ekvivalent) vyvolává
