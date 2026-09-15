@@ -705,3 +705,26 @@ cesta vzniku řádku má jiný hook. Ověřeno ve zdrojích Base App 28.4 (cust-
   `CarryOutReqWksh(var ReqLine; ExpirationDate; OrderDate; PostingDate; ExpectedReceiptDate; YourRef)`,
   `LibraryPurchase.CreateDropShipmentPurchasingCode`, `OrderPlanningMgt.PlanSpecificSalesOrder(var ReqLine; SONo)`,
   `OrderPlanningMgt.SetDemandType("Demand Order Source Type"::"Production Demand") + GetOrdersToPlan(var ReqLine)`.
+
+### 5.x10 Essence Configurator: `Effective Hidden` na `Variant Configuration COEBS` JE persistovaný
+
+Pole 14 `Effective Hidden` se plní v **temporary bufferu** dialogu
+(`Variant Config Params COEBS.UpdateEffectiveHiddenStates` volá `Config. Condition Mgt.
+COEBS.IsParameterHidden` nad `TempRec.Copy(Rec, true)`), takže na první pohled vypadá jako
+čistě UI pomůcka. **Není** — `Variant Configuration COEBS.SaveVariantConfiguration` vytáhne
+záznamy z toho bufferu přes `GetAllRecords` (dělá `Reset()`, takže vrací i skryté) a zapisuje je
+`VariantConfigValue.TransferFields(TempConfigRecs)` + `Insert`, čímž se hodnota dostane do ostré
+tabulky. Vlastní read-only zobrazení parametrů varianty (factbox, report) tedy může podmínkové
+skrytí respektovat prostým filtrem `"Effective Hidden" = const(false)`, **bez přepočtu podmínek**.
+
+- `IsParameterHidden` vrací true i pro **statický** `Configuration Parameter COEBS.Hidden`
+  („Static hidden flag … takes priority"), takže snapshot pokrývá obě cesty skrytí.
+- `Parameter Hidden` (FlowField ze statického flagu) si přesto nech ve filtru vedle něj:
+  varianty uložené dřív, než konfigurátor snapshot plnil, mají `Effective Hidden = false`
+  a statický Hidden by jinak prosákl.
+- Pozor na obrácený omyl: „pole se plní jen v bufferu dialogu, takže je v uložených datech vždy
+  false" je **nesprávný** závěr z pouhého grepu na název pole — rozhoduje `TransferFields`
+  v ukládací proceduře, kde jméno pole nikde nefiguruje.
+
+(2026-09-15, cust-zlomek-bc 65148 — code review factboxu parametrů konfigurátoru; ověřeno ve
+zdrojáku prod-ess-configurator-bc na master.)
