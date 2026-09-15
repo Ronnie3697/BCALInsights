@@ -596,6 +596,35 @@ z Claude Code sandboxu nejede — `http 000`; raw.githubusercontent ano). (2026-
 `MessageHandler`, v cust-alumistr-bc `SLActionsExecutedMessageHandler` (před přidáním nového handleru grepni
 codeunit — duplicitní název = AL0518/AL0440). (2026-09-14, cust-alumistr-bc build 28223.)
 
+### Doklad jen se záporným řádkem = „Celková částka faktury musí být 0 nebo větší" PŘED vlastní kontrolou
+
+Test, který účtuje doklad obsahující **jen záporný řádek** (uplatnění poukazu, sleva, oprava),
+spadne na standardní kontrole `The total amount for the invoice must be 0 or greater.` —
+a to **dřív, než se dostane ke slovu vlastní kontrola** v `OnBeforeIsApprovedForPosting`
+nebo jinde v posting flow. Negativní test pak selže na „Expected: <moje hláška>. Actual:
+The total amount for the invoice must be 0 or greater." a vypadá to, jako že vlastní kontrola
+nefunguje, přitom se jen nespustila.
+
+**Fix:** dej do dokladu **kladný řádek běžného zboží** (`LibrarySales.CreateSalesLineWithUnitPrice(SalesLine,
+SalesHeader, ItemNo, 1200, 1)`), ať je celková částka ≥ 0 — a to i u dobropisu, který vydává
+nový poukaz. Reálný doklad tak taky vypadá (zákazník něco kupuje/vrací a poukazem platí část).
+Prodejní (kladná) strana téhož scénáře projde bez zboží, takže „prodej funguje, uplatnění ne"
+je typický příznak právě tohohle. (2026-09-15, cust-sonnentor-bc build 28270, `RedemptionWithWrongUnitPrice-
+CannotBePosted` + `FullVoucherCycleWithReplacementKeepsValueAndExpiration`.)
+
+### `TestPage.<pole>.SetValue` na skrytém controlu → „The field with ID = N is not found on the page"
+
+`TestPage` vidí jen controly, které jsou na stránce **viditelné**. `SetValue`/`AssertEquals` na
+control s `Visible = false` (i když je to base-app default, např. `Variant Code` na `Sales Order
+Subform`) hodí *„The field with ID = <číslo> is not found on the page."* — číslo je control ID,
+takže z hlášky nepoznáš, o které pole jde; dohledej ho podle toho, co test zkoušel nastavit.
+
+Zrádná varianta: **`modify("<control>")` při portu z jiného repa přenese triggery, ale ne properties.**
+Když předloha má `modify("Variant Code") { Visible = true; trigger OnLookup… }` a ty zkopíruješ
+jen trigger, pole zůstane skryté — lookup i validace se stanou mrtvým kódem a uživatel hodnotu
+nemá kde zadat. Při portu porovnej celý `modify` blok, ne jen jeho triggery. (2026-09-15,
+cust-sonnentor-bc build 28270 vs. cust-kalas-bc `SalesOrderSubformKAL`.)
+
 ### Placeholdery v testech jsou škodlivější než žádné testy
 
 `Assert.IsTrue(true, ...)` nebo `[Test]` procedura, která ve skutečnosti nic neověří, **dělá test suite zelenou bez regresní ochrany**. Pokud nemůžeš testovaný scénář spolehlivě postavit (např. `OnBeforeActionEvent` subscribery vyžadují TestPage + nestabilní action names), je správné nechat soubor bez `[Test]` procedur a zaznamenat blokátor v `plan.md`/issue, ne psát fake testy.
