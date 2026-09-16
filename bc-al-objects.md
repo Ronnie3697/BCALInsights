@@ -753,6 +753,12 @@ jinak `Quantity per = Qty. of Pcs.` a `Length = Qty. per Piece × konstanta`.
   `MM` = mm → jakmile se pro řádek s M2 zavolá `Validate("Qty. of Pcs. CUEBS")`, mělo by to padnout;
   kontroluj to dřív, než budeš hledat chybu ve výpočtu.
 
+⚠️ **Než budeš porovnávat chování testovacího prostředí se zdrojákem produktové appky, ověř nasazenou
+verzi** (Extension Management, page 2500, sloupec „Je nainstalováno") **a zeptej se jejího vlastníka na
+rozpracované změny.** Na Alumistr BC-TEST2 byl 2026-09-16 nahraný lokální build Cutting Planu, ne CI build
+z masteru — řádek s `M2` tam místo erroru tiše spočítal `Quantity per = Qty. of Pcs.`, což podle masteru
+nemůže nastat. Hodinu analýzy sežral rozpor, který nebyl v kódu, ale v tom, že běžel jiný kód.
+
 Pořadí validací v subscriberu má vliv: `Validate("Qty. of Pcs.")` jako první nastaví `Qty. per Piece` na 1
 (pojistka výše) a spočítá množství, druhá validace ho pak přepíše správně — výsledek sedí, ale `Quantity per`
 i `Length` se počítají dvakrát.
