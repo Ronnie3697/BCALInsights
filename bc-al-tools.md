@@ -144,6 +144,13 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   CZ packy stejné minor řady; starší CZ pack pod novější `Application` umbrellou nevadí,
   obráceně ano — 7.19 v `bc-al-build.md`) + Essence appky z `prod-*/.alpackages` nebo
   `prod-*/app/*.app`, a `/packagecachepath` nasměruj tam. (2026-09-02, cust-zlomek-bc)
+- **`alc.exe` při kompilaci PŘEPÍŠE `.docx` Word layouty reportů v `src/`** — kompilátor do
+  layoutu regeneruje custom XML part s datasetem, takže i bez jediné změny v kódu vyleze
+  po buildu `M ...Report.docx` (binární diff, typicky +1 kB). Není to tvoje změna —
+  **před commitem to vrať** (`git checkout -- <soubor.docx>`), jinak si do PR přibalíš
+  přegenerovaný layout. Platí i pro `git worktree` čerstvě vytvořený z čistého HEAD.
+  (2026-09-16, cust-sonnentor-bc PR 9511 — `DisposalProtocol.Report.docx` 13785 → 14742 B
+  po ověřovací kompilaci `base/app`.)
 
 ### 7.2 Čtení symbolů z `.alpackages` — al-mcp-server
 
