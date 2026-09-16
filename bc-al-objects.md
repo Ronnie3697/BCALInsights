@@ -728,3 +728,34 @@ skrytí respektovat prostým filtrem `"Effective Hidden" = const(false)`, **bez 
 
 (2026-09-15, cust-zlomek-bc 65148 — code review factboxu parametrů konfigurátoru; ověřeno ve
 zdrojáku prod-ess-configurator-bc na master.)
+
+### 5.x11 EM Cutting Plan `Qty. of Pcs.` / `Qty. per Piece` na Production BOM Line — přepíšou `Quantity per`; tři pasti
+
+`tableextension "Production BOM Line CUEBS"` (prod-em-cuttingPlan-bc) počítá z dvojice polí
+`Qty. of Pcs. CUEBS` × `Qty. per Piece CUEBS` jak `Length`, tak **`Quantity per`** — tedy přepíše
+množství, které řádku dal kdokoliv před tím (u konfigurátoru `BOM Action Cond. Mgt. COEBS.AddBOMLines`:
+`Validate("Quantity per", CalculateBOMQuantity(...))` → `TransferBOMLineFields` → event
+`OnBeforeInsertProdBOMLine` → zákaznický subscriber → `Insert`). Větvení podle
+`Item Unit of Measure."Qty. per Unit of Measure"`: `= 1` → `Quantity per = Qty. per Piece × Qty. of Pcs.`,
+jinak `Quantity per = Qty. of Pcs.` a `Length = Qty. per Piece × konstanta`.
+
+- **Asymetrický default nuly.** `ValidateQtyOfPcsCUEBS` má pojistku `if "Qty. per Piece CUEBS" = 0 then := 1`,
+  `ValidateQtyPerPieceCUEBS` obdobnou pro `Qty. of Pcs.` **nemá** → validace samotného `Qty. per Piece`
+  nad řádkem s nulovým počtem kusů **vynuluje `Quantity per`** (u qty-per-UoM = 1 přes `Length / konstanta`,
+  jinak přímo `:= Qty. of Pcs.`). Subscriber, který nulové hodnoty přeskakuje
+  (`if QtyOfPcs <> 0 then Validate(...)`, vzor `Configurator Events COALU` v cust-alumistr-bc), tím problém
+  neřeší — chrání jen případ, kdy jsou nulové obě.
+- **`Optimalization Mgt. CUEBS.GetLengthTypeConstant` vrací `Integer`, ale pro kombinaci Item UoM `mm` +
+  Manufacturing Setup `m` dělá `exit(0.001)`** → AL zaokrouhlí na **0**: `Length` vyjde 0 a
+  `ValidateQtyPerPieceCUEBS` spadne na dělení nulou. Návratový typ patří `Decimal`.
+- **Plošné / kusové MJ bez „Length Type"** (`Unit of Measure."Length Type CUEBS"` = ' ') skončí v `else`
+  větvi `GetLengthTypeConstant` = **Error**. U Alumistra má `M2` (sklo) Length Type prázdný, `KS`/`M` = m,
+  `MM` = mm → jakmile se pro řádek s M2 zavolá `Validate("Qty. of Pcs. CUEBS")`, mělo by to padnout;
+  kontroluj to dřív, než budeš hledat chybu ve výpočtu.
+
+Pořadí validací v subscriberu má vliv: `Validate("Qty. of Pcs.")` jako první nastaví `Qty. per Piece` na 1
+(pojistka výše) a spočítá množství, druhá validace ho pak přepíše správně — výsledek sedí, ale `Quantity per`
+i `Length` se počítají dvakrát.
+
+(2026-09-16, cust-alumistr-bc — analýza kusovníků variant 103200-COEBS0209/0210, definice konfigurace 0052;
+zdroje prod-em-cuttingPlan-bc master, prod-ess-configurator-bc master.)
