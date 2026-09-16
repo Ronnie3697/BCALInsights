@@ -508,6 +508,51 @@ Doplněk k 12.1c (tam je jen `PC0037`). Čísla z druhého úklidu — **cust-zl
   kódu spraví vytažením vnitřní smyčky / vnořených `if` do samostatné procedury; bývá to
   i čitelnější než pragma. `LC0010` (cyclomatic) má essence-default na `Hidden`, `LC0090` ne.
 
+### 12.1e Doménová appka — PC0037 a LC0090 do rulesetu, zbytek fixni/pragmuj
+
+Třetí úklid (**prod-ess-configurator-bc, 2026-09-16**, ALCops v AL 18.0.2732683): hlavní appka
+**839 warningů** (1339 info), test appka **840** (365 info), 0 errorů. Rozpad hlavní appky:
+`PC0037` 747, `LC0090` 57, `FC0005` 24, `LC0092` 5, `LC0096` 3, `AC0018`/`PC0027`/`LC0040` po 1;
+test appka `PC0037` 837, `AC0010` 2, `FC0005` 1.
+
+**Dvě pravidla dávají u doménové appky smysl vypnout rulesetem, ne pragmou:**
+
+- **`PC0037`** dělá **94 % všech nálezů** (1584 z 1679). U appky, která staví temporary buffery,
+  kopíruje konfigurace pole po poli a plní lookup dialogy, je direct assignment **správný pattern** —
+  74 pragem po procedurách (vzor 12.1c u sonnentoru) je tam jen šum. Rozhodnutí je majitele repa:
+  hodně vlastních tabulek + málo base-app validací = ruleset; extension nad standardními doklady
+  = pragma per procedura, ať nová chybějící `Validate` nezapadnou.
+- **`LC0090`** (Cognitive Complexity) u vyhodnocování stromů podmínek a formulí: rozsekat
+  velkou rozhodovací proceduru kvůli metrice **přidá riziko regrese** bez čitelnostního zisku.
+  Pozor, `LC0010` (cyclomatic) má essence-default na Hidden, `LC0090` ne — musíš ho dopsat sám.
+
+Zbylých ~95 nálezů se uklidí za večer:
+
+- **`FC0005` hlásí i `ReadIsolation :=`**, nejen `LookupMode :=` (`Rec.ReadIsolation := IsolationLevel::UpdLock;`
+  → `Rec.ReadIsolation(IsolationLevel::UpdLock);`). Oboje je čistě mechanické a **skriptovatelné**
+  jedním regexem `^(\s*)([\w."]*\.)?(LookupMode|ReadIsolation)\s*:=\s*(.+?);$`. ⚠️ Soubory jsou CRLF —
+  python otevírej s `newline=''` a stejně zapisuj (a `encoding='utf-8-sig'`, když má soubor BOM), jinak
+  přepíšeš konce řádků v celém souboru (stejná past jako `sed -i`, viz 7.1).
+- **`LC0096`** („record variable is passed to a method already invoked on the same record") je
+  **false positive u sdíleného helperu na page**: `local procedure HasParameterValueByType(var X: Record Y)`
+  se volá jak s `Rec`, tak s temporary buffery — parametr **musí zůstat**. → `#pragma disable/restore`
+  kolem volání. Pozor, když volání sedí za `if … then`, pragma musí obalit **celý `if`**, ne se vklínit
+  mezi podmínku a příkaz.
+- **`AC0018`**: prázdný `Caption = ' '` u enum hodnoty chce `Caption = ' ', Locked = true;` — jinak
+  vzniká zbytečná trans-unit položka k překladu.
+- **`PC0027`** („do not execute table triggers on temporary record variables") u `TempBuf.Insert(true)`:
+  na temporary tabulce se **table triggery stejně nespouštějí**, takže `Insert(false)` je sémanticky
+  identický a warning zmizí — žádné riziko změny chování.
+- **`LC0092`** u polí zrcadlících standardní BC názvy (`Line Discount %`, `Scrap Factor %`,
+  `Indirect Cost %`, `Scrap %`) → pragma kolem deklarace pole, `restore` **až za** uzavírací `}`.
+- **Test ruleset: `LC0015` už nestačí** — nástupce `AC0010` je vlastní ID, musíš ho do test rulesetu
+  dopsat zvlášť (u konfigurátoru prosákly 2 nálezy, dokud tam byl jen `LC0015`).
+
+**Lokální ověření test appky** šlo přesně podle 7.12: MS test symboly z `prod-ess-dotykackaConnector-bc/.alpackages`
+(řada 28.1 pod 28.3 Base App bez problémů), **AI Test Toolkit** z MSSymbols feedu
+(`microsoft.aitesttoolkit.symbols.2156302a-…`, verze 28.3.52162.52273) a hlavní appku zkompilovanou
+do téže temp cache pod jménem s aktuální verzí. Po úklidu **0/0 warningů** v obou projektech.
+
 ### 12.2 Když nevíš, co pravidlo znamená — vyhledej
 
 Neopravuj warning naslepo přepsáním kódu. **Najdi popis pravidla:**
