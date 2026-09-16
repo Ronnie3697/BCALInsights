@@ -533,13 +533,24 @@ Zbylých ~95 nálezů se uklidí za večer:
   jedním regexem `^(\s*)([\w."]*\.)?(LookupMode|ReadIsolation)\s*:=\s*(.+?);$`. ⚠️ Soubory jsou CRLF —
   python otevírej s `newline=''` a stejně zapisuj (a `encoding='utf-8-sig'`, když má soubor BOM), jinak
   přepíšeš konce řádků v celém souboru (stejná past jako `sed -i`, viz 7.1).
-- **`LC0096`** („record variable is passed to a method already invoked on the same record") je
-  **false positive u sdíleného helperu na page**: `local procedure HasParameterValueByType(var X: Record Y)`
-  se volá jak s `Rec`, tak s temporary buffery — parametr **musí zůstat**. → `#pragma disable/restore`
-  kolem volání. Pozor, když volání sedí za `if … then`, pragma musí obalit **celý `if`**, ne se vklínit
-  mezi podmínku a příkaz.
-- **`AC0018`**: prázdný `Caption = ' '` u enum hodnoty chce `Caption = ' ', Locked = true;` — jinak
-  vzniká zbytečná trans-unit položka k překladu.
+- **`LC0096`** („record variable is passed to a method already invoked on the same record") vzniká
+  u **lokálního helperu na page, který bere record vlastní SourceTable**: `local procedure HasValue(var X: Record Y)`
+  volaný jak s `Rec`, tak s temporary buffery. Pragma funguje (pozor: když volání sedí za `if … then`, musí
+  obalit **celý `if`**, ne se vklínit mezi podmínku a příkaz), ale **lepší je proceduru přesunout na tabulku**
+  jako `internal procedure` a volat `Rec.HasValue()` / `TempBuf.HasValue()` — pravidlo zmizí bez pragmy
+  a typicky se tím zruší i duplicita, protože stejný helper bývá zkopírovaný na sesterské page.
+  `internal` (ne `public`), ať se z toho nestane API appky, které pak nejde odebrat.
+  ⚠️ **Proceduru maž Edit toolem, ne regexem** — `(?:.*?\r?\n)*?[ \t]*end;` s `re.S` ukousne blok
+  na prvním dřívějším `end;` a rozbije soubor (39 syntax errorů, 2026-09-16).
+- **⚠️ `AC0018` u prázdného captionu — `Locked = true` může smazat existující překlad.** Pravidlo radí
+  `Caption = ' ', Locked = true;`, jenže **prázdná hodnota enumu bývá v lokalizaci přeložená**: hodnota
+  `0; " "` zrcadlící standardní `Sales Line Type` má v `cs-CZ` target **„Poznámka"**, stejně jako řádek
+  prodejní objednávky. `Locked` ji vyřadí z generovaného XLIFF → při příštím NAB Refreshi překlad
+  **vypadne z `.cs-CZ.xlf`** a český uživatel uvidí v rozbalovacím seznamu prázdno. **Ověř před fixem:**
+  `grep -A2 '<trans-unit id="Enum <hash> - EnumValue <hash>' Translations/*.cs-CZ.xlf` — když tam `<target>`
+  s textem je, dej `#pragma warning disable AC0018` a `Caption` nech odemčený. Kontrola dopadu: po kompilaci
+  musí být trans-unit pořád v `Translations/*.g.xlf` (`Locked` = 0 výskytů). `Locked = true` platí jen pro
+  captiony, které se opravdu nepřekládají (technické kódy, oddělovače). (2026-09-16, prod-ess-configurator-bc)
 - **`PC0027`** („do not execute table triggers on temporary record variables") u `TempBuf.Insert(true)`:
   na temporary tabulce se **table triggery stejně nespouštějí**, takže `Insert(false)` je sémanticky
   identický a warning zmizí — žádné riziko změny chování.
