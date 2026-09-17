@@ -818,6 +818,20 @@ Co je naopak z COZLK/COALU dosažitelné a nemusíš psát znovu:
   (`Description`, `Description 2`) vracej vždycky — validace varianty je přepíše z karty zboží (3.6b
   v `bc-al-data.md`).
 
+**Dialog pustí na další parametr, teprve když ten aktuální MÁ hodnotu.** `Variant Config Params COEBS`
+(63147) staví seznam postupně: `AddNextEmptyParameter` → `FindLastFilledSortOrder` (bere jen parametry,
+kde `HasParameterValue()`) a `HasUnfilledPreviousParameter` drží následující parametry read-only.
+Rozšíření, které parametr „vyřeší" jinak než zadáním hodnoty (mapování na jiný parametr, převzetí odjinud),
+proto **musí hodnotu stejně nastavit**, jinak se dialog zasekne. U `Integer`/`Decimal` stačí
+`"Has Value" := true` (nula je platná hodnota), u `Text`/`Option`/`Table Lookup` musí být hodnota neprázdná —
+neutrální hodnota tam neexistuje, takže tam nezbývá než nechat zadání na uživateli. Posun vpřed sám
+(`AddNextEmptyParameter`, `RefreshAfterValueChange`, `RebuildMissingParameters`) je **`local`** → z pageextension
+nedosažitelný; uživatel musí hodnotu potvrdit (skrytá base akce `ConfirmValue` má `ShortcutKey = 'Return'`,
+takže Enter ji vyvolá i bez změny hodnoty). Public jsou jen `LoadParameters` (přenačte celý buffer od nuly —
+zahodí rozdělané hodnoty), `GetAllRecords`, `GetParameterValues`, `ValidateAllValues`, `GenerateDescription`.
+Defaultní hodnoty jde naopak dopočítat mimo page — `Config. Condition Mgt. COEBS.HasDefaultDecimalValue` /
+`HasDefaultIntegerValue` / `GetDefaultTextValue` / `GetDefaultCodeValue` jsou public a berou v potaz i podmínky.
+
 Hodnoty parametrů putují v `Dictionary of [Code[20], Text]` klíčované `Parameter Code` a čísla v nich jsou
 v **invariantním formátu** (`Format(x, 0, 9)`, tečka) — při zpětném parsování `Evaluate(…, 9)` po normalizaci
 (`DelChr` mezer/NBSP, `,` → `.`), viz vzor `InitializeParameterCopiedValue` v `Variant Config Params COEBS`.
