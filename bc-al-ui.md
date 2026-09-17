@@ -145,6 +145,24 @@ tabulky, ne `XyzExpression`. Po změně zkompiluj závislé appky proti novému 
 aby vyhrál nový build). (Ověřeno 2026-09, Configurator textové formule vs. Alumistr
 `addafter(Description)` na BOM/Routing/SL Action Lines.)
 
+### 4.6c `modify(Control) { StyleExpr = … }` jde přepsat — ale výraz si musíš spočítat CELÝ znovu
+
+`StyleExpr` base controlu se z pageextension přebít dá (ověřeno alc 18 na `Variant Config Params COEBS`),
+jenže base proměnnou, kterou tam base page plní, **z rozšíření nepřečteš** — `CurrPage.<Control>.StyleExpr`
+neexistuje. Jakmile `StyleExpr` přepíšeš, zodpovídáš za **všechny** větve, i ty, které tě nezajímají,
+takže původní pravidla base musíš zrcadlit (a s nimi i případné `local` helpery, které je počítají).
+Než do toho půjdeš, zvaž, jestli kosmetika stojí za duplikaci, která se rozejde při každé změně base.
+Totéž platí pro `Editable`, `Visible` a další výrazové properties.
+
+Druhá půlka téhož problému: **co se v poli zobrazí, přebít nejde vůbec**, když hodnotu plní base
+proměnná (`field(Value; ValueText)`). `modify` mění jen properties, ne `SourceExpr`. Jediné cesty jsou
+schovat base control a postavit vedle vlastní (pak ale duplikuješ i jeho `OnValidate`/`OnAssistEdit`
+logiku), nebo doplnit chybějící API do base appky.
+(2026-09-17, cust-zlomek-bc 65364 — parametr konfigurátoru, jehož hodnota se přebírá odjinud, se měl
+zobrazit prázdně; nakonec jen ztlumený styl.)
+
+---
+
 ### 4.7 `modify()` na kontrolu z CIZÍ pageextension — jde to, s dependency
 
 Když jiná appka přidá na stejnou base page svoje pole a ty ho potřebuješ schovat
