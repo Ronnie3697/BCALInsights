@@ -1,7 +1,7 @@
 ---
 name: bc-al-workflow
 description: >-
-  BC/AL lokalizace, dokumentace a verifikace z praxe (Business Central, AL):
+  BC/AL lokalizace, dokumentace a verifikace:
   NAB AL Tools XLIFF workflow ([NAB: …] prefixy, jeden target, Xliff
   Generator note nemazat), trans-unit ID hash (FNV-1a) a past u více
   extensionů na stejný objekt (LC0091), změna labelu s %n = update <source>
@@ -10,7 +10,7 @@ description: >-
   prezentace featury jako HTML se screenshoty v docs/ (base64, obsah, focení
   BC přes Claude in Chrome a jeho pasti), co číst před editem AL objektu
   (hlavička, app.json, .alpackages je binární ZIP → al-mcp, permission set),
-  build a analyzery AA/CA/PTE/LC
+  Word layouty (repeater w15:dataBinding), build a analyzery AA/CA/PTE/LC
   (lokální verifikace všech dotčených appek, failOn warning), XML doc
   komentáře (LC0072, & = AL0640), runtime errory bez spekulačních smyček,
   Essence ruleset per projekt (*Ruleset*.json vedle app.json). Načti při

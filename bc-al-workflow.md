@@ -564,6 +564,24 @@ Zbylých ~95 nálezů se uklidí za večer:
 (`microsoft.aitesttoolkit.symbols.2156302a-…`, verze 28.3.52162.52273) a hlavní appku zkompilovanou
 do téže temp cache pod jménem s aktuální verzí. Po úklidu **0/0 warningů** v obou projektech.
 
+### 12.1f Word layout: opakovací sekce potřebuje `w15:dataBinding`
+
+U ručně generovaného DOCX musí `w:sdtPr` s `w15:repeatingSection` obsahovat
+**`w15:dataBinding`**, namespace `http://schemas.microsoft.com/office/word/2012/wordml`.
+Běžná textová pole dál používají **`w:dataBinding`**; atributy `xpath`,
+`prefixMappings` a `storeItemID` zůstávají v namespace `w` v obou případech.
+
+**Build + platné XPath + Word `XMLMapping.IsMapped = true` nestačí.** Word chybný
+zápis s `w:dataBinding` u repeateru načte, ale při `SaveAs2` jej přepíše na
+`w15:dataBinding`. Při diagnostice porovnej pracovní kopii uloženou Wordem,
+neměň naslepo AL dataset. Regresní kontrola musí ověřit namespace vazby,
+nejen existenci uzlu nebo počet tabulek. Finální tisk ověř v BC.
+
+(2026-09-17, test-mnecSkoleni-bc, report 99103: po ručním přidání vnějšího
+repeateru uživatel hlásil zmizení obou tabulek. Rozdíl potvrzen Word SaveAs2;
+opraveny dvě vazby, regresní test selhal před opravou a prošel po ní i po buildu.
+Runtime potvrzení opravy v BC v době zápisu ještě chybí.)
+
 ### 12.2 Když nevíš, co pravidlo znamená — vyhledej
 
 Neopravuj warning naslepo přepsáním kódu. **Najdi popis pravidla:**
