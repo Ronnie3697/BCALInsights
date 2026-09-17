@@ -824,12 +824,20 @@ kde `HasParameterValue()`) a `HasUnfilledPreviousParameter` drží následujíc�
 Rozšíření, které parametr „vyřeší" jinak než zadáním hodnoty (mapování na jiný parametr, převzetí odjinud),
 proto **musí hodnotu stejně nastavit**, jinak se dialog zasekne. U `Integer`/`Decimal` stačí
 `"Has Value" := true` (nula je platná hodnota), u `Text`/`Option`/`Table Lookup` musí být hodnota neprázdná —
-neutrální hodnota tam neexistuje, takže tam nezbývá než nechat zadání na uživateli. Posun vpřed sám
-(`AddNextEmptyParameter`, `RefreshAfterValueChange`, `RebuildMissingParameters`) je **`local`** → z pageextension
-nedosažitelný; uživatel musí hodnotu potvrdit (skrytá base akce `ConfirmValue` má `ShortcutKey = 'Return'`,
-takže Enter ji vyvolá i bez změny hodnoty). Public jsou jen `LoadParameters` (přenačte celý buffer od nuly —
+neutrální hodnota tam neexistuje, takže tam nezbývá než nechat zadání na uživateli.
+**Nula ale u číselného parametru s rozsahem neprojde** — dialog hodnotu při potvrzení kontroluje
+(`SaveValueFromText` → `Config. Condition Mgt. COEBS.ValidateParameterValue` → `ValidateDecimalRange`),
+takže u „Šířka 500–1900" musí startovní hodnota být default parametru, jinak **dolní mez rozsahu**
+(`Configuration Parameter."Min. Decimal Value"` / `"Min. Integer Value"`; podmínkové override mezí
+(`ApplyDecimalConditionOverrides`) jsou `local`, zvenku je nezjistíš).
+
+Posun vpřed sám (`AddNextEmptyParameter`, `RefreshAfterValueChange`, `RebuildMissingParameters`) byl **`local`**;
+od **COEBS 28.0.22.1** má page public obálku **`RefreshAfterExternalValueChange()`**, kterou rozšíření zavolá
+po zápisu hodnoty do bufferu a dialog se přepočítá stejně, jako když hodnotu zadá uživatel. Bez ní zbývá
+nechat uživatele hodnotu potvrdit (skrytá base akce `ConfirmValue` má `ShortcutKey = 'Return'`, takže Enter
+ji vyvolá i bez změny hodnoty). Ostatní public procedury: `LoadParameters` (přenačte celý buffer od nuly —
 zahodí rozdělané hodnoty), `GetAllRecords`, `GetParameterValues`, `ValidateAllValues`, `GenerateDescription`.
-Defaultní hodnoty jde naopak dopočítat mimo page — `Config. Condition Mgt. COEBS.HasDefaultDecimalValue` /
+Defaultní hodnoty jde dopočítat mimo page — `Config. Condition Mgt. COEBS.HasDefaultDecimalValue` /
 `HasDefaultIntegerValue` / `GetDefaultTextValue` / `GetDefaultCodeValue` jsou public a berou v potaz i podmínky.
 
 Hodnoty parametrů putují v `Dictionary of [Code[20], Text]` klíčované `Parameter Code` a čísla v nich jsou
