@@ -791,3 +791,36 @@ i `Length` se počítají dvakrát.
 
 (2026-09-16, cust-alumistr-bc — analýza kusovníků variant 103200-COEBS0209/0210, definice konfigurace 0052;
 zdroje prod-em-cuttingPlan-bc master, prod-ess-configurator-bc master.)
+
+### 5.x12 Essence Configurator: „najdi nebo vytvoř variantu" je `local` v dialogu 63143 — z jiné appky ji nezavoláš
+
+Celý find-or-create mechanismus varianty (`FindExistingVariantWithSameValues`, `CompareParameterValues`,
+`GenerateVariantCode`, ukládací část `SaveVariantConfiguration`) žije jako **`local procedure` na stránce**
+`Variant Configuration COEBS` (63143), a `HasParameterValue()` na tabulce `Variant Configuration COEBS`
+(63143) je **`internal`**. Rozšíření, které potřebuje variantu dohledat/založit z kódu (bez dialogu),
+si tu logiku musí **zduplikovat** — page jde pustit jen `RunModal`, což v subscriberu při vytváření
+prodejního řádku nechceš. Duplikát označ `TODO keep in sync` s ověřenou verzí COEBS (stejný vzor jako
+`SL Act. Variant Lookup COZLK` u validity rules) a správné řešení — public helper v COEBS — nabídni.
+
+Co je naopak z COZLK/COALU dosažitelné a nemusíš psát znovu:
+
+- **`Config Param. Lookup COEBS` (63156)** — hotová výběrová page nad `Configuration Parameter COEBS`.
+  Předfiltruj record (`SetRange("Configuration No.")`, `SetRange("Parameter Type")`), `SetTableView` +
+  `LookupMode(true)` + `RunModal() = Action::LookupOK` + `GetRecord`. Base ji takhle používá v
+  `SL Action Line COEBS."Item From Parameter"` OnLookup.
+- **`Config. Condition Mgt. COEBS`** má procedury public (`GetCopiedValueFrom`, `IsParameterHidden`,
+  `GetFilteredParameterValues`, `ValidateParameterValue`, …) — podmínky parametrů neřeš sám.
+- **`Param. Display Text Mgt. COEBS` (63160)** — `GetOptionDisplayText` / `GetTableLookupDisplayText`
+  pro dopočet `Display Text` u Option / Table Lookup hodnot.
+- **`SL Action Line COEBS.HasPriceFormula()` / `HasDiscountFormula()` / `HasFormula()`** jsou public —
+  hodí se, když v `OnBeforeModifyNewSalesLineFromAction` přepisuješ variantu a musíš rozhodnout, jestli
+  po `Validate("Variant Code")` vrátit cenu z akce, nebo nechat vyhrát standardní cenotvorbu. Texty
+  (`Description`, `Description 2`) vracej vždycky — validace varianty je přepíše z karty zboží (3.6b
+  v `bc-al-data.md`).
+
+Hodnoty parametrů putují v `Dictionary of [Code[20], Text]` klíčované `Parameter Code` a čísla v nich jsou
+v **invariantním formátu** (`Format(x, 0, 9)`, tečka) — při zpětném parsování `Evaluate(…, 9)` po normalizaci
+(`DelChr` mezer/NBSP, `,` → `.`), viz vzor `InitializeParameterCopiedValue` v `Variant Config Params COEBS`.
+
+(2026-09-17, cust-zlomek-bc 65364 — přebírání hodnot parametrů z hlavní konfigurace do vnořené;
+zdroje prod-ess-configurator-bc master, COEBS 28.0.22.0.)

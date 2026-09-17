@@ -379,6 +379,13 @@ Essence CI má `failOn = 'warning'`, takže jediný warning shodí build. Než o
    naopak **nepředává** (AL1003, viz 7.1) — nezaměň ty dvě „Common" knihovny. Test projekty jedou
    bez rulesetu (7.12 v `bc-al-build.md`), u hlavních appek CI přidává ruleset per konvence 12.4.
    V Git Bash prefix `MSYS2_ARG_CONV_EXCL="*"` a plné Windows cesty (viz 7.1).
+   **Když repo ruleset dědí remote `essence-default.ruleset.json` (`includedRuleSets` s `https://…`),
+   musíš `alc` předat i přepínač `/enableexternalrulesets`** — jinak `error AL1033: … because external
+   rulesets are not allowed` a build spadne dřív, než se vůbec dostane ke kódu. V CI to netrápí
+   (`externalRulesets` má v `CompileALApps2.yml` default `True`, viz 12.1b), takže se to objeví až
+   při lokální verifikaci. Druhá povinná drobnost ze stejné dvojice: **`ALCops.Common.dll` se předává
+   jako `/analyzer:`** — bez něj každé ALCops pravidlo spadne na `AD0001` a `alc` skončí
+   `System.AggregateException` (ne tichým „0 warningů"). (2026-09-17, cust-zlomek-bc 65364.)
 3. `info` nálezy build neshodí (dlouhodobý šum typu AA0247 klidně odfiltruj),
    **každý warning oprav před pushem**.
 4. `LC0072` (info) „documentation comment does not match the procedure syntax": `///` XML doc
