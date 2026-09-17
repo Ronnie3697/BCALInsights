@@ -312,8 +312,34 @@ Order`, 86) se rezervační položky přenesou na objednávkový řádek přes
 `SalesLineReserve.TransferSaleLineToSalesLine(SalesQuoteLine, SalesOrderLine,
 "Outstanding Qty. (Base)")` — SN/šarže zadané na nabídce tedy na SO nezmizí.
 Totéž platí pro Blanket Order → Order (87). Neplést s **rezervací** skladu:
-`Reserve` na nabídce nedělá nic užitečného, ale tracking (surplus entries
+`Reserve` na nabídce nedělá nic užitečného, ale tracking (jednostranné entries
 s SN) na ní žije. Ověřeno w1-28 (2026-09-02, nacenění Zlomek 62661).
+
+⚠️ **Tracking na nabídce má `Reservation Status = Prospect`, ne Surplus.**
+`Item Tracking Lines` (6510) `SetSourceSpec` dává `Surplus` jen „order network
+entitám" a `Item Tracking Management.IsOrderNetworkEntity` bere u `Sales Line`
+**jen Subtype 1 (Order) a 5 (Return Order)** — nabídka (0) a rámcová objednávka
+(4) padnou do `else` větve = `Prospect`. Na Surplus to překlopí až
+`TransferSaleLineToSalesLine` během Make Order. Důsledky:
+
+- Vlastní kód, který jednostranný tracking hledá `SetRange("Reservation
+  Status", …::Surplus)`, na nabídkách **tiše nedělá nic** (žádná chyba, žádný
+  záznam) → filtruj `'%1|%2'` Surplus + Prospect. Párované (`Reservation` /
+  `Tracking`) nech být — `CreateReservEntry.CreateEntry` pro ně zakládá dvě
+  řádky a protistrana drží starou hodnotu.
+- `Sales-Quote to Order` volá na **každé** položce
+  `ReservEntry.TestItemFields(SalesLine."No.", "Variant Code", "Location Code")`
+  → jakýkoliv nesoulad varianty mezi řádkem a jeho rezervačními položkami
+  vybouchne až tady (*„Kód varianty musí být rovno…"*), ne při samotné změně.
+  Konfigurátorové scénáře, které mění `Variant Code` řádku se sledováním, proto
+  musí variantu na entries srovnat samy — a `CreateReservEntry.TransferReservEntry`
+  ji s sebou nese přes `TransferFields(OldReservEntry, false)`, takže po přesunu
+  položky na jiný řádek zůstává stará.
+
+(2026-09-17, prod-ess-configurator-bc WI 66066 — rozdělení řádku nabídky
+s konfigurací; `Sales Line Split Mgt. COEBS.AlignTransferredTrackingVariant`
+srovnával jen Surplus, na nabídce tedy nic, a Make Order padal. Zdroje Base
+Application 28.3.52162.53506, extrakce z .app.)
 
 **Praktický dopad:** report/factbox „rozpad SN z řádků nabídky" se čte z 337
 (+ 336 pro handled) s filtrem `Source Subtype = 0`, žádné vlastní pole na
