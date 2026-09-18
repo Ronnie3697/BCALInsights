@@ -3,17 +3,18 @@ name: bc-al-style
 description: >-
   BC/AL konvence kódu a stylu z praxe (Business Central, AL; sekce 1, 10):
   jazyk identifikátorů (EN), struktura src/ podle typu objektu, permission
-  sety (limit 20 znaků, PTE0018, vrstvení rolí Read/Oper/Admin), naming
+  sety (20 znaků, PTE0018, vrstvení rolí Read/Oper/Admin), naming
   doprovodných souborů, Description a ToolTip (kam a jak), pořadí
   IntegrationEvent/actionref, Temp prefix, StyleExpr, Access = Internal,
   formát page fieldů, ApplicationArea/DataClassification,
   AllowInCustomizations (LC0035, AL0667), typed Record vs RecordRef, array
-  parametry, přidělování object/field ID per typ (test objekty od konce
-  range), Format(enum) = caption, Evaluate/Format locale pasti (formát 9,
+  parametry, přetěžování procedur (overloading, AL0440), přidělování
+  object/field ID per typ (testy od konce range), Format(enum) = caption,
+  Evaluate/Format locale pasti (formát 9,
   Excel Buffer čísla), moderní AL patterny podle app.json (namespaces,
   interfaces, Isolated Storage, SecretText, LC0083, LC0088, telemetrie,
   Cloud target zakázaná API, ověřování API). Načti při psaní nebo review AL
-  kódu, naming, ToolTipů, permission setů, přidělování ID, výběru patternu.
+  kódu, naming, ToolTipů, permission setů, ID, výběru patternu.
   (Chování page/pageextension — RunModal, ConfirmManagement, factbox,
   Visible → skill bc-al-ui.)
 user-invocable: true

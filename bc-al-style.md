@@ -533,6 +533,45 @@ naopak: `Evaluate(Dec, '4,5')` → **45** (čárka = tisíce), žádná chyba, j
   neúspěchu (textová buňka zadaná ručně s druhým oddělovačem) `DelChr` mezer/NBSP + `,`→`.` + `Evaluate(…, 9)`.
   (2026-09-01, prod-epb-pricingMatrix-bc, code review importu matice.)
 
+### 1.15 AL **umí** přetěžování procedur (overloading) — rozlišuje podle typů parametrů, ne podle názvů
+
+Dlouho platilo „AL overloading nemá" a training memory to drží dodnes — **na AL 18 /
+runtime 17 to už neplatí**. Dvě procedury stejného jména v jednom objektu se zkompilují,
+pokud se liší **typy** parametrů (a tím i jejich počtem):
+
+```al
+// Projde — obálka, která zahodí výstupní parametry, jež volající nepotřebuje
+local procedure CreateConfiguredVariant(ItemNo: Code[20]; var ItemVariant: Record "Item Variant")
+var
+    ConfigNo: Code[20];
+    ParamLineNo: Integer;
+begin
+    CreateConfiguredVariant(ItemNo, ItemVariant, ConfigNo, ParamLineNo);
+end;
+
+local procedure CreateConfiguredVariant(ItemNo: Code[20]; var ItemVariant: Record "Item Variant"; var ConfigNo: Code[20]; var ParamLineNo: Integer)
+begin
+    …
+end;
+```
+
+- Rozlišuje se **typ** parametru, ne jeho jméno: `Helper(A: Integer)` + `Helper(A: Text)`
+  projde, `Helper(Alpha: Integer)` + `Helper(Beta: Integer)` skončí
+  `error AL0440: The Codeunit 'X' already defines a method called 'Y' with the same parameter types`.
+  Platí pro `local`, `internal` i `public` procedury.
+- **Kdy to použít:** tenká obálka nad plnou variantou (jako výše — AL nemá volitelné
+  parametry, takže overload je jediná cesta, jak nenutit každého volajícího deklarovat
+  `var` proměnné, které ho nezajímají). Ne pro dvě různé logiky pod jedním jménem —
+  čtenář pak u volání netuší, která větev jede.
+- **Ověř kompilací, než na to vsadíš ve starším repu.** Ověřeno na `alc` 18.0.41.45789
+  (AL extension 18.0.2732683, runtime 17.0, BC 28.3); od kterého runtime přesně to
+  funguje, ozkoušené není. Sonda je triviální — dvě procedury + jedno volání, `alc`
+  přes 7.1 v `bc-al-tools.md`.
+
+(2026-09-18, prod-ess-configurator-bc, review testů větve `QuoteTrackingVariantAlign` —
+`System Param Tests COEBS.CreateConfiguredVariant` vypadal jako duplicita, která nemůže
+projít; kompilace test appky přitom byla čistá.)
+
 ---
 
 

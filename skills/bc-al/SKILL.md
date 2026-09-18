@@ -68,7 +68,7 @@ je drahý.
 
 | Děláš… | Skill | Soubor (kořen repa) |
 |---|---|---|
-| Konvence, naming, prefixy/affixy, Description/ToolTipy, formát page fieldů, permission sety, přidělování ID, locale pasti (Format/Evaluate, Excel Buffer), výběr moderního patternu (namespaces, interfaces, SecretText, Cloud target) | `bc-al-style` | `bc-al-style.md` (sekce 1, 10) |
+| Konvence, naming, prefixy/affixy, Description/ToolTipy, formát page fieldů, permission sety, přidělování ID, přetěžování procedur, locale pasti (Format/Evaluate, Excel Buffer), výběr moderního patternu (namespaces, interfaces, SecretText, Cloud target) | `bc-al-style` | `bc-al-style.md` (sekce 1, 10) |
 | Chování page/pageextension: RunModal a výběr na RoleCenter, ConfirmManagement default, factbox SubPageLink, CaptionClass cache, názvy controlů / expression pole, modify cizí pageextension, smyčka aktualizace v OnAfterGet*Record, Visible přes page proměnnou, MultiLine/RichContent/control add-in | `bc-al-ui` | `bc-al-ui.md` (sekce 4) |
 | FindSet/locking, Insert/Modify/Delete, TempBlob, SetLoadFields, SetFilter, TransferFields, Mark/Copy, event subscribery, tableextension triggery / klíče / modify(), propagace vlastních polí přes posting/archive (částečné účtování, Blob + CalcFields, AutoFormatExpression) | `bc-al-data` | `bc-al-data.md` (sekce 2, 3) |
 | No. Series, Upgrade Tag, All Profile, Item Tracking/Lot (i na Sales Quote), Unix timestamp, atributy zboží, DateFormula, CaptionClass/Translation Helper, CZ↔EN terminologie, CZZ zálohy, Attached to Line No. / parent↔child řádky, Requisition Line, VerifyOnInventory, Auto Format / částky v textu, Item Charge Assignment z kódu | `bc-al-objects` | `bc-al-objects.md` (sekce 5) |
