@@ -868,9 +868,11 @@ test codeunity nedává smysl.
 
 - **Dědit hlavní ruleset** (`includedRuleSets` na `..\app\<main>.ruleset.json`) — tím
   test projekt zdědí všechna projektová pravidla (vč. hidden LC0010 apod.) a jen navíc
-  schová LC0015. Zlomek (`cust-zlomek-bc-test.ruleset.json`) to dělá takhle; configurator
-  (`ess-configurator-test.ruleset.json`) **nedědí** a tím o hlavní pravidla přichází —
-  ber Zlomek vzor.
+  schová LC0015 / AC0010. Takhle to dělá Zlomek (`cust-zlomek-bc-test.ruleset.json`)
+  i configurator (`ess-configurator-test.ruleset.json`, doplněno 2026-09-18 — předtím
+  nedědil a přicházel tím o hlavní i remote pravidla; detail dopadu v 12.1b
+  v `bc-al-workflow.md`). Pravidla, která hlavní ruleset už skrývá (`LC0090`, `PC0037`),
+  do test rulesetu **nekopíruj** — zdědí se a ruční kopie se při příští změně rozejde.
 - Hlavní ruleset typicky dědí remote `essence-default.ruleset.json` z blob storage →
   test settings potřebují `"al.enableExternalRulesets": true`.
 

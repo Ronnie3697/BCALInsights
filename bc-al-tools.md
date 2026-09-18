@@ -88,8 +88,9 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   `essence-default.ruleset.json` z blob storage) normálně stáhne a aplikuje — přesně tak to dělá
   Essence CI (`externalRulesets` default `'True'`, viz 12.1b v `bc-al-workflow.md`). Tím jde lokálně
   ověřit **přesně to, co uvidí CI / VS Code**, místo ručního filtrování výstupu.
-  Kontrola, že ruleset zabral: nálezy skryté v essence-default (`AA0247`, `LC0010`, `LC0068`,
-  `LC0084`, `AS0081`) z výpisu zmizí. (Ověřeno 2026-09-15, cust-zlomek-bc, alc 18.0 — dřívější
+  Kontrola, že ruleset zabral: nálezy skryté v essence-default (k 2026-09-18 `AC0030`, `AC0031`,
+  `LC0010`, `PC0037`, `AS0081`, `AA0247` — obsah se mění, stáhni si ho, viz 12.1b v
+  `bc-al-workflow.md`) z výpisu zmizí. (Ověřeno 2026-09-15, cust-zlomek-bc, alc 18.0 — dřívější
   poznámka „žádný CLI přepínač to nepovoluje" byla chybná.)
 - **Trans-unit ID do ručních překladů:** po CLI kompilaci (s feature
   `TranslationFile`) se přegeneruje `Translations/*.g.xlf` — ID nových

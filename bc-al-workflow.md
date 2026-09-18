@@ -414,8 +414,20 @@ nezachytí, dokud se někdo nepodívá do VS Code.
 první nalezený). Repo ruleset v rootu (`<repo>.ruleset.json`) se tedy do CI **nepředá**, jak už říká 12.4.
 Naopak jakmile `*Ruleset*.json` do app folderu přidáš, CI ho začne používat — a `externalRulesets`
 má v `CompileALApps2.yml` **default `'True'`**, takže remote `includedRuleSets` (essence-default)
-nespadne na `AL1033`. Remote `essence-default.ruleset.json` skrývá pět pravidel (`LC0010`, `LC0068`,
-`LC0084`, `AS0081`, `AA0247`), nic nezvyšuje — dědit ho je bezpečné.
+nespadne na `AL1033`. Remote `essence-default.ruleset.json` jen skrývá, nic nezvyšuje — dědit ho je
+bezpečné. **Jeho obsah se ale v čase mění, takže si ho před rozhodováním stáhni**
+(`curl -s https://essencefiles.blob.core.windows.net/bc-pipelines/essence-default.ruleset.json`),
+nespoléhej na seznam v notes: k 2026-09-18 skrývá **`AC0030`, `AC0031`, `LC0010`, `PC0037`, `AS0081`,
+`AA0247`** (dřív tu stálo `LC0010`/`LC0068`/`LC0084`/`AS0081`/`AA0247` — `PC0037` a obě `AC*` přibyly,
+`LC0068`/`LC0084` tam dnes nejsou).
+
+⚠️ **Test ruleset, který nedědí hlavní, si tím remote skrývání zapíná zpátky** — kontroluje tedy
+**víc** než hlavní appka, ne míň, což je přesný opak toho, co od test rulesetu čekáš. Na
+prod-ess-configurator-bc to dělalo 201× `AC0030` + 24× `AC0031` + 22× `AA0247` + všechna `PC0037`
+v testech, zatímco hlavní appka je měla skryté; po doplnění `includedRuleSets` na hlavní ruleset
+spadl počet nálezů test appky z 388 na 141 a `LC0090`/`PC0037` šly z test rulesetu pryč jako
+duplicitní. Dnes to nebolí (samé `info`), ale jakmile remote skryje nějaký **warning**, hlavní appka
+projde a testy shodí build. (2026-09-18, prod-ess-configurator-bc.)
 
 **Čísla z praxe (cust-sonnentor-bc, 2026-09-15, první zapnutí ALCops na repo s ~165 soubory):**
 hlavní appka 1176 diagnostik, z toho **313 warning/error**; test appka 217 / **97**. Zbytek je `info`
