@@ -489,6 +489,9 @@ captionů). Nezaměňovat za "doslovný" překlad ze slovníku.
 | Zbývající                         | **Outstanding** / **Remaining**         |                                                                |
 | Kód varianty                      | **Variant Code**                        |                                                                |
 | Měrná jednotka                    | **Unit of Measure**                     | Code → Kód měrné jednotky                                      |
+| Vydaná výrobní zakázka            | **Released Production Order**           | Released = **Vydaná**, ne "Uvolněná". Stavy VZ: Simulated = Simulovaná, Planned = Plánovaná, Firm Planned = Pevně plánovaná, Released = Vydaná, Finished = Dokončená |
+| Řádek výrobní zakázky             | **Prod. Order Line**                    | Komponenta = Prod. Order Component                             |
+| Výrobní kusovník                  | **Production BOM**                      | Certified = Certifikovaný                                      |
 
 Když si nejsi jistý, podívej se do XLIFF (`Translations\*.cs-CZ.xlf`) base
 appky nebo do CZ lokalizační větve `cz-<major>` repa
