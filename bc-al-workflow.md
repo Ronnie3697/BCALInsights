@@ -74,6 +74,14 @@ Přihrádka` (ne "Koš"), `Item = Zboží` (ne "Položka"), `Lot = Šarže`. Too
 sice nabídne `[NAB: SUGGESTION]Sériové č.` jako kratší variantu, ale base
 app cs-CZ používá `Sériové číslo` v plném tvaru — drž to.
 
+**⚠️ Výpis `<target>` z `.cs-CZ.xlf` přes `print()` v Bash toolu rozbije diakritiku.** Stdout Git Bash
+konzole na Windows jede v cp1250/cp852, takže `python -c "... print(target)"` vrátí `Nastaven� Essence
+Kiosku` — text vypadá poškozeně, i když soubor je v pořádku (ověř `open(p, encoding='utf-8-sig')`).
+Nesnaž se to opravit reencodingem výstupu: extrahované dvojice **zapiš do souboru v UTF-8**
+(`open(out,'w',encoding='utf-8')`, klidně do scratchpadu) a přečti ho **Read toolem** — ten UTF-8 zvládá.
+Platí pro jakýkoli český text tažený z repa přes Bash (Labely, `Description`, MD dokumentace).
+Hodí se při psaní uživatelské příručky, kde se terminologie bere z XLIFF (8.1). (2026-09-21, prod-em-kiosk-bc)
+
 ### 6.2 XLIFF trans-unit ID — hash algoritmus (ruční doplnění unitů bez rebuildu)
 
 ID v `trans-unit` (`Table 66836948 - Field 922357686 - Property 2879900210`)
