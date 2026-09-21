@@ -7,6 +7,7 @@
 > parent↔child řádky, Requisition Line / Req. Wksh.-Make Order, VerifyOnInventory, Auto Format / částky v textu.
 >
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
+> **Essence Configurator** má od 2026-09-21 vlastní soubor `ess-configurator-notes.md` (parametry, vzorce, systémové parametry, varianty) — sekce 5.x10, 5.x12, 5.x2b a 5.x8 zatím zůstávají tady, při dalším průchodu je přesuň.
 
 Obsahuje:
 - **5.** Specifické objekty a API (bez 5.y2 Shopify → `bc-al-integrations.md`)

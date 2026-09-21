@@ -1,0 +1,254 @@
+# Essence Configurator — poznámky z praxe
+
+> Doménové poznámky k produktové appce **Essence Configurator** (publisher
+> `Essence International s.r.o.`, app ID `45c32b8e-5eb2-49c6-8914-456284d2b7b8`,
+> affix **COEBS**, repo `C:\WorkTasks\prod-ess-configurator-bc`) a k zákaznickým
+> rozšířením nad ní (`configuratorExtension` u Alumistra = affix **COALU**,
+> u Zlomku **COZLK**).
+>
+> Načítej, když řešíš: konfigurační parametry a jejich podmínky, vzorce (číselné
+> i textové), systémové parametry, dialog konfigurace varianty, akce kusovníku /
+> postupu / prodejního řádku, identitu varianty.
+>
+> **Obecná AL pravidla platí dál** — `bc-al-style`, `bc-al-data`, `bc-al-ui`,
+> u netriviální funkčnosti `bc-al-autotests`.
+>
+> Starší konfigurátorové poznatky žijí zatím i v `bc-al-objects.md`
+> (5.x10 `Effective Hidden`, 5.x12 find-or-create varianty + public API dialogu,
+> 5.x2b tracking na nabídce, 5.x8 Item Charge Assignment) a v `bc-al-data.md`
+> (3.6b `Validate("No.")` → `Init()`, 5.x4 `Attached to Line No.`). Při dalším
+> průchodu je sem přesuň; odkazy „viz X.Y" nechávej funkční.
+
+## Obsah
+
+- [C1. Systémové parametry](#c1-systémové-parametry)
+- [C2. Kde se hodnota systémového parametru plní — a kde ne](#c2-kde-se-hodnota-systémového-parametru-plní--a-kde-ne)
+- [C3. Číselné vzorce — `Action Formula Line COEBS`](#c3-číselné-vzorce--action-formula-line-coebs)
+- [C4. Textové vzorce — `Text Formula Line COEBS`](#c4-textové-vzorce--text-formula-line-coebs)
+- [C5. Identita varianty = množina hodnot parametrů](#c5-identita-varianty--množina-hodnot-parametrů)
+- [C6. Diagnostika konfigurace v běžícím BC](#c6-diagnostika-konfigurace-v-běžícím-bc)
+
+---
+
+## C1. Systémové parametry
+
+**Systémový parametr** = operand vzorce, který nepochází z konfigurace, ale
+z kontextu běhu (množství prodejního řádku, souřadnice CNC věty). Drží je
+codeunit **63154 `System Parameter Mgt. COEBS`** (`Access = Public`).
+
+- **Identifikace = záporné `Line No.`** (`IsSystemParameter(LineNo) := LineNo < 0`).
+  Base má zatím jediný: **`QUANTITY`, Line No. `-1`**, název *Source Line Quantity*,
+  typ `Decimal`, Sort Order `-10000`.
+- **V tabulce `Configuration Parameter COEBS` neexistují.** Vznikají jen
+  v temporary bufferu pro lookup (`AddAllSystemParameters` / `AddNumericSystemParameters`
+  → `AddSystemParameterToTemp`). Důsledek: FlowField `Parameter Code` / `Parameter Name`
+  na řádku vzorce se u nich **nedopočítá** (page inspector ukazuje `(Neznámé)`,
+  grid prázdno) — viz C6.
+- **Hodnota putuje ve slovníku** `Dictionary of [Code[20], Text]` klíčovaném
+  *Parameter Code*, čísla v **invariantním formátu** (`Format(x, 0, 9)`, tečka).
+- **Rozšiřitelnost pro zákaznické appky** — čtyři integration eventy:
+  `OnAddNumericSystemParameters(ConfigNo; var TempConfigParam)`,
+  `OnGetSystemParameterCode/Name/Type(ParameterLineNo; var …; var IsHandled)`.
+  Vzor: `CNC Formula Param COALU` (52011) v `cust-alumistr-bc` registruje
+  `X1` / `X` / `Y` / `Z` pod Line No. **−51990…−51993** (Sort Order −20000…−19970).
+  Záporné Line No. musí být **unikátní napříč všemi appkami** — base drží −1,
+  zvol si vlastní rozsah odvozený od svého object ID rozsahu.
+
+## C2. Kde se hodnota systémového parametru plní — a kde ne
+
+⚠️ **Tohle je nejčastější zdroj tichých nul ve vzorcích.**
+
+Hodnotu `QUANTITY` do slovníku zapisuje **jediná procedura**
+`System Parameter Mgt. COEBS.InjectSalesLineSystemParameters(var ParameterValues;
+SalesDocType; SalesDocNo; SalesLineNo)` — `SalesLine.Get(…)` + `ParameterValues.Set('QUANTITY',
+Format(SalesLine.Quantity, 0, 9))`. Čte se tedy **uložený řádek z DB**, ne rozepsaný
+řádek na stránce.
+
+Volá ji **jen `SL Action Cond. Mgt. COEBS`** (přes lokální `InjectSalesLineQuantity`,
+3 vstupní body: `ApplyCurrentLineOverrides`, `ExecuteSalesLineActions`,
+`RecalculateConfigCreatedLines`). Tedy **pouze cesta vykonávání akcí prodejního řádku**.
+
+| Kontext vyhodnocení vzorce | `QUANTITY` k dispozici? |
+|---|---|
+| Akce prodejního řádku — Množství, Jednotková cena, Sleva %, texty (Popis, Popis 2) | ✅ |
+| Akce prodejního řádku na **poznámkovém řádku** (`Type = " "`) | ✅ (viz C4) |
+| **Výchozí / Min / Max hodnota konfiguračního parametru** (dialog konfigurace) | ❌ |
+| Podmínky parametrů, filtry Table Lookup | ❌ |
+| Akce kusovníku (BOM) a postupu (Routing) | ❌ |
+| CNC tisk (`CNC Print Mgt. COALU`) — tam se plní X1/X/Y/Z, ne QUANTITY | ❌ |
+
+**Proč dialog hodnotu nemá:** `Variant Config Params COEBS` (63147) si slovník staví
+vlastní procedurou `GetParameterValues` — projde jen řádky bufferu parametrů
+konfigurace. Systémové parametry v tom bufferu nejsou. Navíc při úplně prvním
+načtení (`LoadParameters`) se default počítá nad **prázdným** slovníkem
+(`EmptyParameterValues`).
+
+**Jak se chyba projeví:** `Formula Evaluation Mgt. COEBS.ResolveParameterValueText`
+u systémového parametru, který ve slovníku není, vrací natvrdo řetězec **`'0'`**.
+Žádná chyba, žádné varování — vzorec `A * QUANTITY` prostě vrátí 0 a uloží se.
+
+⚠️ **Lookup operandu kontext neřeší.** `Text Formula Line."Parameter Line No."`
+i `Action Formula Line."Parameter Line No."` v `OnLookup` volají
+`AddAllSystemParameters` / `AddNumericSystemParameters` **bez ohledu na `Source Type`
+a `Field Type`** vzorce, který se právě edituje. Uživatel si tedy `QUANTITY`
+(nebo CNC `X`/`Y`/`Z`) legitimně vybere i tam, kde se nikdy nenaplní, a nic ho
+nevaruje. Při návrhu nového systémového parametru s tím počítej — buď lookup
+filtruj podle kontextu, nebo hodnotu injektuj i do zbylých cest.
+
+**Než začneš hledat chybu ve vzorci:** ověř, v jakém *kontextu* se vyhodnocuje
+(`Source Type` + `Field Type` na řádku vzorce), a teprve pak, co je ve slovníku.
+
+(2026-09-21, cust-alumistr-bc — Alumistr měl `SKLO_POCET` = `VYP_KRIDLO_POCET * QUANTITY`
+jako výchozí hodnotu parametru; ve variantě se uložila 0 a odtud prosákla do popisů
+prodejních řádků. Táž konfigurace používala `QUANTITY` 4× na Množství akce prodejního
+řádku — tam počítá správně.)
+
+## C3. Číselné vzorce — `Action Formula Line COEBS`
+
+Tabulka **63148**, editor page **63162 `Action Formula COEBS`** (Worksheet),
+service page **63163 `Action Formula Svc COEBS`**.
+
+### PK **neobsahuje `Field Type`**
+
+```al
+key(PK; "Configuration No.", "Condition Line No.", "Source Type", "Source Line No.", "Line No.")
+```
+
+`Field Type` (pole 6, enum `Formula Field Type COEBS`) je **obyčejné datové pole**,
+na které `EvaluateFormula` jen filtruje (`SetRange`). Dva důsledky:
+
+- **`OnInsert` čísluje `Line No.` napříč všemi `Field Type`** téhož akčního řádku —
+  vzorec pro Množství a vzorec pro Jednotkovou cenu tak sdílí jednu číselnou řadu
+  a nekolidují. To je záměr, ne chyba.
+- **Nový „kanál" vzorců na tentýž zdrojový řádek = nová hodnota enumu, ne změna klíče.**
+  Když potřebuješ další rozlišovací osu (víc nezávislých výrazů na jednom řádku),
+  přidej **pole mimo PK** a filtruj na něj stejně jako na `Field Type`. PK nasazené
+  tabulky neměň.
+
+### Enum `Formula Field Type COEBS` (63146, `Extensible = true`)
+
+`0 " "`, `1 Quantity`, `2–5` časy postupu (Setup/Run/Wait/Move), `10 Default Value`,
+`11 Min Value`, `12 Max Value`, `20 Unit Price`, `21 Line Discount %`,
+`30 Item Variant Desc.`, `40 Description`, `41 Description 2`, `42 Search Name`
+(40–42 = pole stavěná **textovými** vzorci).
+
+### Vyhodnocení
+
+`Formula Evaluation Mgt. COEBS` (63149) — `EvaluateFormula(ConfigNo; ConditionLineNo;
+SourceType; SourceLineNo; FieldType; var ParameterValues; DefaultValue): Decimal`.
+Poskládá text výrazu (`BuildFormulaText`) a pustí `Math Expression Parser COEBS`.
+Bez řádků vzorce vrátí `DefaultValue`.
+
+- Operand = buď `Parameter Line No.` (běžný i systémový parametr), nebo
+  `Constant Value`. **Parametr má přednost** — když je `Parameter Line No.` <> 0,
+  konstanta se ignoruje.
+- Nenalezený parametr (běžný i systémový) → **`'0'`**, tiše (viz C2).
+- Hodnoty se z textu parsují přes `Cond. Comparison Mgt. COEBS.TryParseDecimal`
+  (locale-tolerantní) a zpět `Format(x, 0, 9)`.
+- `EditFormula(…)` otevře editor modálně s backupem a **restore při Cancel** —
+  hotová obálka, používej ji z pageextensions místo vlastního dialogu.
+
+Výchozí / Min / Max hodnoty parametrů počítá `Config. Condition Mgt. COEBS`
+(`HasDefaultDecimalValue` / `HasDefaultIntegerValue` / `ApplyConditionDefault*`)
+voláním `EvaluateFormula` se `SourceType::Parameter` a `FieldType::"Default Value"`;
+`Source Line No.` = `Line No.` parametru, `Condition Line No.` = 0 pro základní
+default a číslo podmínky pro podmínkový override.
+
+## C4. Textové vzorce — `Text Formula Line COEBS`
+
+Tabulka **63155**, enum typu řádku **63154 `Text Formula Line Type COEBS`**,
+codeunit **63153 `Text Formula Eval. Mgt. COEBS`**, service page **63193**.
+PK: `Configuration No., Condition Line No., Source Type, Source Line No., Field Type, Line No.`
+(tady `Field Type` **v klíči je**, na rozdíl od C3).
+
+### Je to čistá konkatenace — žádná aritmetika
+
+Typy řádku: `Text` (literál z `Text Value`), `Parameter Name`, `Parameter Value`,
+`Parameter Value Name` (display text vybrané hodnoty, fallback na hodnotu samotnou).
+Náhled v UI: `{KOD:Name}` / `{KOD:Value}` / `{KOD:ValueName}`.
+
+**Systémové parametry textový vzorec umí** (`ResolveParameterCode` →
+`SystemParamMgt.GetSystemParameterCode`), takže `{QUANTITY:Value}` funguje.
+**Nedokáže ale počítat** — „počet křídel × množství objednávky" se do popisu
+přímo napsat nedá. Kdo to potřebuje, sáhne po pomocném konfiguračním parametru
+se vzorcem… a spadne přesně do C2.
+
+### Texty se aplikují i na poznámkový řádek
+
+V `SL Action Cond. Mgt. COEBS.InitNewSalesLineFromAction` je volání textových
+vzorců **záměrně nad** větví pro poznámku:
+
+```al
+IsCommentLine := SLActionLine.Type = SLActionLine.Type::" ";
+…
+ApplyActionLineTexts(NewSalesLine, SLActionLine, ParameterValues);   // běží vždy
+if not IsCommentLine then begin                                      // množství, ceny, MJ, data, dimenze
+    ApplyActionLineAmounts(…);
+```
+
+Takže `{QUANTITY:Value}` v popisu **poznámkového** řádku hodnotu dostane.
+Když tam vyjde nula, hledej ji v parametru, který popis používá, ne v typu řádku.
+
+⚠️ **Pořadí: texty až po `Validate("Variant Code")` a `Validate("Unit of Measure Code")`** —
+oba triggery volají `Item Reference Management.EnterSalesItemReference` a `Description`
+i `Description 2` přepíšou z karty zboží (detail 3.6b v `bc-al-data.md`).
+
+## C5. Identita varianty = množina hodnot parametrů
+
+`Variant Configuration COEBS` (63143) — dialog `FindExistingVariantWithSameValues`
+projde varianty zboží a `CompareParameterValues` porovná **všechny vyplněné**
+hodnoty parametrů (per typ: Integer/Decimal i `Has Value`, Option/Table Lookup
+`Value Code`, Text `Value Text`). Shoda = použije se existující varianta,
+neshoda = vznikne nová.
+
+**Důsledek pro návrh parametrů:** parametr, jehož hodnota závisí na kontextu
+*prodejního řádku* (množství, datum, zákazník), do konfigurace **nepatří** —
+vyrobil by novou variantu zboží pro každou hodnotu a při změně na řádku by se
+stejně nepřepočítal (uložená varianta je sdílená mezi řádky). Takové veličiny
+patří do vzorců **akce prodejního řádku**, kde se počítají při každém přepočtu.
+
+Přepočet generovaných řádků při změně zdrojového řádku řeší
+`Sales Line Config. Mgt. COEBS.CaptureSourceLineBeforeModify` + `RecalcAttachedLinesOnSourceLineModify`
+(reaguje na změnu `No.` / `Variant Code` / `Quantity`) — **hodnoty parametrů varianty
+ale nepřepočítává**, ty se jen čtou přes `LoadVariantParameterValues`.
+
+Dialog kontext prodejního řádku **zná**: `SalesLineConfigMgt.HandleVariantCodeLookup`
+volá `VariantConfigurationPage.SetSalesLineContext(DocType, DocNo, LineNo)`
+(`SetSourceQuantity` naopak plní jen split mode ze `Sales Line Split Mgt. COEBS`).
+
+## C6. Diagnostika konfigurace v běžícím BC
+
+Service stránky nad tabulkami konfigurátoru jsou `Editable`, ale pro **čtení** dat
+zákazníka jsou nejrychlejší cesta — otevřeš je přímo URL (i bez `UsageCategory`):
+
+```
+…/<env>?company=<Company>&page=<ID>&filter=%27Configuration%20No.%27%20IS%20%270054%27
+```
+
+| Page | Tabulka | K čemu |
+|---|---|---|
+| 63163 `Action Formula Svc COEBS` | `Action Formula Line COEBS` | operandy číselných vzorců (`Typ zdroje`, `Typ pole`, `Číslo řádku parametru`, `Operátor`) |
+| 63193 `Text Formula Svc COEBS` | `Text Formula Line COEBS` | skladba popisů (`Typ řádku`, `Hodnota textu`, `Kód parametru`) |
+| 63149 `Variant Configurations COEBS` | `Variant Configuration COEBS` | **uložené hodnoty** parametrů varianty (filtr `'Variant Code' IS 'COEBS0230'`) |
+| 63173 `Config. Params. Svc COEBS` | `Configuration Parameter COEBS` | definice parametrů |
+| 63184 / 63185 | `SL Action Condition` / `SL Action Line COEBS` | akce prodejního řádku |
+| 63176 `Cond. Result Values Svc COEBS` | `Condition Result Value COEBS` | povolené hodnoty z podmínek |
+
+**Stopy, podle kterých poznáš systémový parametr ve vzorci:**
+`Číslo řádku parametru` < 0 a `Kód parametru` / `Název parametru` **prázdný**
+(page inspector: `Parameter Code (13, Code[20]) = (Neznámé)`) — FlowField hledá
+záznam, který v `Configuration Parameter COEBS` neexistuje (C1).
+
+**Page inspector (Ctrl+Alt+F1)** je nejrychlejší způsob, jak ověřit, co je v PK:
+u polí klíče píše `PK` za typem (`Source Type (5, Option, PK)`), u ostatních ne.
+Ušetří to hádání nad zdrojákem, když řešíš, jestli změna vyžaduje migraci.
+
+**Sort Order ≠ Line No.** V lookupu operandu vidíš u systémových parametrů sloupec
+*Pořadí řazení* se zápornými čísly (`QUANTITY` −10000, CNC `X1` −20000 … `Z` −19970) —
+to je jen řazení nad běžné parametry. Identifikátor je `Line No.` (−1, −51990…−51993).
+
+⚠️ **Ověř nasazenou verzi appky, než porovnáš chování se zdrojákem** (page 2500,
+nebo `get_installed_apps` přes d365bc-admin MCP — je to spolehlivější než grid
+v prohlížeči). CI bumpuje build číslo, takže verze v prostředí bývá vyšší než
+`version` v `app.json` na masteru; podstatné je, jestli v mezidobí někdo nenasadil
+lokální build. Detail 5.x11 v `bc-al-objects.md`.
