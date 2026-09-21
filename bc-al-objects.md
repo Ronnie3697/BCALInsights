@@ -795,6 +795,27 @@ i `Length` se počítají dvakrát.
 (2026-09-16, cust-alumistr-bc — analýza kusovníků variant 103200-COEBS0209/0210, definice konfigurace 0052;
 zdroje prod-em-cuttingPlan-bc master, prod-ess-configurator-bc master.)
 
+### 5.x13 Délka profilu z výrobního kusovníku: pole `Length` (40) — a `Version Nos.` NENÍ kód verze
+
+Rozměry řádku výrobního kusovníku drží standardní pole **`Production BOM Line."Length"` (ID 40, Decimal)**,
+vedle `Width` / `Depth` / `Weight`; uplatní se podle `Calculation Formula` na témže řádku (cs-CZ „Délka",
+„Vzorec výpočtu"). U řezaných profilů (Alumistr) je to zdroj délky řezu — šířka a výška profilu naopak
+sedí na kartě zboží, ne na kusovníku.
+
+⚠️ **`Production BOM Header."Version Nos." (50)` je číselná řada verzí** (`TableRelation = "No. Series"`),
+**ne** kód verze. Filtr `ProdBOMLine.SetRange("Version Code", ProdBOMHeader."Version Nos.")` proto vypadá
+správně, ale porovnává jablka s hruškami: dokud je `Version Nos.` prázdné, filtruje `''` = řádky hlavní
+verze a všechno „funguje"; jakmile někdo číselnou řadu verzí nastaví, filtr nenajde nic a kód spadne na
+„řádek/profil nenalezen". Správně:
+
+- hlavní (neverzovaná) sada řádků → `SetRange("Version Code", '')`,
+- **aktivní verze ke dni** → `VersionManagement.GetBOMVersion(BOMHeaderNo, Date, OnlyCertified)`
+  (codeunit **99000756** `VersionManagement`, vrací `Code[20]`; sesterské `GetRtngVersion` pro postup,
+  `GetBOMUnitOfMeasure` pro MJ verze).
+
+(2026-09-21, cust-alumistr-bc, `CNC Print Mgt. COALU.GetProfileLengthFromBOM` — zachyceno při psaní
+uživatelské příručky k PBI 62959.)
+
 ### 5.x12 Essence Configurator: „najdi nebo vytvoř variantu" je `local` v dialogu 63143 — z jiné appky ji nezavoláš
 
 Celý find-or-create mechanismus varianty (`FindExistingVariantWithSameValues`, `CompareParameterValues`,
