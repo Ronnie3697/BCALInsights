@@ -33,6 +33,15 @@ contain a definition for Y'`, i když aktuální zdroják té závislosti dané 
 > minimum dependency drž ve **stejné minor řadě**, jaká je na feedu publikovaná,
 > jinak range nic nenajde a Compile spadne (detail a případ Subcontracting v 7.17).
 > Dedupe past níže platí beze změny.
+>
+> **„Proč zvedat minimum, když konzument nemá změnu kódu?"** Kvůli kompilaci ne —
+> LatestMatching v CI stejně vezme nejnovější `X.Y.*` i se starým minimem. Minimum
+> v `app.json` je **pojistka při instalaci**: BC novou verzi konzumenta nenainstaluje
+> ani neupgraduje, dokud v prostředí není dependency ≥ minimum → oprava v závislé
+> appce (na kterou čeká zákazník) se nasadí povinně spolu s ním. Minimum ber jako
+> **první publikovanou** verzi s opravou — spadlý build číslo spotřebuje (7.11 níž).
+> Zachyceno 2026-09-22: cust-alumistr-bc → Essence Configurator 28.0.26 (textové
+> formule s `{= A * QUANTITY}`; 28.0.25 = spadlý build 28404, nepublikováno).
 
 **Příznak:** lokálně to „funguje" (máš v `.alpackages` novější symbol nebo jsi ho
 dočasně obešel), ale CI padá na chybějícím poli/proceduře cizí appky. `AL1076 name/
