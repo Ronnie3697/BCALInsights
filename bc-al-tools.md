@@ -354,6 +354,14 @@ Repo: `https://github.com/StefanMaron/MSDyn365BC.Code.History`
 
 - WebFetch na běžné GitHub URL může u dlouhých souborů vracet ořezaný obsah
 - Seznam větví: `https://github.com/StefanMaron/MSDyn365BC.Code.History/branches`
+- **Struktura cest (cz-28, 2026-09-22):** appky leží **v kořeni repa**, ne v `Apps/CZ/…` (to vrací 404):
+  `<AppFolder>/Source/<App Name s mezerami>/Src/<Codeunits|Tables|TableExtensions|Enums|Pages|…>/<Name>.<Type>.al`,
+  např. `BankingDocumentsLocalizationForCzech/Source/Banking%20Documents%20Localization%20for%20Czech/Src/Codeunits/MatchBankPaymentCZB.Codeunit.al`,
+  `AdvancePaymentsLocalizationForCzech/Source/Advance%20Payments%20Localization%20for%20Czech/Src/Tables/PurchAdvLetterHeaderCZZ.Table.al`,
+  Base App `BaseApp/Source/Base%20Application/Finance/GeneralLedger/Journal/GenJournalLine.Table.al` (mezery v URL jako `%20`).
+  Neznámou cestu dohledej přes GitHub contents API `https://api.github.com/repos/StefanMaron/MSDyn365BC.Code.History/contents/<folder>?ref=cz-28`
+  (bez auth 60 volání/h) a `curl -sL -o soubor <raw URL>` — celý soubor bez ořezu, na rozdíl od WebFetch. Konkrétní build
+  (ne HEAD): `…/commits?sha=cz-28&path=<cesta>` vrátí commity s message `cz-28.0.46665.48549` → raw URL s SHA commitu.
 
 **Lokální sparse checkout (celá appka / diffy mezi verzemi):** blobless klon
 je rychlý a malý — `git clone --filter=blob:none --no-checkout --branch w1-28
