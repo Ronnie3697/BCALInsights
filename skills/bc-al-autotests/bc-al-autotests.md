@@ -252,8 +252,9 @@ Assert.ExpectedErrorCode('Dialog');
 - **Modální `PageType = Worksheet` (i List mimo lookup mode) nemá built-in Cancel.** `TestPage.Cancel().Invoke()`
   v `[ModalPageHandler]` spadne na *„The built-in action = Cancel is not found on the page."* — a reálné BC
   to má stejně: zavření Worksheetu (X, handler bez `Invoke`, `TestPage.Close()`) vrátí z `RunModal()` **`Action::OK`**
-  (Cancel vrací jen StandardDialog / PromptDialog / ConfirmationDialog; měřeno proti service tieru — StefanMaron
-  AL.Runner issues #3059, #3284). Důsledek: větev `if Page.RunModal() <> Action::OK then <restore>` u Worksheet
+  (Cancel vrací jen StandardDialog / PromptDialog / ConfirmationDialog; StefanMaron AL.Runner issues #3059, #3284
+  a **ověřeno ručně v BC sandboxu 2026-09-22**: dočasná akce nad seznamem zboží otevřela `Text Formula COEBS` přes
+  `RunModal`, zavření křížkem → `Action::OK`). Důsledek: větev `if Page.RunModal() <> Action::OK then <restore>` u Worksheet
   editoru je z UI **nedosažitelná** (backup/restore = mrtvý kód) a test na „Cancel vrátí data" nejde napsat —
   buď stránce dej explicitní akci *Cancel* (`CurrPage.Close()` + flag, který `OnQueryClosePage` a volající
   vyhodnotí), nebo test vynech a v handleru zavírej `OK().Invoke()`. (2026-09-22, prod-ess-configurator-bc build 28404,
