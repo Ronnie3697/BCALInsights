@@ -8,8 +8,8 @@ description: >-
   eventy OnAddNumericSystemParameters / OnGetSystemParameterCode) a past tichých
   nul, když se hodnota v daném kontextu neinjektuje, číselné vzorce Action Formula
   Line (PK bez Field Type, Line No. napříč typy polí, Math Expression Parser),
-  textové vzorce Text Formula Line (jen konkatenace {KOD:Value}/{KOD:ValueName},
-  bez aritmetiky, běží i na poznámkovém řádku), identita varianty = množina hodnot
+  textové vzorce Text Formula Line (konkatenace {KOD:Value}/{KOD:ValueName} + řádek
+  Formula {= A * QUANTITY} s Expression No., běží i na poznámkovém řádku), identita varianty = množina hodnot
   parametrů (FindExistingVariantWithSameValues), akce kusovníku / postupu /
   prodejního řádku, diagnostika přes service stránky 63163/63193/63149 a page
   inspector. Načti při práci s konfigurátorem, parametry, vzorci, variantami,
@@ -59,10 +59,13 @@ publisher Essence International s.r.o.), zákaznická rozšíření
   na které se filtruje, a `Line No.` se čísluje napříč typy polí. Další nezávislý
   „kanál" vzorců = nová hodnota enumu `Formula Field Type COEBS` (Extensible)
   a případně **pole mimo PK**. **PK nasazené tabulky neměň.**
-- **Textový vzorec (`Text Formula Line COEBS`, 63155) je čistá konkatenace** —
-  Text / Parameter Name / Parameter Value / Parameter Value Name. Systémové
-  parametry umí (`{QUANTITY:Value}`), **počítat neumí**. Aritmetiku „parametr ×
-  množství" v popisu dnes nejde napsat.
+- **Textový vzorec (`Text Formula Line COEBS`, 63155) = konkatenace** Text / Parameter
+  Name / Parameter Value / Parameter Value Name **+ řádek `Formula`** (`{= A * QUANTITY}`,
+  větev `TextFormulaExpression` 2026-09-22, do releasu jen konkatenace). Operandy výrazu
+  = `Action Formula Line` s `Field Type = Text Expression` a `Expression No.` — samostatné
+  číslo napříč Field Types zdrojového řádku, **ne** `Line No.` textového řádku (C4).
+  Výraz počítá nad týmž slovníkem jako textový vzorec → `QUANTITY` má jen v akcích
+  prodejního řádku (C2).
 - **Texty se aplikují i na poznámkový řádek** (`ApplyActionLineTexts` je
   v `InitNewSalesLineFromAction` nad větví `if not IsCommentLine`). Nula v popisu
   poznámky je vždy nula toho parametru, ne vlastnost typu řádku.

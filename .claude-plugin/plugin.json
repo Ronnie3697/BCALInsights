@@ -1,7 +1,7 @@
 {
   "name": "bcal-insights",
   "displayName": "BC/AL Insights",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Poznámky z BC/AL praxe (Business Central, AL) jako Claude Code skilly: startup router bc-al + tematické wrappery nad bc-al-*.md — styl, UI patterny, DB/event subscribery, specifické objekty, integrace a SaaS gotchas, XLIFF/dokumentace/analyzery, nástroje/git/Azure DevOps, NuGet/CI build/deploy, autotesty, Essence Configurator, mobilní UI čteček.",
   "author": {
     "name": "David Němeček",

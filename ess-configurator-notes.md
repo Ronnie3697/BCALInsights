@@ -130,7 +130,9 @@ na které `EvaluateFormula` jen filtruje (`SetRange`). Dva důsledky:
 `0 " "`, `1 Quantity`, `2–5` časy postupu (Setup/Run/Wait/Move), `10 Default Value`,
 `11 Min Value`, `12 Max Value`, `20 Unit Price`, `21 Line Discount %`,
 `30 Item Variant Desc.`, `40 Description`, `41 Description 2`, `42 Search Name`
-(40–42 = pole stavěná **textovými** vzorci).
+(40–42 = pole stavěná **textovými** vzorci), `50 Text Expression` (operandy výrazu
+vloženého do textového vzorce, rozlišené polem `Expression No.` mimo PK — viz C4;
+větev `TextFormulaExpression`, 2026-09-22).
 
 ### Vyhodnocení
 
@@ -161,7 +163,7 @@ codeunit **63153 `Text Formula Eval. Mgt. COEBS`**, service page **63193**.
 PK: `Configuration No., Condition Line No., Source Type, Source Line No., Field Type, Line No.`
 (tady `Field Type` **v klíči je**, na rozdíl od C3).
 
-### Je to čistá konkatenace — žádná aritmetika
+### Konkatenace + (od větve `TextFormulaExpression`) vložený číselný výraz
 
 Typy řádku: `Text` (literál z `Text Value`), `Parameter Name`, `Parameter Value`,
 `Parameter Value Name` (display text vybrané hodnoty, fallback na hodnotu samotnou).
@@ -169,9 +171,38 @@ Náhled v UI: `{KOD:Name}` / `{KOD:Value}` / `{KOD:ValueName}`.
 
 **Systémové parametry textový vzorec umí** (`ResolveParameterCode` →
 `SystemParamMgt.GetSystemParameterCode`), takže `{QUANTITY:Value}` funguje.
-**Nedokáže ale počítat** — „počet křídel × množství objednávky" se do popisu
-přímo napsat nedá. Kdo to potřebuje, sáhne po pomocném konfiguračním parametru
-se vzorcem… a spadne přesně do C2.
+**Do releasu 28.0.22.x počítat neuměl** — „počet křídel × množství objednávky" se do
+popisu přímo napsat nedalo a pomocný konfigurační parametr se vzorcem spadl do C2.
+
+**Řádek typu `Formula` (5) — `{= VYP_KRIDLO_POCET * QUANTITY}`** (větev `TextFormulaExpression`,
+2026-09-22, čeká na release; pak bump minima v `cust-alumistr-bc`):
+
+- Operandy leží v `Action Formula Line COEBS` pod `Field Type = Text Expression` (50) a
+  **`Expression No.`** (pole 7, mimo PK). Vyhodnocení `Formula Evaluation Mgt.EvaluateFormula(…;
+  FieldType; ExpressionNo; …)` nad **týmž slovníkem**, jaký dostal textový vzorec — u popisů akcí
+  prodejního řádku tedy `QUANTITY` **je** (C2). Výsledek `Format(x, 0, '<Precision,n:n><Standard
+  Format,9>')` podle `Decimal Places` (pole 16) — tečka, stejný tvar jako `{KOD:Value}`.
+- ⚠️ **`Expression No.` není `Line No.` řádku textového vzorce.** Je to samostatné pořadové číslo
+  přidělované v `OnValidate("Line Type")` / `OnInsert` přes sekundární klíč `ExpressionNo`
+  (`FindLast` + 1) **napříč všemi `Field Type` téhož zdrojového řádku** — textové vzorce *Popis*
+  a *Popis 2* jednoho akčního řádku začínají obě řádkem 10000, ale jejich operandy sdílí jednu
+  množinu `Action Formula Line` (`Field Type` textového vzorce tam nefiguruje). Druhý důvod: kopie
+  konfigurace řádky textového vzorce přečíslovává (`GetNextGroupedTextFormulaLineNo`), zatímco
+  `TransferFields(…, false)` přenese `Expression No.` beze změny → vazba přežije kopii bez remapu.
+- Kaskády: `Text Formula Line.OnDelete` maže operandy; přepnutí typu z `Formula` je maže a nuluje
+  `Expression No.` + `Decimal Places`; `EditTextFormula` zálohuje **i operandy** a při Cancel je
+  vrací (smazání textových řádků by je kaskádou odstranilo).
+- Editor `Text Formula COEBS`: u řádku `Formula` otevře tlačítko Pomoc (…) i akce *Upravit výraz*
+  stávající editor `Action Formula COEBS` (`EditFormula(…; ExpressionNo; MaxParameterSortOrder)`),
+  sloupec *Hodnota* jen zobrazuje náhled; OK validuje „bez výrazu" + `Formula Validation Mgt.`.
+- ⚠️ **Kopie konfigurace a `Dictionary.Get` bez ošetření nuly.** `CopyBOMQtyFormulaLines` /
+  `CopyRoutingTimeFormulaLines` mapovaly `Condition Line No.` i `Source Line No.` přes `Get` — do
+  zavedení výrazů žádný `Action Formula Line` se `Source Type` BOM/Routing a nulou neexistoval.
+  Operandy výrazu v *BOM Description* podmínky (`Source Line No.` 0) nebo *Def. BOM Description*
+  definice (`Condition Line No.` 0) by kopii shodily na chybějícím klíči. Když přidáváš nový druh
+  `Action Formula Line`, projdi všechny `Copy*FormulaLines` a ověř, že každý filtr tvůj kontext
+  buď mapuje, nebo vyloučí (`SetFilter("Condition Line No.", '<>0')` + config-level kopie zvlášť).
+- Šablony parametrů textové vzorce nenesou → `CopyFormulasToTemplate` řádky `Text Expression` vynechá.
 
 ### Texty se aplikují i na poznámkový řádek
 
