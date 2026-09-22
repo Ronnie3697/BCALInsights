@@ -28,6 +28,7 @@
 - [C5. Identita varianty = množina hodnot parametrů](#c5-identita-varianty--množina-hodnot-parametrů)
 - [C6. Diagnostika konfigurace v běžícím BC](#c6-diagnostika-konfigurace-v-běžícím-bc)
 - [C7. Kusovník konfigurované varianty a pořizovací cena prodejního řádku (Alumistr)](#c7-kusovník-konfigurované-varianty-a-pořizovací-cena-prodejního-řádku-alumistr)
+- [C8. Řádek kusovníku z konfigurátoru a pole EM Cutting Plan (Alumistr)](#c8-řádek-kusovníku-z-konfigurátoru-a-pole-em-cutting-plan-alumistr)
 
 ---
 
@@ -219,6 +220,12 @@ zadání `docs/Configurator - Aritmetika v textových formulích….md`):
   editory akci `CancelEdit` (flag → `OnQueryClosePage` bez validace, `WasCancelled()`); `EditFormula`, `EditTextFormula`
   i 12 přímých `RunModal` volání na stránkách akcí / parametrů / podmínek testují `= Action::OK and not WasCancelled()`.
   Nový přímý caller editoru musí dělat totéž, jinak Cancel uživateli změny ponechá. Detail vzoru v `bc-al-autotests.md`.
+  **Zákaznické rozšíření s vlastním přímým `RunModal` editoru** ho radši nahraď obálkou `FormulaEvaluationMgt.EditFormula(…)`
+  (záloha, Zrušit i obnova žijí v base, po OK stačí vynulovat statickou hodnotu) — takhle od 2026-09-22 Alumistr
+  `SL Action Cond. Card/Dlg COALU` (Parametr A/B, dřív kopie base vzoru s `= Action::OK` → Zrušit ponechal změny bez validace
+  a smazal statickou hodnotu). COALU editory přes `EditFormula` / `EditTextFormula` dostaly Zrušit zadarmo s bumpem na 28.0.26.
+  TestPage na stránku podmínky otevírej `Trap()` + `Page.Run(Page::…, Rec)` a konfiguraci dej do **Draft** — `OnOpenPage`
+  jinak stránku zamkne (`CurrPage.Editable(false)`) podle stavu konfigurace záznamu, na kterém se otevřela.
 
 ### Texty se aplikují i na poznámkový řádek
 
@@ -325,3 +332,22 @@ všech tří polí volají `GetUnitCost()` a `Unit Cost (LCY)` resetují z karty
 z kusovníku: zboží má `Replenishment System = Prod. Order`; u nákupního zboží se bere `Unit Cost  - Fixed ALU`.
 Historie: hook žil v PMALU (PR 8371, 2026-03) jen proto, že jediná appka se závislostí na ATEBS byla Pricing Matrix —
 ne proto, že by náklad byl cenotvorba.
+
+## C8. Řádek kusovníku z konfigurátoru a pole EM Cutting Plan (Alumistr)
+
+`Configurator Events COALU.OnBeforeInsertProdBOMLine` přenáší z akčního řádku kusovníku `Qty. of Pcs.` a `Qty. per Piece`
+do polí EM Cutting Plan na `Production BOM Line` (tableext `Production BOM Line CUEBS`, repo `prod-em-cuttingPlan-bc`).
+Oba jejich `OnValidate` přepočítávají `Quantity per`, **každý jinak**:
+
+- `Qty. of Pcs. CUEBS` → prostý součin: při `Qty. per Unit of Measure = 1` `Quantity per := Qty. per Piece × Qty. of Pcs.`,
+  jinak `Quantity per := Qty. of Pcs.`; prázdné `Qty. per Piece` nejdřív nastaví na 1.
+- `Qty. per Piece CUEBS` → přes délku: `Quantity per := Length / GetLengthTypeConstant(...)`. Od **EM Cutting Plan 28.0.4**
+  (PR 9512, 2026-09-16) vrací `GetLengthTypeConstant(…, false)` u MJ **bez *Length Type*** (m², ks) nulu a trigger se
+  **celý přeskočí** — dřív to u takové MJ spadlo na chybě.
+
+⇒ **`Qty. of Pcs.` validuj jako poslední.** V opačném pořadí zůstane `Quantity per` na mezivýsledku prvního triggeru
+(`1 × Qty. of Pcs.`), ne na součinu — Qty. per Piece 2,5 × 4 ks dá 4 místo 10. U MJ s typem délky vyjdou obě pořadí stejně.
+Nulu nevaliduj (smazala by `Quantity per` místo výchozí 1). Dependency minimum `EM Cutting Plan 28.0.4.0` v app i test
+`app.json`, test `QtyOfPcsAndQtyPerPieceGiveQuantityPerWithoutLengthType` (`Config. Ext. Tests ALU`; testovací zboží je
+v PCS bez typu délky, takže starý kód spolehlivě chytí). Zdroj: cust-alumistr-bc, větev `ConfiguratorFormulaCancel`
+(2026-09-22); úprava vznikla 2026-09-16 při analýze na BC-TEST2, kde běžel lokální build Cutting Planu (C6).

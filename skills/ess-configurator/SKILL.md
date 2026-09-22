@@ -1,19 +1,20 @@
 ---
 name: ess-configurator
 description: >-
-  Essence Configurator (produktová appka COEBS, repo prod-ess-configurator-bc)
-  a zákaznická rozšíření nad ní (COALU u Alumistra, COZLK u Zlomku) v Business
-  Central / AL: konfigurační parametry a jejich podmínky, dialog konfigurace
-  varianty, systémové parametry (QUANTITY Line No. -1, CNC X1/X/Y/Z -51990..-51993,
-  eventy OnAddNumericSystemParameters / OnGetSystemParameterCode) a past tichých
-  nul, když se hodnota v daném kontextu neinjektuje, číselné vzorce Action Formula
+  Essence Configurator (COEBS, repo prod-ess-configurator-bc) a zákaznická
+  rozšíření nad ní (COALU Alumistr, COZLK Zlomek) v Business Central / AL:
+  konfigurační parametry a podmínky, dialog konfigurace varianty, systémové
+  parametry (QUANTITY Line No. -1, CNC X1/X/Y/Z -51990..-51993, eventy
+  OnAddNumericSystemParameters / OnGetSystemParameterCode) a past tichých nul
+  (hodnota se v kontextu neinjektuje), číselné vzorce Action Formula
   Line (PK bez Field Type, Line No. napříč typy polí, Math Expression Parser),
   textové vzorce Text Formula Line (konkatenace {KOD:Value}/{KOD:ValueName} + řádek
   Formula {= A * QUANTITY} s Expression No., běží i na poznámkovém řádku), identita varianty = množina hodnot
   parametrů (FindExistingVariantWithSameValues), akce kusovníku / postupu /
-  prodejního řádku, diagnostika přes service stránky 63163/63193/63149 a page
-  inspector. Načti při práci s konfigurátorem, parametry, vzorci, variantami,
-  konfigurovanými prodejními řádky.
+  prodejního řádku, diagnostika (service stránky 63163/63193/63149, page
+  inspector), Zrušit editorů vzorců (WasCancelled, EditFormula), pole EM Cutting
+  Plan na kusovníku. Načti u konfigurátoru, parametrů, vzorců, variant a
+  konfigurovaných prodejních řádků.
 user-invocable: true
 ---
 
