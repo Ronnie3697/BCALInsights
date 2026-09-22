@@ -284,6 +284,13 @@ Assert.ExpectedErrorCode('Dialog');
   = jeden seed). Pro Integer/BigInteger PK vlastního helperu použij **`FindLast` + 1** (nebo `LibraryUtility.GetNewRecNo`),
   ne random; kódy přes `LibraryUtility.GenerateRandomCode` / `GenerateGUID` v témže runu nekolidovaly. Zachyceno
   2026-09-08, cust-sonnentor-bc build 28134 (`TestWebshopFilterSON`, `Shpfy Product` Id 323801 ve třech testech).
+  ⚠️ **Dodatek 2026-09-22 (cust-soitron-bc): `LibraryUtility.GenerateGUID()` se v témže codeunitu opakuje taky** —
+  jméno stavěné jako `'BU-' + LibraryUtility.GenerateGUID()` vyrobilo v každém testu **stejný text**, takže lookup
+  podle jména (`SetRange(Name, …)` + `FindFirst`) našel záznam **prvního** testu (AutoCommit ho nechal v DB). Příznak:
+  první test s tím jménem projde, další padají na `Assert.AreEqual` s **jiným, ne prázdným** ID, a actual je menší než
+  expected (FindFirst bere nejnižší PK). Pro jména, na která se pak hledá, ber **`DelChr(Format(CreateGuid()), '=', '{}-')`**
+  (platformový `CreateGuid()` seedovaný není), ne `GenerateGUID`. Předchozí věta („nekolidovaly") platila jen pro
+  krátké kódy porovnávané na rovnost, ne pro lookup jménem — ověřeno na CRM Businessunit v `CRM Business Unit Test SOI`.
 - **Účtování / plánování v testu zakládá skutečný scheduled task** (`Job Queue Entry.ScheduleJobQueueEntryForLater`,
   `Codeunit.Run("Job Queue - Enqueue")`) → před ním `BindSubscription(LibraryJobQueue)` (`Library - Job Queue`, Manual) —
   jeho subscriber `OnBeforeJobQueueScheduleTask` nastaví `DoNotScheduleTask`, entry zůstane On Hold a dá se assertovat.
