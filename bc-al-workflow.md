@@ -403,6 +403,12 @@ Essence CI má `failOn = 'warning'`, takže jediný warning shodí build. Než o
    `failOn warning` CI fail) — v `<summary>` piš `Sales &amp; Receivables Setup`, ne `Sales & Receivables
    Setup`. Stejně `<` / `>`. Obyčejné `//` komentáře a `Description`/`ToolTip` property se to netýká.
    (2026-09-04, cust-alumistr-bc)
+6. **`AA0214` „The record X should be modified before saving to the database" (CodeCop warning → CI fail) je falešný,
+   když záznam mění procedura tabulky** (`Customer.SetBusinessUnitSOI(No, Id)` → `Customer.Modify(true)`): analyzátor
+   vidí jen přímá přiřazení do polí mezi `Get`/`Find` a `Modify`. Fix `#pragma warning disable/restore AA0214` kolem
+   toho jednoho `Modify` s jednořádkovým komentářem proč; nevracej se k přímým přiřazením jen kvůli pravidlu. Hlásí to
+   i v testech (helper `Setup.ValidateXxx(...); Setup.Modify(true)`). Pozor při čtení logu: `head -60` na seznam warningů
+   ho odřízl a build vypadal čistý — u dlouhých seznamů grepni konkrétní ID zvlášť. (2026-09-22, cust-soitron-bc.)
 
 (Zachyceno 2026-08-05, cust-alumistr-bc build 27693: `AA0137` unused variable
 v test codeunitě — lokálně se před pushem kompilovala jen hlavní appka bez

@@ -811,6 +811,12 @@ opravný dobropis z Correct/Cancel `Return Receipt No.` nemá a tou kontrolou ne
 `SetSalesHeader(InvoiceHeader)` + `CreateInvLines(SalesShptLine s filtrem Document No.)` (`LibrarySales.GetShipmentLines`
 otevírá výběrovou stránku); test `InvoiceFromShipmentLines_ShipmentLineWithBlankJobNo_PostsWithJobNoFromPlanningLine`
 v `Job Sales Post Test IMEBS`. Test symboly 28.4 (`28.4.53241.53504`) z MSSymbols feedu proti Base App `28.4.53241.54031` — alc 17.0 čistě.
+**`OnPostSalesLineOnBeforeTestUnitOfMeasureCode` se v BC 28 volá JEN pro `Type = Item`** (`PostSalesLine`: `if SalesLine.Type = Item then begin
+… OnPostSalesLineOnBeforeTestUnitOfMeasureCode(…)`), zatímco `OnPostSalesLineOnBeforeUpdateSalesLineBeforePost` běží pro všechny typy. Subscriber
+zavěšený na ten první (IMEBS Skip Purchase Consumption) tak doplní Job No. jen na řádky zboží → dodávka má u zboží Job No. vyplněné, u zdroje /
+finančního účtu prázdné; při fakturaci z Get Shipment Lines pak padá právě řádek zdroje (zboží projde, hodnoty sedí). Zdroje procházejí
+`PostItemTrackingForShipment` taky (`PostItemTrackingLine` běží před `case Type`), jen `PostItemJnlLine` je podmíněný `Type = Item`. Ověřeno v
+w1-28 `SalesPost.Codeunit.al` (raw.githubusercontent, cesta `BaseApp/Source/Base Application/Sales/Posting/`).
 
 ### 3.7 `[EventSubscriber]` argumenty — identifier syntax, ne string literály (LC0028)
 
@@ -881,5 +887,17 @@ metody na tabulku. (2026-06, `prod-em-operOutputChaining-bc`, BC28.)
   instance codeunitu a v `OnAfterModify` porovnej `Rec` proti ní (po zápisu už `Get` vrátí nové hodnoty). Field
   `OnValidate` je jiný případ: tam `xRec` = stav před `Validate` i z kódu. Zachyceno 2026-09-08, prod-ess-configurator-bc
   build 28149 (`Sales Line COEBS.OnAfterModify`, 15 červených testů; testy před merge neběžely).
+
+- **Vazební tabulka (link), jejíž trigger zapisuje do master záznamu, + master `OnValidate`, který ten link zakládá =
+  „záznam změnil jiný uživatel".** Vzor: `Customer."CRM Business Unit SOI".OnValidate` → codeunit vloží řádek do
+  `Customer CRM Business Unit SOI` (`Insert(true)`) → `OnInsert` linku udělá `Customer.Get + Modify` přes **druhou
+  proměnnou** → karta pak uloží své `Rec` se starým timestampem a spadne (nebo přepíše hodnotu, kterou trigger zapsal).
+  Řešení, které drží obě cesty: (a) link-originované změny (page linku, API) jdou přes triggery linku (`OnInsert/
+  OnModify/OnDelete/OnRename` → `Master.Get` + `SetXxx` + `Modify(true)`); (b) master-originovaná cesta dostane **`var
+  Master`**, link zapíše **`Insert(false)`/`Modify(false)`** (triggery přeskočí, komentář proč) a hodnotu nastaví **do
+  paměti** předaného recordu — uloží ji volající (karta, Dataverse sync `Modify`). Signaturu `(No, Id)` změň na
+  `(var Rec)`, ať se in-memory část nedá zapomenout; volající, kteří dřív `Modify` volali před syncem, přesuň za něj.
+  Před-triggery (`OnInsert/OnDelete/OnRename`) běží **před** DB zápisem, takže „přepočítej vše z DB" tam nefunguje —
+  dělej cílený zápis (`OnRename`: vyčisti `xRec` slot, nastav `Rec` slot). (2026-09-22, cust-soitron-bc, Business Unit 1-5.)
 
 ---
