@@ -285,3 +285,29 @@ nebo `get_installed_apps` přes d365bc-admin MCP — je to spolehlivější než
 v prohlížeči). CI bumpuje build číslo, takže verze v prostředí bývá vyšší než
 `version` v `app.json` na masteru; podstatné je, jestli v mezidobí někdo nenasadil
 lokální build. Detail 5.x11 v `bc-al-objects.md`.
+
+## C7. Kusovník konfigurované varianty a pořizovací cena prodejního řádku (Alumistr)
+
+Konfigurátor po vytvoření varianty registruje její kusovník do **`Alternative Prod. BOM ATEBS`** (EM Alternative
+BOM and Routing) přes `BOM Action Cond. Mgt. COEBS.RegisterAlternativeBOM`: `Item No.` + **`Variant Code`** +
+`Location Code` prázdný + `Production BOM No.` + `Default = true`. Na kartě zboží tedy `Production BOM No.` typicky
+zůstává prázdné — kdo hledá kusovník varianty jen přes kartu zboží, nenajde nic.
+
+⚠️ **Táž tabulka nese u Alumistra dvě nezávislé osy:** base `Variant Code` (konfigurátor, varianta zboží) a vlastní pole
+**`Price Variant Code PMALU`** (Pricing Matrix, cenová varianta ze `Sales Price Var. Code PMEBS` / `Price Worksheet Line`).
+Záznam konfigurátoru má `Price Variant Code PMALU` prázdný a naopak. Lookup „kusovník podle varianty" musí říct, kterou
+osu myslí — `Calc Cost Mgt. PMALU` původně bral každý neprázdný kód jako cenovou variantu a hodil chybu *An alternative
+BOM for item %1 and price variant %2 was not found*, takže kód konfigurované varianty do něj poslat nešlo. Od 2026-09-22
+reaguje jen na varianty s `Item Variant."Price Variant PMEBS"`.
+
+**Pořizovací cena na prodejním řádku (`Cost Mgt. ALU.UpdateSalesLineUnitCost`, cust-alumistr-bc, větev
+`SalesLineUnitCostVariantBOM`, 2026-09-22):** pořadí hledání kusovníku = alternativní kusovník podle `Variant Code`
+(Default přednost, jen Certified) → event `OnAfterSetProdBOMHeaderFilters…` (PMALU cenová varianta) → `Production BOM No.`
+z karty zboží. Výsledek `FixedCost × "Qty. per Unit of Measure"` jde do `Validate("Unit Cost (LCY)")`; **nula standardní
+náklad nepřepisuje** (původní PMALU kód validoval i nulu a mazal tak náklad z karty u každého zboží bez fixní ceny).
+Spouští se z `Sales Line ALU` `modify("No.") / ("Variant Code") / ("Unit of Measure Code") OnAfterValidate` — base triggery
+všech tří polí volají `GetUnitCost()` a `Unit Cost (LCY)` resetují z karty zboží, takže hook musí běžet **až po nich**
+(`OnAfterValidate` v tableextension to splňuje, `Validate("Variant Code")` konfigurátoru ho vyvolá taky). Podmínka výpočtu
+z kusovníku: zboží má `Replenishment System = Prod. Order`; u nákupního zboží se bere `Unit Cost  - Fixed ALU`.
+Historie: hook žil v PMALU (PR 8371, 2026-03) jen proto, že jediná appka se závislostí na ATEBS byla Pricing Matrix —
+ne proto, že by náklad byl cenotvorba.
