@@ -593,8 +593,9 @@ extension — postupuj v tomhle pořadí:
 
 ### 7.7 Git commit / push / PR — **nikdy nedělat sám, ani commit**
 
-**Jediná výjimka: notes repo `C:\WorkTasks\BCALInsights`** (osobní poznámky,
-GitHub `Ronnie3697/BCALInsights`) — tam se nový poznatek commitne a pushne
+**Jediná výjimka: notes repo BCALInsights** (sdílené poznámky, GitHub
+`essencebs/BCALInsights`; klon podle always-on souboru uživatele nebo
+`git -C <adresář skillu> rev-parse --show-toplevel`) — tam se nový poznatek commitne a pushne
 rovnou, bez ptaní; smyslem repa je verzovat každou změnu (viz skill `bc-al`).
 Všechno níže platí pro pracovní repa (cust-*, prod-*).
 

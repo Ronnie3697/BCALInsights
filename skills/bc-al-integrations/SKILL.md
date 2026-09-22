@@ -17,14 +17,14 @@ user-invocable: true
 
 # BC/AL — Integrace & SaaS/Cloud gotchas (5.y2, sekce 11)
 
-**Zdroj pravdy:** `C:\WorkTasks\BCALInsights\bc-al-integrations.md`
-(v repu `../../bc-al-integrations.md` relativně k tomuto skillu). Tenhle skill je jen wrapper —
+**Zdroj pravdy:** `bc-al-integrations.md` ve stejném adresáři jako tenhle `SKILL.md`
+(adresář skillu = „Base directory" hlášený při načtení; cestu skládej odtud, ne přes `..`). Tenhle skill je jen wrapper —
 pravidla níže jsou výcuc; detail, signatury eventů konektoru, GraphQL chování a příklady
 jsou v souboru. Vyčleněno z `bc-al-objects.md` 2026-09-08, číslování je původní.
 
 ## Co udělat
 
-1. **Přečti `C:\WorkTasks\BCALInsights\bc-al-integrations.md` celý.** Vejde se do jednoho Read;
+1. **Přečti `bc-al-integrations.md` z adresáře tohoto skillu celý.** Vejde se do jednoho Read;
    když se výstup ořízne, okamžitě dočti přes `offset`. Bez přečtení nejednej.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill

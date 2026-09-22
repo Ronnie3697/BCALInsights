@@ -19,7 +19,8 @@ user-invocable: true
 
 # Essence Configurator — parametry, vzorce, varianty
 
-**Zdroj pravdy:** `C:\WorkTasks\BCALInsights\ess-configurator-notes.md`.
+**Zdroj pravdy:** `ess-configurator-notes.md` ve stejném adresáři jako tenhle `SKILL.md`
+(adresář skillu = „Base directory" hlášený při načtení; cestu skládej odtud, ne přes `..`).
 Tenhle skill je jen wrapper — níže je výcuc stabilních pravidel, detaily,
 signatury a diagnostické postupy jsou v souboru.
 
@@ -29,7 +30,7 @@ publisher Essence International s.r.o.), zákaznická rozšíření
 
 ## Co udělat
 
-1. **Přečti `C:\WorkTasks\BCALInsights\ess-configurator-notes.md` celý.**
+1. **Přečti `ess-configurator-notes.md` z adresáře tohoto skillu celý.**
    Když se Read ořízne, dočti přes `offset` — částečně přečtený soubor
    = nepřečtený.
 2. Obecná AL pravidla platí dál: `bc-al-style`, `bc-al-data` (3.6b `Validate("No.")`

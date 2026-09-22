@@ -2,10 +2,11 @@
 
 - `description` ve frontmatteru <= 1024 znaků (limit Agent Skills spec, jinak se skill
   nemusí načíst) — vypíše délku každého skillu;
-- notes soubor, na který skill odkazuje absolutní cestou C:\\WorkTasks\\BCALInsights\\<x>.md,
-  existuje v kořeni repa;
-- každý notes soubor v kořeni (bc-al-*.md, ew-mobile-ui-notes.md, kromě archivu) je zmíněn
-  v Routeru skills/bc-al/SKILL.md.
+- notes soubor, na který skill odkazuje („Přečti `<x>.md` z adresáře tohoto skillu"),
+  existuje vedle jeho SKILL.md (skills/<skill>/<x>.md);
+- žádný soubor v repu (kromě archivu) neobsahuje absolutní cestu C:\\WorkTasks\\BCALInsights
+  (klon může být kdekoli);
+- každý notes soubor ve skills/*/ (kromě SKILL.md) je zmíněn v Routeru skills/bc-al/SKILL.md.
 
 Spuštění: `python check-skills.py` v kořeni repa (exit 1 při chybě).
 """
@@ -37,16 +38,21 @@ for path in sorted(glob.glob(os.path.join(ROOT, 'skills', '*', 'SKILL.md'))):
     print(f'{status} {len(desc):5d}/{LIMIT}  {name}')
     if len(desc) > LIMIT:
         errors.append(f'{name}: description má {len(desc)} znaků (limit {LIMIT})')
-    for ref in set(re.findall(r'C:\\WorkTasks\\BCALInsights\\([\w.\-]+\.md)', text)):
-        if not os.path.exists(os.path.join(ROOT, ref)):
-            errors.append(f'{name}: odkazuje na neexistující notes soubor {ref}')
+    for ref in set(re.findall(r'Přečti `([\w.\-]+\.md)` z adresáře tohoto skillu', text)):
+        if not os.path.exists(os.path.join(os.path.dirname(path), ref)):
+            errors.append(f'{name}: odkazuje na neexistující notes soubor {ref} (má ležet vedle SKILL.md)')
 
-notes = [f for f in os.listdir(ROOT)
-         if (f.startswith('bc-al-') or f == 'ew-mobile-ui-notes.md')
-         and f.endswith('.md') and 'archived' not in f]
-for f in sorted(notes):
-    if f not in router:
-        errors.append(f'{f} není zmíněn v Routeru skills/bc-al/SKILL.md')
+ABS = 'C:\\WorkTasks\\BCALInsights'
+for path in sorted(glob.glob(os.path.join(ROOT, '**', '*.md'), recursive=True)):
+    if 'archived' in path or os.sep + '.git' + os.sep in path:
+        continue
+    if ABS in io.open(path, encoding='utf-8').read():
+        errors.append(f'{os.path.relpath(path, ROOT)}: obsahuje absolutní cestu {ABS} (klon může být kdekoli)')
+
+for f in sorted(glob.glob(os.path.join(ROOT, 'skills', '*', '*.md'))):
+    base = os.path.basename(f)
+    if base != 'SKILL.md' and base not in router:
+        errors.append(f'{os.path.relpath(f, ROOT)} není zmíněn v Routeru skills/bc-al/SKILL.md')
 
 if errors:
     print('\nCHYBY:')

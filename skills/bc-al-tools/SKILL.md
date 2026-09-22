@@ -21,15 +21,15 @@ user-invocable: true
 
 # BC/AL — Nástroje, git & Azure DevOps (sekce 7.1–7.10)
 
-**Zdroj pravdy:** `C:\WorkTasks\BCALInsights\bc-al-tools.md`
-(v repu `../../bc-al-tools.md` relativně k tomuto skillu). Tenhle skill je jen wrapper —
+**Zdroj pravdy:** `bc-al-tools.md` ve stejném adresáři jako tenhle `SKILL.md`
+(adresář skillu = „Base directory" hlášený při načtení; cestu skládej odtud, ne přes `..`). Tenhle skill je jen wrapper —
 pravidla níže jsou výcuc; detail, příkazy, URL a GUIDy jsou v souboru.
 Sekce **7.11–7.19** (NuGet, test symboly, kolize ID, major bump, Essence
 build/deploy) žijí od 2026-09-01 v `bc-al-build.md` → skill `bc-al-build`.
 
 ## Co udělat
 
-1. **Přečti `C:\WorkTasks\BCALInsights\bc-al-tools.md` celý.** Vejde se do jednoho Read; když se
+1. **Přečti `bc-al-tools.md` z adresáře tohoto skillu celý.** Vejde se do jednoho Read; když se
    výstup ořízne, okamžitě dočti přes `offset`. Bez přečtení nejednej.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill

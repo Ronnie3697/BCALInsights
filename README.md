@@ -6,7 +6,12 @@ GitHub Copilot, Codex, Antigravity) před jakoukoliv AL prací. Router „typ ú
 soubor / skill" a startup checklist drží **skill `skills/bc-al/SKILL.md`** —
 jediný zdroj; always-on soubory jednotlivých nástrojů na něj jen odkazují.
 
-| Soubor | Obsah |
+Notes leží **vedle svého skill-wrapperu** ve `skills/<název>/` (podpůrný soubor skillu podle
+Agent Skills spec). Skill na ně odkazuje jen jménem, relativně k vlastnímu adresáři — proto
+**klon repa může být kdekoli** a v repu není žádná absolutní cesta (hlídá `check-skills.py`).
+V kořeni zůstává jen README, `mcp-setup.md`, `check-skills.py` a archiv.
+
+| Soubor (ve `skills/<název>/`, pokud není uvedeno jinak) | Obsah |
 |---|---|
 | `bc-al-style.md` | konvence, naming, ToolTipy, přidělování ID, locale pasti, moderní patterny (sekce 1, 10) |
 | `bc-al-ui.md` | UI patterny stránek — RunModal/RoleCenter, ConfirmManagement, factbox, CaptionClass, Visible, MultiLine/RichContent (sekce 4) |
@@ -19,34 +24,36 @@ jediný zdroj; always-on soubory jednotlivých nástrojů na něj jen odkazují.
 | `bc-al-autotests.md` | automatizované testy — codeunits, libraries, runner, povinnost |
 | `ess-configurator-notes.md` | Essence Configurator — parametry, systémové parametry, vzorce, varianty, akce (sekce C1–C6) |
 | `ew-mobile-ui-notes.md` | UI poznámky k Essence Warehouse Mobile (čtečky) |
-| `bc-al-mcp-server.md` | **draft** — oficiální BC MCP server (konfigurace v BC, auth / device login, Claude Code `--mcp-config` + `headersHelper`); bez skill-wrapperu, v Routeru jen jako řádek |
-| `mcp-setup.md` | jednorázová instalace MCP serverů pro Claude Code (npm, `claude mcp add`, PAT, timeouty) — **není notes**, skilly ho nenačítají; ostatní nástroje viz níže |
-| `bc-al-notes.archived-2026-06-23.md` | archiv původního monolitu — **needitovat**, jen reference |
+| `skills/bc-al/bc-al-mcp-server.md` | **draft** — oficiální BC MCP server (konfigurace v BC, auth / device login, Claude Code `--mcp-config` + `headersHelper`); bez skill-wrapperu, v Routeru jen jako řádek |
+| `mcp-setup.md` (kořen) | jednorázová instalace MCP serverů pro Claude Code (npm, `claude mcp add`, PAT, timeouty) — **není notes**, skilly ho nenačítají; ostatní nástroje viz níže |
+| `bc-al-notes.archived-2026-06-23.md` (kořen) | archiv původního monolitu — **needitovat**, jen reference |
 
 ## Pravidla údržby
 
 - Číslování sekcí (1–12) je napříč soubory původní kvůli odkazům „viz X.Y" — neměnit.
-- Soubor nad **1000 řádků** rozděl (vyčleň ucelené sekce do nového `bc-al-*.md`,
-  přidej skill-wrapper do `skills/`, aktualizuj Router ve `skills/bc-al/SKILL.md`
+- Soubor nad **1000 řádků** rozděl (vyčleň ucelené sekce do nového `skills/<název>/<název>.md`,
+  přidej vedle něj skill-wrapper `SKILL.md`, aktualizuj Router ve `skills/bc-al/SKILL.md`
   + tento README; always-on soubory ostatních nástrojů Router nedrží).
   Prakticky: ~750+ řádků / ~50 KB se už do jednoho Read (~25k tokenů) nevejde — děl dřív.
   Vzory: 7.11–7.19 → `bc-al-build.md` (2026-09-01); sekce 4 → `bc-al-ui.md` a 5.y2 + 11 →
   `bc-al-integrations.md` (2026-09-08, `bc-al-objects.md` měl 57 KB = 26k tokenů a Read ho ořízl).
 - Každý nový poznatek = commit s krátkou zprávou, co a odkud (repo, PR, datum).
 
-Lokální klon: `C:\WorkTasks\BCALInsights` (do 2026-08-28 žilo v OneDrive
-`AI\BCALInsights`; `ShopifyConnector/` zůstal tam — má vlastní GitHub repo).
+Klon může ležet kdekoli — od 2026-09-22 se notes odkazují relativně k adresáři skillu (dřív
+absolutní cestou na pevné místo `C:\WorkTasks\…`; do 2026-08-28 žilo repo v OneDrive `AI\BCALInsights`,
+`ShopifyConnector/` zůstal tam — má vlastní GitHub repo).
 
 ## Nový stroj / kolega — jak si to přidat
 
 `SKILL.md` je otevřený formát [Agent Skills](https://agentskills.io/specification), který
 čtou Claude Code, GitHub Copilot, Codex i Antigravity. `.claude-plugin/plugin.json` je jen
 manifest pro Claude Code, ostatní nástroje ho ignorují. **Samotný klon ale nestačí** — každý
-nástroj potřebuje čtyři kroky:
+nástroj potřebuje čtyři kroky (nejrychleji je nechá provést AI — viz **Prvotní nastavení s AI**
+níže):
 
-1. **Klon přesně do `C:\WorkTasks\BCALInsights`.** Skilly odkazují na notes **absolutní
-   cestou** (přes junction by relativní `../../` nesedělo). Máš klon jinde? Udělej junction:
-   `cmd /c mklink /J C:\WorkTasks\BCALInsights <cesta ke klonu>`.
+1. **Klon kamkoli:** `git clone https://github.com/essencebs/BCALInsights.git` (přístup dá
+   DNEM). Cesta je libovolná — skilly odkazují na notes relativně k vlastnímu adresáři. Dál
+   v návodu je tvůj klon označen `<KLON>`.
 2. **Junction skillů** do složky, odkud tvůj nástroj skilly čte (per nástroj níže). Bez toho
    nástroj skilly nevidí — pracuješ v `cust-*-bc` / `prod-*-bc` repech, ne tady.
 3. **Startup pravidlo** do always-on instrukčního souboru nástroje (šablona níže). Bez něj
@@ -56,11 +63,36 @@ nástroj potřebuje čtyři kroky:
    registrace je per nástroj (Claude Code = zbytek `mcp-setup.md`, ostatní níže). Bez MCP skilly
    fungují, agent jen hádá signatury z paměti.
 
+### Prvotní nastavení s AI
+
+Otevři svůj AI nástroj (Claude Code apod.) v klonu tohoto repa a vlož mu tenhle prompt. Cesty
+a preference jsou per uživatel a žijí v **jeho** always-on souboru mimo repo — proto se na ně
+agent ptá a `git pull` je nikdy nepřepíše:
+
+```text
+Nastav mi BCALInsights podle README (sekce „Nový stroj / kolega"). Postupuj interaktivně
+a před každým zápisem mimo tento repo se zeptej:
+1. Zeptej se, kde mám klon BCALInsights (tenhle repo) — cestu použij všude jako <KLON>.
+   Ověř, že tam existuje skills/bc-al/SKILL.md.
+2. Zeptej se, ve které složce mám pracovní BC repa (cust-*-bc, prod-*-bc).
+3. Zeptej se, které AI nástroje používám (Claude Code / GitHub Copilot / Codex / Antigravity),
+   a pro každý vytvoř junction skillů podle sekce daného nástroje (cmd /c mklink /J …);
+   když cíl už existuje, přeskoč ho a řekni to.
+4. Do always-on souboru každého nástroje přidej „Šablonu startup pravidla" s dosazeným
+   <KLON>, <SKILL-DIR> a <RUČNĚ> + jednu větu se složkou mých pracovních rep. Ukaž mi
+   výsledný text a zapiš ho až po mém souhlasu; existující obsah souboru nech být.
+5. Nabídni „Volitelné projektové doplňky do always-on" — přidej jen ty, které odsouhlasím.
+6. Zeptej se, v jakém jazyce a tónu mám komunikovat, a zapiš to do always-on souboru
+   (osobní preference, ne součást repa).
+7. Ověř: Claude Code `claude plugin validate <KLON>` a `claude plugin details bcal-insights`,
+   ostatní nástroje podle jejich sekce. MCP servery (mcp-setup.md) nabídni jako další krok.
+```
+
 ### Šablona startup pravidla (společná pro všechny nástroje)
 
-Vlož do always-on souboru nástroje (kam přesně — viz sekce per nástroj), dosaď `<SKILL-DIR>`
-a `<RUČNĚ>` z tabulky pod šablonou. Jazyk a tón komunikace si přidej podle sebe — to je osobní
-preference, ne součást notes.
+Vlož do always-on souboru nástroje (kam přesně — viz sekce per nástroj), dosaď `<KLON>` (cesta
+k tvému klonu), `<SKILL-DIR>` a `<RUČNĚ>` z tabulky pod šablonou. Jazyk a tón komunikace si
+přidej podle sebe — to je osobní preference, ne součást notes.
 
 ```markdown
 ## Povinný startup pro AL / Business Central
@@ -70,24 +102,24 @@ app.json, XLIFF, Essence pipeline). U ne-AL úkolů (PowerShell, dokumenty, jin�
 přeskoč. Nejsi si jistý → ber to jako AL.
 
 Pokud úkol JE AL/BC, jako PRVNÍ akci (i u pouhé otázky, bez pobídnutí uživatele) načti skill
-`bc-al` — je v <SKILL-DIR> (junction na `C:\WorkTasks\BCALInsights\skills`); ručně <RUČNĚ>.
-Pokud skilly nejsou k dispozici, přečti přímo `C:\WorkTasks\BCALInsights\skills\bc-al\SKILL.md`.
+`bc-al` — je v <SKILL-DIR> (junction na `<KLON>\skills`); ručně <RUČNĚ>.
+Pokud skilly nejsou k dispozici, přečti přímo `<KLON>\skills\bc-al\SKILL.md`.
 Skill drží Router „typ úkolu → notes soubor / tematický skill", startup checklist (autotesty
 u netriviální funkčnosti, al-mcp `al_packages load` pokud je MCP k dispozici, Sam Coder jen
 u netriviálních úkolů a jen pokud je ten MCP k dispozici, oznámení checklistu ✅/❌ uživateli)
 a pravidla údržby notes.
 
 Podle Routeru pak načti tematické skilly (`bc-al-*`, `ew-mobile-ui`) nebo rovnou notes
-`C:\WorkTasks\BCALInsights\bc-al-*.md` — VŽDY CELÉ, DO KONCE (oříznutý výstup hned dočti;
+`<KLON>\skills\<název>\<název>.md` (leží vedle SKILL.md daného skillu) — VŽDY CELÉ, DO KONCE (oříznutý výstup hned dočti;
 částečně přečtený soubor = nepřečtený). Bez načtení nemáš kontext a uděláš chybu. Pokud jsi to
 neudělal a uživatel se zeptá, přiznej to a naprav.
 
 Notes jsou závazné; rozpor s tvou expertizou → upozorni uživatele, nepřepisuj potichu. Router
 žije JEN ve skillu `bc-al` — tady ho neduplikuj. Nový BC/AL poznatek → doplň do příslušného
-`bc-al-*.md` + commit + push v `C:\WorkTasks\BCALInsights` (jediná výjimka z „git nikdy sám").
-Pushuje se **do obou remotů**: `git push origin master && git push essence master` (`origin` =
-`Ronnie3697/BCALInsights`, `essence` = firemní fork `essencebs/BCALInsights`) — platí pro notes,
-skilly i README.
+`bc-al-*.md` + commit + push v `<KLON>` (jediná výjimka z „git nikdy sám"). Pushuje se do
+**všech** remotů, které `git remote` vypíše (typicky jen `origin` = `essencebs/BCALInsights`) —
+platí pro notes, skilly i README.
+Pracovní BC repa (`cust-*-bc`, `prod-*-bc`) mám ve složce <PRACOVNÍ-REPA>.
 V pracovních repech commit / push / PR nikdy bez pokynu, verzi `app.json` nepovyšuj, ADO PAT je
 read-only záměrně (401 na zápis neobcházet). Jazyk kódu a UI textů anglicky, čeština jen do XLIFF.
 ```
@@ -99,16 +131,36 @@ read-only záměrně (401 na zápis neobcházet). Jazyk kódu a UI textů anglic
 | Codex | `~/.agents/skills/` | `$bc-al`, přehled `/skills` |
 | Antigravity | `~/.gemini/config/skills/` | zmínit „bc-al" jménem |
 
+`<PRACOVNÍ-REPA>` = složka s tvými klony `cust-*-bc` / `prod-*-bc` (např. `C:\WorkTasks`) — agent
+ji používá na sibling repa, sdílenou `.alpackages` a zdroje závislých appek.
+
+### Volitelné projektové doplňky do always-on
+
+Jen pro toho, kdo na daném projektu opravdu dělá — přidej pod startup pravidlo:
+
+**Essence Warehouse Mobile (`prod-ew-mobileBase-bc`):**
+
+```markdown
+## BC mobilní čtečky čárových kódů
+
+Při práci v repu `prod-ew-mobileBase-bc` (mobilní warehouse aplikace pro Business Central,
+dedikované čtečky čárových kódů) načti navíc skill **`ew-mobile-ui`**. Drží zavedené vzory
+(Scanner Control Add-in EXEBS, SetFieldFocusAndBlur, Manual Input, Interpret Barcode řetězec,
+ObjectId check, cuegroup Tile akce, SourceTableTemporary + SetData, SingleInstance,
+`OnBeforeInterpretScannedBarcode`) a Control AddIn / JS poznatky (soubor
+`ew-mobile-ui-notes.md` vedle jeho SKILL.md).
+```
+
 ### Claude Code
 
 - **Skilly:** junction celého repa jako plugin (auto-load „skills-dir", bez marketplace):
 
   ```
-  cmd /c mklink /J "%USERPROFILE%\.claude\skills\bcal-insights" "C:\WorkTasks\BCALInsights"
+  cmd /c mklink /J "%USERPROFILE%\.claude\skills\bcal-insights" "<KLON>"
   ```
 
   Příští seance plugin načte jako `bcal-insights@skills-dir`. Ověření:
-  `claude plugin validate C:\WorkTasks\BCALInsights`, `claude plugin details bcal-insights`,
+  `claude plugin validate <KLON>`, `claude plugin details bcal-insights`,
   v seanci `/bc-al`.
 - **Always-on:** `~/.claude/CLAUDE.md` (globální) — šablona výše.
 - **MCP:** `mcp-setup.md` (npm, `claude mcp add -s user …`, read-only PAT, `MCP_TIMEOUT`,
@@ -120,7 +172,7 @@ read-only záměrně (401 na zápis neobcházet). Jazyk kódu a UI textů anglic
 
   ```
   mkdir "%USERPROFILE%\.agents"
-  cmd /c mklink /J "%USERPROFILE%\.agents\skills" "C:\WorkTasks\BCALInsights\skills"
+  cmd /c mklink /J "%USERPROFILE%\.agents\skills" "<KLON>\skills"
   ```
 
   VS Code Copilot čte i `~/.copilot/skills/` a `~/.claude/skills/<skill>/`; v chatu `/bc-al`.
@@ -130,7 +182,7 @@ read-only záměrně (401 na zápis neobcházet). Jazyk kódu a UI textů anglic
   ```markdown
   ---
   applyTo: "**/*.al"
-  description: "BC/AL: jako první akci načti Agent Skill bc-al (Router + startup checklist) z C:/WorkTasks/BCALInsights"
+  description: "BC/AL: jako první akci načti Agent Skill bc-al (Router + startup checklist) z <KLON>"
   ---
   ```
 
@@ -203,12 +255,12 @@ read-only záměrně (401 na zápis neobcházet). Jazyk kódu a UI textů anglic
 - **Skilly:** globální skilly jsou v `~/.gemini/config/skills/`:
 
   ```
-  cmd /c mklink /J "%USERPROFILE%\.gemini\config\skills" "C:\WorkTasks\BCALInsights\skills"
+  cmd /c mklink /J "%USERPROFILE%\.gemini\config\skills" "<KLON>\skills"
   ```
 
   Čte i `.agents/skills/` v repu. Spuštění = zmínit „bc-al" jménem v promptu.
 - **Always-on:** `~/.gemini/GEMINI.md` (globální) — šablona výše. Když agent běží ve WSL,
-  přidej k cestám i variantu `/mnt/c/WorkTasks/BCALInsights/...`.
+  přidej k cestám i variantu `/mnt/c/...` tvého klonu.
 - **MCP:** `~/.gemini/config/mcp_config.json` (nebo přes UI „MCP Servers → View raw config",
   které zapisuje tamtéž); formát `mcpServers` bez `type`:
 
@@ -237,13 +289,16 @@ read-only záměrně (401 na zápis neobcházet). Jazyk kódu a UI textů anglic
 - Limit jednoho čtení souboru se liší per nástroj (Claude Code Read ≈ 25k tokenů); pravidlo
   „čti celé, do konce, oříznuté dočti" platí všude.
 - Po `git pull` tohoto repa není třeba nic reinstalovat — junctiony míří na živé soubory.
+- Kořen repa z adresáře skillu: `git -C <skill dir> rev-parse --show-toplevel` funguje i přes
+  junction (git si reálnou cestu dohledá, na rozdíl od `..`) — tak skill `bc-al` najde
+  `mcp-setup.md` a ví, kde commitovat nový poznatek.
 
 ## Claude Code skilly (plugin `bcal-insights`)
 
 Repo je zároveň **Claude Code plugin**: `.claude-plugin/plugin.json` +
 `skills/<název>/SKILL.md`. Každý skill je tenký wrapper nad jedním notes
 souborem — frontmatter `description` = trigger (Claude Code si skill načte
-sám podle typu úkolu), tělo = „přečti `../../<soubor>.md` celý" + TL;DR
+sám podle typu úkolu), tělo = „přečti `<soubor>.md` z adresáře skillu celý" + TL;DR
 stabilních pravidel. **Notes soubory zůstávají zdrojem pravdy.**
 
 | Skill | Soubor | Kdy |
@@ -264,8 +319,12 @@ stabilních pravidel. **Notes soubory zůstávají zdrojem pravdy.**
 Všechny skilly mají `user-invocable: true` — jdou spustit i ručně (`/bc-al-tools`…);
 normálně si je agent načítá sám podle `description` (limit 1024 znaků dle spec
 [agentskills.io](https://agentskills.io/specification), u `description` to hlídej).
-Skilly odkazují na notes **absolutní cestou** `C:\WorkTasks\BCALInsights\…` — přes
-junction by relativní `../../` nesedělo.
+Notes leží **vedle `SKILL.md`** a skill na ně odkazuje jen jménem: Claude Code při načtení
+hlásí „Base directory for this skill", ostatní nástroje mají adresář skillu z junctionu. Odkaz
+`../../<soubor>.md` z `skills/<název>/` by u Copilota / Codexu / Antigravity nesedl — junction
+vede jen na `skills/` a Windows resolvují `..` lexikálně (`~/.agents/skills/x/../..` =
+`~/.agents`; ověřeno 2026-09-22 PowerShell `Test-Path` i Node `path.resolve`, Bash to naopak
+resolvuje fyzicky a zavádí). Proto ani absolutní cesta, ani `..`, ale soubor ve složce skillu.
 
 **Údržba skillů:**
 

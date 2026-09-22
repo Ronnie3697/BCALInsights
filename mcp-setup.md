@@ -24,8 +24,8 @@ agent hádá signatury z paměti.
   (tam žijí globální shimy `*.cmd`, které Claude Code volá).
 - **.NET SDK 8+** (potřebuje `al-mcp-server`).
 - **Claude Code** nainstalované (`claude --version`).
-- Notes repo naklonované do `C:\WorkTasks\BCALInsights` (privátní GitHub
-  `Ronnie3697/BCALInsights` — přístup dá DNEM) + junction skillů podle `README.md`.
+- Notes repo naklonované kamkoli (GitHub `essencebs/BCALInsights`, firemní —
+  přístup dá DNEM) + junction skillů podle `README.md`.
 - Účet v Azure DevOps org `essencebs` (pro PAT) a Entra účet s admin rolí v BC tenantech
   zákazníků (pro `d365bc-admin`; bez toho ten server prostě přeskoč).
 
