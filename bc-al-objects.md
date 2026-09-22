@@ -883,6 +883,9 @@ Zdroj w1-28 `Modules/System/JobQueue/JobQueueEntry.Table.al` + `JobQueueEnqueue.
   plánuješ **ze subscriberu při účtování** (`Sales-Post.OnAfterPostSalesDoc`), zrcadli ty tři `WritePermission()` +
   `TaskScheduler.CanCreateTask()` a při neúspěchu tiše přeskoč — jinak účtující uživatel bez JQ práv shodí posting.
   `TryFunction` kolem toho nedávej (uvnitř jsou DB zápisy). Bez práv musí frontu spolehlivě odbavit **opakovaná** entry.
+  ⚠️ `TaskScheduler.CanCreateTask()` vrací v Essence build kontejneru `false` (task scheduler vypnutý) — zrcadlo obal do
+  lokální procedury s `IntegrationEvent`, aby si ho testy mohly přepnout na `true`, jinak testy plánování v CI padají
+  (`Actual: 0`); detail a vzor v `bc-al-autotests.md`. (2026-09-22, build 28396.)
 - **`ScheduleRecurrentJobQueueEntry(WithFrequency)` filtruje jen `Object Type/ID to Run` (+ `Record ID to Process`, je-li
   vyplněné)** — najde i **dokončenou jednorázovou** entry téhož codeunitu a opakovanou pak **nikdy nezaloží**. Když
   codeunit používáš pro one-off i recurring, skládej recurring entry sám: `SetRange("Recurring Job", true)` + `FindFirst`,

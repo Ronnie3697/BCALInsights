@@ -290,6 +290,24 @@ Assert.ExpectedErrorCode('Dialog');
   Setup záznamy sdílené napříč testy codeunitu (např. `Shpfy Shop` s vlastním enable flagem) **vypni v `Initialize()`
   před `if IsInitialized then exit`** (`ModifyAll(Flag, false, false)`), jinak „počet řádků per povolený shop" počítá
   i shopy z předchozích testů (AutoCommit). (2026-09-22, cust-sonnentor-bc `Test Voucher Discounts SON`.)
+- **`TaskScheduler.CanCreateTask()` je v Essence build kontejneru `false`** (`CreateBCContainer2.ps1` nevolá
+  `New-BcContainer -enableTaskScheduler`; BcContainerHelper pak `EnableTaskScheduler` do konfigurace vůbec nezapíše).
+  Vlastní pre-check před `ScheduleJobQueueEntryForLater` („zrcadlo `CheckRequiredPermissions`", 5.x14 v bc-al-objects)
+  tak v CI **tiše přeskočí založení entry** a `Assert.RecordCount(JobQueueEntry, 1)` spadne s `Actual: 0`, zatímco přímé
+  `Codeunit.Run("Job Queue - Enqueue")` s bindnutou `Library - Job Queue` projde (base `CanCreateTask` nekontroluje, jen
+  publikuje `OnBeforeJobQueueScheduleTask`). Řešení: pre-check obal do `local procedure CanCreateTask()` s
+  `[IntegrationEvent] OnBeforeCheckCanCreateTask(var CanCreateTask; var IsHandled)`; test codeunit dostane
+  `EventSubscriberInstance = Manual`, subscriber nastaví `true` + `IsHandled` a test ho bindne přes proměnnou vlastního
+  typu (`TestX: Codeunit "Test X"; BindSubscription(TestX)`) hned za `BindSubscription(LibraryJobQueue)`. Na dev
+  prostředí se zapnutým task schedulerem to lokálně neuvidíš. (2026-09-22, cust-sonnentor-bc build 28396, 2 testy.)
+- **Platformový `Random()` v app kódu dostává v testech seed od `Library - Random`** (`SetSeed` = `Randomize(Seed)` na
+  společném generátoru, před každým testem stejný — viz bullet o PK výše). Generátor typu „náhodný kód + kontrola
+  unikátnosti + max 20 pokusů" (`GenerateActivationCode` u voucherů) proto v každém testu se stejnou preambulí navrhuje
+  **tutéž sekvenci kandidátů**; data předchozích testů zůstávají do konce codeunitu (TestIsolation Codeunit) → N-tý test
+  se stejnou preambulí vyčerpá všech 20 pokusů a spadne (`There is an issue with generating the activation code`),
+  první testy projdou a lokálně (jeden test = jeden seed) to nevidíš. Fix v appce: při kolizi `Randomize()` bez seedu
+  před dalším pokusem — v produkci se větev nikdy nespustí, v testu utrhne opakující se sekvenci.
+  (2026-09-22, cust-sonnentor-bc build 28396, 4 testy z 39.)
 - `Commit()` v testovaném kódu z test runu neprosákne (TestIsolation odroluje i explicitní commity), ale commitnutá data **vidí následující testy v téže codeunit** → izoluj data (unikátní kódy, vlastní batch); `AutoRollback` model `Commit()` rovnou zakazuje (error)
 - Handler musí být v **stejné codeunit** jako test, který ho používá (nebo registrovaný přes `[HandlerFunctions]`)
 - Pokud test spustí UI a chybí handler → **test selže** s "no handler"
