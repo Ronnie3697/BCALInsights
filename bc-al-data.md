@@ -782,6 +782,26 @@ parameter is 'var'"), takže lokální build s ALCops to řekne za tebe.
 (2026-09-15, cust-sonnentor-bc build 28271 — kontrola plné hodnoty uplatněného poukazu
 visela na `OnBeforeIsApprovedForPosting` a při programovém účtování se nespustila.)
 
+### 3.6f Fakturace dodaného řádku: `Sales-Post.CheckJobNoOnShptLineEqualToSales` porovnává Job No. dodávky a řádku — doplnění Job No. až při účtování faktury spadne
+
+`PostSalesLine` (BC 28) volá v tomhle pořadí: `OnPostSalesLineOnBeforeTestUnitOfMeasureCode` → `OnPostSalesLineOnBeforeUpdateSalesLineBeforePost`
+→ `UpdateSalesLineBeforePost` → `PostItemLine` → `PostItemTracking` → `PostItemTrackingForShipment`, kde se pro každý dodaný, nevyfakturovaný
+řádek dodávky testuje `SalesShptLine.TestField("Sell-to Customer No." / Type / "No." / Gen. Bus. / Gen. Prod. / **"Job No."** / UoM / Variant, SalesLine.X)`.
+Job No. má vlastní wrapper `CheckJobNoOnShptLineEqualToSales` s hookem **`OnBeforeCheckJobNoOnShptLineEqualToSales(SalesShipmentLine, SalesLine,
+var IsHandled)`**; celý blok testů jde vypnout přes `OnPostItemTrackingForShipmentOnBeforeTestLineFields`. U vratek (`Return Receipt Line`) je
+analogický `TestField("Job No.")` v `CheckReturnRcptLine` s hookem `OnBeforeCheckReturnRcptLine`.
+
+Past: řádek objednávky vygenerovaný z Job Planning Line (IMEBS `GenerateSalesOrderJobLines`) nese jen `Job Contract Entry No.`, Job No. má prázdné
+(standard ho na objednávce vyžaduje prázdné — `TestField("Job No.", '')` v `PostSalesLine` pro Order). Dodávka tedy vznikne s **prázdným Job No.**
+Faktura přes Get Shipment Lines (`InsertInvLineFromShptLine`: `SalesLine := SalesOrderLine`) zdědí prázdné Job No. + kontrakt. Když pak subscriber
+na `OnPostSalesLineOnBeforeUpdateSalesLineBeforePost` (IMEBS `Project Item Management`, commit 1350b6f 2026-09-17 — kvůli `PostJobContractLine`
+`TestField("Job No.")` u dobropisů z Correct/Cancel) doplní Job No. z planning line na fakturační řádek, běží to **před** `PostItemLine`, a
+`TestField("Job No.", SalesLine."Job No.")` na dodávce spadne („Job No. must be equal to 'X' in Sales Shipment Line … Current value is ''"), debugger
+ukazuje `Sales-Post.dal:8331`. Totéž pro `Skip Purchase Consumption` projekty přes starší subscriber `OnPostSalesLineOnBeforeTestUnitOfMeasureCode`.
+Řešení: buď Job No. doplňovat až po item postingu (např. `OnAfterPostItemLine` / těsně před `PostJobContractLine`), nebo v
+`OnBeforeCheckJobNoOnShptLineEqualToSales` nastavit `IsHandled`, když má dodávka prázdné Job No. a stejné `Job Contract Entry No.` jako řádek
+(Sales Shipment Line to pole má). Zachyceno 2026-09-22, cust-soitron-bc (Sales Aggregation, částečná dodávka → faktura z Get Shipment Lines).
+
 ### 3.7 `[EventSubscriber]` argumenty — identifier syntax, ne string literály (LC0028)
 
 V moderním AL piš event name i element name (field/action) v atributu
