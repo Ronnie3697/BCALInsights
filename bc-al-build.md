@@ -471,3 +471,34 @@ At ...\BcContainerHelper\6.1.18\HelperFunctions.ps1:130
 Zachyceno 2026-09-14, cust-alumistr-bc release 14979 (28.0.29), stage „deploy to live". Totéž
 týž den dopoledne prod-epb-pricingMatrix-bc release 14970 (28.0.5): attempt #1 na APP22-2 identický
 pád, attempt #2 (Redeploy) na BLD22-6 prošel — Redeploy jako workaround ověřený.
+
+### 7.21 „Compile AL Apps" spadne BEZ `##[error]` — jediný warning z `app.json` (PTE0012) shodí build
+
+Essence CI zapíná z MS analyzerů **jen `PerTenantExtensionCop`** (v logu kroku: `Enable Per Tenant
+Extension Cop: True`, `Enable Code Cop: False`, `Enable UI Cop: False`, `Enable App Source Cop: False`)
+a k tomu `Fail On: warning`. **ALCops v CI nejsou vůbec** (12.1b v `bc-al-workflow.md`), takže z celé
+analyzerové palety může build reálně shodit hlavně **PTE\*** — a nejčastěji `PTE0012` nad
+`internalsVisibleTo` v `app.json`.
+
+**Diagnostika je zrádná, protože fail nemá v logu chybovou hlášku:**
+
+- Krok „Compile AL Apps" **doběhne**, obě `.app` se vyrobí (`… successfully created in 7 seconds`),
+  log končí `##[section]Finishing: Compile AL Apps` a **žádný `##[error]` v něm není**.
+- Že krok přesto selhal, poznáš **až podle následujících kroků**: `Skipping step due to condition
+  evaluation. Evaluating: SucceededNode() → Result: False`. Job pak doběhne přes `always()` kroky
+  (Publish Test Results → `##[warning]No test result files matching '**/TestResults.xml' were found`,
+  Clean/Remove BC environment) a build je červený.
+- V build reportu (`pipelines_build get_status`) proto sedí v Issues **jen dva warningy** — ten
+  skutečný viník a matoucí „no test results". `##[warning] … warning PTE0012 …` je ten viník;
+  „no test results" je jen důsledek (testy se po failu nespustí), **ne příčina**.
+
+**Fix `PTE0012` = `"id": "PTE0012", "action": "Hidden"` + justification v rulesetu appky**
+(`app/<repo>.ruleset.json`, CI si ho najde konvencí 12.4). **Nemazat `internalsVisibleTo`** ani
+zveřejňovat objekty (detail a kontext v `bc-al-autotests.md`, sekce „Main appka s Access = Internal").
+⚠️ Warning visí na **existenci** `internalsVisibleTo`, ne na jeho využití — přiletí i do appky, která
+**žádný `Access = Internal` objekt nemá** (test appka referencuje jen public objekty). Takové
+`internalsVisibleTo` je sice fakticky no-op a smazat ho je taky validní fix, ale u Essence prod modulů
+se Internal kontraktem se stejně dřív nebo později vrátí → Hidden v rulesetu je stabilnější.
+
+Zachyceno 2026-09-22, prod-ef-advanceCZ-bc build 28371 (master po merge PR 9166) — hodinu to vypadá
+jako „spadly testy", přitom testy vůbec neběžely.

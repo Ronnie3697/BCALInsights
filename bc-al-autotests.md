@@ -335,6 +335,14 @@ v repo rulesetu (`"id": "PTE0012", "action": "Hidden"` + justification), **ne**
 mazat internalsVisibleTo ani zveřejňovat objekty (viz 1.10 v bc-al-style).
 (2026-08-05, prod-ess-dotykackaConnector-bc, build 27684.)
 
+⚠️ **`PTE0012` přiletí i do appky, která žádný `Access = Internal` objekt nemá** —
+pravidlo hlídá **existenci** `internalsVisibleTo`, ne jeho využití. Fix je stejný
+(Hidden v rulesetu); smazat nepoužívané `internalsVisibleTo` je taky validní, ale
+u prod modulu, který k Internal kontraktu směřuje, se to jen vrátí. Jak takový fail
+vypadá v CI (krok „Compile AL Apps" doběhne bez `##[error]`, pozná se až podle
+`SucceededNode() → False` u dalších kroků) → **7.21 v `bc-al-build.md`**.
+(2026-09-22, prod-ef-advanceCZ-bc, build 28371.)
+
 ### Test app nepotřebuje vlastní permissionset
 
 **Do test appky NEpiš permissionset** (execute permissiony na test codeunity).

@@ -459,6 +459,14 @@ DC0004/DC0007 XML docs) — ty jde nechat. Rozpad warningů a co s nimi:
 | `LC0095` nepoužitý parametr | 1 | pragma, když je parametr součástí publikovaného podpisu |
 | `AC0010` objekt bez permission setu | 6 | v **test** rulesetu Hidden (test appka permissionset záměrně nemá, viz bc-al-autotests) |
 
+⚠️ **Starý `lintercop.json` ALCops NEČTOU — konfigurace v něm je mrtvá.** Repa, která ještě vozí
+`lintercop.json` po samostatném LinterCopu (camelCase klíče `cognitiveComplexityThreshold`,
+`enableRule0011ForTableFields`…), po přechodu na ALCops tiše jedou na **defaultech**: `LC0090` hlásí
+`threshold ≥ 15`, i když soubor říká 20. Poznáš to přesně podle toho čísla v hlášce — sedí-li default
+místo tvého, soubor se nečte. Fix: přejmenovat na **`alcops.json`** (vedle `app.json`) a klíče přepsat
+na **PascalCase** dle schématu níže; pravidla, která v novém schématu nejsou (`enableRule0011…`,
+`enableRule0016…`), zahoď. (2026-09-22, prod-ef-advanceCZ-bc.)
+
 **`alcops.json`** (JSON schéma `raw.githubusercontent.com/ALCops/Analyzers/main/src/ALCops.Common/Settings/alcops.schema.json`,
 soubor vedle `app.json`) umí **jen thresholdy a patterny** — `CognitiveComplexityThreshold`,
 `CyclomaticComplexityThreshold`, `MaintainabilityIndexThreshold`, `SubscriberNamingPattern`,

@@ -2,23 +2,24 @@
 name: bc-al-build
 description: >-
   BC/AL dependencies, CI build a deploy z praxe (Business Central, AL,
-  Essence pipeline, sekce 7.11–7.19): NuGet download šablony v2-0
-  (MajorMinor range + LatestMatching; dedupe minim per GUID → stejná verze
-  dependency ve všech app.json), symboly test frameworku z veřejného
-  MSSymbols feedu, lokalizační MS appky (CZ packy, Banking Documents) od BC
-  28 pod ID s .cz. infixem (staré ID končí u 27.0, hledej přes query2),
-  kolize object ID po merge (rozhodují nasazená data), major version bump
-  checklist (app.json, azure-pipelines.yml BC_ARTIFACT), faily testů shazují
-  build, squash merge → falešné konflikty a three-dot diff lže, Microsoft
-  Subcontracting ≥ 28.3.0.0 + BC_ARTIFACT 28.3 (falešné AL0118/AL0132),
-  Deploy Staging sync_mode 'Add' natvrdo / ForceSync maže data / obsolete
-  dvoufázově, smíchané řady MS symbolů v .alpackages (falešné AL0132 bez
-  AL1022). Načti při CI/build failech, práci s dependencies a symboly z
-  feedu, upgrade BC majoru, deploy na staging, merge konfliktech po squash.
+  Essence pipeline, sekce 7.11–7.21): NuGet v2-0 (MajorMinor +
+  LatestMatching; dedupe minim per GUID → stejná verze deps ve všech
+  app.json), symboly test frameworku z veřejného MSSymbols feedu,
+  lokalizační MS appky (CZ packy) od BC 28 pod ID s .cz. infixem (staré
+  končí u 27.0, hledej query2), Compile AL Apps failuje bez ##[error]
+  (PTE0012 z internalsVisibleTo, CI jede jen PerTenantExtensionCop), kolize
+  object ID po merge (rozhodují nasazená data), major bump checklist
+  (app.json, BC_ARTIFACT), faily testů shazují build, squash merge →
+  falešné konflikty a three-dot diff lže, Microsoft Subcontracting ≥
+  28.3.0.0 + BC_ARTIFACT 28.3 (falešné AL0118/AL0132), Deploy Staging
+  sync_mode 'Add' / ForceSync maže data / obsolete dvoufázově, smíchané
+  řady MS symbolů v .alpackages (falešné AL0132 bez AL1022). Načti při
+  CI/build failech, práci s dependencies a symboly z feedu, upgrade BC
+  majoru, deploy na staging, merge konfliktech po squash.
 user-invocable: true
 ---
 
-# BC/AL — Dependencies, CI build & deploy (sekce 7.11–7.19)
+# BC/AL — Dependencies, CI build & deploy (sekce 7.11–7.21)
 
 **Zdroj pravdy:** `C:\WorkTasks\BCALInsights\bc-al-build.md`
 (v repu `../../bc-al-build.md` relativně k tomuto skillu). Tenhle skill je jen wrapper —
