@@ -32,6 +32,13 @@ ohledu na typ úkolu.
 
 ## Postup — jako první akce, bez pobídnutí, paralelně v jednom bloku
 
+0. **Merge masteru do aktuální větve** (jen pracovní repa `cust-*` / `prod-*`,
+   ne notes repo): `git fetch origin` a `git merge origin/master` do větve, na
+   které stojíš (na masteru `git pull --ff-only`). Konflikty **vyřeš sám** a
+   oznam, které soubory a jak; merge commit je tady v pořádku. Když merge
+   odmítne kvůli necommitnutým změnám v dotčených souborech, nestashuj —
+   řekni to uživateli. Stejný krok opakuj **před každým `commitni` / `pushni`**
+   (detail 7.7b v `bc-al-tools.md`). Uživatel na to nechce myslet.
 1. **Router → notes.** Podle typu úkolu vyber řádky z tabulky níže a načti
    příslušné skilly (Claude Code: `Skill` tool; Copilot `/název`, Codex
    `$název`, Antigravity zmínkou jménem) **nebo rovnou soubory** — každý skill
@@ -109,8 +116,9 @@ Archiv monolitu `bc-al-notes.archived-2026-06-23.md` — **needituj, jen referen
 - **Jazyk kódu a UI textů:** vždy anglicky (1.1 v `bc-al-style.md`); čeština
   jen do XLIFF. **Jazyk komunikace:** česky, neformálně, tykání.
 - **Git v pracovních repech:** commit / push / PR **nikdy sám** (7.7 v
-  `bc-al-tools.md`). Verzi `app.json` nepovyšuj (7.8). ADO PAT je read-only
-  záměrně — 401 na zápis neobcházet (7.9).
+  `bc-al-tools.md`). Na startu seance a před každým vyžádaným commitem/pushem
+  **mergni `origin/master`** a vyřeš konflikty (7.7b). Verzi `app.json`
+  nepovyšuj (7.8). ADO PAT je read-only záměrně — 401 na zápis neobcházet (7.9).
 - **Nový poznatek → zapiš.** Když během práce zjistíš něco užitečného pro
   BC/AL, doplň to do příslušného `bc-al-*.md` (nebo to nabídni) a **rovnou
   commitni + pushni do obou remotů** v `C:\WorkTasks\BCALInsights`

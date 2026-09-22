@@ -647,6 +647,36 @@ to zašpiní historii i cizí PR — poslední volba.
 - Když rovnou commitnu / pushnu, vede to k nadbytečným reset/rebase
   manévrům na úklid.
 
+### 7.7b Merge masteru — na startu seance a před každým `commitni` / `pushni`
+
+Pokyn uživatele (2026-09-22, cust-alumistr-bc): *„na začátku sessiony mergni master a vyřeš konflikty; a když napíšu
+commitni nebo pushni nebo oboje, tak taky. Ať na to nemusím myslet."* Platí pro pracovní repa (`cust-*`, `prod-*`),
+notes repo má vlastní režim (7.7).
+
+**Na startu AL/BC seance** (krok 0 v rozcestníku `bc-al`), pokud stojíš na feature větvi:
+
+1. `git fetch origin`
+2. `git merge origin/master` (na masteru místo toho `git pull --ff-only`). Merge commit je tady výjimka z „commit nikdy sám" —
+   je to synchronizace, ne práce uživatele.
+3. Konflikty **vyřeš sám** podle smyslu obou stran (obě změny mají zůstat funkční; u `app.json` verzí ber master, u XLIFF obě
+   sady trans-unitů, u object ID kolizí rozhodují nasazená data — 7.14 v `bc-al-build.md`). Po vyřešení zkompiluj dotčené appky.
+4. Oznam: co se mergovalo (počet commitů / poslední sha masteru), které soubory měly konflikt a jak jsi ho rozhodl.
+   Bez konfliktů stačí jedna věta („master mergnutý, bez konfliktů").
+5. Merge odmítne kvůli **necommitnutým změnám** v souborech, kterých se master dotkl (*Your local changes … would be
+   overwritten by merge*) → **nestashuj a nezahazuj**; řekni to uživateli a nech rozhodnutí na něm (commitnout rozdělané,
+   nebo merge odložit). Pracuješ-li v `git worktree` z čerstvého `origin/master`, krok je no-op — jen to ověř `git status -sb`.
+
+**Před vyžádaným `commitni` / `pushni` / obojím:**
+
+- `commitni` → nejdřív **commit práce** (aby merge neblokovaly necommitnuté soubory), pak fetch + merge `origin/master`,
+  vyřešit konflikty, znovu zkompilovat dotčené appky, teprve pak ohlásit hotovo. Výsledek = commit práce + případný merge commit.
+- `pushni` → fetch + merge `origin/master` + konflikty + kompilace, pak `git push -u origin <větev>` (jméno větve vždy explicitně,
+  viz past s cizím upstreamem výše).
+- `oboje` → commit práce → merge masteru → push.
+
+Nikdy `rebase` místo merge bez pokynu (přepisuje historii větve, kterou může mít kolega stažen) a nikdy `--force`.
+Case-only kolize složek po merge zkontroluj `git ls-tree -r HEAD --name-only | sort -f | uniq -di` (7.10).
+
 ### 7.8 Verzování `app.json` — nepovyšovat sám
 
 `version` v `app.json` (ani jinou formu verzování extension) **neměnit z
