@@ -458,7 +458,21 @@ At ...\BcContainerHelper\6.1.18\HelperFunctions.ps1:130
   ten samý agent.
 - **Fix na agentovi (pipeline tým / Igor):** doinstalovat **.NET 10 Runtime x64**
   (odkaz z logu `aka.ms/dotnet-core-applaunch?...apphost_version=10.0.12`), nebo
-  nastavit `DOTNET_ROOT` na existující instalaci .NET 10. Alternativa v šabloně:
+  nastavit `DOTNET_ROOT` na existující instalaci .NET 10.
+  - ⚠️ **Samotný `Microsoft.NETCore.App` nestačí — `altool` 18.x vyžaduje i
+    `Microsoft.AspNetCore.App` 10.0 (ASP.NET Core Runtime).** Po instalaci jen
+    základního runtime hláška změní znění na `You must install or update .NET …
+    Framework: 'Microsoft.AspNetCore.App', version '10.0.0' … No frameworks were found`.
+    Instaluj `dotnet-install.ps1 -Channel 10.0 -Runtime aspnetcore -Architecture x64
+    -InstallDir "C:\Program Files\dotnet"` (bez `-InstallDir` skript instaluje do
+    `%LOCALAPPDATA%`, kde to apphost nenajde) nebo instalátor „ASP.NET Core Runtime
+    10.0 x64" z dotnet.microsoft.com. Ověření: `dotnet --list-runtimes` musí vypsat obě
+    řady. Rychlý test bez helperu: `& "<ext>\bin\altool.exe" --help`.
+  - Stejná past mimo CI: lokální `Publish-BcContainerApp` do on-prem kontejneru
+    (2026-09-22, server s BcContainerHelper 6.1.12 → nejdřív `Command …\bin\win32\altool.exe
+    not found` — stará verze helperu čekala jinou strukturu `bin\` než AL extension 18.x;
+    po `Install-Module BcContainerHelper -Force` přišla .NET 10 hláška výše).
+  Alternativa v šabloně:
   `$bcContainerHelperConfig.alToolVersion`/pinnout starší AL extension, ale to je
   workaround, ne řešení.
 - **Workaround hned:** Redeploy, dokud stage nepadne na agenta, který .NET 10 má
