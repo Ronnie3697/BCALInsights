@@ -1,8 +1,7 @@
 ---
 name: bc-al-ui
 description: >-
-  BC/AL UI patterny stránek z praxe (Business Central, AL; sekce 4,
-  vyčleněno z bc-al-style): RunModal vs Run a výběr záznamu na RoleCenter
+  BC/AL UI patterny stránek z praxe (Business Central, AL; sekce 4): RunModal vs Run a výběr záznamu na RoleCenter
   CardPart (SingleInstance + CurrPage.Close), OnDrillDown vs OnLookup,
   ConfirmManagement default Yes pro běžné a No pro destruktivní akce,
   factbox SourceTableTemporary a Rec.Reset maže SubPageLink (filter group
@@ -13,9 +12,9 @@ description: >-
   OnAfterGetCurrRecord, idempotentní přepočty), Visible = Rec.pole v
   pageextension padá za běhu → page proměnná v OnOpenPage, MultiLine pevné 3
   řádky / ExtendedDatatype RichContent v root group (HTML → Blob) / control
-  add-in. Načti při psaní nebo review page, pageextension, factboxů,
-  RoleCenter partů, akcí s potvrzením, dynamických captionů, viditelnosti
-  polí, dlouhých textových polí.
+  add-in, page procedura se jménem metody Rec (AL0604, AA0228). Načti u
+  page, pageextension, factboxů, RoleCenter partů, akcí s potvrzením,
+  captionů, viditelnosti a dlouhých textových polí.
 user-invocable: true
 ---
 

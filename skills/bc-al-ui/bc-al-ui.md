@@ -342,3 +342,22 @@ Configuration COEBS` na Sales Order / Sales Quote.)
 
 ---
 
+### 4.12 Page procedura se stejným jménem jako metoda `Rec` — volání se naváže na tabulku (AL0604 + AA0228)
+
+V pageextension (i page) volání **bez kvalifikace** `EditParameterFormula(FieldType)`, když stejné jméno a signaturu
+má `local procedure` stránky **i** procedura tabulky / tableextension zdrojové tabulky, přeloží alc 18 jako
+**`Rec.EditParameterFormula(...)`** přes implicitní `with` — ne jako lokální proceduru stránky. Kompilace projde a
+prozradí to jen dvojice warningů: `AL0604 Use of implicit 'with' will be removed … Qualify with 'Rec'` na řádku
+volání a `AA0228 The local method 'X' is declared but never used` na proceduře stránky. Za běhu se tak přeskočí
+všechno, co obálka stránky dělá navíc (`CurrPage.SaveRecord()`, `Commit()` před modálním dialogem, obnovení náhledů,
+`CurrPage.Update`). Typicky vznikne při refaktoru „logiku přesuň na tabulku, stránce nech tenkou obálku“.
+
+- **Fix:** obálku stránky pojmenuj jinak než metodu tabulky (`RunParameterFormulaEditor` → volá
+  `Rec.EditParameterFormula`).
+- **Kontrola:** po refaktoru grepni log alc na `AL0604` / `AA0228`. `AL0604` je warning **kompilátoru** (hlásí se i bez
+  analyzerů) → s Essence `failOn warning` shodí CI; `AA0228` je CodeCop, který CI nespouští (7.21 v `bc-al-build.md`),
+  ten uvidíš jen lokálně.
+
+(2026-09-22, cust-alumistr-bc `SL Action Cond. Card/Dlg COALU` — obálka editoru vzorců Parametr A/B po code review.)
+
+---
