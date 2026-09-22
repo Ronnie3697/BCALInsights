@@ -247,6 +247,16 @@ end;
 - Ověření při debugování: porovnej vygenerovaný timestamp s `date -u` /
   mtime staženého souboru — posun přesně o timezone offset = tenhle trap.
 
+### 5.5a `DateTime` v SQL má přesnost 1/300 s — porovnání s hodnotou v paměti ujede o milisekundu
+
+BC ukládá `DateTime` do SQL typu `datetime` (zaokrouhlení na 0/3/7 ms). Hodnota, kterou zapíšeš (`Rec.X := CurrentDateTime() + 5 * 60 * 1000`)
+a pak přečteš z tabulky (nebo ji z tabulky přečte kód, který testuješ, a uloží dál, např. do `Job Queue Entry."Earliest
+Start Date/Time"`), je tedy až o ~2 ms **menší** než proměnná, kterou sis nechal v paměti → `Assert.IsTrue(Stored >= InMemory)`
+padá **nedeterministicky** (podle ms složky času běhu), lokálně třeba nikdy, v CI ob build. Řešení: po `Modify` udělej
+`Get` a porovnávej proti hodnotě z DB (`NextAttemptAt := Rec."Next Attempt At"`), ne proti proměnné; do hlášky assertu dej
+obě hodnoty (`StrSubstNo(Label, ...)` — plain string v `StrSubstNo` = AA0217). (2026-09-22, cust-sonnentor-bc build 28397,
+`ScheduleFollowUpWaitsForNextAttempt`.)
+
 ### 5.x Item Tracking — filtrování/obohacení výběru šarže (Lot No.)
 
 Když potřebuješ **omezit nebo obohatit výběr šarže** při zadávání item trackingu
