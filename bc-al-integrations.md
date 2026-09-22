@@ -96,6 +96,32 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
 - **Kde spouštět sync nových variant:** `Shpfy Sync Products` (30108) filtruje jen shop; jediný report s filtrem na zboží
   je `Add Item to Shopify` (30106), který existující produkt přeskočí — typická záměna u uživatelů.
 
+### 5.y3 Shopify Connector — vlastní GraphQL mutace z PTE = vlastní HttpClient, vlastní token i vlastní adresa shopu
+
+Zjištění z cust-sonnentor-bc 63637 (slevové kódy pro dárkové poukazy, konektor 28.4.53241.53839, 2026-09-22):
+
+- **Komunikační vrstva konektoru je z PTE nepoužitelná:** `Shpfy Communication Mgt.` (30103, má `ExecuteGraphQL`),
+  enum `Shpfy GraphQL Type` (30111, `Extensible = true`, ale Internal → enumextension neprojde) i `Shpfy Authentication
+  Mgt.` (30199) mají **`Access = Internal`**; token je v Isolated Storage konektoru se scope `Module`. Konektor navíc
+  **žádné discount API neimplementuje** (`discountCodeBasicCreate` apod. nikde). Essence Shopify Connector (SCEBS)
+  řeší jen metafieldy, HTTP vrstvu nemá.
+- **`Shpfy Shop` (30102) je public, ale `"Shopify URL"` i `GetStoreName`/`SetStoreName` jsou Internal** → `AL0161`
+  při kompilaci. al-mcp u nich vrátí `Properties: []` a access nedoloží — rozhoduje kompilátor a zdroj
+  (`microsoft/BCApps` releases/28.4 `src/Apps/W1/Shopify/App/src/Base/Tables/ShpfyShop.Table.al`; cesta `Base/Entities`
+  je 404). Public tabulka ≠ public pole.
+- **Důsledek:** vlastní `HttpClient` (`POST https://<shop>.myshopify.com/admin/api/<YYYY-MM>/graphql.json`, header
+  `X-Shopify-Access-Token` jako SecretText z Isolated Storage scope Company), vlastní pole s doménou shopu na
+  `Shpfy Shop` tableextension a **vlastní custom app v Shopify adminu** s potřebným scopem (`write_discounts`) —
+  credentials zařizuje zákazník, je to blocker E2E testu. Query skládej přes `JsonObject` + `variables`, ne dosazováním
+  do textu. `userErrors` v odpovědi = HTTP 200, ale nic se nestalo (viz 5.y2) — parsovat vždy; top-level `errors[].extensions.code = THROTTLED`
+  a HTTP 429 (`Retry-After`) řešit jako čekání, ne jako chybu k počítání.
+- **HTTP nikdy v posting transakci.** Vzor: subscriber při účtování jen zapíše řádek do fronty (rollbackne se s dokladem),
+  Job Queue worker řádek claimne pod `ReadIsolation(UpdLock)` (token + lease), `Commit`, HTTP v `[TryFunction]` codeunitu
+  bez DB zápisů, výsledek zapíše pod lockem jen vlastník tokenu a stav změní jen při nezměněné `Revision` (souběh
+  „uplatněno během běžícího create"). Ownership marker do titulu discountu (`[BC <SystemId>]`) + lookup podle kódu před
+  create = recovery po timeoutu bez duplicit a bez převzetí cizího kódu. Detail: `docs/proposals/63637-shopify-voucher-discounts.md`
+  v cust-sonnentor-bc.
+
 ## 11. SaaS gotchas — HttpClient a Cloud target
 
 ### 11.1 HttpClient na SaaS — silent fail bez Allow HttpClient Requests

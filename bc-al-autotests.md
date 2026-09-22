@@ -284,6 +284,12 @@ Assert.ExpectedErrorCode('Dialog');
   = jeden seed). Pro Integer/BigInteger PK vlastního helperu použij **`FindLast` + 1** (nebo `LibraryUtility.GetNewRecNo`),
   ne random; kódy přes `LibraryUtility.GenerateRandomCode` / `GenerateGUID` v témže runu nekolidovaly. Zachyceno
   2026-09-08, cust-sonnentor-bc build 28134 (`TestWebshopFilterSON`, `Shpfy Product` Id 323801 ve třech testech).
+- **Účtování / plánování v testu zakládá skutečný scheduled task** (`Job Queue Entry.ScheduleJobQueueEntryForLater`,
+  `Codeunit.Run("Job Queue - Enqueue")`) → před ním `BindSubscription(LibraryJobQueue)` (`Library - Job Queue`, Manual) —
+  jeho subscriber `OnBeforeJobQueueScheduleTask` nastaví `DoNotScheduleTask`, entry zůstane On Hold a dá se assertovat.
+  Setup záznamy sdílené napříč testy codeunitu (např. `Shpfy Shop` s vlastním enable flagem) **vypni v `Initialize()`
+  před `if IsInitialized then exit`** (`ModifyAll(Flag, false, false)`), jinak „počet řádků per povolený shop" počítá
+  i shopy z předchozích testů (AutoCommit). (2026-09-22, cust-sonnentor-bc `Test Voucher Discounts SON`.)
 - `Commit()` v testovaném kódu z test runu neprosákne (TestIsolation odroluje i explicitní commity), ale commitnutá data **vidí následující testy v téže codeunit** → izoluj data (unikátní kódy, vlastní batch); `AutoRollback` model `Commit()` rovnou zakazuje (error)
 - Handler musí být v **stejné codeunit** jako test, který ho používá (nebo registrovaný přes `[HandlerFunctions]`)
 - Pokud test spustí UI a chybí handler → **test selže** s "no handler"

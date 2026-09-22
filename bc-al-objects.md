@@ -871,3 +871,28 @@ v **invariantním formátu** (`Format(x, 0, 9)`, tečka) — při zpětném pars
 
 (2026-09-17, cust-zlomek-bc 65364 — přebírání hodnot parametrů z hlavní konfigurace do vnořené;
 zdroje prod-ess-configurator-bc master, COEBS 28.0.22.0.)
+
+### 5.x14 Job Queue z účtování a z kódu — práva, follow-up a proč `ScheduleRecurrentJobQueueEntry*` nevytvoří opakovanou entry
+
+Zdroj w1-28 `Modules/System/JobQueue/JobQueueEntry.Table.al` + `JobQueueEnqueue.Codeunit.al` (cust-sonnentor-bc 63637, 2026-09-22):
+
+- **`Job Queue Entry.ScheduleJobQueueEntryForLater(CodeunitID, StartDateTime, CategoryCode, JobParameter)`** → `EnqueueTask`
+  → **`CheckRequiredPermissions`** = `WritePermission()` na `Job Queue Log Entry`, `Error Message Register`, `Error Message`
+  (s `[SecurityFiltering(SecurityFilter::Ignored)]`), jinak `Error`. Codeunit `Job Queue - Enqueue` (453) má vlastní
+  elevaci na `Job Queue Entry`/`Job Queue Category`, tu tedy uživatel mít nemusí; kategorie se založí sama. Když entry
+  plánuješ **ze subscriberu při účtování** (`Sales-Post.OnAfterPostSalesDoc`), zrcadli ty tři `WritePermission()` +
+  `TaskScheduler.CanCreateTask()` a při neúspěchu tiše přeskoč — jinak účtující uživatel bez JQ práv shodí posting.
+  `TryFunction` kolem toho nedávej (uvnitř jsou DB zápisy). Bez práv musí frontu spolehlivě odbavit **opakovaná** entry.
+- **`ScheduleRecurrentJobQueueEntry(WithFrequency)` filtruje jen `Object Type/ID to Run` (+ `Record ID to Process`, je-li
+  vyplněné)** — najde i **dokončenou jednorázovou** entry téhož codeunitu a opakovanou pak **nikdy nezaloží**. Když
+  codeunit používáš pro one-off i recurring, skládej recurring entry sám: `SetRange("Recurring Job", true)` + `FindFirst`,
+  jinak `InitRecurringJob(Minuty)` (public; nastaví Recurring, všechny dny, interval) + `Object Type/ID`, kategorie,
+  `Description`, `Maximum No. of Attempts to Run`, `Rerun Delay (sec.)` → `Codeunit.Run(Codeunit::"Job Queue - Enqueue", JobQueueEntry)`.
+  Kategorie je `Code[10]`.
+- **Follow-up z runneru:** runner (`TableNo = "Job Queue Entry"`) po dávce zjistí, jestli zůstaly řádky k odbavení, a
+  naplánuje další one-off s `Earliest Start = max(now, min(Next Attempt At))`; při kontrole „už je naplánováno" (Ready /
+  In Process, `Recurring Job = false`) vynech vlastní `Rec.ID` — runner sám je právě In Process.
+- **Testy:** `BindSubscription(LibraryJobQueue)` (`Library - Job Queue`, Tests-TestLibraries, `EventSubscriberInstance =
+  Manual`) před účtováním/plánováním — subscriber `OnBeforeJobQueueScheduleTask` nastaví `DoNotScheduleTask`, entry se
+  založí ve stavu On Hold a v testu nevznikne skutečný scheduled task. Lokální proměnná codeunitu se na konci testu
+  odváže sama. Otevření `Job Queue Entry Card` přes `Page.Run` chce `[PageHandler]`.
