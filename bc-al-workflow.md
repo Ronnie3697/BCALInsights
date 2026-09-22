@@ -429,6 +429,15 @@ nespoléhej na seznam v notes: k 2026-09-18 skrývá **`AC0030`, `AC0031`, `LC00
 `AA0247`** (dřív tu stálo `LC0010`/`LC0068`/`LC0084`/`AS0081`/`AA0247` — `PC0037` a obě `AC*` přibyly,
 `LC0068`/`LC0084` tam dnes nejsou).
 
+**Ověřeno v logu (cust-sonnentor-bc, build 28359, 2026-09-21):** `base/app` se kompilovala **bez**
+`/ruleset:` (repo ruleset ležel v rootu), zatímco `base/test` dostala `/ruleset:...ase	est\sonnentor-bc-test.ruleset.json`,
+a protože test ruleset přes `includedRuleSets` s relativní cestou `..` dědil rootový soubor, měla
+**paradoxně jen test appka** hlavní pravidla i remote default. Oprava = přesunout hlavní ruleset do
+`base/app/` (vzor cust-alumistr-bc: `base/app/<repo>.ruleset.json`), v test rulesetu změnit include na
+`..` + `app` + soubor a ve `.code-workspace` `al.ruleSetPath` na `../../base/app/<repo>.ruleset.json`
+(je relativní ke každé workspace složce). Relativní include se řeší vůči souboru rulesetu, ne vůči projektu.
+Rychlá kontrola po pushi: v logu kroku Compile AL Apps hledej `/ruleset:` u každého `alc.exe` řádku.
+
 ⚠️ **Test ruleset, který nedědí hlavní, si tím remote skrývání zapíná zpátky** — kontroluje tedy
 **víc** než hlavní appka, ne míň, což je přesný opak toho, co od test rulesetu čekáš. Na
 prod-ess-configurator-bc to dělalo 201× `AC0030` + 24× `AC0031` + 22× `AA0247` + všechna `PC0037`
@@ -444,7 +453,7 @@ DC0004/DC0007 XML docs) — ty jde nechat. Rozpad warningů a co s nimi:
 
 | Pravidlo | Počet | Řešení |
 | --- | --- | --- |
-| `PC0037` Use Validate() instead of direct field assignment | 188 + 75 | pragma per procedura / Hidden v test rulesetu, viz 12.1c |
+| `PC0037` Use Validate() instead of direct field assignment | 188 + 75 | původně pragma per procedura (74 párů disable/restore) — 2026-09-22 vyhozeno, **explicitní Hidden v hlavním rulesetu** (remote default ho sice od 2026-09-18 skrývá taky, ale explicitní zápis nezávisí na změnách remote souboru); viz 12.1c |
 | `LC0092` Field name should not contain special characters (`%`, `&`, `!`, `?`) | 71 | **ruleset Hidden** — nasazené pole `Content % SON` je business termín, přejmenování by rozbilo data |
 | `LC0090` Cognitive Complexity (threshold 15) | 18 | ruleset Hidden (konzistentní s `LC0010`), nebo zvednout `CognitiveComplexityThreshold` v `alcops.json` |
 | `LC0040` explicitní RunTrigger | 14 + 6 | opravit v kódu (`DeleteAll(false)`, `Modify(false)`, …) |
