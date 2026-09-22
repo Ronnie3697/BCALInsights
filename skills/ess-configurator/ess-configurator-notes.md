@@ -213,10 +213,12 @@ zadání `docs/Configurator - Aritmetika v textových formulích….md`):
   Line No. (`SystemParamMgt.IsSystemParameter`) zůstává beze změny; test `CopyKeepsSystemParameterOperandInSLFormula`.
   Šablony (`GetParameterCode` / `ResolveParamLineNo` přes `Parameter Code`) systémový parametr **pořád ztratí** —
   neřešeno, v kontextu výchozích hodnot parametrů stejně nemá hodnotu (C2). (2026-09-22, build 28404, commit 5791d84.)
-- ⚠️ **Cancel editoru textového i číselného vzorce je z UI nedosažitelný.** `Text Formula COEBS` a `Action Formula COEBS`
-  jsou `PageType = Worksheet`; modálně nemají built-in Cancel a zavření vrátí `Action::OK` → `EditTextFormula` /
-  `EditFormula` větev restore z backupu nikdy neběží (detail v `bc-al-autotests.md`, gotcha „Modální Worksheet nemá
-  Cancel"). Pokud má uživatel umět zahodit rozpracovaný vzorec, chce to explicitní akci + flag. (2026-09-22)
+- **Cancel editorů vzorců = akce *Zrušit* (`CancelEdit`) + `WasCancelled()`.** `Text Formula COEBS` a `Action Formula COEBS`
+  jsou `PageType = Worksheet`; modálně nemají built-in Cancel a zavření křížkem vrátí `Action::OK` (ověřeno v BC), takže
+  restore větev `EditTextFormula` / `EditFormula` z UI neběžela. Od větve `TextFormulaExpression` (2026-09-22) mají oba
+  editory akci `CancelEdit` (flag → `OnQueryClosePage` bez validace, `WasCancelled()`); `EditFormula`, `EditTextFormula`
+  i 12 přímých `RunModal` volání na stránkách akcí / parametrů / podmínek testují `= Action::OK and not WasCancelled()`.
+  Nový přímý caller editoru musí dělat totéž, jinak Cancel uživateli změny ponechá. Detail vzoru v `bc-al-autotests.md`.
 
 ### Texty se aplikují i na poznámkový řádek
 

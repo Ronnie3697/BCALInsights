@@ -256,8 +256,10 @@ Assert.ExpectedErrorCode('Dialog');
   a **ověřeno ručně v BC sandboxu 2026-09-22**: dočasná akce nad seznamem zboží otevřela `Text Formula COEBS` přes
   `RunModal`, zavření křížkem → `Action::OK`). Důsledek: větev `if Page.RunModal() <> Action::OK then <restore>` u Worksheet
   editoru je z UI **nedosažitelná** (backup/restore = mrtvý kód) a test na „Cancel vrátí data" nejde napsat —
-  buď stránce dej explicitní akci *Cancel* (`CurrPage.Close()` + flag, který `OnQueryClosePage` a volající
-  vyhodnotí), nebo test vynech a v handleru zavírej `OK().Invoke()`. (2026-09-22, prod-ess-configurator-bc build 28404,
+  řešení = explicitní akce *Cancel* na stránce: `CancelRequested := true; CurrPage.Close();`, `OnQueryClosePage`
+  při flagu přeskočí validaci, veřejné `WasCancelled(): Boolean`, volající `if (Page.RunModal() = Action::OK) and not
+  Page.WasCancelled() then` (volání metody page proměnné po `RunModal` funguje jako u `GetRecord`); v testu handler
+  `Page.CancelEdit.Invoke()` (akce podle jména). Bez toho test vynech a zavírej `OK().Invoke()`. (2026-09-22, prod-ess-configurator-bc build 28404,
   `Text Formula COEBS` / `Action Formula COEBS`; ověřeno ve stejné codeunit už dřív: „Worksheet pages always have OK".)
 - **Nový řádek přes `TestPage "Sales Order".SalesLines.New()` nemá zaručený `Type`.** `Sales Order Subform.OnNewRecord`
   bere `Type` z `xRec` (řádek, na kterém subform stál; `InitType`) a default ze `Sales & Receivables Setup."Document
