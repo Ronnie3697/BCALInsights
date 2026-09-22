@@ -28,7 +28,9 @@ v souboru.
 ## Co udělat
 
 1. **Přečti `bc-al-autotests.md` z adresáře tohoto skillu celý.** Vejde se do jednoho Read; když
-   se výstup ořízne, okamžitě dočti přes `offset`. Bez přečtení nejednej.
+   se výstup ořízne, okamžitě dočti přes `offset`. Bez přečtení nejednej. Přílohu
+   `bc-al-autotests-saas-fallback.md` (vlastní Assert/Library bez `Tests-TestLibraries`) čti jen
+   u SaaS-only test appky bez OnPrem CI.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).

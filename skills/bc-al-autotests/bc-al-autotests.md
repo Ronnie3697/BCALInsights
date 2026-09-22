@@ -249,6 +249,15 @@ Assert.ExpectedErrorCode('Dialog');
   přesto odroluje k poslednímu commitu); holé `Page.Field.SetValue(...)`; pak assert, že se otázka položila, a DB stav
   (hodnota nezměněná). `ExpectedError('')` nikdy (`StrPos(x, '')` = 0 → vždy fail).
   (2026-09-07 / oprava 2026-09-09, prod-ess-configurator-bc `Attached Lines Tests COEBS`)
+- **Modální `PageType = Worksheet` (i List mimo lookup mode) nemá built-in Cancel.** `TestPage.Cancel().Invoke()`
+  v `[ModalPageHandler]` spadne na *„The built-in action = Cancel is not found on the page."* — a reálné BC
+  to má stejně: zavření Worksheetu (X, handler bez `Invoke`, `TestPage.Close()`) vrátí z `RunModal()` **`Action::OK`**
+  (Cancel vrací jen StandardDialog / PromptDialog / ConfirmationDialog; měřeno proti service tieru — StefanMaron
+  AL.Runner issues #3059, #3284). Důsledek: větev `if Page.RunModal() <> Action::OK then <restore>` u Worksheet
+  editoru je z UI **nedosažitelná** (backup/restore = mrtvý kód) a test na „Cancel vrátí data" nejde napsat —
+  buď stránce dej explicitní akci *Cancel* (`CurrPage.Close()` + flag, který `OnQueryClosePage` a volající
+  vyhodnotí), nebo test vynech a v handleru zavírej `OK().Invoke()`. (2026-09-22, prod-ess-configurator-bc build 28404,
+  `Text Formula COEBS` / `Action Formula COEBS`; ověřeno ve stejné codeunit už dřív: „Worksheet pages always have OK".)
 - **Nový řádek přes `TestPage "Sales Order".SalesLines.New()` nemá zaručený `Type`.** `Sales Order Subform.OnNewRecord`
   bere `Type` z `xRec` (řádek, na kterém subform stál; `InitType`) a default ze `Sales & Receivables Setup."Document
   Default Line Type"` jen když `xRec."Document No." = ''` (`SetDefaultType`) — v CI (build 28149) tak jeden ze dvou
@@ -738,91 +747,9 @@ ne kompilace ani container běhu. Pro Essence produktové moduly drž vzor
 configuratoru — Cloud target, test library deps, testy pouštět jen v kontejneru/CI.
 Do `test/` složky patří i vlastní `AppSourceCop.json` s `mandatoryAffixes`.
 
-### SaaS Cloud target = vlastní helpery (Tests-TestLibraries je onprem-only)
+### SaaS Cloud target bez `Tests-TestLibraries` — fallback (vyčleněno)
 
-> ⚠️ **FALLBACK, ne default.** Tahle a následující dvě sekce („Minimal vlastní
-> Assert ZLK", „Vlastní helpery bez Library-*") platí **jen pro čistý SaaS-only
-> deploy test appky bez OnPrem CI**. **Pro Essence prod moduly to NEpoužívej** —
-> máme OnPrem build (testovací BC DB se po PR vytvoří na serveru), takže jedeme MS
-> `Tests-TestLibraries`. Viz kanonická sekce nahoře. Tohle nech jen jako referenci.
-
-`Tests-TestLibraries` (publisher Microsoft, ID `5d86850b-0d76-4eca-bd7b-951ad998e997`) **není v Cloud SaaS targetu dostupná**. Je publikována jako onprem-only. `System Application Test Library` (ID `9856ae4f-...`) sice jde nainstalovat v SaaS, ale obsahuje hlavně mocky pro System modules (Email, AI, Permissions) — **nemá** business helpery (`Library - Sales/Inventory/ERM/...`) ani univerzální `Assert` codeunit.
-
-Pro AL test app s `"target": "Cloud"`:
-
-1. V `app.json` **nesmí** být dependency na `Tests-TestLibraries`. Pak ji nelze deployovat ani lokálně do SaaS sandboxu.
-2. Pokud chceš sdílet kompilační target s produkčním Cloud appem, **napiš si vlastní minimal helpery** (Assert + LibraryX wrapper).
-3. Test app fyzicky publikujete jen do dev kontejneru / sandbox / CI — produkční tenant ji nikdy neuvidí. Ale i kompilace musí být Cloud-compatible (žádné `DotNet`, `File`, `Assembly`, …).
-
-Alternativa: nechat test app `"target": "OnPrem"` + závislost `Tests-TestLibraries`. Test app pak ale jde jen do container/CI/dev sandboxu, do SaaS produkce nikdy.
-
-### Minimal vlastní `Assert ZLK` codeunit
-
-Stačí na 90 % testovacích scénářů. `Format(Variant)` zajistí porovnání i pro Decimal/Date/Enum/Code:
-
-```al
-codeunit 52329 "Assert ZLK"
-{
-    procedure AreEqual(Expected: Variant; Actual: Variant; Msg: Text)
-    begin
-        if Format(Expected) <> Format(Actual) then
-            Error('Assert.AreEqual failed: %1\n  Expected: <%2>\n  Actual:   <%3>', Msg, Format(Expected), Format(Actual));
-    end;
-
-    procedure IsTrue(Cond: Boolean; Msg: Text) begin if not Cond then Error('IsTrue failed: %1', Msg) end;
-
-    procedure ExpectedError(Expected: Text)
-    var
-        Actual: Text;
-    begin
-        Actual := GetLastErrorText();
-        if Actual = '' then Error('ExpectedError: no error (expected <%1>)', Expected);
-        if StrPos(Actual, Expected) = 0 then Error('ExpectedError: expected <%1>, got <%2>', Expected, Actual);
-    end;
-}
-```
-
-**Pozn.** locale rozdíl pro Decimal — `Format(132.5)` vrací `132.5` v en-US a `132,5` v cs-CZ. Jelikož se však `Format(Expected)` i `Format(Actual)` volá ve stejném testu/locale, vyjde to stejně a porovnání projde.
-
-### Vlastní helpery bez `Library - *` — vzor
-
-Pro Cloud testy nahrazujeme MS Library helpery vlastní implementací. Klíčové triky:
-
-- **Unique kódy** přes GUID:
-
-  ```al
-  procedure GenerateUniqueCode20(): Code[20]
-  begin
-      exit(CopyStr(DelChr(Format(CreateGuid()), '=', '{}-'), 1, 20));
-  end;
-  ```
-
-  GUID po `DelChr` má 32 znaků hex → zaručeně se vejdou na 10/20/50, žádný retry/sequence.
-
-- **`Sales Header` bez No. Series**: ručně přiřaď `"No."` před `Insert(true)`. `OnInsert` pak nezavolá NoSeriesMgt, pokud je `"No."` neprázdné:
-
-  ```al
-  procedure CreateSalesHeader(var SH: Record "Sales Header"; DocType: Enum "Sales Document Type"; CustNo: Code[20])
-  begin
-      SH.Init();
-      SH."Document Type" := DocType;
-      SH."No." := GenerateUniqueCode20();
-      SH.Insert(true);
-      SH.Validate("Sell-to Customer No.", CustNo);
-      SH.Modify(true);
-  end;
-  ```
-
-- **`Sales Line` ručně inkrementovaný `Line No.`** po existujícím `FindLast` na filtru `Document Type` + `Document No.`. Insert(true) PŘED Validate Type/No./Quantity, jinak Validate na neuložené řádce může selhat.
-
-- **Customer/Item/G/L Account**: minimal `Init + "No." := GenerateUniqueCode20() + Insert(true)` funguje pokud máte CRONUS/standard demo data se setupy (Inventory Setup, Sales & Receivables Setup s defaultními posting groups).
-
-- **Release Sales Document**: `Codeunit "Release Sales Document".PerformManualRelease(SH)` — žádný handler nepotřebuje.
-
-### Co vlastní helpery NEZvládnou bez setupu
-
-- **Post Shipment / Post Invoice** — vyžaduje plný posting setup (Customer Posting Group, Gen. Posting Setup, VAT Posting Setup, Inventory Posting Setup, Locations…). Pro tyhle scénáře buď generujte plný setup, nebo nechte E2E v rovině "Release" a posting nezahrnujte.
-- **Worksheet Lines (Requisition, Item Journal)**: `"Worksheet Template Name"` musí buď existovat v setupu nebo si ho vyrobte přes ručně přiřazené kódy přes `Insert(false)` (viz Req. Line Mgt. test pattern).
+> ⚠️ **FALLBACK, ne default.** Vlastní `Assert ZLK`, vlastní `Library` helpery bez `Library - *` a co nezvládnou bez setupu → `bc-al-autotests-saas-fallback.md` ve stejném adresáři. Platí jen pro čistý SaaS-only deploy test appky bez OnPrem CI; **pro Essence prod moduly to NEpoužívej** (viz kanonická sekce nahoře).
 
 ### Re-analýza VS Code po změně `app.json`
 

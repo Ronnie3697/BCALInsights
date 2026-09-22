@@ -22,6 +22,7 @@ V kořeni zůstává jen README, `mcp-setup.md`, `check-skills.py` a archiv.
 | `bc-al-tools.md` | nástroje (alc, al-mcp, BC source), nová appka, git/PR, Azure DevOps (sekce 7.1–7.10) |
 | `bc-al-build.md` | NuGet dependencies, test symboly, kolize ID, major bump, Essence CI build & deploy gotchas (sekce 7.11–7.19) |
 | `bc-al-autotests.md` | automatizované testy — codeunits, libraries, runner, povinnost |
+| `bc-al-autotests-saas-fallback.md` | příloha autotestů — vlastní Assert/Library pro SaaS-only test appku bez `Tests-TestLibraries` (reference) |
 | `ess-configurator-notes.md` | Essence Configurator — parametry, systémové parametry, vzorce, varianty, akce (sekce C1–C6) |
 | `skills/bc-al/bc-al-mcp-server.md` | **draft** — oficiální BC MCP server (konfigurace v BC, auth / device login, Claude Code `--mcp-config` + `headersHelper`); bez skill-wrapperu, v Routeru jen jako řádek |
 | `mcp-setup.md` (kořen) | jednorázová instalace MCP serverů pro Claude Code (npm, `claude mcp add`, PAT, timeouty) — **není notes**, skilly ho nenačítají; ostatní nástroje viz níže |

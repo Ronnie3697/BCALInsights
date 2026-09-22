@@ -206,6 +206,17 @@ zadání `docs/Configurator - Aritmetika v textových formulích….md`):
   `Action Formula Line`, projdi všechny `Copy*FormulaLines` a ověř, že každý filtr tvůj kontext
   buď mapuje, nebo vyloučí (`SetFilter("Condition Line No.", '<>0')` + config-level kopie zvlášť).
 - Šablony parametrů textové vzorce nenesou → `CopyFormulasToTemplate` řádky `Text Expression` vynechá.
+- ⚠️ **Kopie konfigurace nulovala systémové parametry ve vzorcích** — `TryRemapParamLineNo` přepsal každé
+  `Parameter Line No.`, které není v mapě parametrů, na 0; `QUANTITY` (−1) ani CNC `X/Y/Z` tam nejsou → kopie
+  `WINGS * QUANTITY` dala `WINGS *` → po trimu operátoru `WINGS` (test čekal „10 KS", přišlo „5 KS"). Platilo
+  odjakživa i pro číselné vzorce Množství / Jednotková cena, jen to žádný copy test nepokrýval. Fix: záporné
+  Line No. (`SystemParamMgt.IsSystemParameter`) zůstává beze změny; test `CopyKeepsSystemParameterOperandInSLFormula`.
+  Šablony (`GetParameterCode` / `ResolveParamLineNo` přes `Parameter Code`) systémový parametr **pořád ztratí** —
+  neřešeno, v kontextu výchozích hodnot parametrů stejně nemá hodnotu (C2). (2026-09-22, build 28404, commit 5791d84.)
+- ⚠️ **Cancel editoru textového i číselného vzorce je z UI nedosažitelný.** `Text Formula COEBS` a `Action Formula COEBS`
+  jsou `PageType = Worksheet`; modálně nemají built-in Cancel a zavření vrátí `Action::OK` → `EditTextFormula` /
+  `EditFormula` větev restore z backupu nikdy neběží (detail v `bc-al-autotests.md`, gotcha „Modální Worksheet nemá
+  Cancel"). Pokud má uživatel umět zahodit rozpracovaný vzorec, chce to explicitní akci + flag. (2026-09-22)
 
 ### Texty se aplikují i na poznámkový řádek
 
