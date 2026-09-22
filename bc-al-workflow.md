@@ -430,7 +430,7 @@ nespoléhej na seznam v notes: k 2026-09-18 skrývá **`AC0030`, `AC0031`, `LC00
 `LC0068`/`LC0084` tam dnes nejsou).
 
 **Ověřeno v logu (cust-sonnentor-bc, build 28359, 2026-09-21):** `base/app` se kompilovala **bez**
-`/ruleset:` (repo ruleset ležel v rootu), zatímco `base/test` dostala `/ruleset:...ase	est\sonnentor-bc-test.ruleset.json`,
+`/ruleset:` (repo ruleset ležel v rootu), zatímco `base/test` dostala `/ruleset:.../base/test/sonnentor-bc-test.ruleset.json`,
 a protože test ruleset přes `includedRuleSets` s relativní cestou `..` dědil rootový soubor, měla
 **paradoxně jen test appka** hlavní pravidla i remote default. Oprava = přesunout hlavní ruleset do
 `base/app/` (vzor cust-alumistr-bc: `base/app/<repo>.ruleset.json`), v test rulesetu změnit include na
