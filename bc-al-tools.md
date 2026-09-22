@@ -92,6 +92,17 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   `LC0010`, `PC0037`, `AS0081`, `AA0247` — obsah se mění, stáhni si ho, viz 12.1b v
   `bc-al-workflow.md`) z výpisu zmizí. (Ověřeno 2026-09-15, cust-zlomek-bc, alc 18.0 — dřívější
   poznámka „žádný CLI přepínač to nepovoluje" byla chybná.)
+  **Funguje i na alc 17.0.34**, i když ho `alc.exe /?` nevypisuje (přepínač je skrytý, ne chybějící). (2026-09-22, cust-soitron-bc)
+- **Untracked `.al` v rootu appky (kopie base codeunitu k ladění, např. `SalesPost.al` = codeunit 80) shodí CLI build**
+  (`AL0297` ID mimo range, `AL0264` už deklarováno, `AL0275` ambiguous) — VS Code ho možná ignoruje přes workspace
+  nastavení, alc bere celou složku. Cizí rozdělaný soubor nemaž: **zkompiluj kopii projektu ve scratchpadu**
+  (`cp -r app.json *.json *.png src Translations` → `/project:` na kopii). Bonus: vygenerovaný `.g.xlf` v kopii je
+  přesně ten, ze kterého opíšeš trans-unit ID pro ruční překlady (6.2), a repo zůstane nedotčené.
+  Když v Claude Code Bash toolu chybí python (Store stub „Python was not found"), skript na XLIFF udělej v PowerShellu
+  (`powershell -File x.ps1`), soubor s diakritikou **ulož s UTF-8 BOM** (PS 5.1 bez BOM čte ANSI) a zapisuj přes
+  `[IO.File]::WriteAllText(path, text, UTF8Encoding($false))`, ať zůstane LF bez BOM jako původní `.xlf`.
+  Log alc 17 z Bash redirectu (`> log 2>&1`) byl tentokrát čistý ASCII, ne UTF-16 (viz níže) — dekóduj podle BOM,
+  nehádej. (2026-09-22, cust-soitron-bc)
 - **Trans-unit ID do ručních překladů:** po CLI kompilaci (s feature
   `TranslationFile`) se přegeneruje `Translations/*.g.xlf` — ID nových
   trans-unitů opiš odtud, není nutné počítat FNV-1a hash ručně (viz 6.2).

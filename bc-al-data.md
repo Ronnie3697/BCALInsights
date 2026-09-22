@@ -888,4 +888,16 @@ metody na tabulku. (2026-06, `prod-em-operOutputChaining-bc`, BC28.)
   `OnValidate` je jiný případ: tam `xRec` = stav před `Validate` i z kódu. Zachyceno 2026-09-08, prod-ess-configurator-bc
   build 28149 (`Sales Line COEBS.OnAfterModify`, 15 červených testů; testy před merge neběžely).
 
+- **Vazební tabulka (link), jejíž trigger zapisuje do master záznamu, + master `OnValidate`, který ten link zakládá =
+  „záznam změnil jiný uživatel".** Vzor: `Customer."CRM Business Unit SOI".OnValidate` → codeunit vloží řádek do
+  `Customer CRM Business Unit SOI` (`Insert(true)`) → `OnInsert` linku udělá `Customer.Get + Modify` přes **druhou
+  proměnnou** → karta pak uloží své `Rec` se starým timestampem a spadne (nebo přepíše hodnotu, kterou trigger zapsal).
+  Řešení, které drží obě cesty: (a) link-originované změny (page linku, API) jdou přes triggery linku (`OnInsert/
+  OnModify/OnDelete/OnRename` → `Master.Get` + `SetXxx` + `Modify(true)`); (b) master-originovaná cesta dostane **`var
+  Master`**, link zapíše **`Insert(false)`/`Modify(false)`** (triggery přeskočí, komentář proč) a hodnotu nastaví **do
+  paměti** předaného recordu — uloží ji volající (karta, Dataverse sync `Modify`). Signaturu `(No, Id)` změň na
+  `(var Rec)`, ať se in-memory část nedá zapomenout; volající, kteří dřív `Modify` volali před syncem, přesuň za něj.
+  Před-triggery (`OnInsert/OnDelete/OnRename`) běží **před** DB zápisem, takže „přepočítej vše z DB" tam nefunguje —
+  dělej cílený zápis (`OnRename`: vyčisti `xRec` slot, nastav `Rec` slot). (2026-09-22, cust-soitron-bc, Business Unit 1-5.)
+
 ---
