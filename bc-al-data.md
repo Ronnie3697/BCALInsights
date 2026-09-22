@@ -802,6 +802,16 @@ ukazuje `Sales-Post.dal:8331`. Totéž pro `Skip Purchase Consumption` projekty 
 `OnBeforeCheckJobNoOnShptLineEqualToSales` nastavit `IsHandled`, když má dodávka prázdné Job No. a stejné `Job Contract Entry No.` jako řádek
 (Sales Shipment Line to pole má). Zachyceno 2026-09-22, cust-soitron-bc (Sales Aggregation, částečná dodávka → faktura z Get Shipment Lines).
 
+**Opraveno v prod-ep-itemManagement-bc (2026-09-22, `Project Item Management IMEBS`):** druhá varianta — subscriber
+`OnBeforeCheckJobNoOnShptLineEqualToSales` nastaví `IsHandled`, jen když dodávka má prázdné Job No., shodné nenulové
+`Job Contract Entry No.` s fakturačním řádkem **a** Job No. řádku = Job No. planning line s tím kontraktem (= hodnota, kterou
+subscriber sám doplnil; ručně přepsaný jiný projekt standardní kontrola dál chytí). `IsHandled` u `OnBeforeCheckReturnRcptLine`
+by naopak vypnul **všechny** `TestField` na řádku příjemky vratky (hook je před celým blokem), takže vratky zatím bez zásahu —
+opravný dobropis z Correct/Cancel `Return Receipt No.` nemá a tou kontrolou neprochází. Test bez UI: `Sales-Get Shipment`
+`SetSalesHeader(InvoiceHeader)` + `CreateInvLines(SalesShptLine s filtrem Document No.)` (`LibrarySales.GetShipmentLines`
+otevírá výběrovou stránku); test `InvoiceFromShipmentLines_ShipmentLineWithBlankJobNo_PostsWithJobNoFromPlanningLine`
+v `Job Sales Post Test IMEBS`. Test symboly 28.4 (`28.4.53241.53504`) z MSSymbols feedu proti Base App `28.4.53241.54031` — alc 17.0 čistě.
+
 ### 3.7 `[EventSubscriber]` argumenty — identifier syntax, ne string literály (LC0028)
 
 V moderním AL piš event name i element name (field/action) v atributu
