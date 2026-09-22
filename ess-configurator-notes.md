@@ -27,6 +27,7 @@
 - [C4. Textové vzorce — `Text Formula Line COEBS`](#c4-textové-vzorce--text-formula-line-coebs)
 - [C5. Identita varianty = množina hodnot parametrů](#c5-identita-varianty--množina-hodnot-parametrů)
 - [C6. Diagnostika konfigurace v běžícím BC](#c6-diagnostika-konfigurace-v-běžícím-bc)
+- [C7. Kusovník konfigurované varianty a pořizovací cena prodejního řádku (Alumistr)](#c7-kusovník-konfigurované-varianty-a-pořizovací-cena-prodejního-řádku-alumistr)
 
 ---
 
