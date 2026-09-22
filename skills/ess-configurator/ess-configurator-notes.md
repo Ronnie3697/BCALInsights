@@ -2,7 +2,7 @@
 
 > Doménové poznámky k produktové appce **Essence Configurator** (publisher
 > `Essence International s.r.o.`, app ID `45c32b8e-5eb2-49c6-8914-456284d2b7b8`,
-> affix **COEBS**, repo `C:\WorkTasks\prod-ess-configurator-bc`) a k zákaznickým
+> affix **COEBS**, repo `prod-ess-configurator-bc`, <https://dev.azure.com/essencebs/Projects/_git/prod-ess-configurator-bc>) a k zákaznickým
 > rozšířením nad ní (`configuratorExtension` u Alumistra = affix **COALU**,
 > u Zlomku **COZLK**).
 >

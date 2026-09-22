@@ -23,7 +23,6 @@ V kořeni zůstává jen README, `mcp-setup.md`, `check-skills.py` a archiv.
 | `bc-al-build.md` | NuGet dependencies, test symboly, kolize ID, major bump, Essence CI build & deploy gotchas (sekce 7.11–7.19) |
 | `bc-al-autotests.md` | automatizované testy — codeunits, libraries, runner, povinnost |
 | `ess-configurator-notes.md` | Essence Configurator — parametry, systémové parametry, vzorce, varianty, akce (sekce C1–C6) |
-| `ew-mobile-ui-notes.md` | UI poznámky k Essence Warehouse Mobile (čtečky) |
 | `skills/bc-al/bc-al-mcp-server.md` | **draft** — oficiální BC MCP server (konfigurace v BC, auth / device login, Claude Code `--mcp-config` + `headersHelper`); bez skill-wrapperu, v Routeru jen jako řádek |
 | `mcp-setup.md` (kořen) | jednorázová instalace MCP serverů pro Claude Code (npm, `claude mcp add`, PAT, timeouty) — **není notes**, skilly ho nenačítají; ostatní nástroje viz níže |
 | `bc-al-notes.archived-2026-06-23.md` (kořen) | archiv původního monolitu — **needitovat**, jen reference |
@@ -81,10 +80,9 @@ a před každým zápisem mimo tento repo se zeptej:
 4. Do always-on souboru každého nástroje přidej „Šablonu startup pravidla" s dosazeným
    <KLON>, <SKILL-DIR> a <RUČNĚ> + jednu větu se složkou mých pracovních rep. Ukaž mi
    výsledný text a zapiš ho až po mém souhlasu; existující obsah souboru nech být.
-5. Nabídni „Volitelné projektové doplňky do always-on" — přidej jen ty, které odsouhlasím.
-6. Zeptej se, v jakém jazyce a tónu mám komunikovat, a zapiš to do always-on souboru
+5. Zeptej se, v jakém jazyce a tónu mám komunikovat, a zapiš to do always-on souboru
    (osobní preference, ne součást repa).
-7. Ověř: Claude Code `claude plugin validate <KLON>` a `claude plugin details bcal-insights`,
+6. Ověř: Claude Code `claude plugin validate <KLON>` a `claude plugin details bcal-insights`,
    ostatní nástroje podle jejich sekce. MCP servery (mcp-setup.md) nabídni jako další krok.
 ```
 
@@ -109,7 +107,7 @@ u netriviální funkčnosti, al-mcp `al_packages load` pokud je MCP k dispozici,
 u netriviálních úkolů a jen pokud je ten MCP k dispozici, oznámení checklistu ✅/❌ uživateli)
 a pravidla údržby notes.
 
-Podle Routeru pak načti tematické skilly (`bc-al-*`, `ew-mobile-ui`) nebo rovnou notes
+Podle Routeru pak načti tematické skilly (`bc-al-*`, `ess-configurator`) nebo rovnou notes
 `<KLON>\skills\<název>\<název>.md` (leží vedle SKILL.md daného skillu) — VŽDY CELÉ, DO KONCE (oříznutý výstup hned dočti;
 částečně přečtený soubor = nepřečtený). Bez načtení nemáš kontext a uděláš chybu. Pokud jsi to
 neudělal a uživatel se zeptá, přiznej to a naprav.
@@ -133,23 +131,6 @@ read-only záměrně (401 na zápis neobcházet). Jazyk kódu a UI textů anglic
 
 `<PRACOVNÍ-REPA>` = složka s tvými klony `cust-*-bc` / `prod-*-bc` (např. `C:\WorkTasks`) — agent
 ji používá na sibling repa, sdílenou `.alpackages` a zdroje závislých appek.
-
-### Volitelné projektové doplňky do always-on
-
-Jen pro toho, kdo na daném projektu opravdu dělá — přidej pod startup pravidlo:
-
-**Essence Warehouse Mobile (`prod-ew-mobileBase-bc`):**
-
-```markdown
-## BC mobilní čtečky čárových kódů
-
-Při práci v repu `prod-ew-mobileBase-bc` (mobilní warehouse aplikace pro Business Central,
-dedikované čtečky čárových kódů) načti navíc skill **`ew-mobile-ui`**. Drží zavedené vzory
-(Scanner Control Add-in EXEBS, SetFieldFocusAndBlur, Manual Input, Interpret Barcode řetězec,
-ObjectId check, cuegroup Tile akce, SourceTableTemporary + SetData, SingleInstance,
-`OnBeforeInterpretScannedBarcode`) a Control AddIn / JS poznatky (soubor
-`ew-mobile-ui-notes.md` vedle jeho SKILL.md).
-```
 
 ### Claude Code
 
@@ -314,7 +295,6 @@ stabilních pravidel. **Notes soubory zůstávají zdrojem pravdy.**
 | `bc-al-build` | `bc-al-build.md` | NuGet, test symboly, kolize ID, major bump, CI build/deploy |
 | `bc-al-autotests` | `bc-al-autotests.md` | testy + netriviální funkčnost |
 | `ess-configurator` | `ess-configurator-notes.md` | konfigurátor — parametry, vzorce, varianty |
-| `ew-mobile-ui` | `ew-mobile-ui-notes.md` | mobilní čtečky, Control AddIn, JS |
 
 Všechny skilly mají `user-invocable: true` — jdou spustit i ručně (`/bc-al-tools`…);
 normálně si je agent načítá sám podle `description` (limit 1024 znaků dle spec

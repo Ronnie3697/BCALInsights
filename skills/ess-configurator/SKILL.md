@@ -24,7 +24,7 @@ user-invocable: true
 Tenhle skill je jen wrapper — níže je výcuc stabilních pravidel, detaily,
 signatury a diagnostické postupy jsou v souboru.
 
-Repa: produktová appka `C:\WorkTasks\prod-ess-configurator-bc` (affix **COEBS**,
+Repa: produktová appka `prod-ess-configurator-bc` (Azure DevOps: <https://dev.azure.com/essencebs/Projects/_git/prod-ess-configurator-bc>; affix **COEBS**,
 publisher Essence International s.r.o.), zákaznická rozšíření
 `cust-alumistr-bc/configuratorExtension` (**COALU**) a `cust-zlomek-bc` (**COZLK**).
 

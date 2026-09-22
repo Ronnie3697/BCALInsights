@@ -36,7 +36,7 @@ Vyčleněno z `bc-al-style.md` 2026-09-08, číslování 4.x je původní.
 3. Sousední témata: konvence, naming, ToolTipy, formát page fieldů → `bc-al-style`
    (1, 10); propagace Blob/Text polí do posted dokladů → `bc-al-data` (3.6c);
    Confirm + `CurrFieldNo` chování Sales Line a testy → `bc-al-objects` (5.x4) /
-   `bc-al-autotests`; control add-in jako celá page na čtečkách → `ew-mobile-ui`.
+   `bc-al-autotests`.
 
 ## TL;DR — nejtvrdší pravidla (čísla = sekce v souboru)
 

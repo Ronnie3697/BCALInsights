@@ -556,7 +556,7 @@ extension — postupuj v tomhle pořadí:
    jako **samostatný repozitář se zdrojákem**. Naming: `prod-*` = produktové
    appky, `cust-*` = zákaznické. Příklad: `cust-alumistr-bc` závisí na
    *Essence Configurator* → zdroj žije v
-   `C:\WorkTasks\prod-ess-configurator-bc\app`. Otevři `app.json` kandidáta a
+   `<složka pracovních rep>\prod-ess-configurator-bc\app` (repo <https://dev.azure.com/essencebs/Projects/_git/prod-ess-configurator-bc>). Otevři `app.json` kandidáta a
    ověř `name` / `id` proti `dependencies` své appky. Tohle je vždycky
    nejlepší — máš plný, aktuální a čitelný source bez extrakce.
 
