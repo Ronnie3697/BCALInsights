@@ -14,7 +14,7 @@ description: >-
   prodejního řádku, diagnostika (service stránky 63163/63193/63149, page
   inspector), Zrušit editorů vzorců (WasCancelled, EditFormula), pole EM Cutting
   Plan na kusovníku. Načti u konfigurátoru, parametrů, vzorců, variant a
-  konfigurovaných prodejních řádků.
+  konfigurovaných řádků prodeje.
 user-invocable: true
 ---
 
