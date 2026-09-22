@@ -175,7 +175,9 @@ Náhled v UI: `{KOD:Name}` / `{KOD:Value}` / `{KOD:ValueName}`.
 popisu přímo napsat nedalo a pomocný konfigurační parametr se vzorcem spadl do C2.
 
 **Řádek typu `Formula` (5) — `{= VYP_KRIDLO_POCET * QUANTITY}`** (větev `TextFormulaExpression`,
-2026-09-22, čeká na release; pak bump minima v `cust-alumistr-bc`):
+commit 6269fbf pushnutý 2026-09-22, čeká na PR/release; pak bump minima v `cust-alumistr-bc`.
+Uživatelská i technická dokumentace: `app/docs/CONFIGURATOR-DOCUMENTATION.md` kap. 13.7, white papery 10.2,
+zadání `docs/Configurator - Aritmetika v textových formulích….md`):
 
 - Operandy leží v `Action Formula Line COEBS` pod `Field Type = Text Expression` (50) a
   **`Expression No.`** (pole 7, mimo PK). Vyhodnocení `Formula Evaluation Mgt.EvaluateFormula(…;
