@@ -146,7 +146,19 @@ https://dynamicssmb2.pkgs.visualstudio.com/DynamicsBCPublicFeeds/_packaging/MSSy
   `microsoft.permissionsmock.symbols.40860557-a18d-42ad-aecb-22b7dd80dc80`,
   `microsoft.aitesttoolkit.symbols.2156302a-872f-4568-be0b-60968696f0d5`
   (AI Test Toolkit, ověřeno 2026-08-18; GUIDy MS deps jdou opsat i z
-  `test/app.json` `dependencies` — netřeba CI log).
+  `test/app.json` `dependencies` — netřeba CI log),
+  `microsoft.libraryassert.symbols.dd0be2ea-f733-4d65-bb34-a28f4624fb14`,
+  `microsoft.libraryvariablestorage.symbols.5095f467-0a01-4b99-99d1-9ff1237d286f`
+  (ověřeno 2026-09-23; sedm balíčků Test Runner / Tests-TestLibraries / SysApp Test
+  Library / App Test Library / Permissions Mock / Library Assert / Library Variable
+  Storage má na feedu **stejné číslo verze** v každé řadě — `28.2.50931.51111`,
+  `28.4.53241.53504` — stačí jeden `curl` cyklus přes všech sedm ID; hotová temp cache
+  pro 28.2 = MS symboly z repa + těch 7 `.app` + čerstvý build hlavní appky, alc 17.0 čistě).
+- **Lokální analyzery pro Essence produktový modul (ID 7-místné, `AppSourceCop.json`
+  s `mandatoryAffixes`): NE PerTenantExtensionCop.** Ten hlásí na každém objektu
+  `error PTE0001/PTE0002 … must be within the range '[50000..99999]'` (prod-ep-projectBase-bc,
+  2026-09-23). Použij `Microsoft.Dynamics.Nav.AppSourceCop.dll` (+ CodeCop, UICop, ALCops);
+  PTE cop patří zákaznickým `cust-*` appkám s ID v PTE range.
 - **GUID tranzitivní závislosti bez CI logu:** vytáhni ho z manifestu už staženého
   balíčku — `.app` je ZIP se 40B hlavičkou, uvnitř `NavxManifest.xml` se sekcí
   `<Dependency Id="..." Name="..."/>` (Tests-TestLibraries → Application Test
