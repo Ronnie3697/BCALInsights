@@ -288,6 +288,23 @@ tabulce = stejný Field hash, mění se jen Table hash (ověř proti `.g.xlf`).
 `Param. Tmpl. Condition` — podmínkový default 0 se ztrácel round-tripem šablonou.)
 
 
+### 2.8 `TableRelation` na pole mimo primární klíč cílové tabulky — kompiluje, ale `Validate` za běhu spadne
+
+`field(20; "Main Parameter Code"; Code[20]) { TableRelation = "Configuration Parameter COEBS"."Parameter Code" where("Configuration No." = field("Main Config. No.")); }`
+projde `alc` i všemi analyzery (CodeCop, PTE, UICop, ALCops) bez varování. Jakmile ale uživatel do pole
+zapíše hodnotu (nebo kód zavolá `Validate`), BC hodí *„Následující pole musí být zahrnuto do primárního klíče
+tabulky: Pole: Kód parametru Tabulka: Configuration Parameter COEBS"* (EN „The following field must be included
+in the table's primary key…"), protože kontrola relace hledá záznam **přes primární klíč**. `Parameter Code` tam
+má jen sekundární klíč (`CodeKey`), PK je `Configuration No.` + `Line No.`.
+
+- **Relace smí mířit na pole PK cílové tabulky** (typicky poslední pole PK + `where` na ta předchozí, vzor
+  `"Item Variant".Code where("Item No." = field(...))`). Na „čitelný" kód mimo PK relaci nedávej.
+- **Když uživatel má zadávat kód mimo PK:** pole bez `TableRelation`, lookup přes `OnLookup` na page fieldu
+  (vlastní list page / `LookupMode` + `GetRecord`) a existenci ověř v `OnValidate` sám (`SetRange` + `FindFirst` +
+  srozumitelný `Error`). Druhá možnost: ukládat PK pole (`Line No.`) s relací a kód jen zobrazovat.
+- Test přes `Rec.Validate(pole, kód)` to chytí (spadne stejně), jen kompilace ne. (2026-09-23, cust-zlomek-bc 65364,
+  `Param Selection Buffer COZLK` — okno Převzít parametry na BC-DEV2.)
+
 ---
 
 ## 3. Event Subscribery — patterny
