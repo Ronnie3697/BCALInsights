@@ -289,6 +289,21 @@ variantu ať runtime staví sám (vzor COZLK 65364: akce Převzít parametry na 
 akce volitelná, `Nested Cfg Runtime COZLK` bere konfiguraci z aktivní definice zboží). Dosazovat „zástupné" hodnoty
 jen kvůli OK nejde u Výběru / Vyhledávání / Textu bez výchozí hodnoty a navíc vyrobí variantu s nahodilými hodnotami.
 
+**Varianta založená mimo dialog = zopakuj i výrobní akce.** `SaveVariantConfiguration` po zápisu `Item Variant` a
+hodnot parametrů u **nové** varianty volá `BOM Action Cond. Mgt. COEBS.ExecuteBOMActions` a `Routing Action Cond Mgt.
+COEBS.ExecuteRoutingActions` (obojí public, v balíčku i s ATEBS; kusovník `ItemNo-VariantCode` + registrace
+v Alternative BOM/Routing, každé hlásí `Message`), znovu použitá varianta je nevolá. Kopie find-or-create logiky
+v rozšíření (COZLK `Nested Variant Mgt.`) bez nich dá prodejnímu řádku variantu bez kusovníku a postupu — a další
+použití téže varianty to už nenapraví. Chytil code review 2026-09-23 (cust-zlomek-bc 65364).
+
+⚠️ **`Config. Condition Mgt. COEBS.ValidateParameterValue` u Table Lookup pustí cokoli** (COEBS 28.0.26): větev
+volá `ValidateTableLookupValue`, výsledek zahodí a vrátí `true`; ta navíc filtruje jen základní `Source Table Filter`
++ atributy, **podmínkový** filtr (`GetConditionTableFilter`) ne. V dialogu to nevadí (lookup nabízí jen platné
+kódy), ale hodnota dosazená z kódu (převzetí, import) projde i neexistující nebo mimo filtr. Obejití: vlastní
+kontrola přes `RecordRef` + `SetView(GetConditionTableFilter(...))` + `Item Attr. Filter Mgt. COEBS.ApplyToRecRef(…,
+GetConditionAttributeFilter(...))` + `SetRange` na zdrojové pole (vzor `Nested Cfg Runtime COZLK.TableLookupValueExists`).
+Oprava patří do COEBS (vrátit výsledek + brát podmínkový filtr).
+
 ## C6. Diagnostika konfigurace v běžícím BC
 
 Service stránky nad tabulkami konfigurátoru jsou `Editable`, ale pro **čtení** dat
