@@ -361,3 +361,30 @@ všechno, co obálka stránky dělá navíc (`CurrPage.SaveRecord()`, `Commit()`
 (2026-09-22, cust-alumistr-bc `SL Action Cond. Card/Dlg COALU` — obálka editoru vzorců Parametr A/B po code review.)
 
 ---
+
+### 4.13 List page v `LookupMode(true)` se otevře **jen pro čtení** — zaškrtávací sloupec v něm nikdo nezaškrtne
+
+Výběrový dialog postavený jako `PageType = List` nad temp bufferem s editovatelným `Boolean` sloupcem
+(„Převzít", „Vybrat") a spuštěný přes `LookupMode(true)` + `RunModal() = Action::LookupOK` **v UI nefunguje**:
+web klient otevře lookup v **režimu prohlížení** — boolean se kreslí jako text „Ne"/„Ano" (odkaz, ne checkbox)
+a v liště přibude BC akce **„Upravit seznam"** (Edit List), teprve ta přepne do editace. Uživatel intuitivně
+**vybere řádky** (checkbox výběru řádku vlevo / Ctrl+A) a dá OK → kód přečte `Taken = false` u všech a uloží
+**prázdný výběr**. Žádná chyba, žádná hláška. Kompilace ani analyzery to nechytí; `Page.Editable` / `DeleteAllowed`
+/ `InsertAllowed` na tom nic nemění.
+
+Možnosti (vyber podle UX, neověřeno všechno):
+
+- **Výběr řádků místo checkboxu:** po `LookupOK` vzít `CurrPage.SetSelectionFilter(TempBuffer)` (procedura
+  stránky volaná po `RunModal`) — odpovídá tomu, co uživatel dělá; aktuální stav ukaž read-only sloupcem.
+  Pozor: OK bez výběru vrátí aktuální řádek, „nic nevybrat" přes OK nejde → samostatná akce „Zrušit".
+- **`PageType = StandardDialog` s editovatelným `ListPart` subpage** nad bufferem — OK/Storno má dialog
+  nativně a part se otevře editovatelný.
+- Ne `Worksheet`/`List` bez LookupMode — modálně nemají Storno a křížek vrací `Action::OK` (C4 v
+  `ess-configurator-notes.md`).
+
+**Na zelený test přes `TestPage` + `ModalPageHandler` se nespoléhej** (jestli TestPage v lookup módu do
+pole zapíše, nebo spadne na needitovatelném poli, neověřeno) — výběrový dialog vždycky proklikej v prohlížeči.
+(2026-09-23, cust-zlomek-bc 65364 BC-DEV2 — `Take Params Dialog COZLK`: uživatel „vybral všechny, OK",
+tabulka `SL Act. Taken Param COZLK` zůstala prázdná.)
+
+---
