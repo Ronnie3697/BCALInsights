@@ -278,6 +278,16 @@ jen parametry s hodnotou a dialog se zasekne). Na feedu **od 28.0.24** (PR 9533 
 z `prod-ess-configurator-bc/app` ji mají, ale na feedu neexistují — minimum podle nich nenastavuj (7.11
 v `bc-al-build.md`). Vzor: cust-zlomek-bc `Variant Cfg Params COZLK` (task 65364, 2026-09-23).
 
+⚠️ **OK v dialogu `Variant Configuration COEBS` (63143) chce vyplněné VŠECHNY aktivní parametry** —
+`OnQueryClosePage` → `SaveVariantConfiguration` → `ValidateAllParametersHaveValues` → `Variant Config Params
+COEBS.ValidateAllValues` (vše kromě parametrů vypnutých podmínkou) → `Error('Following parameters must be filled: …')`.
+Žádný event ani `IsHandled` tam není (COEBS 28.0.26), takže rozšíření **nedonutí dialog uložit neúplnou
+konfiguraci**, ani když některé parametry dostanou hodnotu jinde (převzetí z hlavní konfigurace, vzorec). Featuru,
+která část parametrů plní mimo dialog, proto neveď přes OK dialogu — nastavení dej na vlastní akci / stránku a
+variantu ať runtime staví sám (vzor COZLK 65364: akce Převzít parametry na `SL Action Lines COEBS`, varianta na řádku
+akce volitelná, `Nested Cfg Runtime COZLK` bere konfiguraci z aktivní definice zboží). Dosazovat „zástupné" hodnoty
+jen kvůli OK nejde u Výběru / Vyhledávání / Textu bez výchozí hodnoty a navíc vyrobí variantu s nahodilými hodnotami.
+
 ## C6. Diagnostika konfigurace v běžícím BC
 
 Service stránky nad tabulkami konfigurátoru jsou `Editable`, ale pro **čtení** dat
