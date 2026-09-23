@@ -386,6 +386,12 @@ splní **každá MJ bez os (0/0)**. Při shodě vyhraje první podle PK (`Item N
 (osy = `Width`/`Height`, pole 7301/7302), vzorce Parametr A/B = rozměr skla → řádek skončil `KS` s A = 1000, B = 750.
 Kdyby žádná MJ nevyhověla, `ValidateAndUpdateUoM` by zboží **založil rastrovou MJ** `B/A` (`CreateRasterUOM`).
 
+**Oprava v COALU (větev `SLActionLineUoM_66358`, 2026-09-23):** `ValidateParametersKeepingTexts` (sdílí ji akční i aktuální
+řádek) validuje A/B jen u zboží, které má aspoň jednu MJ s oběma osami ≠ 0 (`HasMatrixUnitOfMeasure` přes veřejné
+`Features PMEBS.GetParameterA/BFieldNo` + `Pricing Matrix Mgt. PMEBS.AxisValue`); ostatnímu zboží A/B jen přiřadí a MJ nechá.
+Pravidlo „akční řádek má vyplněnou MJ" nejde použít — `SL Action Line."No."` OnValidate MJ doplňuje sám z karty zboží.
+Systémová oprava fallbacku patří do PMEBS (samostatný WI).
+
 Diagnostika: page inspector na řádku prodeje (filtr „Parameter") — nenulové `Parameter A/B PMEBS` na řádku, kde čekáš jinou MJ,
 = tahle cesta. Setup matice je na `Sales & Receivables Setup` (`UoM Rounding PMEBS`, `Parameter A/B Field No. PMEBS`,
 `Use UoM Parameter Fields PMEBS`). (2026-09-23, PBI 66358 analýza; zdroje cust-alumistr-bc master aa320d2, prod-epb-pricingMatrix-bc
