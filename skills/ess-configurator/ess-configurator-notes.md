@@ -29,6 +29,7 @@
 - [C6. Diagnostika konfigurace v běžícím BC](#c6-diagnostika-konfigurace-v-běžícím-bc)
 - [C7. Kusovník konfigurované varianty a pořizovací cena prodejního řádku (Alumistr)](#c7-kusovník-konfigurované-varianty-a-pořizovací-cena-prodejního-řádku-alumistr)
 - [C8. Řádek kusovníku z konfigurátoru a pole EM Cutting Plan (Alumistr)](#c8-řádek-kusovníku-z-konfigurátoru-a-pole-em-cutting-plan-alumistr)
+- [C9. MJ z akčního řádku přepíše Pricing Matrix přes Parametr A/B (Alumistr)](#c9-mj-z-akčního-řádku-přepíše-pricing-matrix-přes-parametr-ab-alumistr)
 
 ---
 
@@ -369,3 +370,23 @@ Nulu nevaliduj (smazala by `Quantity per` místo výchozí 1). Dependency minimu
 `app.json`, test `QtyOfPcsAndQtyPerPieceGiveQuantityPerWithoutLengthType` (`Config. Ext. Tests ALU`; testovací zboží je
 v PCS bez typu délky, takže starý kód spolehlivě chytí). Zdroj: cust-alumistr-bc, větev `ConfiguratorFormulaCancel`
 (2026-09-22); úprava vznikla 2026-09-16 při analýze na BC-TEST2, kde běžel lokální build Cutting Planu (C6).
+
+## C9. MJ z akčního řádku přepíše Pricing Matrix přes Parametr A/B (Alumistr)
+
+Base `InitNewSalesLineFromAction` MJ z `SL Action Line."Unit of Measure Code"` validuje správně (`ApplyItemSpecificFields`,
+až po `Validate("No.")`). Když na podřízeném řádku skončí jiná MJ, hledej v **`OnBeforeModifyNewSalesLineFromAction`**:
+`Configurator Events COALU` (od PR 9480, 2026-09-14) přenáší na **každý** vytvořený řádek `Parameter A/B COALU` akčního
+řádku (statika nebo vzorec) přes `Validate("Parameter A/B PMEBS")` → `Sales Line PMEBS.ValidateParametersPMEBS` →
+`Pricing Matrix Mgt. PMEBS.ValidateAndUpdateUoM` → **`Validate("Unit of Measure Code", <matricová MJ>)`**.
+
+⚠️ **Pricing Matrix nezná „nematicové" zboží.** S `Module Enabled PMEBS` projde enginem každé zboží s oběma parametry ≠ 0.
+Rounding **Up** (`FindUoMForRoundingUp`) po neúspěchu „≥ A a ≥ B" padá do větve „největší pod požadavkem" (`< A`, `< B`) — a tu
+splní **každá MJ bez os (0/0)**. Při shodě vyhraje první podle PK (`Item No., Code`) → abecedně první MJ zboží. Alumistr BC-TEST2
+(konfigurace 0066, PO2500209): sklo `GL-12040000-04-TR` má základní/prodejní MJ `M2`, MJ `KS` i `M2` s nulovou šířkou/výškou
+(osy = `Width`/`Height`, pole 7301/7302), vzorce Parametr A/B = rozměr skla → řádek skončil `KS` s A = 1000, B = 750.
+Kdyby žádná MJ nevyhověla, `ValidateAndUpdateUoM` by zboží **založil rastrovou MJ** `B/A` (`CreateRasterUOM`).
+
+Diagnostika: page inspector na řádku prodeje (filtr „Parameter") — nenulové `Parameter A/B PMEBS` na řádku, kde čekáš jinou MJ,
+= tahle cesta. Setup matice je na `Sales & Receivables Setup` (`UoM Rounding PMEBS`, `Parameter A/B Field No. PMEBS`,
+`Use UoM Parameter Fields PMEBS`). (2026-09-23, PBI 66358 analýza; zdroje cust-alumistr-bc master aa320d2, prod-epb-pricingMatrix-bc
+master, nasazeno COALU 28.0.20.3 / PMEBS 28.0.5.0 / COEBS 28.0.22.2.)

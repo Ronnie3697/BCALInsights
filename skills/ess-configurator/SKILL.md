@@ -5,15 +5,14 @@ description: >-
   rozšíření nad ní (COALU Alumistr, COZLK Zlomek) v Business Central / AL:
   konfigurační parametry a podmínky, dialog konfigurace varianty, systémové
   parametry (QUANTITY Line No. -1, CNC X1/X/Y/Z -51990..-51993, eventy
-  OnAddNumericSystemParameters / OnGetSystemParameterCode) a past tichých nul
-  (hodnota se v kontextu neinjektuje), číselné vzorce Action Formula
+  OnAddNumericSystemParameters / OnGetSystemParameterCode) a past tichých nul, číselné vzorce Action Formula
   Line (PK bez Field Type, Line No. napříč typy polí, Math Expression Parser),
   textové vzorce Text Formula Line (konkatenace {KOD:Value}/{KOD:ValueName} + řádek
   Formula {= A * QUANTITY} s Expression No., běží i na poznámkovém řádku), identita varianty = množina hodnot
   parametrů (FindExistingVariantWithSameValues), akce kusovníku / postupu /
-  prodejního řádku, diagnostika (service stránky 63163/63193/63149, page
+  prodejního řádku, diagnostika (service stránky, page
   inspector), Zrušit editorů vzorců (WasCancelled, EditFormula), pole EM Cutting
-  Plan na kusovníku. Načti u konfigurátoru, parametrů, vzorců, variant a
+  Plan na kusovníku, MJ řádku přepsaná Pricing Matrix přes Parametr A/B. Načti u konfigurátoru, parametrů, vzorců, variant a
   konfigurovaných řádků prodeje.
 user-invocable: true
 ---
