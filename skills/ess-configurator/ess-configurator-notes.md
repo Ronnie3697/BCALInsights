@@ -270,6 +270,14 @@ Dialog kontext prodejního řádku **zná**: `SalesLineConfigMgt.HandleVariantCo
 volá `VariantConfigurationPage.SetSalesLineContext(DocType, DocNo, LineNo)`
 (`SetSourceQuantity` naopak plní jen split mode ze `Sales Line Split Mgt. COEBS`).
 
+**Rozšíření, které zapíše hodnotu parametru přímo do bufferu `Variant Config Params COEBS` (63147)**
+(pageextension, ne zadání uživatelem), musí zavolat public **`RefreshAfterExternalValueChange()`** — obálka nad
+`local RefreshAfterValueChange`, přepočítá závislé parametry a odkryje další (`AddNextEmptyParameter` jinak vidí
+jen parametry s hodnotou a dialog se zasekne). Na feedu **od 28.0.24** (PR 9533 `QuoteTrackingVariantAlign`,
+2026-09-18); 28.0.23 ji ještě nemá → minimum dependency `28.0.24.0`. Lokální buildy `28.0.22.1` / `28.0.22.2`
+z `prod-ess-configurator-bc/app` ji mají, ale na feedu neexistují — minimum podle nich nenastavuj (7.11
+v `bc-al-build.md`). Vzor: cust-zlomek-bc `Variant Cfg Params COZLK` (task 65364, 2026-09-23).
+
 ## C6. Diagnostika konfigurace v běžícím BC
 
 Service stránky nad tabulkami konfigurátoru jsou `Editable`, ale pro **čtení** dat
