@@ -312,6 +312,11 @@ se zdrojovým polem `No.` i filtr atributů (`ApplyToRecRef` filtruje `Item."No.
 v COEBS (`TrySetView` → `ApplyToRecRef` → `SetRange`, vše ve skupině 0) — až se v COEBS bude vracet výsledek, je potřeba ji
 opravit taky. Chytil to až master build 28453 cust-zlomek-bc (2026-09-24, test `TakenLookupCodeMustPassTheFilterOfTheParameter`;
 PR se tam netestují, 7.15 v `bc-al-build.md`). Obecné pravidlo 2.6c v `bc-al-data.md`.
+Totéž má API 66387: `Config. API Session Mgt. COEBS.FillTableLookupValues` (povolené hodnoty) – `TrySetView` → `ApplyToRecRef` →
+`TrySetRecRefFieldFilter` (filtr `value` z požadavku) ve skupině 0 → `value eq` přepíše filtr parametru na zdrojovém poli, bez filtru
+`value` přepíše filtr atributů (`No.`) filtr tabulky na `No.`; stejně v dialogu `Table Values Lookup`, `Variant Config Params` a v
+`Variant Config. Engine` (jediná hodnota). Uživatel 2026-09-24 rozhodl: oprava zůstává v tasku 65364 (větev
+`65364_SLActionLineCopyEvent`, commit 599429a – kontrola už vrací výsledek, ale filter groups ještě ne), PR 66387 ji neobsahuje.
 
 ## C6. Diagnostika konfigurace v běžícím BC
 
