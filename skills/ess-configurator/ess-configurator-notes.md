@@ -305,6 +305,13 @@ kódy), ale hodnota dosazená z kódu (převzetí, import) projde i neexistujíc
 kontrola přes `RecordRef` + `SetView(GetConditionTableFilter(...))` + `Item Attr. Filter Mgt. COEBS.ApplyToRecRef(…,
 GetConditionAttributeFilter(...))` + `SetRange` na zdrojové pole (vzor `Nested Cfg Runtime COZLK.TableLookupValueExists`).
 Oprava patří do COEBS (vrátit výsledek + brát podmínkový filtr).
+⚠️ **Každý z těch tří filtrů dej do vlastní filter group** (`SetView` ve 0, `RecRef.FilterGroup(10)` před `ApplyToRecRef`,
+`FilterGroup(11)` před `SetRange` kódu). Ve stejné skupině drží pole jediný filtr: `SetRange` na zdrojové pole **přepíše**
+filtr parametru na tomtéž poli (`WHERE(Code=CONST(X))` u Vyhledávání do MJ → projde jakýkoli existující kód) a u zboží
+se zdrojovým polem `No.` i filtr atributů (`ApplyToRecRef` filtruje `Item."No."`). Stejnou chybu má `ValidateTableLookupValue`
+v COEBS (`TrySetView` → `ApplyToRecRef` → `SetRange`, vše ve skupině 0) — až se v COEBS bude vracet výsledek, je potřeba ji
+opravit taky. Chytil to až master build 28453 cust-zlomek-bc (2026-09-24, test `TakenLookupCodeMustPassTheFilterOfTheParameter`;
+PR se tam netestují, 7.15 v `bc-al-build.md`). Obecné pravidlo 2.6c v `bc-al-data.md`.
 
 ## C6. Diagnostika konfigurace v běžícím BC
 

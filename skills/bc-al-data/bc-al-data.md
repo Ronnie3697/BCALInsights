@@ -285,6 +285,14 @@ Skupiny **−1..7 používá platforma** (4 = SubPageLink, 7 = factboxy, −1 = 
 `Record.FilterGroup`) → ber 10+. (prod-epb-pricingMatrix-bc `FilterUoMsWithAxisValues`, PBI 66358, 2026-09-24 — MJ bez os
 se nesměly dostat do zaokrouhlovacích fallbacků `FindUoMByMode`.)
 
+**Totéž s `RecordRef`: `SetView(<uložený filtr>)` + `FldRef.SetRange(hodnota)` na stejném poli = uložený filtr je pryč.**
+Typicky „existuje hodnota pod filtrem z nastavení?" (filtr z `FilterPageBuilder` / pole *Table Filter* + `SetRange` na
+lookup pole): když uložený filtr míří na totéž pole, `SetRange` ho přepíše a projde každá existující hodnota. Fix: po
+`SetView` `RecRef.FilterGroup(10)` a teprve pak `FldRef.SetRange` (`FieldRef` filtruje v aktuální skupině svého `RecordRef`);
+každý další nezávislý filtr (atributy, …) do vlastní skupiny. Kompilace ani analyzery nic nehlásí, chytí to jen test, kde
+filtr a hledané pole splývají. (cust-zlomek-bc `Nested Cfg Runtime COZLK.TableLookupValueExists`, master build 28453,
+2026-09-24; stejný vzor v COEBS `ValidateTableLookupValue` — detail C5 v `ess-configurator-notes.md`.)
+
 ### 2.7 Nové flag/marker pole → projít i field-by-field copy procedury (šablony, buffery)
 
 Když do tabulky přidáváš nové pole (typicky Boolean marker jako `Has Value` /
