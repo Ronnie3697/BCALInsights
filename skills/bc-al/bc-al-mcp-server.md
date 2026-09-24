@@ -13,6 +13,7 @@ Obsahuje:
 - **M5.** Gotchas z testu (PSModulePath, DPAPI, heredoc, BC web client v Chrome)
 - **M6.** Kde leží testovací soubory a jak se to spouští
 - **M7.** Otevřené otázky
+- **M8.** Vlastní API pages jako MCP nástroje (pojmenování, If-Match, chyby, AI agent end-to-end, založení konfigurace v prohlížeči)
 
 ## M1. Co to je a konfigurace v BC
 
@@ -25,7 +26,7 @@ cíl se určuje **HTTP hlavičkami**:
 | `TenantId` | Entra tenant GUID prostředí |
 | `EnvironmentName` | název BC prostředí (`BC-DEV2`) |
 | `Company` | název company (`Sonnentor s.r.o.`) |
-| `ConfigurationName` | (volitelně) název MCP konfigurace v BC; prázdné = read-only ke všem API pages |
+| `ConfigurationName` | (volitelně) název MCP konfigurace v BC; prázdné = konfigurace s příznakem **Výchozí** — když žádná aktivní výchozí není, `initialize` vrátí 400 *„The MCP Configuration named  was not found or not active"* (Alumistr BC-TEST2, 2026-09-24: page 8350 prázdná) |
 
 Non-ASCII hodnoty (`ø`, `å`, `č`…) v `Company` / `ConfigurationName` kódovat jako
 `=?base64?<utf8-base64>?=`.
@@ -159,6 +160,11 @@ udělat vlastní app registraci (M2). Refresh token leží na disku (DPAPI per W
 vypisují jen `aud/scp/appid/exp` dekódované z JWT. Přihlášení dělá **uživatel sám** v prohlížeči
 (device code je veřejný, heslo Claude nikdy nevidí).
 
+**Druhý tenant bez druhého loginu:** refresh token z device loginu na REST API (`api.businesscentral.dynamics.com`, 11.7 v
+`bc-al-integrations.md`) jde vyměnit i za token pro `https://mcp.businesscentral.dynamics.com/Financials.ReadWrite.All` (Entra
+refresh tokeny jsou multi-resource) — `%LOCALAPPDATA%\bc-api-test\bc-token.ps1 -Resource <url>`, headersHelper
+`bc-mcp-headers-alm.cmd` + `bc-mcp-alm.json` (Alumistr BC-TEST2, konfigurace `Claude-66387`).
+
 ## M5. Gotchas z testu
 
 - **Claude Code Bash tool → `powershell.exe` (5.1) má PSModulePath s cestami PowerShellu 7 napřed**
@@ -207,7 +213,39 @@ python skript = helper → `initialize` → `notifications/initialized` (s `Mcp-
 
 - Co `bc_actions_invoke` pustí, když Available Tools je prázdný a Discover Additional Objects off
   (search vrací akce, invoke možná ne). Otestovat + zkusit zapnout Discover / přidat API group.
-- `semantic` vs `keyword` search kvalita, hodnoty enumu `ActionType`.
-- Vlastní API pages (customer extensions, `APIPublisher`) — objeví se v search? Bound actions?
+- `semantic` vs `keyword` search kvalita, hodnoty enumu `ActionType`; objeví se vlastní API pages v `bc_actions_search`
+  (Dynamic Tool Mode **on**)? Bez dynamického režimu viz M8.
+- ~~Vlastní API pages — bound actions?~~ Ano, viz M8.
+
+## M8. Vlastní API pages jako MCP nástroje (ověřeno 2026-09-24, Alumistr BC-TEST2, COEBS 28.0.22.3, server 28.0.54476.0)
+
+Konfigurace `Claude-66387` (Aktivní, Odblokovat nástroje pro úpravy, Dynamický režim **off**, 6 řádků Dostupné nástroje:
+page 63290/63291/63310–63313 `essence/configurator/v2.0`) → `tools/list` = **12 nástrojů**:
+
+- Pojmenování: `List_<EntitySetName>_PAG<ID>` (PascalCase: `List_ConfigurableSalesLines_PAG63313`), `Create_<EntityName>_PAG<ID>`,
+  `Modify_<EntityName>_PAG<ID>` (ne `ListUpdate…`, jak tvrdil M1 u standardních API), vázaná akce `<ProcedureName>_<EntitySetName>_PAG<ID>`
+  (`ApplyConfiguration_ConfigurationSessions_PAG63310`, argument `id`). **Parts dostanou vlastní nástroje** i bez vlastního řádku
+  konfigurace: `List_<Child>Of<Parent>_PAG<ID>` / `Modify_<Child>Of<Parent>_PAG<ID>` s argumentem `<Parent>_id`.
+- `List_*` args: `filter`, `select`, `orderby`, `top`, `skip`, `resultFormat`, `_availableFields`; odpověď „Returned all N records." + OData JSON.
+- **`Modify_*` vyžaduje `If-Match` = `@odata.etag`** z `List_*`; bez něj `BadRequest_InvalidToken` (*client concurrency token*),
+  `*` odmítne (*The If-Match property cannot have the value '*'*). Schéma nástroje to AI říká samo.
+- Chyby: JSON-RPC odpověď 200 s `isError: true` a tělem chyby BC (`Application_DialogException` s textem `Error(...)`,
+  `BadRequest_NotSupported` u filtru na nefiltrovatelné pole). **Texty jdou anglicky** i u uživatele s češtinou (MCP klient neposílá
+  `Accept-Language`); REST s `Accept-Language: cs-CZ` vrací česky.
+- Vázaná akce přes MCP vrací `{"location": …, "id": …}` (REST: HTTP 200 prázdné tělo).
+- **Popisy pro AI jsou chudé:** popis nástroje = EntitySetName (`configurationSessionParameters`), popis argumentu = `Caption` pole
+  API stránky (`"Value"`). Co má AI vědět (pořadí kroků, `isEditable`), musí dostat v promptu nebo z dokumentace.
+- **Živý AI test:** `claude -p --model sonnet --strict-mcp-config --mcp-config bc-mcp-alm.json --allowedTools "mcp__businesscentral__*"`
+  s úkolem „na PO2500210 změň šířku řádku 10000 na 2100 mm, zbytek nech" → 14 tahů, 59 s, 0,32 USD, správně (nová varianta jen se
+  změněnou SIRKA, ověřeno přes REST): List řádků → Create relace → List parametrů → Modify (s etagem napoprvé) → List relace
+  (`isReadyToApply`) → Apply → kontrola.
+
+**Založení konfigurace přes Claude in Chrome (page 8351):** karta se ukládá sama; přepínače jsou `div[role=checkbox]` s
+`aria-labelledby` — JS `.click()` je **nepřepne**, jen skutečný klik (souřadnice z `getBoundingClientRect` iframu + iframe offset,
+× devicePixelRatio, když screenshot vrací fyzické pixely). S malým viewportem (boční panel, 627×309 CSS px) zůstanou akce partu
+*Dostupné nástroje* („Přidat nástroje podle skupiny API") schované → řádky zadej v mřížce z klávesnice: v poli ID objektu napiš ID +
+`Tab` (Verze API se doplní `v2.0`), `Tab`y na sloupce Povolit čtení / vytvoření / změnu / odstranění / vázané akce, `space` přepne,
+`Down` založí další řádek, `shift+Tab` zpět na ID. Stav ověřuj z DOM (`tr` s `input[value="v2.0"]`), screenshot se při změně DPI
+vykresluje rozsekaně. **Aktivní** zapínej až po nástrojích; Jméno pak zešedne.
 - Životnost `Mcp-Session-Id`, chování po 401 (helper se má znovu spustit) — ověřit v dlouhé seanci.
 - Copilot Studio limit 70 toolů vs Dynamic Tool Mode — relevantní jen pro Copilot Studio agenty.

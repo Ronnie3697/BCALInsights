@@ -465,6 +465,10 @@ relace s konceptem 0054 dala po 11 zadaných hodnotách **přesně stejné hodno
 dialog (PO2500204). Nová varianta = kusovník `ItemNo-VariantCode` + postup jako z dialogu. REST gotchas (`$expand` podle
 `EntitySetName`, nefiltrovatelné pole z proměnné stránky, prázdné tělo akce) v 11.7 `bc-al-integrations.md`.
 
+**Přes oficiální MCP server BC** (konfigurace `Claude-66387` na BC-TEST2 — **nechat, uživatel ji chce ponechat**) to AI agent
+(Sonnet, jen MCP nástroje) zvládl bez nápovědy: relace → změna SIRKA → apply, nová varianta `COEBS0123` jen se změněnou šířkou.
+Detail nástrojů (názvy, `If-Match`, anglické hlášky) v M8 `bc-al-mcp-server.md`.
+
 ⚠️ **Chyba z akce kusovníku při apply není chyba API.** Alumistr aktivní definice **0039** (101000 ALUPLUS) má řádky akcí
 kusovníku s `Item From Parameter` na nesmyslné parametry (`KOLEJ DOLE_KOOP` = Text „NE", `KOLEJ_DOLE_DELKA`, `TEXT_PRICKA`),
 koncept 0054 na správné (`KOLEJ_DOLE_PROFIL`…) → apply padá *Pole Číslo z tabulky Řádek výrobního kusovníku obsahuje hodnotu
