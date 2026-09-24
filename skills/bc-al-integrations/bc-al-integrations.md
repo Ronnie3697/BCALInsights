@@ -268,6 +268,10 @@ Z code review API konfigurátoru (COEBS task 66387, stránky `configurationSessi
 - **Pole z proměnné stránky (`field(isConfigurable; IsConfigurable)`) nejde filtrovat** — `$filter=isConfigurable eq true` →
   400 `BadRequest_NotSupported` *Field 'isConfigurable' is not filterable*. Klient (AI přes MCP) musí stáhnout vše a filtrovat
   u sebe. Filtrovatelné je jen pole tabulky (i FlowField). Počítej s tím, když API nabízí „příznak k vyhledání".
+  **Řešení ověřené na BC-TEST2:** příznak jako **FlowField** na tableextension zdrojové tabulky (`exist`/`lookup`), podmínka závislá
+  na `WorkDate()` přes **FlowFilter** pole (`"Valid From" = field("Cfg. Valid From Filter")`), které API stránka nastaví v `OnOpenPage`
+  **i** v `OnFindRecord` (`Rec.SetFilter(FlowFilter, '%1|<=%2', 0D, WorkDate()); exit(Rec.Find(Which))`) – `$filter=isConfigurable eq true`
+  pak vrací přesně řádky, které dřív spočítal výpočet v `OnAfterGetRecord` (372/372), i přes MCP server BC. (COEBS 66387, 2026-09-24.)
 - **Bound action s `SetResultCode(WebServiceActionResultCode::Updated)` vrací HTTP 200 s prázdným tělem** — výsledek si klient
   musí dočíst GETem entity. `Error` v akci = 400 s textem hlášky a rollback celé akce (i vytvořené varianty / kusovníku).
 - **Test z CLI bez app registrace:** device code flow s first-party klientem `1950a258-…` (M4 v `bc-al-mcp-server.md`) funguje i pro

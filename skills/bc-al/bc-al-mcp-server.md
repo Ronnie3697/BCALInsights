@@ -227,6 +227,7 @@ page 63290/63291/63310–63313 `essence/configurator/v2.0`) → `tools/list` = *
   (`ApplyConfiguration_ConfigurationSessions_PAG63310`, argument `id`). **Parts dostanou vlastní nástroje** i bez vlastního řádku
   konfigurace: `List_<Child>Of<Parent>_PAG<ID>` / `Modify_<Child>Of<Parent>_PAG<ID>` s argumentem `<Parent>_id`.
 - `List_*` args: `filter`, `select`, `orderby`, `top`, `skip`, `resultFormat`, `_availableFields`; odpověď „Returned all N records." + OData JSON.
+  **Standardně jen 20 záznamů** — odpověď pak zní *„Returned 20 of 64 total records. Use 'top' and 'skip' in 'RequestParameters' to paginate."*
 - **`Modify_*` vyžaduje `If-Match` = `@odata.etag`** z `List_*`; bez něj `BadRequest_InvalidToken` (*client concurrency token*),
   `*` odmítne (*The If-Match property cannot have the value '*'*) – REST API na téže stránce `If-Match: *` bere. Schéma nástroje to AI říká samo.
 - Chyby: JSON-RPC odpověď 200 s `isError: true` a tělem chyby BC (`Application_DialogException` s textem `Error(...)`,
