@@ -10,9 +10,9 @@ description: >-
   textové vzorce Text Formula Line (konkatenace {KOD:Value}/{KOD:ValueName} + řádek
   Formula {= A * QUANTITY} s Expression No., běží i na poznámkovém řádku), identita varianty = množina hodnot
   parametrů (FindExistingVariantWithSameValues), akce kusovníku / postupu /
-  prodejního řádku, diagnostika (service stránky, page
-  inspector), Zrušit editorů vzorců (WasCancelled, EditFormula), pole EM Cutting
-  Plan na kusovníku, MJ řádku přepsaná Pricing Matrix přes Parametr A/B. Načti u konfigurátoru, parametrů, vzorců, variant a
+  prodejního řádku a eventy jejich kopie, diagnostika (service stránky,
+  inspector), Zrušit editorů (WasCancelled, EditFormula), pole EM Cutting
+  Plan na kusovníku, MJ řádku přepsaná Pricing Matrix přes Parametr A/B. Načti u konfigurátoru, vzorců, variant a
   konfigurovaných řádků prodeje.
 user-invocable: true
 ---

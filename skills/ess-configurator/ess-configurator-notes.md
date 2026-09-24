@@ -30,6 +30,7 @@
 - [C7. Kusovník konfigurované varianty a pořizovací cena prodejního řádku (Alumistr)](#c7-kusovník-konfigurované-varianty-a-pořizovací-cena-prodejního-řádku-alumistr)
 - [C8. Řádek kusovníku z konfigurátoru a pole EM Cutting Plan (Alumistr)](#c8-řádek-kusovníku-z-konfigurátoru-a-pole-em-cutting-plan-alumistr)
 - [C9. MJ z akčního řádku přepíše Pricing Matrix přes Parametr A/B (Alumistr)](#c9-mj-z-akčního-řádku-přepíše-pricing-matrix-přes-parametr-ab-alumistr)
+- [C10. Kopie konfigurace — eventy pro zákaznická data řádků akcí](#c10-kopie-konfigurace--eventy-pro-zákaznická-data-řádků-akcí)
 
 ---
 
@@ -411,3 +412,26 @@ Diagnostika: page inspector na řádku prodeje (filtr „Parameter") — nenulov
 = tahle cesta. Setup matice je na `Sales & Receivables Setup` (`UoM Rounding PMEBS`, `Parameter A/B Field No. PMEBS`,
 `Use UoM Parameter Fields PMEBS`). (2026-09-23, PBI 66358 analýza; zdroje cust-alumistr-bc master aa320d2, prod-epb-pricingMatrix-bc
 master, nasazeno COALU 28.0.20.3 / PMEBS 28.0.5.0 / COEBS 28.0.22.2.)
+
+## C10. Kopie konfigurace — eventy pro zákaznická data řádků akcí
+
+`Configuration Copy Mgt. COEBS` (63141) dává rozšířením k 28.0.26 jen dva eventy:
+
+- **`OnAfterCopyBOMActionLine(var NewLine; var SourceLine)`** — po každém řádku akce kusovníku, v **obou** cestách
+  (kopie celé konfigurace `CopyBOMActionLines` i kopie jedné akce v rámci konfigurace `CopyBOMActionLinesForCondition`),
+  bez mapy parametrů. Vzor `Configurator Events COALU`.
+- **`OnAfterCopyConfiguration(SourceConfigNo; NewConfigNo; var ParamLineNoMapping)`** — jen na konci kopie **celé**
+  konfigurace; mapa parametrů ano, mapa podmínek a řádků akcí **ne** (`SLCondLineNoMapping` / `SLLineNoMapping` jsou
+  lokální proměnné). Vzor `CNC Action Mgt. COALU`.
+- ⚠️ **Řádky akcí prodejního řádku a postupu event nemají** a kopie jedné SL akce (`CopySLAction`) nevolá žádný.
+  Zákaznická tabulka klíčovaná řádkem SL akce (`Configuration No.`, `Condition Line No.`, `Line No.` — COZLK
+  `SL Act. Taken Param COZLK`, task 65364) se kopií tiše nepřenese. Rekonstruovat mapu řádků v `OnAfterCopyConfiguration`
+  z pořadí (podmínky 10000, 20000… podle PK zdroje, řádky 10000… per podmínka) by šlo, ale opisuje interní číslování COEBS
+  a na `CopySLAction` nepomůže → správně nový event v COEBS hned za `NewLine.Insert(true)` v `CopySLActionLines`
+  i `CopySLActionLinesForCondition` (návrh `OnAfterCopySLActionLine(var NewLine; var SourceLine; var ParamLineNoMapping)`).
+  Subscriber pozná kopii v rámci téže konfigurace podle `NewLine."Configuration No." = SourceLine."Configuration No."`
+  (parametry beze změny), ne podle prázdné mapy.
+- Mazání je v pořádku: `Configuration Definition.OnDelete` maže podmínky přes `DeleteAll(true)`, takže `OnAfterDeleteEvent`
+  na `SL Action Condition/Line COEBS` běží per záznam a kaskáda v rozšíření (COZLK `Configurator Events`) data uklidí.
+
+(2026-09-24, analýza plánu 65364 nad prod-ess-configurator-bc master 79fc306.)

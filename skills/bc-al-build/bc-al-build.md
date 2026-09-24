@@ -268,6 +268,8 @@ Gen. Bus. Posting Group / Base Unit of Measure a sales flow na tom padá.
   Stejně `prod-epb-pricingMatrix-bc` (build 28219, 2026-09-14): PR 9476 squash → první běh testů až
   na masteru, 2 faily (assert přes `Get` generovaného kódu UoM, zbytečný `MessageHandler` — viz
   `bc-al-autotests.md`, sekce CreateItem base UoM); fix novou větví z `origin/master`.
+  Totéž `cust-zlomek-bc` (definice 176, ověřeno 2026-09-24 — všechny buildy jen `refs/heads/master`): PR se testy
+  neověří, nový test codeunit poprvé běží až po merge. Plán „po PR buildu zkontroluj testy" tam neplatí.
 
 ### 7.16 Squash merge PR → falešné konflikty při dalším mergi + three-dot diff klame
 
