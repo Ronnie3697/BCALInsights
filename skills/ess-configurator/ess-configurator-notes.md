@@ -420,12 +420,14 @@ Kdyby žádná MJ nevyhověla, `ValidateAndUpdateUoM` by zboží **založil rast
 `Features PMEBS.GetParameterA/BFieldNo` + `Pricing Matrix Mgt. PMEBS.AxisValue`); ostatnímu zboží A/B jen přiřadí a MJ nechá.
 Pravidlo „akční řádek má vyplněnou MJ" nejde použít — `SL Action Line."No."` OnValidate MJ doplňuje sám z karty zboží.
 
-**Systémová oprava v PMEBS (větev `66358_MatrixUoMWithoutAxes`, 2026-09-24, čeká na PR/release):** `ValidateAndUpdateUoM`
+**Systémová oprava v PMEBS (PR 9573, release **28.0.6** = build 28454, 2026-09-24):** `ValidateAndUpdateUoM`
 zboží bez maticové MJ hned vrátí `false` (žádná náhradní MJ, žádná `CreateRasterUOM`) a `FindMatrixUoM` hledá jen mezi MJ
 s oběma osami ≠ 0 (filtr ve vlastní filter group — 2.6c v `bc-al-data.md`), takže fallback `< A, < B` už MJ 0/0 nesebere;
 fallback na `Sales UoM` zůstal. Nová **public `Pricing Matrix Mgt. PMEBS.HasMatrixUnitOfMeasure(ItemNo)`** = stejná logika
-jako lokální kopie v COALU → po releasu bump minima EPB Pricing Matrix ve **všech čtyřech** `app.json` cust-alumistr-bc
-(COALU + PMALU, app + test) a COALU může volat public proceduru. Vedlejší efekt: první rastrovou MJ nového zboží už nezaloží
+jako lokální kopie v COALU. V cust-alumistr-bc (větev `PricingMatrixDependency_66358`) minimum EPB Pricing Matrix `28.0.6.0`
+ve **všech čtyřech** `app.json` (COALU + PMALU, app + test) a zkratka z PR 9567 + lokální `HasMatrixUnitOfMeasure` v COALU
+**odstraněny** — `Validate("Parameter A/B PMEBS")` u zboží bez maticové MJ teď v matici nic nedělá, výsledek stejný; COALU testy
+z PR 9567 zůstaly a ověřují chování matice přes konfigurátor. Vedlejší efekt: první rastrovou MJ nového zboží už nezaloží
 řádek dokladu (dřív u zboží bez `Sales UoM`), jen import matice / ruční Item UoM. A nový rastr z řádku (`CreateRasterUOM`
 po prázdném výsledku hledání = maticové zboží bez `Sales UoM`) jen při zaokrouhlení **Equal** — bez toho by po vyřazení MJ 0/0
 zaokrouhlení Dolů pod všemi rastry zakládalo rastry přesně pro zadaný rozměr (bez ceny); Up/Down bez nálezu MJ řádku nechají.
