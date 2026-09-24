@@ -67,6 +67,13 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   `/analyzer:` MSYS přepíše na cestu (`C:\Program Files\Git\analyzer;…`).
   Oprava: prefixni volání `MSYS2_ARG_CONV_EXCL="*"` (pak ale musí být
   všechny cesty plné Windows cesty, žádné `~`).
+  V AL 17 (`17.0.2273547`) je v `bin/win32` **jen `alc.exe`**, všechny Cop DLL (CodeCop, PTE, UICop, AppSourceCop,
+  LinterCop, ALCops) jsou v `bin/Analyzers` — `/analyzer:bin/win32/...Cop.dll` končí `AL1006 Metadata file … could not
+  be found`. **Appka s ID mimo 50000–99999 (AppSource range, např. prod-ef-bank-bc 70381500+) nesmí jet
+  s PerTenantExtensionCop** — každý objekt hlásí `error PTE0001`, správný analyzer je `AppSourceCop` (repo má
+  `AppSourceCop.json`). Projektový `/ruleset:` s `includedRuleSets` na URL (`essence-default.ruleset.json` z blobu)
+  alc odmítne `error AL1033: … external rulesets are not allowed` → z CLI kompiluj bez rulesetu a hidden pravidla
+  (AS0081, LC0084…) si odfiltruj ručně. (2026-09-24, prod-ef-bank-bc)
 - **ALCops (arthurvdv.alcops) nahradily samostatný LinterCop** (cust-alumistr-bc, prod-ess-configurator-bc, 2026-09).
   DLL jsou v `<al-ext>/bin/ALCops.*.dll`: `ApplicationCop` (AC*), `DocumentationCop` (DC*), `FormattingCop` (FC*),
   `LinterCop` (LC*), `PlatformCop` (PC*), `TestAutomationCop` (TC*). **`ALCops.Common.dll` MUSÍŠ předat jako další

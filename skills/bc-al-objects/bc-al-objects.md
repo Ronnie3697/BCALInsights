@@ -933,3 +933,36 @@ vlastního trackingu berou ten samý status. V testu částečnou dodávku šar�
 řádku nastavíš `"Qty. to Handle (Base)"` / `"Qty. to Invoice (Base)"` na dodávané množství (`Modify(false)`), jinak Sales-Post
 hlásí nesoulad Qty. to Handle vs. Qty. to Ship. `Sales Line."Job No."` (45) je v BC 28 `Editable = false` bez OnValidate —
 `OnAfterValidateEvent` na něj přesto z kódu funguje.
+
+### 5.x16 Data Exchange Framework (import bankovních výpisů camt.053) — pasti definice a mapování
+
+Ověřeno v Base Application 28.3 (`ProcessDataExch.Codeunit.al`, `TransformRuleReplace/Match.Codeunit.al`) při ladění
+importu Raiffeisenbank v prod-ef-bank-bc (2026-09-24). **Definice (řádky, sloupce, mapování, transformační pravidla,
+Post-Mapping codeunit) žije jen v DB zákazníka** — v repu bývá jen hlavička (`Data Exch. Def` Insert). K diagnóze si
+vždy vyžádej export (Definice výměny dat → Export definice výměny dat), screenshot nestačí.
+
+- **Více sloupců do jednoho textového pole = spojení s mezerou.** `Process Data Exch.SetAndMergeTextCodeField` bez
+  `Overwrite Value` dělá `StrSubstNo('%1 %2', stará, nová)` → `1041045226 /5500`. Mapováním se mezera **neodstraní**
+  (každé pravidlo vidí jen svou hodnotu) → `DelChr(..., '=', ' ')` v post-mapping codeunitu. Mezera vadí: CZB párování
+  (`Match Bank Payment CZB`) porovnává `Bank Account No. CZL` s bankovními účty přes `SetRange`, tedy přesně.
+- **Regex pravidlo pro VS/KS/SS = „Regular Expression - Match" (typ 10), ne „Replace" (typ 6).** Replace při neshodě
+  vrátí **celý původní text** (`Regex.Replace`), takže `VS:123` skončí i v KS/SS (oříznuté na `Code[10]`). Match při
+  neshodě vrátí `''`, při shodě spojí zachycené skupiny (bez skupiny 0) → vzor `VS:(\d+)`.
+- **ID polí `Bank Acc. Reconciliation Line` (274):** 4 Document No., **6 Description**, 7 Statement Amount, 15
+  Related-Party Name, **16 Additional Transaction Info** (ne Description!), 23 Transaction Text, 24 Related-Party Bank
+  Acc. No., 25/26 Address/City, 70 Transaction ID. EF Banking `Import Payment Launcher EBS` bere do popisu řádku výpisu
+  přednostně 23, jinak 6.
+- **Chybná cesta sloupce se neohlásí** — sloupec jen nikdy nedostane hodnotu (XML import páruje `Path` přesně; např.
+  vynechaný uzel `/Ntry/`). `DataExchField.GetFieldName()` vrací **Name** sloupce, ne Path → kód, který hledá sloupce
+  podle názvu (`Stmt/Ntry/NtryDtls/TxDtls/RltdPties/Cdtr/Nm`), závisí na konvenci pojmenování v definici.
+- **Import XML definice existující kód NEPŘEPÍŠE** („Záznam v tabulce Definice výměny dat již existuje") → napřed
+  smazat, nebo importovat pod jiným kódem a přepnout `Bank Export/Import Setup."Data Exch. Def. Code"`. Transformační
+  pravidla v XML se zakládají podle `Code` → změnu typu pravidla dělej pod **novým** kódem (`VS-MATCH`), ne úpravou
+  existujícího.
+- Standardní `SEPA CAMT 053-08` z base app (`resources/DataExchangeDefinitions/*.xml` v .app) je pro namespace
+  `camt.053.001.08` a strukturu `Dbtr/Pty/Nm`; CZ banky (Raiffeisen) posílají `camt.053.001.02` s `Dbtr/Nm` → vlastní
+  definice, standardní se nedá použít ani jako základ 1:1.
+- EF Banking specifika (`Import SEPA Post Mapping CBEBS`): VS/KS/SS parsuje z `Description 2 EBS` (token `/VS`, KB SK)
+  a při neshodě **přepíše namapované symboly prázdnem** + přilepí text k popisu s čárkou → do `Description 2 EBS`
+  nemapuj `EndToEndId`; protistranu skládá jen z cest `.../DbtrAcct|CdtrAcct/Id/IBAN`, tuzemské `Othr/Id` nechává
+  z mapování; `SetValueFromPostExchField('POPIS1'|'CREDIT'|'DEBIT')` hledá sloupce podle **`Data Format`** jako tagu.
