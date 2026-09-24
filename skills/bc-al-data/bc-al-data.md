@@ -846,6 +846,25 @@ finančního účtu prázdné; při fakturaci z Get Shipment Lines pak padá pr�
 `PostItemTrackingForShipment` taky (`PostItemTrackingLine` běží před `case Type`), jen `PostItemJnlLine` je podmíněný `Type = Item`. Ověřeno v
 w1-28 `SalesPost.Codeunit.al` (raw.githubusercontent, cesta `BaseApp/Source/Base Application/Sales/Posting/`).
 
+**Job No. na prodejním řádku podle typu — co s ním standard při účtování dělá (BC 28, ověřeno ve zdrojích 2026-09-24):**
+- **Resource:** `Res. Journal Line.CopyFromSalesLine` kopíruje Job No. → položka zdroje ho nese; `Res. Jnl.-Post Line` s ním nic dalšího nedělá.
+  `PostJobContractLine` se u zdroje volá až z `PostResJnlLine` (přes `JobTaskSalesLine`), u Item / G/L / prázdného typu z `UpdateSalesLineBeforePost`.
+- **G/L Account:** Job No. jde do `Invoice Posting Buffer` → `Gen. Journal Line` (`System-Created Entry = true` → `Job Post-Line.PostGenJnlLine` hned
+  exituje, žádná duplicitní Usage položka) → `G/L Entry."Job No."`. **Past:** `Job Post-Line.PostJobOnSalesLine` u G/L řádku projektovou položku Sale
+  NEúčtuje hned, jen ji odloží do `TempSalesLineJob`/`TempJobJournalLine`, a `Sales Post Invoice.PostLines` ji zaúčtuje jen
+  `if TempInvoicePostingBuffer."Job No." <> ''` (`PostJobSalesLines` + vazba na G/L Entry No.). Řádek s `Job Contract Entry No.` a prázdným Job No.
+  (objednávky z planning lines) tak Sale položku u finančního účtu **nikdy nevytvoří** — tiše. Doplnění Job No. před `UpdateSalesLineBeforePost`
+  to opraví (IMEBS 2026-09-24: `SalesPost_OnPostSalesLineOnBeforeUpdateSalesLineBeforePostIMEBS` nově i pro Order a všechny typy, všechny projekty;
+  skipy `OnBeforeTestSalesLineJob` / `OnPostSalesLineOnBeforeTestJobNo` rozšířeny na řádky, jejichž Job No. = projekt planning line kontraktu).
+- **Item:** standard Job No. do deníku zboží nekopíruje (`Item Journal Line.CopyFromSalesLine` job pole nemá) → ILE/VE bez Job No., jen
+  `IsCreatedFromJob` (Job No. + Task + kontrakt) vypne `GetUnitCost` u Standard costing při účtování.
+- **Dodávka s Job No.:** `CheckItemChargePerShpt` dělá `TestField("Job No.", '')` → na takový řádek dodávky nejde přiřadit poplatek zboží
+  (hook `OnPostItemChargePerShptOnBeforeTestJobNo`). Undo dodávky Job No. nekontroluje. `ArchiveRelatedJob` po účtování auto-archivuje projekt
+  z prvního řádku s Job No.
+- Kontroly „Job No. musí být prázdné" na objednávce: `TestSalesLineJob` (hook `OnBeforeTestSalesLineJob`) a `PostSalesLine`
+  (`OnPostSalesLineOnBeforeTestJobNo`); `Job Planning Line` dostává `Job Contract Entry No.` v OnInsert **vždy** (i budget řádky), takže filtr
+  na kontrakt 0 nic nenajde. `LibraryJob.Job2SalesConsumableType(JPL.Type)` převádí typ planning line na `Sales Line Type` (Item=2 vs. job Item=1).
+
 ### 3.7 `[EventSubscriber]` argumenty — identifier syntax, ne string literály (LC0028)
 
 V moderním AL piš event name i element name (field/action) v atributu
