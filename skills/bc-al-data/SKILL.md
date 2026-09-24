@@ -3,7 +3,7 @@ name: bc-al-data
 description: >-
   BC/AL DB operace a subscribery (Business Central): FindSet, ReadIsolation::UpdLock vs LockTable,
   Insert/Modify/Delete(true|false) (LC0040), Temp Blob, SetLoadFields, SetFilter wildcard + %1 (LC0050),
-  TransferFields + PK v copy smyčce, Mark/MarkedOnly vs Record.Copy, field-by-field kopie, TableRelation
+  TransferFields + PK v copy smyčce, Mark/MarkedOnly vs Record.Copy, trvalý filtr ve FilterGroup, field-by-field kopie, TableRelation
   mimo PK (Validate za běhu spadne), tableextension triggery vs subscribery, modify() ve fields, klíč jen
   vlastní pole (AL0423), var guard vs CurrFieldNo, xRec = Rec při Modify z kódu, IsTemporary, init detection
   OnAfterValidateEvent, SkipOnMissingLicense/Permission, propagace Sales Line → ILE / Whse. Shipment, vlastní

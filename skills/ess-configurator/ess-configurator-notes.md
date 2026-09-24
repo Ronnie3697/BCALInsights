@@ -406,7 +406,15 @@ Kdyby žádná MJ nevyhověla, `ValidateAndUpdateUoM` by zboží **založil rast
 řádek) validuje A/B jen u zboží, které má aspoň jednu MJ s oběma osami ≠ 0 (`HasMatrixUnitOfMeasure` přes veřejné
 `Features PMEBS.GetParameterA/BFieldNo` + `Pricing Matrix Mgt. PMEBS.AxisValue`); ostatnímu zboží A/B jen přiřadí a MJ nechá.
 Pravidlo „akční řádek má vyplněnou MJ" nejde použít — `SL Action Line."No."` OnValidate MJ doplňuje sám z karty zboží.
-Systémová oprava fallbacku patří do PMEBS (samostatný WI).
+
+**Systémová oprava v PMEBS (větev `66358_MatrixUoMWithoutAxes`, 2026-09-24, čeká na PR/release):** `ValidateAndUpdateUoM`
+zboží bez maticové MJ hned vrátí `false` (žádná náhradní MJ, žádná `CreateRasterUOM`) a `FindMatrixUoM` hledá jen mezi MJ
+s oběma osami ≠ 0 (filtr ve vlastní filter group — 2.6c v `bc-al-data.md`), takže fallback `< A, < B` už MJ 0/0 nesebere;
+fallback na `Sales UoM` zůstal. Nová **public `Pricing Matrix Mgt. PMEBS.HasMatrixUnitOfMeasure(ItemNo)`** = stejná logika
+jako lokální kopie v COALU → po releasu bump minima EPB Pricing Matrix ve **všech čtyřech** `app.json` cust-alumistr-bc
+(COALU + PMALU, app + test) a COALU může volat public proceduru. Vedlejší efekt: první rastrovou MJ nového zboží už nezaloží
+řádek dokladu (dřív u zboží bez `Sales UoM`), jen import matice / ruční Item UoM. Dokumentace `prod-epb-pricingMatrix-bc/docs/66358 - …md`,
+`cust-alumistr-bc/docs/66358_MJ-akcniho-radku-mimo-cenovou-matici.md`.
 
 Diagnostika: page inspector na řádku prodeje (filtr „Parameter") — nenulové `Parameter A/B PMEBS` na řádku, kde čekáš jinou MJ,
 = tahle cesta. Setup matice je na `Sales & Receivables Setup` (`UoM Rounding PMEBS`, `Parameter A/B Field No. PMEBS`,

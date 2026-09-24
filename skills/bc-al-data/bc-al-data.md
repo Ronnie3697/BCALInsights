@@ -274,6 +274,17 @@ a `SetCurrentKey` dělat **na téže instanci**, výsledek si odnést přiřazen
 po hledání zase `SetRange(pole)` sundat. Alternativa `SetFilter(Code, 'A|B|…')` místo marks škáluje špatně
 (stovky hodnot → dlouhý filtr). (prod-epb-pricingMatrix-bc `FindUoMByMode`, 2026-09-01.)
 
+### 2.6c Trvalý filtr na pole, které helper filtruje dočasně — dej ho do vlastní `FilterGroup`
+
+Když helper nad předanou instancí nastavuje na **stejné pole** dočasné filtry (`SetFilter(Pole, '<%1', x)`) a po hledání
+je sundává `SetRange(Pole)`, trvalý filtr volajícího na tom poli **přepíše první `SetFilter` a smaže první `SetRange`** —
+ve skupině 0 má pole jen jeden filtr. Řešení bez zásahu do helperu: trvalou podmínku nastav v jiné filter group
+(`Old := Rec.FilterGroup(); Rec.FilterGroup(10); Rec.SetFilter(Pole, '<>%1', 0); Rec.FilterGroup(Old);`). Filtry různých
+skupin platí současně (AND) a `SetFilter`/`SetRange` ve skupině 0 skupinu 10 nevidí; `MarkedOnly` na instanci zůstává.
+Skupiny **−1..7 používá platforma** (4 = SubPageLink, 7 = factboxy, −1 = OR napříč sloupci), max 255 (MS Learn
+`Record.FilterGroup`) → ber 10+. (prod-epb-pricingMatrix-bc `FilterUoMsWithAxisValues`, PBI 66358, 2026-09-24 — MJ bez os
+se nesměly dostat do zaokrouhlovacích fallbacků `FindUoMByMode`.)
+
 ### 2.7 Nové flag/marker pole → projít i field-by-field copy procedury (šablony, buffery)
 
 Když do tabulky přidáváš nové pole (typicky Boolean marker jako `Has Value` /

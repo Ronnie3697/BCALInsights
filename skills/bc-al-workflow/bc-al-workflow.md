@@ -192,6 +192,11 @@ obě strany ho přidaly, každá na jinou pozici v souboru, git to spojil tiše.
 
 Pro každý dodělaný PBI / Task v Azure DevOps se v zákaznickém repu vede
 Markdown s popisem requirementu a technickou dokumentací implementace.
+**Platí i pro rychlou opravu / hotfix** — MD patří do **stejného PR** jako kód, ne „až potom"
+(2026-09-24, cust-alumistr-bc PBI 66358: PR 9567 odešel bez `docs/66358_…md`, dopisovalo se
+dodatečně). Když repo drží vlastní konvenci názvu (`docs/<ID>_<Nazev-s-pomlckami>.md` v
+cust-alumistr-bc), drž ji místo vzoru níž. Oprava produktové appky, která navazuje na zákaznický
+ticket, dostane MD i v produktovém repu (vzor `prod-epb-pricingMatrix-bc/docs/66358 - …md`).
 
 **Kam to patří:**
 
