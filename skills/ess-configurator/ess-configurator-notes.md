@@ -31,6 +31,7 @@
 - [C8. Řádek kusovníku z konfigurátoru a pole EM Cutting Plan (Alumistr)](#c8-řádek-kusovníku-z-konfigurátoru-a-pole-em-cutting-plan-alumistr)
 - [C9. MJ z akčního řádku přepíše Pricing Matrix přes Parametr A/B (Alumistr)](#c9-mj-z-akčního-řádku-přepíše-pricing-matrix-přes-parametr-ab-alumistr)
 - [C10. Kopie konfigurace — eventy pro zákaznická data řádků akcí](#c10-kopie-konfigurace--eventy-pro-zákaznická-data-řádků-akcí)
+- [C11. API konfigurace varianty (task 66387) — ověření na Alumistr BC-TEST2](#c11-api-konfigurace-varianty-task-66387--ověření-na-alumistr-bc-test2)
 
 ---
 
@@ -447,3 +448,19 @@ master, nasazeno COALU 28.0.20.3 / PMEBS 28.0.5.0 / COEBS 28.0.22.2.)
   na `SL Action Condition/Line COEBS` běží per záznam a kaskáda v rozšíření (COZLK `Configurator Events`) data uklidí.
 
 (2026-09-24, analýza plánu 65364 nad prod-ess-configurator-bc master 79fc306.)
+
+## C11. API konfigurace varianty (task 66387) — ověření na Alumistr BC-TEST2
+
+Skupina `essence/configurator/v2.0`, relace `configurationSessions` → `configurationSessionParameters` (PATCH `value`) →
+`Microsoft.NAV.applyConfiguration`. Živý test přes REST 2026-09-24 (COEBS 28.0.22.3, testovací objednávka PO2500210):
+relace s konceptem 0054 dala po 11 zadaných hodnotách **přesně stejné hodnoty všech ~90 parametrů** jako varianta
+`COEBS0213` z dialogu (vzorce, výchozí hodnoty, podmínky) → znovupoužila ji a akce prodejního řádku daly stejné řádky jako
+dialog (PO2500204). Nová varianta = kusovník `ItemNo-VariantCode` + postup jako z dialogu. REST gotchas (`$expand` podle
+`EntitySetName`, nefiltrovatelné pole z proměnné stránky, prázdné tělo akce) v 11.7 `bc-al-integrations.md`.
+
+⚠️ **Chyba z akce kusovníku při apply není chyba API.** Alumistr aktivní definice **0039** (101000 ALUPLUS) má řádky akcí
+kusovníku s `Item From Parameter` na nesmyslné parametry (`KOLEJ DOLE_KOOP` = Text „NE", `KOLEJ_DOLE_DELKA`, `TEXT_PRICKA`),
+koncept 0054 na správné (`KOLEJ_DOLE_PROFIL`…) → apply padá *Pole Číslo z tabulky Řádek výrobního kusovníku obsahuje hodnotu
+(NE)…* a dialog by padl stejně; z 0039 nikdy žádná varianta nevznikla. Vzor stop po přečíslování parametrů při kopii (66105).
+Diagnostika přes API: `bomActionLines?$filter=configurationNumber eq '…' and itemFromParameterLineNumber ne 0` + mapa
+`configurationParameters` (`parameterLineNumber` → `parameterCode`).

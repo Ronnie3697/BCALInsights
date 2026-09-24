@@ -257,3 +257,22 @@ Z code review API konfigurátoru (COEBS task 66387, stránky `configurationSessi
 - **Neplatný vstup = `Error` dřív, než se cokoli změní.** Logika převzatá z dialogu často dělá „nečitelné číslo → prázdná
   hodnota" (uživatel to vidí a opraví); přes API by to potichu smazalo hodnotu i data na ní závislá. Temporary buffer
   `asserterror` nevrací → test po `asserterror` ověří, že buffer drží původní hodnoty.
+
+**Ověřeno živě přes REST (COEBS 28.0.22.3 na Alumistr BC-TEST2, 2026-09-24):**
+
+- **`$expand` = `EntitySetName` partu, ne název controlu.** `part(parameters; ...) { EntitySetName = 'configurationSessionParameters'; }`
+  → `$expand=configurationSessionParameters`; `$expand=parameters` vrátí 400 *Could not find a property named 'parameters'*. U
+  jednoho záznamu (`EntityName`) totéž. Dokumentaci piš podle `$metadata` (`GET …/api/<publisher>/<group>/<ver>/$metadata`,
+  `<NavigationProperty Name=…>`), ne podle AL zdrojáku. BC navíc sám přidá navigaci po polích s `TableRelation` na tabulku
+  jiné stránky téže API skupiny (`parameterCondition` → `configurationParameter`).
+- **Pole z proměnné stránky (`field(isConfigurable; IsConfigurable)`) nejde filtrovat** — `$filter=isConfigurable eq true` →
+  400 `BadRequest_NotSupported` *Field 'isConfigurable' is not filterable*. Klient (AI přes MCP) musí stáhnout vše a filtrovat
+  u sebe. Filtrovatelné je jen pole tabulky (i FlowField). Počítej s tím, když API nabízí „příznak k vyhledání".
+- **Bound action s `SetResultCode(WebServiceActionResultCode::Updated)` vrací HTTP 200 s prázdným tělem** — výsledek si klient
+  musí dočíst GETem entity. `Error` v akci = 400 s textem hlášky a rollback celé akce (i vytvořené varianty / kusovníku).
+- **Test z CLI bez app registrace:** device code flow s first-party klientem `1950a258-…` (M4 v `bc-al-mcp-server.md`) funguje i pro
+  resource **`https://api.businesscentral.dynamics.com/Financials.ReadWrite.All`** — token pak na
+  `https://api.businesscentral.dynamics.com/v2.0/<tenant>/<env>/api/…`. `Accept-Language: cs-CZ` vrací hlášky česky. Hotové skripty
+  `%LOCALAPPDATA%\bc-api-test\` (`bc-api-login.ps1 -Tenant`, `bc-api.ps1 -Path -Method -Body -IfMatch`; pwsh 7 kvůli
+  `-SkipHttpErrorCheck`, `Invoke-WebRequest` nemá `-StatusCodeVariable`). PATCH potřebuje `If-Match` s `@odata.etag`.
+  Tenant ID z domény: `GET https://login.microsoftonline.com/<domena>.onmicrosoft.com/v2.0/.well-known/openid-configuration` → `issuer`.

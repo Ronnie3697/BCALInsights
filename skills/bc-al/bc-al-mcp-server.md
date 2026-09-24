@@ -149,6 +149,10 @@ resource sdílí Entra app „Dynamics 365 Business Central" (stejná delegated 
    `Authorization: Bearer …` + TenantId/EnvironmentName/Company/ConfigurationName. Běh ~1,3 s.
 3. `claude --mcp-config <json s headersHelper>` → server connected, `tools/list` = 3 systémové tooly.
 
+**Totéž pro REST API** (ověřeno 2026-09-24, Alumistr BC-TEST2): scope `https://api.businesscentral.dynamics.com/Financials.ReadWrite.All
+offline_access` → token `aud=https://api.businesscentral.dynamics.com`; skripty `%LOCALAPPDATA%\bc-api-test\` (detail 11.7 v
+`bc-al-integrations.md`).
+
 **Bezpečnost / caveaty:** neoficiální trik (client ID patří Microsoftu, ne nám), na produkci
 udělat vlastní app registraci (M2). Refresh token leží na disku (DPAPI per Windows user), životnost
 ~90 dní neaktivity → pak znovu device login. Nikdy nevypisovat tokeny do logu/konzole; skripty
