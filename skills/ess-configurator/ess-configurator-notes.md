@@ -413,7 +413,11 @@ s oběma osami ≠ 0 (filtr ve vlastní filter group — 2.6c v `bc-al-data.md`)
 fallback na `Sales UoM` zůstal. Nová **public `Pricing Matrix Mgt. PMEBS.HasMatrixUnitOfMeasure(ItemNo)`** = stejná logika
 jako lokální kopie v COALU → po releasu bump minima EPB Pricing Matrix ve **všech čtyřech** `app.json` cust-alumistr-bc
 (COALU + PMALU, app + test) a COALU může volat public proceduru. Vedlejší efekt: první rastrovou MJ nového zboží už nezaloží
-řádek dokladu (dřív u zboží bez `Sales UoM`), jen import matice / ruční Item UoM. Dokumentace `prod-epb-pricingMatrix-bc/docs/66358 - …md`,
+řádek dokladu (dřív u zboží bez `Sales UoM`), jen import matice / ruční Item UoM. A nový rastr z řádku (`CreateRasterUOM`
+po prázdném výsledku hledání = maticové zboží bez `Sales UoM`) jen při zaokrouhlení **Equal** — bez toho by po vyřazení MJ 0/0
+zaokrouhlení Dolů pod všemi rastry zakládalo rastry přesně pro zadaný rozměr (bez ceny); Up/Down bez nálezu MJ řádku nechají.
+Pozor na obrácenou logiku testu: `…RoundingDownDoesNotCreateRaster` na původním masteru **projde** (vyhrála základní MJ 0/0 =
+MJ řádku), padá až na mezistavu bez omezení na Equal — test proti regresi opravy, ne proti původní chybě. Dokumentace `prod-epb-pricingMatrix-bc/docs/66358 - …md`,
 `cust-alumistr-bc/docs/66358_MJ-akcniho-radku-mimo-cenovou-matici.md`.
 
 Diagnostika: page inspector na řádku prodeje (filtr „Parameter") — nenulové `Parameter A/B PMEBS` na řádku, kde čekáš jinou MJ,
