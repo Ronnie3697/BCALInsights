@@ -926,3 +926,10 @@ a účtování padne „Stav rezervace musí být rovno 'Výhled' v Položka rez
 (viz 5.x2b), filtry na vlastní tracking pak `Surplus|Prospect`. Úklid rozbitého dokladu: smazat řádek faktury a Get Shipment Lines znovu
 (rezervační položky řádku se smažou s ním). (2026-09-24, cust-soitron-bc `Job Lot Tracking Mgt. SOI` — šarže = číslo projektu, faktura z
 částečné dodávky.)
+Oprava v cust-soitron-bc 2026-09-24 (`Job Lot Tracking Mgt. SOI`, testy `Job Lot Tracking Test SOI`): guard `Shipment No.` /
+`Return Receipt No.` (sales) a `Receipt No.` / `Return Shipment No.` (purchase) v `IsRelevant*Line` + status z
+`ItemTrackingMgt.IsOrderNetworkEntity(SourceType, SourceSubtype)` (public) místo pevného Surplus; všechny filtry/mazání
+vlastního trackingu berou ten samý status. V testu částečnou dodávku šaržového řádku uděláš tak, že na jediné Surplus položce
+řádku nastavíš `"Qty. to Handle (Base)"` / `"Qty. to Invoice (Base)"` na dodávané množství (`Modify(false)`), jinak Sales-Post
+hlásí nesoulad Qty. to Handle vs. Qty. to Ship. `Sales Line."Job No."` (45) je v BC 28 `Editable = false` bez OnValidate —
+`OnAfterValidateEvent` na něj přesto z kódu funguje.
