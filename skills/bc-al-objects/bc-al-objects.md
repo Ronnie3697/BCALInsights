@@ -909,3 +909,20 @@ Zdroj w1-28 `Modules/System/JobQueue/JobQueueEntry.Table.al` + `JobQueueEnqueue.
   Manual`) před účtováním/plánováním — subscriber `OnBeforeJobQueueScheduleTask` nastaví `DoNotScheduleTask`, entry se
   založí ve stavu On Hold a v testu nevznikne skutečný scheduled task. Lokální proměnná codeunitu se na konci testu
   odváže sama. Otevření `Job Queue Entry Card` přes `Page.Run` chce `[PageHandler]`.
+
+### 5.x15 Item Tracking na fakturačním řádku z Get Shipment Lines — smí být JEN `Prospect` z dodávky; subscriber na `Validate(Quantity)` tam nesmí sahat
+
+`Sales Shipment Line.InsertInvLineFromShptLine` (BC 28) staví fakturační řádek jako `SalesLine := SalesOrderLine` → `Line No.` /
+`Document Type` / **`Shipment No.` + `Shipment Line No.`** → `ClearSalesLineValues` → **`SalesLine.Validate(Quantity, …)`** (ještě před
+`Insert`) → … → `Insert` → `ItemTrackingMgt.CopyHandledItemTrkgToInvLine` (Prospect entries s `Item Ledger Entry No.` z Item Entry
+Relation dodávky). Při účtování jde řádek s `Shipment No. <> ''` přes `Sales Line-Reserve.RetrieveInvoiceSpecification2`, který projde
+**všechny** rezervační položky řádku a na každé udělá `TestField("Reservation Status", Prospect)` + `TestField("Item Ledger Entry No.")`.
+Jakýkoli vlastní subscriber na `Sales Line OnAfterValidateEvent Quantity/No./…`, který zakládá tracking (`CreateReservEntry.CreateEntry(…,
+Surplus)`), se na fakturačním řádku chytne už při tom `Validate(Quantity)` (Line No. je nenulové, řádek vypadá „čistý", protože
+`ClearSalesLineValues` vynulovalo Qty. Shipped) → na řádku je tracking dvojmo (Item Tracking Lines ukáže množství 2× vyšší než řádek)
+a účtování padne „Stav rezervace musí být rovno 'Výhled' v Položka rezervace … Současná hodnota je 'Přebytek'". Obrana v subscriberu:
+`"Shipment No." <> ''` / `"Return Receipt No." <> ''` → exit (obojí je přiřazené před Validate); a obecně status podle
+`Item Tracking Management.IsOrderNetworkEntity` — Surplus jen pro Order/Return Order, Invoice/Credit Memo/Quote/Blanket dostávají Prospect
+(viz 5.x2b), filtry na vlastní tracking pak `Surplus|Prospect`. Úklid rozbitého dokladu: smazat řádek faktury a Get Shipment Lines znovu
+(rezervační položky řádku se smažou s ním). (2026-09-24, cust-soitron-bc `Job Lot Tracking Mgt. SOI` — šarže = číslo projektu, faktura z
+částečné dodávky.)
