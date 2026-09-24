@@ -228,7 +228,7 @@ page 63290/63291/63310–63313 `essence/configurator/v2.0`) → `tools/list` = *
   konfigurace: `List_<Child>Of<Parent>_PAG<ID>` / `Modify_<Child>Of<Parent>_PAG<ID>` s argumentem `<Parent>_id`.
 - `List_*` args: `filter`, `select`, `orderby`, `top`, `skip`, `resultFormat`, `_availableFields`; odpověď „Returned all N records." + OData JSON.
 - **`Modify_*` vyžaduje `If-Match` = `@odata.etag`** z `List_*`; bez něj `BadRequest_InvalidToken` (*client concurrency token*),
-  `*` odmítne (*The If-Match property cannot have the value '*'*). Schéma nástroje to AI říká samo.
+  `*` odmítne (*The If-Match property cannot have the value '*'*) – REST API na téže stránce `If-Match: *` bere. Schéma nástroje to AI říká samo.
 - Chyby: JSON-RPC odpověď 200 s `isError: true` a tělem chyby BC (`Application_DialogException` s textem `Error(...)`,
   `BadRequest_NotSupported` u filtru na nefiltrovatelné pole). **Texty jdou anglicky** i u uživatele s češtinou (MCP klient neposílá
   `Accept-Language`); REST s `Accept-Language: cs-CZ` vrací česky.

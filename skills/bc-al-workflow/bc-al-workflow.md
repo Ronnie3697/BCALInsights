@@ -692,6 +692,11 @@ parametru pro textovou formuli.)
   tabulky **vyparsuj z DOM** (`[...doc.querySelectorAll('table')]` → řádky) a vykresli ho v dokumentaci sám.
   `javascript_tool` vrací `[BLOCKED: Cookie/query string data]`, když výsledek obsahuje celé `innerHTML`
   s URL a tokeny — vracej jen extrahovaná data (texty buněk), ne HTML.
+- **Kontrola hotového HTML v Claude in Chrome: `file://` URL nástroj odmítne** (*Can't interact with browser-internal or unparseable URLs*) –
+  spusť `python -m http.server <port> --bind 127.0.0.1` ve složce souboru (na pozadí, pak `TaskStop`) a otevři `http://127.0.0.1:<port>/…`.
+  Screenshot do dokumentace: `computer` akce `zoom` s `region` + `save_to_disk: true` uloží výřez v plném rozlišení (PNG) – lepší než
+  celé okno. Malý viewport (boční panel, `innerWidth` ~600 px) schová akce partů; nový tab/okno mívá plnou šířku. (2026-09-24,
+  prod-ess-configurator-bc `docs/api/MCP_BC` prezentace.)
 - **Zápis do prostředí zákazníka (vyplnění setupu, založení zákazníka a dokladu, naklikání testovacího
   scénáře) smíš dělat — ale JEN s výslovným svolením uživatele** pro dané prostředí a seanci. Bez něj
   jen čti a foť; data připraví uživatel. Svolení si vyžádej **dopředu**, než začneš fotit, ať nevzniknou
