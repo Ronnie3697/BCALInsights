@@ -159,6 +159,11 @@ https://dynamicssmb2.pkgs.visualstudio.com/DynamicsBCPublicFeeds/_packaging/MSSy
   `error PTE0001/PTE0002 … must be within the range '[50000..99999]'` (prod-ep-projectBase-bc,
   2026-09-23). Použij `Microsoft.Dynamics.Nav.AppSourceCop.dll` (+ CodeCop, UICop, ALCops);
   PTE cop patří zákaznickým `cust-*` appkám s ID v PTE range.
+  ⚠️ **Rozhoduje rozsah ID, ne prefix repa:** `prod-ess-configurator-bc` (COEBS) má `idRanges` 63140–63199 / 63240–63259
+  (PTE range) → s AppSourceCop hned `error AS0084: The ID range … is not valid` na `app.json`. Tam lokálně
+  PerTenantExtensionCop jako CI (+ CodeCop, UICop, ALCops, `/ruleset` + `/enableexternalrulesets`). Ověřená cache
+  pro COEBS 28.x: MS 28.3 řada + EM Alternative BOM 28.0 + Test Runner 28.3 + Tests-TestLibraries / SysApp Test Lib /
+  App Test Lib / Permissions Mock 28.1 + AI Test Toolkit 28.3 (MSSymbols) → app i test 0 errorů (2026-09-24).
 - **GUID tranzitivní závislosti bez CI logu:** vytáhni ho z manifestu už staženého
   balíčku — `.app` je ZIP se 40B hlavičkou, uvnitř `NavxManifest.xml` se sekcí
   `<Dependency Id="..." Name="..."/>` (Tests-TestLibraries → Application Test
