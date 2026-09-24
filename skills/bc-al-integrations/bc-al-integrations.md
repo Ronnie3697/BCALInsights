@@ -232,3 +232,28 @@ se změnilo". Trigger „When a record is modified (V3)" nad hlavičkou dokladu 
 horší: pálí při každé změně a nepředává starou hodnotu. HttpClient z BC přímo na
 PA trigger „When an HTTP request is received" jde taky, ale ten trigger je
 v Power Automate **Premium**. (Zlomek 62661 nacenění, 2026-09-02.)
+
+---
+
+### 11.7 Vlastní API page pro zápis — POST validuje pole po jednom, temporary stránka s limitem, relace přes víc volání
+
+Z code review API konfigurátoru (COEBS task 66387, stránky `configurationSessions` / `allowedParameterValues`, 2026-09-24):
+
+- **POST / PATCH validuje každé pole zvlášť** a pořadí neurčuješ. `TableRelation` s `where(... = field(X))`, kde X se doplní
+  až v `OnInsert` (zboží převzaté z prodejního řádku), nebo vazba přes pole, které se validuje později (číslo dokladu
+  `where("Document Type" = field(...))` – enum je do té doby na defaultu, u Sales Document Type = Quote), spadne dřív, než
+  se k `OnInsert` dojde. Řešení: `ValidateTableRelation = false` na takovém poli (s komentářem proč) + kontrola v `OnInsert`
+  / inicializaci, až jsou známá všechna pole. Test: `Validate` polí v „nepohodlném" pořadí a pak `Insert(true)`.
+- **Temporary API page plněná v `OnFindRecord` s limitem** (např. max. 1000 záznamů ze zdrojové tabulky): filtry z
+  `$filter` jsou v tu chvíli na `Rec` → přečti je `Rec.GetFilter(Pole)` a **aplikuj na zdroj před limitem**, jinak záznam za
+  limitem nenajde ani cílený filtr. Filtr z `GetFilter` je v AL syntaxi → na zdroj `FieldRef.SetFilter` v `[TryFunction]`
+  (filtr, který na typ pole nesedí = prázdný výsledek, ne chyba 500). Plnění buffer maže → `Rec.GetView()` před a
+  `Rec.SetView()` po; plnit jen při změně filtrů (klíč z filtrů v globální proměnné stránky).
+- **Relace přes víc volání nesmí přepsat novější data.** Když stavová relace (tabulka držící stav mezi voláními) na konci
+  zapisuje do cílového záznamu, ulož si při založení jeho `SystemId` a hodnotu, kterou mění; při aplikaci ho načti s
+  `ReadIsolation(IsolationLevel::UpdLock)` a porovnej. Jiný SystemId = záznam smazán a založen znovu pod stejným klíčem, jiná
+  hodnota = mezitím změnil uživatel / jiná relace → `Error` „vytvořte novou relaci". Test: dvě relace, novější aplikovat,
+  starší → `asserterror`; znovuzaložení řádku `Insert(false, true)` s novým `CreateGuid()` v SystemId.
+- **Neplatný vstup = `Error` dřív, než se cokoli změní.** Logika převzatá z dialogu často dělá „nečitelné číslo → prázdná
+  hodnota" (uživatel to vidí a opraví); přes API by to potichu smazalo hodnotu i data na ní závislá. Temporary buffer
+  `asserterror` nevrací → test po `asserterror` ověří, že buffer drží původní hodnoty.

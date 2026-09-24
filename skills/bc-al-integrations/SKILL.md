@@ -1,17 +1,17 @@
 ---
 name: bc-al-integrations
 description: >-
-  BC/AL integrace a SaaS/Cloud gotchas z praxe (Business Central, AL; 5.y2, 5.y3 +
-  sekce 11): Shopify Connector BC28 (Available For Sales BC-only mirror, export varianty nemaže,
-  nové varianty jen produktový sync s Can Update Shopify Products, Add Item existující produkt přeskočí, userErrors = tiché nic, produkt bez options, OnAfterCreateTempShopifyProduct,
-  Add z karty zboží obchází report 30106, docs BCShopifyConnectorDocs; Communication Mgt. / GraphQL
-  Type / Shopify URL Internal → vlastní HttpClient, custom app token, ownership marker, fronta místo
-  HTTP v postingu), HttpClient na SaaS (Allow HttpClient Requests silent fail,
-  UseDefaultNetworkWindowsAuthentication OnPrem-only, User-Agent), Isolated Storage scope, SecretText
-  (Unwrap OnPrem-only AL0296, HMAC přes Cryptography Management, SecretStrSubstNo jen s proměnnou),
-  External Business Events preview vs queue tabulka + API page + PA trigger.
-  Načti při práci se Shopify, HTTP voláními, OAuth/secrets na Cloud targetu, Power Automate,
-  Cloud-only omezeními.
+  BC/AL integrace a SaaS/Cloud gotchas z praxe (5.y2, 5.y3, 11): Shopify Connector BC28 (Available
+  For Sales BC-only mirror, export varianty nemaže, nové varianty jen produktový sync s Can Update
+  Shopify Products, Add Item existující produkt přeskočí, userErrors = tiché nic, produkt bez options,
+  OnAfterCreateTempShopifyProduct, Add z karty zboží obchází report 30106, docs
+  BCShopifyConnectorDocs; Communication Mgt. / GraphQL Type / Shopify URL Internal → vlastní
+  HttpClient, custom app token, ownership marker, fronta místo HTTP v postingu), HttpClient na SaaS
+  (Allow HttpClient Requests silent fail, UseDefaultNetworkWindowsAuthentication OnPrem-only,
+  User-Agent), Isolated Storage scope, SecretText (Unwrap OnPrem-only AL0296, HMAC přes Cryptography
+  Mgt., SecretStrSubstNo), Power Automate: External Business Events preview vs queue + API page; vlastní API
+  page pro zápis (POST validace polí → ValidateTableRelation, temporary OnFindRecord, $filter před
+  limitem, stale relace). Načti u Shopify, HTTP, vlastních API.
 user-invocable: true
 ---
 
