@@ -387,6 +387,29 @@ proměnných). ⚠️ Vedlejší efekt: vypne se tím i `DeployToFileShare` — 
 file share nedostává nové `.app`. Trvalé řešení: staging container přestavět
 z cz 28.3 artifactu a variable group vrátit.
 
+**Rozšíření sešitu subdodávek v BC 28 — legacy base vs. appka Subcontracting (runtime, ne build):**
+
+- Base objekty (*Subcontracting Worksheet* 99000886, report *Calculate Subcontracts* 99001015, typ šablony `"For. Labor"`) jsou
+  `ObsoleteState = Pending` (28.0); zákazník s appkou Subcontracting používá **`Subc. Subcontracting Worksheet` (20504)** a **`Subc.
+  Calculate Subcontracts` (20505)**, typ šablony `Subcontracting` (enumextension appky). Pageext / subscriber na legacy objekty se u něj
+  **tiše neprojeví** — zkontroluj, na který objekt rozšíření míří. Vzor přepínače v cust-alumistr-bc: `#if SubcontractBC28Obsolete`
+  (nové objekty) / `#else` (legacy) a symbol v `app.json` `preprocessorSymbols` — **podtržítko na konci (`"SubcontractBC28Obsolete_"`)
+  symbol vypíná**, snadno se přehlédne. Zapnutí = přímá závislost na Subcontracting 28.3.0.0 (odstavce výše).
+- Report 20505 i `SetWkShLine` běží jen při **`Manufacturing Setup."Legacy Subcontracting" = false`** (`Subc. Feature Flag Handler`,
+  `#if not CLEAN28`) — jinak `CurrReport.Quit()` bez chyby. Pole je base, obsolete pending → v testu `#pragma warning disable AL0432`
+  kolem přiřazení + `LibrarySetupStorage.Save(Database::"Manufacturing Setup")` **před** první změnou (MS testy ho nenastavují, spoléhají
+  na výchozí `false`).
+- Eventy reportu 20505: `OnAfterTransferProdOrderRoutingLine(var RequisitionLine; ProdOrderRoutingLine)` dostane **temp kopii** celého
+  záznamu (`TempProdOrderRoutingLine := "Prod. Order Routing Line"`, tedy i extension pole), `OnBeforeReqWkshLineInsert(var RequisitionLine;
+  ProdOrderLine)` těsně před `Insert` — tam je řádek výrobní zakázky. `Provést hlášení akcí` na sešitu 20504 jde přes base `Carry Out
+  Action Msg. - Req.` → `Req. Wksh.-Make Order`, takže existující subscribery přenosu Req. Line → Purchase Line platí i pro subdodávky.
+- Test reportu (vzor MS `Subc. Subcontracting Test`): vlastní `Req. Wksh. Template` (`Type::Subcontracting`, `"Page ID"` = 20504) + list,
+  `RequisitionLine."Worksheet Template Name"/"Journal Batch Name"` → `SetWkShLine` + `SetTableView(WorkCenter)` (jen testovací pracoviště)
+  + `UseRequestPage(false)` + `RunModal`. Pracoviště potřebuje `Subcontractor No.` a `Gen. Prod. Posting Group`
+  (`CheckSubcontractingWorkCenter`), `Unit Cost Calculation = Units` vyhne dělení `Total Exp. Oper. Output`. Zdroj appky: StefanMaron
+  `w1-28/Subcontracting/Source/Subcontracting/src/…`, testy `…/Subcontracting/Test/Subcontracting-Tests/`.
+  (2026-09-25, cust-alumistr-bc PBI 66397 — barva kooperace a název dodavatele na sešitu subdodavatelů.)
+
 ### 7.18 Essence Deploy Staging — `sync_mode` je hardcoded 'Add', destruktivní schema změna ho shodí
 
 `ALBuildPipeline2.yml` (v2-0) má v Deploy stage job `DeployToStagingEnvironment`
