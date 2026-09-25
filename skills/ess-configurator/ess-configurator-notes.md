@@ -515,10 +515,10 @@ tak po připojení zůstane samostatným kořenem a vyhodnocuje se **bez podmín
 root nastaví správně, ale potomek zdědí root rodiče — pod rozbitým uzlem je rozbitý i nový potomek. Stejný lookup mají
 i karty/dialogy podmínek kusovníku, postupu a SL akcí; jejich evaluátory ale `Root Condition No.` nečtou (grep 2026-09-25).
 
-**Případ (2026-09-25, Zlomek BC-TEST, CONF0000072 Dveře SIMPLY, ZB00027 / O000030):** ZAMEK_TYP (Vyhledání v Item, filtr atributů
+**Případ (2026-09-25, Zlomek BC-TEST, PBI 66430 / IN-017406, CONF0000072 Dveře SIMPLY, ZB00027 / O000030; analýza a plán opravy v `cust-zlomek-bc/docs/66430 - IN-017406 - …md`):** ZAMEK_TYP (Vyhledání v Item, filtr atributů
 `Provedení`) má stromy `ZAMEK = PZ | BB | WC` → `ORIENTACE_AKT_DVERI = LEVE` → (ELSE) `= PRAVE` → `TYP` → řetěz `POUZITI`. ELSE uzly
 `PRAVE` (1840000 u PZ, 2450000 u WC) mají root samy na sebe → pro pravé dveře projdou **obě** větve bez ohledu na ZAMEK a vyhraje
-WC (vyšší Line No.) → nabídka jen WC zámků. Z 152 podmínek 118 se špatným rootem, simulace 540 ze 720 kombinací jinak než strom;
+WC (vyšší Line No.) → nabídka jen WC zámků (i pro PZ a BB). Závěsy totéž: `PRAVE` pod `TYP = BEZFALCOVE` bez rootu → pravé falcové dveře dostanou filtr bezfalcových závěsů. Z 152 podmínek 118 se špatným rootem, simulace 540 ze 720 kombinací jinak než strom;
 v celé konfiguraci 237 z 681 (ORIENTACE_AKT_DVERI, ZAVES, ZAMEK_TYP, ORIENTACE_PAS_DVERI).
 
 **Diagnostika:** service page 63175 `Param. Conditions Svc COEBS` (`?page=63175&filter='Configuration No.' IS '…'`) — sloupce
@@ -526,6 +526,8 @@ v celé konfiguraci 237 z 681 (ORIENTACE_AKT_DVERI, ZAVES, ZAMEK_TYP, ORIENTACE_
 Grid je virtualizovaný — v Claude in Chrome čti DOM iframu (`document.querySelector('iframe').contentDocument`, hlavička je
 `table[0]`, řádky `table[1]`) se scrollováním kontejneru a sbírej do `window` proměnné; výstup JS nástroje se ořezává kolem ~1,5 kB
 a text připomínající query string vrací `[BLOCKED: Cookie/query string data]`.
+
+Evaluátor navíc lookup v `CollectExcludedChildLineNos` nevyřazuje **předky** → jde připojit vlastní kořen jako potomka (cyklus, rekurze `EvaluateConditionTree`). Nejlepší místo pro údržbu rootu je `Condition Tree Mgt. COEBS.ComputeTreeOrder` — strom už prochází od skutečných kořenů kvůli pořadí a odsazení.
 
 **Oprava patří do COEBS:** (1) při připojení potomka (OnValidate/OnLookup child polí, ideálně centrálně v tabulce) přepsat root celého
 připojeného podstromu na root rodiče; (2) evaluátor ať kořen odvozuje ze struktury (uzel, na který nikdo neukazuje), ne z pole;
