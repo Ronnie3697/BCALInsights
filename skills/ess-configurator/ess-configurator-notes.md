@@ -32,6 +32,7 @@
 - [C9. MJ z akčního řádku přepíše Pricing Matrix přes Parametr A/B (Alumistr)](#c9-mj-z-akčního-řádku-přepíše-pricing-matrix-přes-parametr-ab-alumistr)
 - [C10. Kopie konfigurace — eventy pro zákaznická data řádků akcí](#c10-kopie-konfigurace--eventy-pro-zákaznická-data-řádků-akcí)
 - [C11. API konfigurace varianty (task 66387) — ověření na Alumistr BC-TEST2](#c11-api-konfigurace-varianty-task-66387--ověření-na-alumistr-bc-test2)
+- [C12. Strom podmínek parametru — zastaralé `Root Condition No.` (Zlomek)](#c12-strom-podmínek-parametru--zastaralé-root-condition-no-zlomek)
 
 ---
 
@@ -494,3 +495,38 @@ koncept 0054 na správné (`KOLEJ_DOLE_PROFIL`…) → apply padá *Pole Číslo
 (NE)…* a dialog by padl stejně; z 0039 nikdy žádná varianta nevznikla. Vzor stop po přečíslování parametrů při kopii (66105).
 Diagnostika přes API: `bomActionLines?$filter=configurationNumber eq '…' and itemFromParameterLineNumber ne 0` + mapa
 `configurationParameters` (`parameterLineNumber` → `parameterCode`).
+
+## C12. Strom podmínek parametru — zastaralé `Root Condition No.` (Zlomek)
+
+`Parameter Condition COEBS` je binární strom: `True Child Line No.` / `False Child Line No.` + pole **`Root Condition No.`**.
+Engine (`Config. Condition Mgt. COEBS`, 28.0.26) stromové vazby **nečte od skutečného kořene**, věří uloženému rootu:
+
+- `GetConditionTableFilter` / `GetConditionAttributeFilter` (i default / copy / hide / read-only) projdou **všechny** podmínky
+  parametru s vyplněným filtrem v pořadí `Line No.` a pro každou volají `IsSatisfiedRootCondition` = průchod od
+  **`Root Condition No.`** k uzlu. **Vyhrává poslední splněný podle `Line No.`** („deepest wins" je ve skutečnosti „nejvyšší Line No.").
+- `EvaluateAllTrees` (povolené hodnoty Výběru) bere jako kořen každý uzel s `Root Condition No. = Line No.` a výsledky sjednotí.
+- Stromová stránka `Param. Conditions List COEBS` (63151) počítá TRUE/FALSE/ROOT a odsazení **z vazeb potomků**, ne z rootu →
+  uživatel vidí správný strom, i když engine počítá jinak. Rozbitý root z UI nepoznáš.
+
+⚠️ **Zastaralý root vzniká připojením existující podmínky šipkou.** `LookupChildCondition` (karta/dialog podmínky, OnLookup
+pole True/False Child Line No.) jen vrátí `Line No.` — připojené podmínce ani jejímu podstromu root **nepřepíše**. Podmínka založená
+jako samostatná (root = vlastní Line No.) nebo kopie větve akcí **Kopírovat** ve stromu (`CopyParameterCondition` → kopie = nový kořen)
+tak po připojení zůstane samostatným kořenem a vyhodnocuje se **bez podmínek nad sebou**. Tři tečky (`CreateAndOpenChildCondition`)
+root nastaví správně, ale potomek zdědí root rodiče — pod rozbitým uzlem je rozbitý i nový potomek. Stejný lookup mají
+i karty/dialogy podmínek kusovníku, postupu a SL akcí; jejich evaluátory ale `Root Condition No.` nečtou (grep 2026-09-25).
+
+**Případ (2026-09-25, Zlomek BC-TEST, CONF0000072 Dveře SIMPLY, ZB00027 / O000030):** ZAMEK_TYP (Vyhledání v Item, filtr atributů
+`Provedení`) má stromy `ZAMEK = PZ | BB | WC` → `ORIENTACE_AKT_DVERI = LEVE` → (ELSE) `= PRAVE` → `TYP` → řetěz `POUZITI`. ELSE uzly
+`PRAVE` (1840000 u PZ, 2450000 u WC) mají root samy na sebe → pro pravé dveře projdou **obě** větve bez ohledu na ZAMEK a vyhraje
+WC (vyšší Line No.) → nabídka jen WC zámků. Z 152 podmínek 118 se špatným rootem, simulace 540 ze 720 kombinací jinak než strom;
+v celé konfiguraci 237 z 681 (ORIENTACE_AKT_DVERI, ZAVES, ZAMEK_TYP, ORIENTACE_PAS_DVERI).
+
+**Diagnostika:** service page 63175 `Param. Conditions Svc COEBS` (`?page=63175&filter='Configuration No.' IS '…'`) — sloupce
+*Číslo kořenové podmínky*, *Číslo řádku potomka pravda/nepravda*; skutečný root = projdi rodiče přes vazby potomků a porovnej.
+Grid je virtualizovaný — v Claude in Chrome čti DOM iframu (`document.querySelector('iframe').contentDocument`, hlavička je
+`table[0]`, řádky `table[1]`) se scrollováním kontejneru a sbírej do `window` proměnné; výstup JS nástroje se ořezává kolem ~1,5 kB
+a text připomínající query string vrací `[BLOCKED: Cookie/query string data]`.
+
+**Oprava patří do COEBS:** (1) při připojení potomka (OnValidate/OnLookup child polí, ideálně centrálně v tabulce) přepsat root celého
+připojeného podstromu na root rodiče; (2) evaluátor ať kořen odvozuje ze struktury (uzel, na který nikdo neukazuje), ne z pole;
+(3) upgrade / akce „přepočítat kořeny" pro existující data.

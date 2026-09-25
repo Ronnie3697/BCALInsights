@@ -1,19 +1,18 @@
 ---
 name: ess-configurator
 description: >-
-  Essence Configurator (COEBS, repo prod-ess-configurator-bc) a zákaznická
-  rozšíření nad ní (COALU Alumistr, COZLK Zlomek) v Business Central / AL:
-  konfigurační parametry a podmínky, dialog konfigurace varianty, systémové
+  Essence Configurator (COEBS, prod-ess-configurator-bc) a rozšíření
+  COALU Alumistr / COZLK Zlomek v Business Central / AL:
+  konfigurační parametry a podmínky (strom, zastaralé Root Condition No.
+  po připojení šipkou / Kopírovat), dialog konfigurace varianty, systémové
   parametry (QUANTITY Line No. -1, CNC X1/X/Y/Z -51990..-51993, eventy
   OnAddNumericSystemParameters / OnGetSystemParameterCode) a past tichých nul, číselné vzorce Action Formula
   Line (PK bez Field Type, Line No. napříč typy polí, Math Expression Parser),
   textové vzorce Text Formula Line (konkatenace {KOD:Value}/{KOD:ValueName} + řádek
   Formula {= A * QUANTITY} s Expression No., běží i na poznámkovém řádku), identita varianty = množina hodnot
   parametrů (FindExistingVariantWithSameValues), akce kusovníku / postupu /
-  prodejního řádku a eventy jejich kopie, diagnostika (service stránky,
-  inspector), Zrušit editorů (WasCancelled, EditFormula), pole EM Cutting
-  Plan na kusovníku, MJ řádku přepsaná Pricing Matrix přes Parametr A/B. Načti u konfigurátoru, vzorců, variant a
-  konfigurovaných řádků prodeje.
+  prodejního řádku a eventy kopie, diagnostika (service stránky), Zrušit editorů (WasCancelled, EditFormula), EM Cutting
+  Plan na kusovníku, MJ řádku přepsaná Pricing Matrix přes Parametr A/B. Načti u konfigurátoru, vzorců, variant.
 user-invocable: true
 ---
 
