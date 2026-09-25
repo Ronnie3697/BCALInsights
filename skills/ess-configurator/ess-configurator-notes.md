@@ -386,6 +386,13 @@ zůstane z karty. Registrace alternativního kusovníku proběhne v `SaveVariant
 hook při `Validate("Variant Code")` kusovník už vidí. Historie: hook žil v PMALU (PR 8371, 2026-03) jen proto, že jediná appka se
 závislostí na ATEBS byla Pricing Matrix — ne proto, že by náklad byl cenotvorba.
 
+**Jednotková cena z kusovníku (Alumistr, 2026-09-25):** vlastní `Unit Price` pověšená na **`Sales Line.OnAfterUpdateUnitPrice`** přežije
+všechny přepočty base i EPB Pricing Matrix (PMEBS po `UpdateUnitPrice` jen znovu validuje aktuální hodnotu `Validate("Unit Price")` bez
+parametru). ⚠️ Konfigurátor ale na akcích prodejního řádku s vzorcem na *Jednotkovou cenu* volá `Validate("Unit Price", vzorec)` **přímo**
+(`SL Action Cond. Mgt. COEBS` — `InitNewSalesLineFromAction` pro nové řádky, `ApplyCurrentLineOverrides` pro zdrojový řádek), mimo
+`UpdateUnitPrice` → vyhraje, kdo byl poslední: vzorec při vytvoření/přepočtu akcí, vlastní cena po další změně množství / MJ. Když obojí
+koexistuje, rozhodni pravidlo (vzorec má přednost = subscriber musí poznat řádek s cenovým vzorcem) — jinak se ceny „přetahují".
+
 ## C8. Řádek kusovníku z konfigurátoru a pole EM Cutting Plan (Alumistr)
 
 `Configurator Events COALU.OnBeforeInsertProdBOMLine` přenáší z akčního řádku kusovníku `Qty. of Pcs.` a `Qty. per Piece`
