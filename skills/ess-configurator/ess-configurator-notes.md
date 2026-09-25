@@ -519,7 +519,7 @@ i karty/dialogy podmínek kusovníku, postupu a SL akcí; jejich evaluátory ale
 `Provedení`) má stromy `ZAMEK = PZ | BB | WC` → `ORIENTACE_AKT_DVERI = LEVE` → (ELSE) `= PRAVE` → `TYP` → řetěz `POUZITI`. ELSE uzly
 `PRAVE` (1840000 u PZ, 2450000 u WC) mají root samy na sebe → pro pravé dveře projdou **obě** větve bez ohledu na ZAMEK a vyhraje
 WC (vyšší Line No.) → nabídka jen WC zámků (i pro PZ a BB). Závěsy totéž: `PRAVE` pod `TYP = BEZFALCOVE` bez rootu → pravé falcové dveře dostanou filtr bezfalcových závěsů. Z 152 podmínek 118 se špatným rootem, simulace 540 ze 720 kombinací jinak než strom;
-v celé konfiguraci 237 z 681 (ORIENTACE_AKT_DVERI, ZAVES, ZAMEK_TYP, ORIENTACE_PAS_DVERI).
+v celé konfiguraci 237 z 681 (ORIENTACE_AKT_DVERI, ZAVES, ZAMEK_TYP, ORIENTACE_PAS_DVERI). Na celém BC-TEST Zlomek 1 214 z 9 506 podmínek ve 34 z 50 definic, z toho **7 aktivních** (CONF0000062–68, ZB00027–33) — tiše počítají jinak, než ukazuje strom. Více rodičů / cyklus / odkaz na sebe 0, odkaz na neexistující podmínku 1 (koncept).
 
 **Diagnostika:** service page 63175 `Param. Conditions Svc COEBS` (`?page=63175&filter='Configuration No.' IS '…'`) — sloupce
 *Číslo kořenové podmínky*, *Číslo řádku potomka pravda/nepravda*; skutečný root = projdi rodiče přes vazby potomků a porovnej.
@@ -528,6 +528,8 @@ Grid je virtualizovaný — v Claude in Chrome čti DOM iframu (`document.queryS
 a text připomínající query string vrací `[BLOCKED: Cookie/query string data]`.
 
 Evaluátor navíc lookup v `CollectExcludedChildLineNos` nevyřazuje **předky** → jde připojit vlastní kořen jako potomka (cyklus, rekurze `EvaluateConditionTree`). Nejlepší místo pro údržbu rootu je `Condition Tree Mgt. COEBS.ComputeTreeOrder` — strom už prochází od skutečných kořenů kvůli pořadí a odsazení.
+
+Podmínky **kusovníku, postupu a SL akcí** kořen odvozují ze struktury (`IsRootCondition` = na podmínku nikdo neodkazuje), jen podmínky parametrů čtou uložené pole. Validace vazby dnes = jen `TableRelation` (ruční zadání projde i s vlastním číslem, předkem nebo už připojenou podmínkou → cyklus / více rodičů); `ComputeTreeOrder` sdíleného potomka toleruje jen pro zobrazení (test `ComputeTreeOrderPlacesSharedChildOnlyOnce`). Tiché přeskočení neplatné části stromu nabídku **rozšíří** — prázdný seznam povolených hodnot = neomezený výběr (`ShouldIncludeParameterValue`). `OnLookup` pole potomka přiřazuje přímo do `Rec`, uloží se až `CurrPage.Update(false)` v `OnValidate` stránky → přepočet stromu (čte DB) patří až za `CurrPage.SaveRecord()` a po něm `Rec.Find('=')`. Plán v2 po review: `prod-ess-configurator-bc/docs/66430 - …md` (klon `-66430`).
 
 **Oprava patří do COEBS:** (1) při připojení potomka (OnValidate/OnLookup child polí, ideálně centrálně v tabulce) přepsat root celého
 připojeného podstromu na root rodiče; (2) evaluátor ať kořen odvozuje ze struktury (uzel, na který nikdo neukazuje), ne z pole;
