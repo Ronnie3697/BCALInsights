@@ -409,6 +409,16 @@ z cz 28.3 artifactu a variable group vrátit.
   (`CheckSubcontractingWorkCenter`), `Unit Cost Calculation = Units` vyhne dělení `Total Exp. Oper. Output`. Zdroj appky: StefanMaron
   `w1-28/Subcontracting/Source/Subcontracting/src/…`, testy `…/Subcontracting/Test/Subcontracting-Tests/`.
   (2026-09-25, cust-alumistr-bc PBI 66397 — barva kooperace a název dodavatele na sešitu subdodavatelů.)
+- **Pořadí řádků nákupní objednávky ze sešitu subdodávek** (`Req. Wksh.-Make Order` + subscribery appky): Vendor-Supplied komponenty
+  (`Component Supply Method`, filtr i na `Routing Link Code` operace) vloží appka jako řádky zboží **před** řádek finálu
+  (`OnInsertPurchOrderLineOnAfterCheckInsertFinalizePurchaseOrderHeader`, přes `NextLineNo`); info řádek s popisem výrobní zakázky
+  (Type " ") vmáčkne **nad** řádek finálu (`GetLineNoBeforeInsertedLineNo`) jen při `Manufacturing Setup."Create Prod. Order Info Line"`
+  — „zbytečná poznámka" na PO se vypíná tímhle polem, bez kódu. Vlastní řádky **pod** finál: subscriber `OnAfterInsertPurchOrderLine`
+  s `var NextLineNo` (`+= 10000`, `Insert(false)`, `Attached to Line No.` = finál) — další finál naváže od `NextLineNo`, takže bloky
+  zůstanou u svých finálů. Pozor: `Purchase Line.IsExtendedText()` = Type " " + Attached ≠ 0 + **Quantity = 0** — poznámka s množstvím
+  se za rozšířený text nepovažuje (smazání finálu ji smaže přes `Attached to Line No.` i tak). Hlášení *Změnit množství* na existující
+  PO `OnAfterInsertPurchOrderLine` nevyvolá (appka aktualizuje své komponenty přes `Carry Out Action`.`OnPurchOrderChgAndResheduleOnAfterGetPurchHeader`).
+  (2026-09-25, cust-alumistr-bc PBI 66397 bod 4 — kusovník jako poznámky pod řádkem kooperace.)
 
 ### 7.18 Essence Deploy Staging — `sync_mode` je hardcoded 'Add', destruktivní schema změna ho shodí
 
