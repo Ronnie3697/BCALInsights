@@ -969,9 +969,17 @@ vždy vyžádej export (Definice výměny dat → Export definice výměny dat),
 - **Výsledný návrh IMEBS (2026-09-25, `prod-ep-itemManagement-bc`, větev features/misc):** rozhodnutí per nákupní řádek v subscriberu
   `OnPostItemJnlLineJobConsumption` — `IsHandled` jen když projekt má Skip Purchase Consumption **a** na Budget JPL nákupního řádku
   ukazuje Billable JPL přes `Purch. Job Cont.Entry No.IMEBS`; bez vazby standardní spotřeba při příjemce. Guard vazby v `OnValidate`
-  pole (tableextension → codeunit `ValidatePurchJobContractEntryNo(Rec, xRec)`): nová vazba zamítnuta při existujícím `Job Usage Link`
-  cílové Budget JPL (ne při pouhé příjemce — historické příjemky bez spotřeby musí jít dovázat), změna/odpojení zamítnuto při příjemce
-  **nebo** spotřebě staré Budget JPL, jedna Budget JPL ↔ jedna Billable JPL. Page `OnLookup` vrací hodnotu přes `Text` + `exit(true)`
-  (page sám validuje, žádný `Rec.Modify` v triggeru). `Update Job Item Cost` restore jen pro JLE nad `ILE."Entry Type" = Purchase`.
-  Analyzer pasti při tom: **PC0023** `IsHandled := <bool výraz>` (musí být `if … then IsHandled := true`), **FC0003** `RecordId` bez
-  závorek (`RecordId()`). Testy `Purch. Consumption Test IMEBS` (65142).
+  pole (tableextension → codeunit `ValidatePurchJobContractEntryNo(Rec, xRec)`): nová vazba zamítnuta při existující **spotřebě**
+  cílové Budget JPL = `Job Usage Link` **nebo** standardní spotřební ILE (`Entry Type = Negative Adjmt.`, `Job No.`, `Job Task No.`,
+  `Order Line No.` = `Job Contract Entry No.` Budget JPL — Item Jnl.-Post Line tam ukládá `ItemJnlLine."Job Contract Entry No."`,
+  Purch.-Post ho plní z `PurchLine."Job Planning Line No."`); pouhá příjemka bez spotřeby (historicky přeskočená) musí jít dovázat.
+  Změna/odpojení zamítnuto při příjemce **nebo** spotřebě staré Budget JPL, jedna Budget JPL ↔ jedna Billable JPL. Page `OnLookup`
+  vrací hodnotu přes `Text` + `exit(true)` (page sám validuje, žádný `Rec.Modify` v triggeru). `Update Job Item Cost` restore jen pro
+  JLE nad `ILE."Entry Type" = Purchase`. Analyzer pasti při tom: **PC0023** `IsHandled := <bool výraz>` (musí být `if … then IsHandled
+  := true`), **FC0003** `RecordId` bez závorek (`RecordId()`). Testy `Purch. Consumption Test IMEBS` (65142).
+- **Standard při příjmu nákupu s projektem NEzakládá Job Ledger Entry ani Job Usage Link** — `Purch.-Post.PostItemJnlLineJobConsumption`
+  při příjmu zaúčtuje jen spotřební ILE Negative Adjmt. s projektem (zboží odejde ze skladu), `PrepareJobLine` → `Job Post-Line.
+  PostJobOnPurchaseLine` → JLE Usage + Usage Link běží jen `if QtyToBeInvoiced <> 0`, tj. při **fakturaci** nákupu. Test „usage po
+  příjmu" tak dá 0 i v čistém standardu (build 28479+, `Purch. Consumption Test IMEBS`, 2026-09-25): po `PostPurchaseDocument(true,
+  false)` assertuj ILE, pro JLE/Usage Link doúčtuj `Get` hlavičky + `PostPurchaseDocument(false, true)`. Guard „spotřeba už existuje"
+  proto nesmí stát jen na Usage Linku (viz výše).
