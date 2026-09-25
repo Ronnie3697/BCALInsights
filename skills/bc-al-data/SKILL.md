@@ -3,13 +3,13 @@ name: bc-al-data
 description: >-
   BC/AL DB operace a subscribery (Business Central): FindSet, ReadIsolation::UpdLock vs LockTable,
   Insert/Modify/Delete(true|false) (LC0040), Temp Blob, SetLoadFields, SetFilter wildcard + %1 (LC0050),
-  TransferFields + PK v copy smyčce, Mark/MarkedOnly vs Record.Copy, trvalý filtr ve FilterGroup, field-by-field kopie, TableRelation
+  TransferFields + PK v copy smyčce, Mark/MarkedOnly vs Copy, trvalý filtr ve FilterGroup, field-by-field kopie, TableRelation
   mimo PK (Validate za běhu spadne), tableextension triggery vs subscribery, modify() ve fields, klíč jen
   vlastní pole (AL0423), var guard vs CurrFieldNo, xRec = Rec při Modify z kódu, IsTemporary, init detection
   OnAfterValidateEvent, SkipOnMissingLicense/Permission, propagace Sales Line → ILE / Whse. Shipment, vlastní
   pole Sales/Purchase Header/Line vč. archive/posted, total při částečném účtování (OnAfterInitFromSalesLine,
   undo), AutoFormatExpression GetCurrencyCode, Blob = CalcFields + subscriber, délky Text polí (LC0044),
-  Validate("No.") Init() past (archive, Copy Document, Recreate), LC0028, AL0432. Načti u recordů, postingu,
+  Validate("No.") Init() past (archive, Copy Doc., Recreate), OnAfterGetUnitCost, LC0028, AL0432. Načti u recordů, postingu,
   subscriberů, tableextension a relací polí.
 user-invocable: true
 ---

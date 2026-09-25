@@ -364,22 +364,27 @@ zůstává prázdné — kdo hledá kusovník varianty jen přes kartu zboží, 
 
 ⚠️ **Táž tabulka nese u Alumistra dvě nezávislé osy:** base `Variant Code` (konfigurátor, varianta zboží) a vlastní pole
 **`Price Variant Code PMALU`** (Pricing Matrix, cenová varianta ze `Sales Price Var. Code PMEBS` / `Price Worksheet Line`).
-Záznam konfigurátoru má `Price Variant Code PMALU` prázdný a naopak. Lookup „kusovník podle varianty" musí říct, kterou
-osu myslí — `Calc Cost Mgt. PMALU` původně bral každý neprázdný kód jako cenovou variantu a hodil chybu *An alternative
-BOM for item %1 and price variant %2 was not found*, takže kód konfigurované varianty do něj poslat nešlo. Od 2026-09-22
-reaguje jen na varianty s `Item Variant."Price Variant PMEBS"`.
+Záznam konfigurátoru má `Price Variant Code PMALU` prázdný a naopak. Pozor: EPB Pricing Matrix při výběru cenové varianty
+(`Sales Price Var. Code PMEBS` OnValidate) zapíše tentýž kód i do **`Variant Code`** — cenová varianta je technicky `Item Variant`
+s příznakem `Price Variant PMEBS`. Lookup „kusovník podle varianty" musí říct, kterou osu myslí — `Calc Cost Mgt. PMALU` původně
+bral každý neprázdný kód jako cenovou variantu a hodil chybu *An alternative BOM for item %1 and price variant %2 was not found*
+(padal tak i strom kusovníku / výpočet u vyráběné komponenty s obyčejnou variantou — COEBS umí `Variant Code` na řádku kusovníku).
+Od PBI 66389 reaguje jen na variantu s příznakem `Price Variant PMEBS` **nebo** s kusovníkem pod `Price Variant Code PMALU`
+(obojí, aby se chování cenové varianty nezměnilo ani u neoznačených kódů).
 
-**Pořizovací cena na prodejním řádku (`Cost Mgt. ALU.UpdateSalesLineUnitCost`, cust-alumistr-bc, větev
-`SalesLineUnitCostVariantBOM`, 2026-09-22):** pořadí hledání kusovníku = alternativní kusovník podle `Variant Code`
-(Default přednost, jen Certified) → event `OnAfterSetProdBOMHeaderFilters…` (PMALU cenová varianta) → `Production BOM No.`
-z karty zboží. Výsledek `FixedCost × "Qty. per Unit of Measure"` jde do `Validate("Unit Cost (LCY)")`; **nula standardní
-náklad nepřepisuje** (původní PMALU kód validoval i nulu a mazal tak náklad z karty u každého zboží bez fixní ceny).
-Spouští se z `Sales Line ALU` `modify("No.") / ("Variant Code") / ("Unit of Measure Code") OnAfterValidate` — base triggery
-všech tří polí volají `GetUnitCost()` a `Unit Cost (LCY)` resetují z karty zboží, takže hook musí běžet **až po nich**
-(`OnAfterValidate` v tableextension to splňuje, `Validate("Variant Code")` konfigurátoru ho vyvolá taky). Podmínka výpočtu
-z kusovníku: zboží má `Replenishment System = Prod. Order`; u nákupního zboží se bere `Unit Cost  - Fixed ALU`.
-Historie: hook žil v PMALU (PR 8371, 2026-03) jen proto, že jediná appka se závislostí na ATEBS byla Pricing Matrix —
-ne proto, že by náklad byl cenotvorba.
+**Pořizovací cena na prodejním řádku (cust-alumistr-bc, PBI 66389, 2026-09-25, docs `66389_…md`):** `Cost Mgt. ALU` u výrobku
+hledá nejdřív alternativní kusovník podle `Variant Code` (Default přednost, jen Certified); když ho nenajde, pokračuje beze změny
+kusovníkem z karty + eventem `OnAfterSetProdBOMHeaderFilters…` (PMALU cenová varianta, jen při kusovníku na kartě). Na řádek zapisuje
+base subscriber **`Sales Line.OnAfterGetUnitCost`** (ne triggery polí — `GetUnitCost` volá i `Location Code`, `Quantity`, `Return Reason
+Code`, detail 3.6b v `bc-al-data.md`) a **jen pro řádek, jehož varianta má vlastní kusovník** — `FixedCost × "Qty. per Unit of Measure"`,
+nula nepřepisuje. Cenová varianta a řádek bez varianty zůstaly v PMALU (`Sales Line PMALU`: po `No.` a `Sales Price Var. Code`, zapisuje
+i nulu, nenásobí MJ) — uživatel chtěl řešit jen výrobní variantu; sjednocení je otevřený bod v `docs/open-issues/59877_…md`.
+Base čte `Alternative Prod. BOM ATEBS` na každém řádku s variantou → `tabledata … = R` v `Alumistr-READ ALU` + závislost base na ATEBS.
+⚠️ **Stav kusovníku varianty určuje konfigurace:** `BOM Action Cond. Mgt.` bere status z podmínky kusovníku (`BOM Status`) nebo z
+`Configuration Definition."Def. BOM Status"` a **výchozí je *Nový*** — necertifikovaný kusovník výpočet (ani výroba) nevezme, náklad pak
+zůstane z karty. Registrace alternativního kusovníku proběhne v `SaveVariantConfiguration` dřív, než lookup vrátí variantu na řádek, takže
+hook při `Validate("Variant Code")` kusovník už vidí. Historie: hook žil v PMALU (PR 8371, 2026-03) jen proto, že jediná appka se
+závislostí na ATEBS byla Pricing Matrix — ne proto, že by náklad byl cenotvorba.
 
 ## C8. Řádek kusovníku z konfigurátoru a pole EM Cutting Plan (Alumistr)
 

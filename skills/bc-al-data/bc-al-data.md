@@ -735,6 +735,15 @@ Totéž nepřímo přes **EPB Pricing Matrix**: `Validate("Parameter A/B PMEBS")
 (`ValidateParametersKeepingTexts` v cust-alumistr-bc `Configurator Events COALU`).
 (2026-09-13, prod-ess-configurator-bc `SL Action Cond. Mgt.InitNewSalesLineFromAction` + COALU — Popis 2 z akčního řádku se ztrácel u řádků s MJ / s parametry.)
 
+**`Unit Cost (LCY)` na Sales Line resetuje `GetUnitCost()` z VÍC polí, než čekáš** (BC 28 `SalesLine.Table.al`): `No.` (přes `CopyFromItem`),
+**`Location Code`**, `Variant Code`, `Unit of Measure Code`, `Quantity` (jen standardní metoda ocenění při změně znaménka) a `Return Reason Code`
+(+ nepřímo každá cesta, která validuje MJ — EPB Pricing Matrix přes Parametr A/B). Vlastní pořizovací cena pověšená na `modify(<pole>)
+OnAfterValidate` tří polí (No./Variant/UoM) tak tiše zmizí po změně lokace. **Hook patří na `Sales Line.OnAfterGetUnitCost(var SalesLine; Item)`**
+(volá se na konci `GetUnitCost`, po `ValidateUnitCostLCYOnGetUnitCost`) — jedno místo pro všechny cesty; v něm `Validate("Unit Cost (LCY)", …)`
+je bezpečné (base totéž dělá sám, kontrola standardní metody ocenění v OnValidate běží jen při `CurrFieldNo = Unit Cost (LCY)`), `IsTemporary`
+exit. Pozor na **jinou appku s vlastním hookem na `No.`**, která zapisuje i nulu: po zadání zboží přepíše hodnotu z karty, takže test nesmí
+assertovat náklad hned po `CreateSalesLine`, jen po validaci pole, které hlídáš. (2026-09-25, cust-alumistr-bc PBI 66389.)
+
 **Bonus — `fieldgroups` z tableextension:** `fieldgroups { addlast(DropDown; "My Field") }` v tableextension funguje
 (vzor base app `ReturnReasonExt.TableExt.al`) — nejlevnější způsob, jak vlastní atribut ukázat ve všech lookupech
 (např. Item UoM dropdown na Sales/Req./Price řádcích místo holého kódu).
