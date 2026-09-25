@@ -847,7 +847,8 @@ ukazuje `Sales-Post.dal:8331`. Totéž pro `Skip Purchase Consumption` projekty 
 `OnBeforeCheckJobNoOnShptLineEqualToSales` nastavit `IsHandled`, když má dodávka prázdné Job No. a stejné `Job Contract Entry No.` jako řádek
 (Sales Shipment Line to pole má). Zachyceno 2026-09-22, cust-soitron-bc (Sales Aggregation, částečná dodávka → faktura z Get Shipment Lines).
 
-**Opraveno v prod-ep-itemManagement-bc (2026-09-22, `Project Item Management IMEBS`):** druhá varianta — subscriber
+**Opraveno v prod-ep-itemManagement-bc (2026-09-22, `Project Item Management IMEBS`; bypass 2026-09-25 zakomentován — appka je ve vývoji,
+testovací doklady se založí znovu a nové dodávky Job No. nesou, takže standardní kontrola projde sama):** druhá varianta — subscriber
 `OnBeforeCheckJobNoOnShptLineEqualToSales` nastaví `IsHandled`, jen když dodávka má prázdné Job No., shodné nenulové
 `Job Contract Entry No.` s fakturačním řádkem **a** Job No. řádku = Job No. planning line s tím kontraktem (= hodnota, kterou
 subscriber sám doplnil; ručně přepsaný jiný projekt standardní kontrola dál chytí). `IsHandled` u `OnBeforeCheckReturnRcptLine`
@@ -878,6 +879,15 @@ w1-28 `SalesPost.Codeunit.al` (raw.githubusercontent, cesta `BaseApp/Source/Base
 - **Dodávka s Job No.:** `CheckItemChargePerShpt` dělá `TestField("Job No.", '')` → na takový řádek dodávky nejde přiřadit poplatek zboží
   (hook `OnPostItemChargePerShptOnBeforeTestJobNo`). Undo dodávky Job No. nekontroluje. `ArchiveRelatedJob` po účtování auto-archivuje projekt
   z prvního řádku s Job No.
+- **Posted faktura s Job No. na řádku = pro `Correct Posted Sales Invoice` projektová faktura:** `SalesInvoiceLinesContainJob` →
+  `CreateAndProcessJobPlanningLines` založí pro každý řádek dobropisu **nový reverzní Job Planning Line** (`InitFromJobPlanningLine(From,
+  -Quantity)` + Job Planning Line Invoice typu Credit Memo) a řádek dobropisu naváže na jeho kontrakt, ne na původní. Test, který čeká původní
+  `Job Contract Entry No.` na dobropisu, po doplnění Job No. na posted řádky spadne (build 28479, 2026-09-25).
+- **Job Ledger Entry Sale při fakturaci z objednávky nese číslo objednávky:** `Job Transfer Line.FromPlanningSalesLineToJnlLine` bere
+  `JobJnlLine."Document No." := SalesLine."Document No."` a `Sales-Post.PostJobContractLine` ho přepisuje na posted číslo jen u Invoice /
+  Credit Memo; u Order (přes vlastní handler `OnBeforePostJobContractLine` + `PrepareJobLine`) zůstane číslo objednávky. Filtr testu na posted
+  invoice no. → 0 záznamů. Množství Sale položky je záporné (`-Quantity`) u faktury i objednávky (`case Document Type` v Job Transfer Line
+  Order nemá; IMEBS ho doplňuje `OnFromPlanningSalesLineToJnlLineOnBeforeInitAmounts` s `Qty. to Invoice`).
 - Kontroly „Job No. musí být prázdné" na objednávce: `TestSalesLineJob` (hook `OnBeforeTestSalesLineJob`) a `PostSalesLine`
   (`OnPostSalesLineOnBeforeTestJobNo`); `Job Planning Line` dostává `Job Contract Entry No.` v OnInsert **vždy** (i budget řádky), takže filtr
   na kontrakt 0 nic nenajde. `LibraryJob.Job2SalesConsumableType(JPL.Type)` převádí typ planning line na `Sales Line Type` (Item=2 vs. job Item=1).

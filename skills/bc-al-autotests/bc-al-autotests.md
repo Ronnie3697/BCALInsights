@@ -219,6 +219,13 @@ Assert.ExpectedErrorCode('Dialog');
   cache = MS 28.3 symboly + `Test Runner`, `Tests-TestLibraries`, `System Application Test Library`, `Application Test
   Library`, `Permissions Mock` (z dotykacka `.alpackages`) + build hlavní appky — tranzitivní `Any` / `Library Assert` /
   `Library Variable Storage` / `Business Foundation Test Libraries` v cache být NEMUSÍ, alc 17.0 projde.
+  ⚠️ Platí jen pro **tranzitivní** závislosti: když je test `app.json` deklaruje **explicitně** (prod-ef-bank-bc/Test má
+  `Library Assert`, `Library Variable Storage`, `Any`), alc je chce v cache (`AL1022 … could not be found`). Hotové 28.3
+  `.app` bez stahování: `find /c/Users/<user>/AppData/Local/Temp/claude /c/WorkTasks /c/WorkingFolder/AL -maxdepth 6
+  -iname "Microsoft_Tests-TestLibraries*"` — scratchpady dřívějších seancí (2026-09: alumistr `testsym/` = Test Runner,
+  Tests-TestLibraries, SysApp Test Lib, App Test Lib, Permissions Mock, Library Assert 28.3; soitron `cache/` = Any,
+  Library Variable Storage 28.3). Do vlastního `testcache/` zkopíruj, ať kompilace nezávisí na cizím temp adresáři.
+  (2026-09-25, prod-ef-bank-bc/Test, `ParseSymbolsFromText` testy.)
 - **Undo dodávky označí `Correction = true` i na PŮVODNÍM řádku dodávky** (`Undo Sales Shipment Line.Code`: původní řádek
   dostane `Quantity Invoiced := Quantity`, `Correction := true`, `Modify`; teprve pak `InsertNewShipmentLine` vloží korekční
   řádek se záporným množstvím, taky `Correction = true`). `SetRange(Correction, true) + FindFirst` tedy vrátí původní řádek
