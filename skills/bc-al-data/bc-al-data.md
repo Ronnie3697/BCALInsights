@@ -847,7 +847,8 @@ ukazuje `Sales-Post.dal:8331`. Totéž pro `Skip Purchase Consumption` projekty 
 `OnBeforeCheckJobNoOnShptLineEqualToSales` nastavit `IsHandled`, když má dodávka prázdné Job No. a stejné `Job Contract Entry No.` jako řádek
 (Sales Shipment Line to pole má). Zachyceno 2026-09-22, cust-soitron-bc (Sales Aggregation, částečná dodávka → faktura z Get Shipment Lines).
 
-**Opraveno v prod-ep-itemManagement-bc (2026-09-22, `Project Item Management IMEBS`):** druhá varianta — subscriber
+**Opraveno v prod-ep-itemManagement-bc (2026-09-22, `Project Item Management IMEBS`; bypass 2026-09-25 zakomentován — appka je ve vývoji,
+testovací doklady se založí znovu a nové dodávky Job No. nesou, takže standardní kontrola projde sama):** druhá varianta — subscriber
 `OnBeforeCheckJobNoOnShptLineEqualToSales` nastaví `IsHandled`, jen když dodávka má prázdné Job No., shodné nenulové
 `Job Contract Entry No.` s fakturačním řádkem **a** Job No. řádku = Job No. planning line s tím kontraktem (= hodnota, kterou
 subscriber sám doplnil; ručně přepsaný jiný projekt standardní kontrola dál chytí). `IsHandled` u `OnBeforeCheckReturnRcptLine`
