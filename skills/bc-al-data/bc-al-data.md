@@ -744,6 +744,14 @@ je bezpečné (base totéž dělá sám, kontrola standardní metody ocenění v
 exit. Pozor na **jinou appku s vlastním hookem na `No.`**, která zapisuje i nulu: po zadání zboží přepíše hodnotu z karty, takže test nesmí
 assertovat náklad hned po `CreateSalesLine`, jen po validaci pole, které hlídáš. (2026-09-25, cust-alumistr-bc PBI 66389.)
 
+**Vlastní `Unit Price` jen na `OnAfterUpdateUnitPrice` nestačí — přepočet ceny se plánuje jen při ZMĚNĚ pole.** `UpdateUnitPriceByField(FieldNo)`
+vyvolá cenovou kalkulaci i `OnAfterUpdateUnitPrice` jen když `IsPriceCalcCalledByField` (= pole si ji naplánovalo `PlanPriceCalcByField`),
+a `Variant Code` / `Unit of Measure Code` ji plánují jen `if <pole> <> xRec.<pole>`. `GetUnitCost()` ale běží vždy. Kdo validuje pole se
+**stejnou hodnotou** (typicky po `Get` záznamu, kam už hodnotu zapsal přiřazením — konfigurátor `SL Action Cond. Mgt. COEBS.ApplyCurrentLineOverrides`
+s variantou z dialogu), dostane přepočtenou pořizovací cenu, ale jednotková zůstane stará. Cenu z vlastního výpočtu proto nastavuj **i
+v `OnAfterGetUnitCost`** (a v `OnAfterUpdateUnitPrice` kvůli přepočtům bez `GetUnitCost` — množství, zákazník, měna). Test: přiřaď pole +
+`Modify(false)`, `Get`, `Validate` se stejnou hodnotou, assert ceny. (2026-09-25, cust-alumistr-bc BC-TEST2 PO2500211.)
+
 **Bonus — `fieldgroups` z tableextension:** `fieldgroups { addlast(DropDown; "My Field") }` v tableextension funguje
 (vzor base app `ReturnReasonExt.TableExt.al`) — nejlevnější způsob, jak vlastní atribut ukázat ve všech lookupech
 (např. Item UoM dropdown na Sales/Req./Price řádcích místo holého kódu).
