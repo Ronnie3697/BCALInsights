@@ -7,15 +7,15 @@ description: >-
   cache, dočasná cache ze sibling rep, UTF-16 logy (falešné 0 errors), Bash
   heredoc pasti (backslash, apostrof), volné object ID BOM-aware),
   al-mcp-server (studený start al_packages load, jen signatury → těla
-  procedur na GitHubu, MCP CONNECT_TIMEOUT fix), BC source
-  StefanMaron/MSDyn365BC.Code.History (w1-/cz-<major>, core.longpaths),
-  AL-Go, nová appka v repu (GUID, idRanges, affix, workspace, permission
-  sety, git worktree), source závislé appky (sibling repo, extrakce z .app),
-  git commit/push/PR nikdy sám + upstream past + ForcePush, verzování
-  app.json, Azure DevOps MCP (org essencebs, PAT read-only záměrně,
-  search_code blob, IPv6 reset), case-only rename složky. Načti při
-  kompilaci z CLI, práci se symboly, git / PR / Azure DevOps, zakládání
-  appky. (NuGet, CI build a deploy → skill bc-al-build.)
+  procedur na GitHubu, MCP CONNECT_TIMEOUT fix), Object ID Ninja (ruční ID →
+  backend), BC source StefanMaron/MSDyn365BC.Code.History (w1-/cz-<major>,
+  core.longpaths), AL-Go, nová appka v repu (GUID, idRanges, affix,
+  workspace, permission sety, git worktree), source závislé appky (sibling
+  repo, extrakce z .app), git commit/push/PR nikdy sám + upstream past +
+  ForcePush, verzování app.json, Azure DevOps MCP (org essencebs, PAT
+  read-only záměrně, search_code blob, IPv6 reset), case-only rename složky.
+  Načti u kompilace z CLI, symbolů, git / PR / ADO, zakládání appky. (NuGet,
+  CI, deploy → skill bc-al-build.)
 user-invocable: true
 ---
 

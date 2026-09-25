@@ -337,6 +337,26 @@ specified at startup. Use the al_addproject tool"; na AL 17 Petr hlásil, že be
 
 (2026-09-15, cust-alumistr-bc, AL 18.0.2732683, sandbox BC-TEST2 — testy zatím nespuštěné, chybí toolkit.)
 
+#### 7.2c AL Object ID Ninja — objekty založené ručně / AI backend nezná
+
+Ninja (VS Code extension `vjeko.vjeko-al-objid`, v3) eviduje přidělená ID v backendu, ne v repu — a jen ta, která
+přidělil přes IntelliSense. Objekty s ID napsaným ručně (AI agent, kopie souboru, nový `idRanges` blok) v backendu
+**chybí** → Ninja je v souborech hlásí jako nepřidělené a kolega by dostal stejné ID. Fix ve VS Code: quick fix
+**Store ID assignment** (per objekt) nebo příkaz **Ninja: Synchronize Object IDs with Azure Back End** → **Update**
+(merge; `Replace` přepíše celou evidenci appky). Z CLI (to samé, co dělá extension, bez VS Code):
+
+- Host `https://backend.alid.ninja`, appka = **SHA256 hex z `id` v `app.json`** (bez `.objidconfig` s poolem / authKey).
+- Hlavičky: `Ninja-App-Id: <GUID>` a `Ninja-Header-Payload` = base64 JSON `{gitUserName, gitUserEmail, appPublisher,
+  appName, appVersion, ninjaVersion}` (git user z `git config`, e-mail lowercase — licence se váže na git e-mail).
+- Čtení: `POST /api/v3/getConsumption/<hash>` s `{}` → `{ page: [...], table: [...], "table_<id>": [field IDs], … }`.
+- Zápis jednoho ID: `POST /api/v3/storeAssignment/<hash>/<type>/<id>` s `{"appId":"<hash>"}` → `{"updated":true}`
+  (aditivní, bezpečné). `…/<id>/delete` uvolní. Hromadně `/api/v3/syncIds/<hash>` — **PATCH = merge, POST = replace**.
+- Katalog endpointů: `Backend API Invocations.md` v adresáři extensionu, klient `out/lib/backend/Backend.js`.
+
+Postup: nejdřív `getConsumption`, porovnat s ID ve zdrojácích (grep BOM-aware, 7.1), zapsat jen chybějící přes
+`storeAssignment`, znovu `getConsumption` na kontrolu. (2026-09-25, prod-ess-configurator-bc 66387 — 24 API pages
+63290–63313 v novém range, backend znal 60 stránek, žádnou z nového bloku.)
+
 ### 7.3 Práce s BC source na GitHubu
 
 Repo: `https://github.com/StefanMaron/MSDyn365BC.Code.History`
