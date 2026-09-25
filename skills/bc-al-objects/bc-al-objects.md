@@ -966,3 +966,12 @@ vždy vyžádej export (Definice výměny dat → Export definice výměny dat),
   a při neshodě **přepíše namapované symboly prázdnem** + přilepí text k popisu s čárkou → do `Description 2 EBS`
   nemapuj `EndToEndId`; protistranu skládá jen z cest `.../DbtrAcct|CdtrAcct/Id/IBAN`, tuzemské `Othr/Id` nechává
   z mapování; `SetValueFromPostExchField('POPIS1'|'CREDIT'|'DEBIT')` hledá sloupce podle **`Data Format`** jako tagu.
+- **Výsledný návrh IMEBS (2026-09-25, `prod-ep-itemManagement-bc`, větev features/misc):** rozhodnutí per nákupní řádek v subscriberu
+  `OnPostItemJnlLineJobConsumption` — `IsHandled` jen když projekt má Skip Purchase Consumption **a** na Budget JPL nákupního řádku
+  ukazuje Billable JPL přes `Purch. Job Cont.Entry No.IMEBS`; bez vazby standardní spotřeba při příjemce. Guard vazby v `OnValidate`
+  pole (tableextension → codeunit `ValidatePurchJobContractEntryNo(Rec, xRec)`): nová vazba zamítnuta při existujícím `Job Usage Link`
+  cílové Budget JPL (ne při pouhé příjemce — historické příjemky bez spotřeby musí jít dovázat), změna/odpojení zamítnuto při příjemce
+  **nebo** spotřebě staré Budget JPL, jedna Budget JPL ↔ jedna Billable JPL. Page `OnLookup` vrací hodnotu přes `Text` + `exit(true)`
+  (page sám validuje, žádný `Rec.Modify` v triggeru). `Update Job Item Cost` restore jen pro JLE nad `ILE."Entry Type" = Purchase`.
+  Analyzer pasti při tom: **PC0023** `IsHandled := <bool výraz>` (musí být `if … then IsHandled := true`), **FC0003** `RecordId` bez
+  závorek (`RecordId()`). Testy `Purch. Consumption Test IMEBS` (65142).
