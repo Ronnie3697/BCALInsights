@@ -11,7 +11,9 @@ description: >-
   User-Agent), Isolated Storage scope, SecretText (Unwrap OnPrem-only AL0296, HMAC přes Cryptography
   Mgt., SecretStrSubstNo), Power Automate: External Business Events preview vs queue + API page; vlastní API
   page pro zápis (POST validace polí → ValidateTableRelation, temporary OnFindRecord, $filter před
-  limitem, stale relace). Načti u Shopify, HTTP, vlastních API.
+  limitem, stale relace); Dataverse/CDS sync (Integration Table Filter jen Dataverse→BC, GetRecordRef bez
+  filtru, VENDOR filtr Blocked=' ', Enum→Choice přes Option Picklist + OptionOrdinalValues = index,
+  test bez Dataverse přes @@test@@ + Integration Record Synch.). Načti u Shopify, HTTP, vlastních API, Dataverse.
 user-invocable: true
 ---
 
@@ -60,3 +62,8 @@ jsou v souboru. Vyčleněno z `bc-al-objects.md` 2026-09-08, číslování je p�
   + Dataverse prerekvizity (nenacenit jako levné) → pragmaticky queue tabulka
   + API page + BC trigger „When a record is created (V3)"; HTTP trigger v PA
   je Premium.
+- **11.8** Dataverse sync: Integration Table Filter platí **jen Dataverse → BC**
+  (BC → Dataverse jde přes `GetRecordRef` bez filtru); Enum → Choice = Option
+  `Picklist` se stejným pořadím členů + `OptionOrdinalValues` (přenáší se index);
+  testy bez Dataverse přes `@@test@@` připojení a přímé volání
+  `Integration Record Synch.`.
