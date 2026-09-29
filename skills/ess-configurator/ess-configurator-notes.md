@@ -504,8 +504,16 @@ master, nasazeno COALU 28.0.20.3 / PMEBS 28.0.5.0 / COEBS 28.0.22.2.)
   COZLK.TableLookupValueExists` + její volání v `TryValidateParameterValue` (base to umí; rozdíl: neplatný filtr
   base vynechá); (4) testy kopie celé konfigurace (přečíslovaný parametr) a `CopySLAction`; (5) aktualizovat
   `docs/65364 - VYR_24 …(COZLK).md` (⚠️ o kopii a o nefunkční kontrole v 28.0.26).
+  **Event i oprava kontroly Vyhledávání jsou v COEBS 28.0.28** (build 28533, master c45bcc2); 28.0.27 (build 28532) spadl
+  a na feedu není → minimum `28.0.28.0`. Body (1)–(5) udělané na větvi `65364_CopyTakenParams` (review 2026-09-29).
 - Mazání je v pořádku: `Configuration Definition.OnDelete` maže podmínky přes `DeleteAll(true)`, takže `OnAfterDeleteEvent`
   na `SL Action Condition/Line COEBS` běží per záznam a kaskáda v rozšíření (COZLK `Configurator Events`) data uklidí.
+- ⚠️ **Smazání parametru odkazy v rozšířeních neuklidí a jeho `Line No.` se recykluje.** `Configuration Parameter COEBS.OnDelete`
+  maže jen hodnoty, podmínky a vzorce parametru; `OnInsert` čísluje `FindLast + 10000` → nový parametr na konci konfigurace
+  dostane `Line No.` smazaného posledního. Zákaznická tabulka s odkazem na `Parameter Line No.` (COZLK `SL Act. Taken Param` —
+  hlavní i vnořený parametr) po smazání drží osiřelý odkaz, který se **tiše chytí nového parametru**. Kopie celé konfigurace
+  ho zahodí sama (mapa parametrů ho nezná), kopie SL akce v rámci konfigurace ho zkopíruje. Úklid patří do subscriberu
+  `OnAfterDeleteEvent` na `Configuration Parameter COEBS` (obě strany odkazu). (Code review 2026-09-29, cust-zlomek-bc.)
 
 (2026-09-24, analýza plánu 65364 nad prod-ess-configurator-bc master 79fc306.)
 
