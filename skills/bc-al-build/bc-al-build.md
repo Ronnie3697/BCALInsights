@@ -392,9 +392,10 @@ z cz 28.3 artifactu a variable group vrátit.
 - Base objekty (*Subcontracting Worksheet* 99000886, report *Calculate Subcontracts* 99001015, typ šablony `"For. Labor"`) jsou
   `ObsoleteState = Pending` (28.0); zákazník s appkou Subcontracting používá **`Subc. Subcontracting Worksheet` (20504)** a **`Subc.
   Calculate Subcontracts` (20505)**, typ šablony `Subcontracting` (enumextension appky). Pageext / subscriber na legacy objekty se u něj
-  **tiše neprojeví** — zkontroluj, na který objekt rozšíření míří. Vzor přepínače v cust-alumistr-bc: `#if SubcontractBC28Obsolete`
-  (nové objekty) / `#else` (legacy) a symbol v `app.json` `preprocessorSymbols` — **podtržítko na konci (`"SubcontractBC28Obsolete_"`)
-  symbol vypíná**, snadno se přehlédne. Zapnutí = přímá závislost na Subcontracting 28.3.0.0 (odstavce výše).
+  **tiše neprojeví** — zkontroluj, na který objekt rozšíření míří. Přepínač `#if <symbol>` (nové objekty) / `#else` (legacy) se symbolem
+  v `app.json` `preprocessorSymbols` jde, ale pozor: **podtržítko na konci (`"SubcontractBC28Obsolete_"`) symbol vypíná** a snadno se
+  přehlédne. Zákazník, který jede rovnou appku, přepínač nepotřebuje — v cust-alumistr-bc 2026-09-29 odstraněn i s legacy větvemi, base stojí
+  jen na objektech appky (přímá závislost na Subcontracting 28.3.0.0, odstavce výše).
 - **Množství řádku sešitu z reportu 20505 už obsahuje prořez** (`CalcQtyAdjdForRoutingScrap(CalcQtyAdjdForBOMScrap(ProdOrderLine."Quantity (Base)",
   ProdOrderLine."Scrap %"), …)` − výstup na NO a skutečný výstup) a `Prod. Order Component."Expected Quantity"` taky (`ProdOrderLine.Quantity ×
   (1 + Scrap %) × (1 + prořez postupu) × (1 + Scrap % komponenty)`). Poměr „nakupované množství / `ProdOrderLine.Quantity`" pro přepočet komponent
