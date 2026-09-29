@@ -325,8 +325,11 @@ proceduru); `ValidateTableLookupValue` dává hledanou hodnotu do skupiny 11. CO
 ⚠️ **Neplatný filtr tabulky: kontrola se musí chovat jako lookup.** `Table Values Lookup.SetTableAndField` filtr, který
 `TrySetView` nepřijme, tiše vynechá a nabídne všechno; kontrola ho původně brala jako `false` → s novou chybou by neprošel
 žádný ručně napsaný kód, i když ho lookup nabízí. Po review (2026-09-29) ho vynechá taky (`RecRef.Reset()`, kód jen musí
-existovat), test `ValidateTableLookupValueLeavesOutFilterThatCannotBeApplied`. Riziko neplatného filtru: `Source Table Filter`
-se ukládá přes `FilterPageBuilder.GetView(…, false)` = **captiony** polí (neověřeno, jestli ho `SetView` přečte v jiném jazyce).
+existovat), test `ValidateTableLookupValueLeavesOutFilterThatCannotBeApplied`. ⚠️ PR 9605 ho měl s filtrem na neexistující pole
+a master build 28532 spadl — **`SetView` neznámé pole tiše ignoruje** (2.6c v `bc-al-data.md`), `TrySetView` selže jen na nesmyslné
+syntaxi → test bere `'BADDATA'` (větev `65364_InvalidViewTestFix`, 2026-09-29, PR zakládá uživatel). Riziko neplatného filtru:
+`Source Table Filter` se ukládá přes `FilterPageBuilder.GetView(…, false)` = **captiony** polí — kdyby je `SetView` v jiném jazyce
+nepřečetl, filtr se ztratí potichu (bez chyby, víc nabízených hodnot); neověřeno.
 **Zbývá jen API:** filtr `value`/`displayText` v `FillTableLookupValues` (`TrySetRecRefFieldFilter` ve skupině filtru tabulky) —
 do 66387 nebo po merge obou větví. Popis PR 9577 (sekce *Pro review*) ho vede jako známé omezení „oprava v 65364", ale kód je jen
 v 66387 → opraví ho větev, která se mergne druhá. `Param. Display Text Mgt.GetTableLookupDisplayText` beze změny (hledá přesnou vybranou

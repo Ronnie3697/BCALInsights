@@ -300,6 +300,16 @@ Oprava na jednom místě spraví všechny volající (i ty v cizích větvích /
 nastavují sami, dostanou stejný výsledek. Test: filtr volajícího na stejném poli + helper → `Count()` pod oběma filtry a
 `RecRef.FilterGroup() = 0` po návratu. (2026-09-29, prod-ess-configurator-bc 65364, `Item Attr. Filter Mgt.ApplyToRecRef`.)
 
+**`SetView` s polem, které tabulka nemá, chybu NEhodí** — `RecRef.SetView('WHERE(No Such Field COEBS=CONST(X))')` proběhne
+a filtr na tom poli se tiše neuplatní. Chybu dá jen text, který vůbec není pohledem tabulky (`'BADDATA'` — tak to testuje MS
+`CRM Synch. Job Scenarios.SynchInvalidViewCausesError`, chyba vzniká v `IntegrationRecordSynch.SplitTableFilter` na `SetView`).
+Důsledky: (1) `[TryFunction] TrySetView` jako „je filtr z nastavení platný?" neodhalí přejmenované / smazané pole ani filtr
+uložený s captiony v jiném jazyce — filtr jen potichu zmizí a lookup / kontrola pustí víc hodnot; (2) test větve „filtr nejde
+použít" potřebuje nesmyslnou syntaxi, ne neexistující pole — a předpoklad ověř v GIVEN přes vlastní `[TryFunction]` +
+`Assert.IsFalse(…, 'SetView must reject the filter…')`, ne holým `asserterror` (ten při špatném předpokladu vrátí jen
+*An error was expected inside an ASSERTERROR statement*). (2026-09-29, prod-ess-configurator-bc master build 28532, test
+`ValidateTableLookupValueLeavesOutFilterThatCannotBeApplied`; oprava větev `65364_InvalidViewTestFix`.)
+
 ### 2.7 Nové flag/marker pole → projít i field-by-field copy procedury (šablony, buffery)
 
 Když do tabulky přidáváš nové pole (typicky Boolean marker jako `Has Value` /
