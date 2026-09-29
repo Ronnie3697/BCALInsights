@@ -280,3 +280,45 @@ Z code review API konfigurátoru (COEBS task 66387, stránky `configurationSessi
   `%LOCALAPPDATA%\bc-api-test\` (`bc-api-login.ps1 -Tenant`, `bc-api.ps1 -Path -Method -Body -IfMatch`; pwsh 7 kvůli
   `-SkipHttpErrorCheck`, `Invoke-WebRequest` nemá `-StatusCodeVariable`). PATCH potřebuje `If-Match` s `@odata.etag`.
   Tenant ID z domény: `GET https://login.microsoftonline.com/<domena>.onmicrosoft.com/v2.0/.well-known/openid-configuration` → `issuer`.
+
+### 11.8 Dataverse (CDS) sync — filtr integrační tabulky platí jen Dataverse → BC, Enum → Choice přes `OptionOrdinalValues`, testy bez Dataverse
+
+Z cust-sonnentor-bc task 66405 (appka SON CDS Sync, BC 28.4, 2026-09-29; zdroje w1-28 `Integration/SynchEngine/
+IntegrationRecordSynch.Codeunit.al`, `IntegrationTableMapping.Table.al`, `Integration/Dataverse/CRMIntegrationTableSynch.Codeunit.al`,
+`CDSSetupDefaults.Codeunit.al`, `Integration/D365Sales/CRMAccount.Table.al`):
+
+- **Integration Table Filter mapování se uplatní jen ve směru Dataverse → BC.** `CRM Integration Table Synch.` ho aplikuje při čtení
+  CRM záznamů (`SplitIntegrationTableFilter` + `SetView`); ve směru BC → Dataverse se spárovaný CRM záznam dohledává
+  `Integration Table Mapping.GetRecordRef(ID)` **bez filtru** (jen `SetFilter` na UID pole). Filtr typu „jen schválené účty"
+  (`CRMAccount.SetRange(ebs_vendorapproved, true)`) tedy brání založení / aktualizaci v BC, ale spárovaný záznam se z BC do
+  Dataverse aktualizuje dál; vypadnutí z filtru není smazání (Deletion-Conflict se netýká). Filtr skládej typovaně:
+  `SetRange` → `GetView()` → `FilterPageBuilder.SetView/GetView(Caption, false)` → `SetIntegrationTableFilter` (vzor
+  `CDSManagementSON.UpdateVendorIntegrationTableMapping`), nikdy ručně psaný text s čísly polí.
+- **Standardní mapování VENDOR má BC filtr `Blocked = ' '`** (`CDS Setup Defaults.ResetVendorAccountMapping`) → blokovaní
+  dodavatelé se do Dataverse neposílají vůbec. Když má Dataverse stav Blocked vidět, filtr zruš `IntegrationTableMapping.SetTableFilter('')`.
+- **Enum / Option pole BC → Dataverse Choice (Picklist):** na CDS proxy tabulce (`TableType = CDS`, tableextension na `CRM Account`
+  funguje stejně) pole `Option` s `ExternalType = 'Picklist'`, `OptionMembers` **ve stejném pořadí jako BC enum** a
+  `OptionOrdinalValues = -1, 1, 2` (index → hodnota Choice v Dataverse, `-1` = null pro prázdnou; vzor base `CRM Account`.AccountCategoryCode).
+  `Integration Record Synch.TransferFieldData` u shodných typů (enum se přes `FieldRef.Type` hlásí jako Option) přiřadí hodnotu přímo
+  (`FieldRef.Value := Variant`) — přenáší se **index**, ne caption; caption-matching (`TextToOptionValue` přes OptionCaption /
+  OptionMembers) nastupuje jen u rozdílných typů a u constant value. Hodnoty Choice v Dataverse proto musí sedět na
+  `OptionOrdinalValues` (ne výchozí `100000000+`). Enum `Vendor Blocked` má `AssignmentCompatibility = true`. Přenos indexu
+  ověřuje test `VendorBlockedValueIsTransferredToDataverseOption` (k datu zápisu jen lokální kompilace, CI běh ještě ne).
+  **Proč ne Enum:** `Enum` pole s `ExternalType = 'Picklist'` se na CDS tabulce zkompiluje, ale `OptionOrdinalValues` na něm
+  alc 17.0 odmítne (`AL0171: The property value '-1, 1, 2' on property 'OptionOrdinalValues' is not valid` — i pro `0, 1, 2`),
+  takže nejde vyjádřit prázdná ↔ `null` ani jiné než ordinální hodnoty Choice; MS proxy tabulky i AL Table Proxy Generator
+  používají výhradně Option (idea „Replace Option Fields in Tables of Table Type=CRM/CDS" je u MS ve stavu New). Hodnotu `-1`
+  pro prázdnou bere generátor i base `CRM Account` (`AccountCategoryCode`), hodnoty ostatních členů musí sedět na Choice v Dataverse.
+- **Field mapping jedním směrem uvnitř Bidirectional tabulkového mapování** je normální (`Direction::ToIntegrationTable` na
+  řádku, vzor `No. → ebs_bcnumber`). `Integration Field Mapping.CreateRecord` vždy vkládá nový řádek (PK AutoIncrement) —
+  duplicity při opakovaném „Default Synchronization Setup" řeší až `Integration Table Mapping.CreateRecord` (`Get → Delete(true)`
+  smaže i field mappingy); vlastní mapování mimo tenhle reset (Ship-to) potřebuje vlastní dedupe.
+- **Testy bez Dataverse:** `RegisterTableConnection(TableConnectionType::CRM, 'TEST', '@@test@@')` + `SetDefaultTableConnection`
+  (platformové test připojení, používá MS `Library - Mock CRM Connection`) → CRM proxy tabulky jedou z lokální DB, i `FilterPageBuilder`
+  nad nimi. Filtr mapování ověř `TempCRMAccount.SetView(IntegrationTableMapping.GetIntegrationTableFilter())` + `SetRange(AccountId)`
+  + `IsEmpty`; přenos hodnot přímo enginem: `Temp Integration Field Mapping` (No., Source/Destination Field No.) →
+  `IntegrationRecordSynch.SetFieldMapping(Temp)`, `SetParameters(SourceRecRef, DestRecRef, false)`, `Run()`, `DestRecRef.SetTable(TempCRMAccount)`.
+  Tělo subscriberu na `OnAfterResetVendorAccountMapping` vyčleň do `internal procedure` (app má `internalsVisibleTo` na test app) —
+  lokální `IntegrationEvent` publisher standardu z testu nevyvoláš a `CDS Setup Defaults.ResetVendorAccountMapping` táhne job queue.
+  Reset konfiguračních šablon hlásí chybějící `Config. Template Header` přes `Message` → v testu šablony založ (helper
+  `EnsureConfigTemplatesExist`), nebo `MessageHandler`.
