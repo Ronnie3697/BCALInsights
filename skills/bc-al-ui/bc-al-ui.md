@@ -292,7 +292,9 @@ Když má uživatel vidět dlouhý text celý:
 **Víc `RichContent` polí v jedné FastTab = žádný rich text, ověřeno na sandboxu.** Čtyři pole s `ExtendedDatatype =
 RichContent` + `MultiLine` v jedné root group se zkompilují bez varování a web klient je bez chyby vykreslí jako
 **obyčejné třířádkové textarey** (DOM: 4× `textarea`, 0× `contenteditable`, žádný toolbar), dvě do sloupce. MS docs to
-říkají přímo („must be the only control in that group"). Funkční je **jedna FastTab na jedno pole** (`addafter(General)
+říkají přímo („must be the only control in that group"). **Nepomůže ani jedna FastTab s podskupinami** (`group(Comments)
+{ group(Comment1) { field(…) } group(Comment2) { … } }`, každé pole v podskupině samo): opět 4× `textarea`, captiony
+podskupin se kreslí jako popisky polí ve dvou sloupcích — editor musí být přímo v **root-level** group. Funkční je **jedna FastTab na jedno pole** (`addafter(General)
 { group(Comment1ZLK) {…} group(Comment2ZLK) {…} … }`, pole s `ShowCaption = false`, caption nese group).
 **`Importance = Additional` na rich text poli funguje:** FastTab dostane třídu `contains-only-additional-fields`, ukáže
 jen nadpis + „Zobrazit více" a editor s toolbarem se objeví až po kliknutí (base `Work Description` to má stejně).
