@@ -428,6 +428,18 @@ z cz 28.3 artifactu a variable group vrátit.
   `Description 2`, `Quantity` nech 0 (code review větve 66389/66397 2026-09-29; test objednávku neúčtoval, proto to neodhalil). Hlášení *Změnit množství* na existující
   PO `OnAfterInsertPurchOrderLine` nevyvolá (appka aktualizuje své komponenty přes `Carry Out Action`.`OnPurchOrderChgAndResheduleOnAfterGetPurchHeader`).
   (2026-09-25, cust-alumistr-bc PBI 66397 bod 4 — kusovník jako poznámky pod řádkem kooperace.)
+- **Řádek kooperace na NO má `Qty. per Unit of Measure` = 0 a `Quantity (Base)` = 0** — nepočítej z něj poměry. Report 20505 (i legacy 99001015
+  a `Subc. Purchase Order Creator.InsertReqWkshLine`) nastaví řádku sešitu `"Qty. per Unit of Measure" := 0; "Quantity (Base)" := 0`,
+  `Req. Wksh.-Make Order.InitPurchOrderLine` to zkopíruje (`PurchOrderLine."Qty. per Unit of Measure" := RequisitionLine."Qty. per Unit of Measure"`)
+  a `Purchase Line."Unit of Measure Code".OnValidate` dává u `IsProdOrder()` taky 0; `UOMMgt.CalcBaseQty` s nulou vrátí 0. Appka sama si
+  base množství dopočítává až na příjemce (`SubcPurchPostExt.SetQuantityBaseOnSubcontractingServiceLine`). Množství v MJ řádku VZ ber jako
+  `PurchOrderLine.Quantity × ProdOrderLine."Qty. per Unit of Measure"` (MJ řádku NO = MJ řádku VZ). (Code review cust-alumistr-bc 66397,
+  2026-09-29 — poměr `"Quantity (Base)" / množství s prořezem` dával 0 u všech komponent; zdroje Base App 28.5, Subcontracting 28.5.)
+- **Akce *Create Subcontracting Order* na postupu vydané VZ** (`SubcProdOrderRtng.PageExt` → `Subc. Purchase Order Creator.CreateSubcontractingPurchaseOrderFromRoutingLine`)
+  založí řádek sešitu vlastním `InsertReqWkshLine` (šablona/list z `Manufacturing Setup."Subcontracting Template/Batch Name"`, **bez eventů**)
+  a pustí `Carry Out Action Msg. - Req.` → eventy reportu 20505 (`OnAfterTransferProdOrderRoutingLine`, `OnBeforeReqWkshLineInsert`) se
+  nevolají, eventy `Req. Wksh.-Make Order` ano. Pole, která plníš v reportu, na téhle cestě chybí — doplň je jako fallback při přenosu na
+  řádek NO (`OnInsertPurchOrderLineOnAfterTransferFromReqLineToPurchLine`, z `Prod. Order Routing Line` / `Prod. Order Line`). (2026-09-29, tamtéž.)
 
 ### 7.18 Essence Deploy Staging — `sync_mode` je hardcoded 'Add', destruktivní schema změna ho shodí
 
