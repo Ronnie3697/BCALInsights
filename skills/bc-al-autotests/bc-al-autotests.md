@@ -226,6 +226,14 @@ Assert.ExpectedErrorCode('Dialog');
   Tests-TestLibraries, SysApp Test Lib, App Test Lib, Permissions Mock, Library Assert 28.3; soitron `cache/` = Any,
   Library Variable Storage 28.3). Do vlastního `testcache/` zkopíruj, ať kompilace nezávisí na cizím temp adresáři.
   (2026-09-25, prod-ef-bank-bc/Test, `ParseSymbolsFromText` testy.)
+- **Komponenta upravená po založení výrobku s kusovníkem → „The changes to the Item record cannot be saved because some
+  information on the page is not up-to-date"** (Identification `No.` = komponenta). Při `Manufacturing Setup."Dynamic Low-Level
+  Code" = true` (CI kontejner ho má) spustí `Item.Validate("Production BOM No.")` výrobku codeunit `Calculate Low-Level Code`
+  a ten přes `SetRecursiveLevelsOnBOM` → `SetRecursiveLevelsOnItem` udělá `CompItem.Modify()` (Low-Level Code) na **každé komponentě**
+  certifikovaného kusovníku. Proměnná komponenty z GIVEN (`CreateItem` + `Modify`) je pak zastaralá a pozdější `Modify` v testu spadne;
+  lokálně s vypnutým Dynamic LLC projde. Před úpravou komponenty ji načti znovu (`ComponentItem.Get(ComponentItem."No.")`). Výrobek sám
+  problém nemá (codeunit dělá `Rec.Copy(Item2)`). (2026-09-29, cust-alumistr-bc PR 9604 build 28526,
+  `CreditMemoCopiedFromPostedInvoiceKeepsInvoicedPrice`; zdroj Base App 28.5 `CalculateLowLevelCode.Codeunit.al`, `MfgItem.TableExt.al`.)
 - **Undo dodávky označí `Correction = true` i na PŮVODNÍM řádku dodávky** (`Undo Sales Shipment Line.Code`: původní řádek
   dostane `Quantity Invoiced := Quantity`, `Correction := true`, `Modify`; teprve pak `InsertNewShipmentLine` vloží korekční
   řádek se záporným množstvím, taky `Correction = true`). `SetRange(Correction, true) + FindFirst` tedy vrátí původní řádek
