@@ -572,6 +572,16 @@ Evaluátor navíc lookup v `CollectExcludedChildLineNos` nevyřazuje **předky**
 
 Podmínky **kusovníku, postupu a SL akcí** kořen odvozují ze struktury (`IsRootCondition` = na podmínku nikdo neodkazuje), jen podmínky parametrů čtou uložené pole. Validace vazby dnes = jen `TableRelation` (ruční zadání projde i s vlastním číslem, předkem nebo už připojenou podmínkou → cyklus / více rodičů); `ComputeTreeOrder` sdíleného potomka toleruje jen pro zobrazení (test `ComputeTreeOrderPlacesSharedChildOnlyOnce`). Tiché přeskočení neplatné části stromu nabídku **rozšíří** — prázdný seznam povolených hodnot = neomezený výběr (`ShouldIncludeParameterValue`). `OnLookup` pole potomka přiřazuje přímo do `Rec`, uloží se až `CurrPage.Update(false)` v `OnValidate` stránky → přepočet stromu (čte DB) patří až za `CurrPage.SaveRecord()` a po něm `Rec.Find('=')`. Plán v2 po review: `prod-ess-configurator-bc/docs/66430 - …md` (klon `-66430`).
 
+⚠️ **Smazání podmínky + recyklace `Line No.` = tichá přestavba stromu.** Tabulky podmínek číslují `FindLast + 10000` (podmínky
+parametru per konfigurace + parametr, SL / kusovník / postup per konfigurace) → nová podmínka dostane číslo smazané poslední.
+Vazbu rodiče (`True/False Child Line No.`) na smazanou podmínku čistí **jen** akce Odstranit ve stromu parametrů
+(`DeleteConditionWithChildren` → `ClearParentReferences`); `OnDelete` tabulek ne, karty / dialogy / service stránky mají
+`DeleteAllowed = true` a akce Odstranit ve stromech SL / kusovníku / postupu volá holé `Delete(true)`. Nová podmínka se pak
+**přilepí pod starého rodiče** a kontrola „odkaz na neexistující podmínku" ji už nechytí. `Condition Result Value COEBS`
+(výsledné hodnoty podmínky parametru) **nemaže nikdo** (ani `OnDelete` podmínky, ani smazání parametru či definice — jen
+service page), takže recyklovaná podmínka zdědí povolené hodnoty smazané. Zrušit v `CreateAndOpenChildCondition` maže
+`Delete(false)` → zůstanou i vzorce a potomci založení v dialogu. (2026-09-29, doplněk k analýze 66430, COEBS master c45bcc2.)
+
 **Oprava patří do COEBS:** (1) při připojení potomka (OnValidate/OnLookup child polí, ideálně centrálně v tabulce) přepsat root celého
 připojeného podstromu na root rodiče; (2) evaluátor ať kořen odvozuje ze struktury (uzel, na který nikdo neukazuje), ne z pole;
 (3) upgrade / akce „přepočítat kořeny" pro existující data.
