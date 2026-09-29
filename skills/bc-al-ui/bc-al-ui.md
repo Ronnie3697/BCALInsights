@@ -289,6 +289,19 @@ Když má uživatel vidět dlouhý text celý:
 
 (2026-09-02, cust-zlomek-bc — prototyp RichContent na `Comment 2 ZLK`, Sales Order.)
 
+**Víc `RichContent` polí v jedné FastTab = žádný rich text, ověřeno na sandboxu.** Čtyři pole s `ExtendedDatatype =
+RichContent` + `MultiLine` v jedné root group se zkompilují bez varování a web klient je bez chyby vykreslí jako
+**obyčejné třířádkové textarey** (DOM: 4× `textarea`, 0× `contenteditable`, žádný toolbar), dvě do sloupce. MS docs to
+říkají přímo („must be the only control in that group"). Funkční je **jedna FastTab na jedno pole** (`addafter(General)
+{ group(Comment1ZLK) {…} group(Comment2ZLK) {…} … }`, pole s `ShowCaption = false`, caption nese group).
+**`Importance = Additional` na rich text poli funguje:** FastTab dostane třídu `contains-only-additional-fields`, ukáže
+jen nadpis + „Zobrazit více" a editor s toolbarem se objeví až po kliknutí (base `Work Description` to má stejně).
+Document page při otevření rozbalí první dvě FastTaby, takže záložka hned za `General` je rozbalená (ale díky Additional
+prázdná) a další jsou sbalené. Hodnotu čte/zapisuje jeden generický helper přes `Temp Blob.FromRecord(RecVariant,
+FieldNo)` (sám udělá `CalcField`, když Blob není načtený, ověřeno ve zdroji System App w1-28 `TempBlobImpl`)
+a `Temp Blob.ToRecordRef` + `RecRef.SetTable` + `Modify(false)`. Posted/archive tabulky se stejným field ID tak čte
+týž kód. (2026-09-29, cust-zlomek-bc PBI 65651, BC-DEV2.)
+
 ---
 
 ### 4.11 Výšku factboxu (partu) z AL nastavit NEJDE — a factbox ve factbox panelu se nedá sbalit
