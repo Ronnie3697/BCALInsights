@@ -704,6 +704,14 @@ parametru pro textovou formuli.)
   Screenshot do dokumentace: `computer` akce `zoom` s `region` + `save_to_disk: true` uloží výřez v plném rozlišení (PNG) – lepší než
   celé okno. Malý viewport (boční panel, `innerWidth` ~600 px) schová akce partů; nový tab/okno mívá plnou šířku. (2026-09-24,
   prod-ess-configurator-bc `docs/api/MCP_BC` prezentace.)
+- **Phone klient (`…/<env>/phone?company=…`) foť ve viewportu cílového zařízení, ne v širokém okně** — v 1700 px
+  okně roztáhne pole do dvou sloupců a vypadá jinak než na čtečce/telefonu. Device toolbar DevTools Claude
+  in Chrome nezapne a `resize_window` na maximalizovaném okně nic neudělá (outer = `screen.availWidth/Height`).
+  Funguje overlay `position:fixed` se **same-origin iframem na tutéž BC URL** o pevné velikosti (např. 600×900)
+  a `transform: scale(...)`, když se výška do okna nevejde; uvnitř iframu je pak `innerWidth/innerHeight`
+  přesně cílový a klikání přes souřadnice funguje. Tady je top dokument phone klienta rovnou BC (iframy jsou
+  jen control add-iny), overlay tedy otevře druhou BC session. Snippet v `ew-mobile-ui-notes.md` (osobní skill
+  `ew-mobile-ui`). (2026-09-29, Alumistr BC-TEST2, EWM Karta zboží 62206.)
 - **Zápis do prostředí zákazníka (vyplnění setupu, založení zákazníka a dokladu, naklikání testovacího
   scénáře) smíš dělat — ale JEN s výslovným svolením uživatele** pro dané prostředí a seanci. Bez něj
   jen čti a foť; data připraví uživatel. Svolení si vyžádej **dopředu**, než začneš fotit, ať nevzniknou
