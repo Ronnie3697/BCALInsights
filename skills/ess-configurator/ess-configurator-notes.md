@@ -492,6 +492,15 @@ master, nasazeno COALU 28.0.20.3 / PMEBS 28.0.5.0 / COEBS 28.0.22.2.)
   (`CopyBOMQtyFormulaLines`, `CopyActionTextFormulaLines`) jdou až dalším průchodem; jen `CopyBOMActionLinesForCondition`
   (kopie jedné BOM akce) ho volá až po vzorcích. Subscriber, který čte vzorce nového řádku, tedy v kopii celé konfigurace
   nic nenajde. (Code review 2026-09-29 — dokumentace větve tvrdila „už i s jeho vzorci".)
+- **TODO v COZLK (cust-zlomek-bc) po vydání COEBS s větví `65364_SLActionLineCopyEvent`** — plný postup je v
+  `prod-ess-configurator-bc/docs/65364 - Configurator - Event po kopii řádku SL akce a kontrola kódu Vyhledávání.md`,
+  sekce *Navazující úpravy v COZLK*. Ve zkratce: (1) minimum `Essence Configurator` podle verze **na feedu** v
+  `configuratorExtension/app` i `/test`; (2) subscriber `OnAfterCopySLActionLine` (`SourceLine` bez `var`) kopíruje
+  `SL Act. Taken Param COZLK` — všechna 4 pole PK z `NewLine`, `Main Parameter Line No.` přes mapu jen při jiné
+  `Configuration No.` (chybí v mapě → přeskočit), `Nested *` beze změny; (3) smazat `Nested Cfg Runtime
+  COZLK.TableLookupValueExists` + její volání v `TryValidateParameterValue` (base to umí; rozdíl: neplatný filtr
+  base vynechá); (4) testy kopie celé konfigurace (přečíslovaný parametr) a `CopySLAction`; (5) aktualizovat
+  `docs/65364 - VYR_24 …(COZLK).md` (⚠️ o kopii a o nefunkční kontrole v 28.0.26).
 - Mazání je v pořádku: `Configuration Definition.OnDelete` maže podmínky přes `DeleteAll(true)`, takže `OnAfterDeleteEvent`
   na `SL Action Condition/Line COEBS` běží per záznam a kaskáda v rozšíření (COZLK `Configurator Events`) data uklidí.
 
