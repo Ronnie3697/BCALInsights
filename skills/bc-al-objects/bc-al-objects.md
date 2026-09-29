@@ -851,7 +851,7 @@ Co je naopak z COZLK/COALU dosažitelné a nemusíš psát znovu:
   hodí se, když v `OnBeforeModifyNewSalesLineFromAction` přepisuješ variantu a musíš rozhodnout, jestli
   po `Validate("Variant Code")` vrátit cenu z akce, nebo nechat vyhrát standardní cenotvorbu. Texty
   (`Description`, `Description 2`) vracej vždycky — validace varianty je přepíše z karty zboží (3.6b
-  v `bc-al-data.md`).
+  v `bc-al-posting.md`).
 
 **Dialog pustí na další parametr, teprve když ten aktuální MÁ hodnotu.** `Variant Config Params COEBS`
 (63147) staví seznam postupně: `AddNextEmptyParameter` → `FindLastFilledSortOrder` (bere jen parametry,

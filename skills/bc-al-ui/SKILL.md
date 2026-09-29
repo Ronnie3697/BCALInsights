@@ -29,7 +29,7 @@ Vyčleněno z `bc-al-style.md` 2026-09-08, číslování 4.x je původní.
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
 3. Sousední témata: konvence, naming, ToolTipy, formát page fieldů → `bc-al-style`
-   (1, 10); propagace Blob/Text polí do posted dokladů → `bc-al-data` (3.6c);
+   (1, 10); propagace Blob/Text polí do posted dokladů → `bc-al-posting` (3.6c);
    Confirm + `CurrFieldNo` chování Sales Line a testy → `bc-al-objects` (5.x4) /
    `bc-al-autotests`.
 
@@ -58,5 +58,5 @@ Vyčleněno z `bc-al-style.md` 2026-09-08, číslování 4.x je původní.
   pole + `CurrPage.Update()`).
 - **4.10** `MultiLine` = pevné ~3 řádky, žádná property výšku nezvětší. Celý
   dlouhý text = `ExtendedDatatype = RichContent` na Text proměnné v root group
-  (hodnota HTML → Blob, 3.6c v `bc-al-data`) nebo vlastní control add-in
+  (hodnota HTML → Blob, 3.6c v `bc-al-posting`) nebo vlastní control add-in
   (u zákaznických rep počítej s odmítnutím jako obcházení standardu).

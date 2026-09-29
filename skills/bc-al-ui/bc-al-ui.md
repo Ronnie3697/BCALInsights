@@ -269,7 +269,7 @@ Když má uživatel vidět dlouhý text celý:
   `CreateInStream(InStream, TextEncoding::UTF8)` + `Type Helper.TryReadAsTextWithSepAndFieldErrMsg(InStream, TypeHelper.LFSeparator(), FieldCaption(...))`
   / `Clear(Blob)` + `CreateOutStream(..., UTF8)` + `WriteText` + `Modify(false)`; proměnnou
   plnit v `OnAfterGetCurrRecord`, ukládat v `OnValidate` pole. Na tisk je nutná konverze
-  HTML → text. Propagace Blobu do posted/archiv dokladů viz 3.6c v `bc-al-data.md`.
+  HTML → text. Propagace Blobu do posted/archiv dokladů viz 3.6c v `bc-al-posting.md`.
 - **Vlastní control add-in** (textarea s vlastní výškou, plain text) — když má zůstat čistý
   text a nemá se sahat na posting/reporty; výška add-inu je přes `RequestedHeight` pevná,
   iframe se obsahu nepřizpůsobí. Ověřený vzor (prototyp `Comment Editor ZLK` v cust-zlomek-bc

@@ -720,7 +720,7 @@ an ASSERTERROR statement."**, doklad se zaúčtoval. Nejčastější příčina 
 kontrola visí na `Sales Header.OnBeforeIsApprovedForPosting`, který vyvolává jen `Sales-Post
 (Yes/No)` (účtování z UI) — `LibrarySales.PostSalesDocument` jde přes `Sales-Post` přímo, takže
 kontrolu mine. Fix je v produkčním kódu, ne v testu: přesunout / doplnit subscriber na
-`Sales-Post.OnAfterCheckSalesDoc` (detail v 3.6d v `bc-al-data.md`). Test pak testuje i tu
+`Sales-Post.OnAfterCheckSalesDoc` (detail v 3.6d v `bc-al-posting.md`). Test pak testuje i tu
 cestu, kterou jedou integrace.
 
 Druhá příčina téže hlášky u TestPage: **guard v `OnModifyRecord` se spustí až při opuštění řádku**,

@@ -15,7 +15,8 @@ V kořeni zůstává jen README, `mcp-setup.md`, `check-skills.py` a archiv.
 |---|---|
 | `bc-al-style.md` | konvence, naming, ToolTipy, přidělování ID, locale pasti, moderní patterny (sekce 1, 10) |
 | `bc-al-ui.md` | UI patterny stránek — RunModal/RoleCenter, ConfirmManagement, factbox, CaptionClass, Visible, MultiLine/RichContent (sekce 4) |
-| `bc-al-data.md` | database operace, event subscribery (sekce 2, 3) |
+| `bc-al-data.md` | database operace, event subscribery (sekce 2, 3.1–3.4, 3.7–3.9) |
+| `bc-al-posting.md` | propagace vlastních polí do účtovaných dokladů, archivu a kopií — stejné field ID, částečné účtování, Blob + CalcFields, `Validate("No.")` → `Init()` (sekce 3.5–3.6f) |
 | `bc-al-objects.md` | specifické objekty/API — No. Series, Item Tracking, Attached to Line No., Requisition Line… (sekce 5) |
 | `bc-al-integrations.md` | Shopify Connector, HttpClient na SaaS, SecretText/Isolated Storage, Business Events / Power Automate, vlastní API page pro zápis, Dataverse/CDS sync (5.y2, sekce 11) |
 | `bc-al-workflow.md` | lokalizace/XLIFF, dokumentace vč. uživatelské příručky, verifikace (sekce 6, 8, 9, 12) |
@@ -36,7 +37,8 @@ V kořeni zůstává jen README, `mcp-setup.md`, `check-skills.py` a archiv.
   + tento README; always-on soubory ostatních nástrojů Router nedrží).
   Prakticky: ~750+ řádků / ~50 KB se už do jednoho Read (~25k tokenů) nevejde — děl dřív.
   Vzory: 7.11–7.19 → `bc-al-build.md` (2026-09-01); sekce 4 → `bc-al-ui.md` a 5.y2 + 11 →
-  `bc-al-integrations.md` (2026-09-08, `bc-al-objects.md` měl 57 KB = 26k tokenů a Read ho ořízl).
+  `bc-al-integrations.md` (2026-09-08, `bc-al-objects.md` měl 57 KB = 26k tokenů a Read ho ořízl);
+  3.5–3.6f → `bc-al-posting.md` (2026-09-29, `bc-al-data.md` přesáhl 1000 řádků).
 - Každý nový poznatek = commit s krátkou zprávou, co a odkud (repo, PR, datum).
 
 Klon může ležet kdekoli — od 2026-09-22 se notes odkazují relativně k adresáři skillu (dřív
@@ -288,7 +290,8 @@ stabilních pravidel. **Notes soubory zůstávají zdrojem pravdy.**
 | `bc-al` (`/bc-al`) | rozcestník = Router + startup checklist + pravidla údržby | první akce každé AL/BC seance |
 | `bc-al-style` | `bc-al-style.md` | konvence, naming, ToolTipy, ID, moderní patterny |
 | `bc-al-ui` | `bc-al-ui.md` | chování page/pageextension, RoleCenter, factbox, Visible, MultiLine |
-| `bc-al-data` | `bc-al-data.md` | DB operace, event subscribery, propagace polí |
+| `bc-al-data` | `bc-al-data.md` | DB operace, event subscribery |
+| `bc-al-posting` | `bc-al-posting.md` | vlastní pole na dokladech → archiv, účtované doklady, kopie |
 | `bc-al-objects` | `bc-al-objects.md` | No. Series, Item Tracking, Attached to Line No., Requisition Line… |
 | `bc-al-integrations` | `bc-al-integrations.md` | Shopify Connector, HttpClient/SecretText na SaaS, Power Automate, Dataverse sync |
 | `bc-al-workflow` | `bc-al-workflow.md` | XLIFF, dokumentace + uživatelská příručka, analyzery, ruleset |

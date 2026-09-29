@@ -461,7 +461,7 @@ permissionsetextension  60120, 60121, 60122
 
 Stejně tak **field ID** (per-table namespace — první custom pole na každé
 tabulce = začátek range; výjimka: posted/archive sady drží stejné field ID
-jako zdrojová tabulka kvůli `TransferFields`, viz 3.6 v `bc-al-data.md`) a **enum values**
+jako zdrojová tabulka kvůli `TransferFields`, viz 3.6 v `bc-al-posting.md`) a **enum values**
 (per-enum namespace).
 
 **Proč:** Range se zbytečně nevyčerpává (20 ID stačí na 20 objektů *každého*

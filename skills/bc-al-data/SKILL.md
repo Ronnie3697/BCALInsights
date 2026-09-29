@@ -6,11 +6,9 @@ description: >-
   TransferFields + PK v copy smyčce, Mark/MarkedOnly vs Copy, trvalý filtr ve FilterGroup, field-by-field kopie, TableRelation
   mimo PK (Validate za běhu spadne), tableextension triggery vs subscribery, modify() ve fields, klíč jen
   vlastní pole (AL0423), var guard vs CurrFieldNo, xRec = Rec při Modify z kódu, IsTemporary, init detection
-  OnAfterValidateEvent, SkipOnMissingLicense/Permission, propagace Sales Line → ILE / Whse. Shipment, vlastní
-  pole Sales/Purchase Header/Line vč. archive/posted, total při částečném účtování (OnAfterInitFromSalesLine,
-  undo), AutoFormatExpression GetCurrencyCode, Blob = CalcFields + subscriber, délky Text polí (LC0044),
-  Validate("No.") Init() past (archive, Copy Doc., Recreate), OnAfterGetUnitCost, LC0028, AL0432. Načti u recordů, postingu,
-  subscriberů, tableextension a relací polí.
+  OnAfterValidateEvent, SkipOnMissingLicense/Permission, LC0028, AL0432. Propagace vlastních polí do posted /
+  archive / kopie dokladu (3.5–3.6f) je ve skillu bc-al-posting. Načti u recordů, subscriberů, tableextension
+  a relací polí.
 user-invocable: true
 ---
 
@@ -28,7 +26,8 @@ jsou v souboru.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
-3. Sousední témata: konvence a naming → `bc-al-style`; No. Series, Item
+3. Sousední témata: konvence a naming → `bc-al-style`; propagace vlastních polí
+   do posted / archive / kopie dokladu → `bc-al-posting` (3.5–3.6f); No. Series, Item
    Tracking, Requisition Line → `bc-al-objects`; ověření signatur eventů
    (al-mcp, extrakce z .app) → `bc-al-tools` (7.2, 7.6).
 
@@ -65,28 +64,8 @@ jsou v souboru.
   `Rec."No." = ''` / `IsTemporary()` → exit.
 - **3.4** `[EventSubscriber(..., '', false, false)]` pro business logiku
   (ať to spadne viditelně); `true, true` jen kosmetika.
-- **3.5** Propagace pole: `Sales-Post.OnPostItemJnlLineOnAfterPrepareItemJnlLine`
-  → `Item Jnl.-Post Line.OnAfterInitItemLedgEntry`;
-  `Sales Warehouse Mgt.OnAfterCreateShptLineFromSalesLine` (+ `Modify(false)`).
-- **3.6** Vlastní pole na Sales/Purchase Header/Line → **stejné field ID a typ
-  na archive + všech posted tabulkách** (TransferFields to přenese bez
-  subscriberu) + pageextension na všech posted/archive page. FlowField zdroj →
-  subscriber `OnAfter…Insert`. Projdi checklist v souboru. Vlastní **total
-  řádku** se při částečném účtování nepřepočítá → dopočítej
-  v `OnAfterInitFromSalesLine` (na všech 4 posted line tabulkách, **různé
-  pořadí parametrů**) a otoč znaménko při undo
-  (`OnBeforeNewSalesShptLineInsert` / `…ReturnRcptLineInsert`); test musí krýt
-  částečné účtování + undo. Invoice/Cr.Memo Line nemají `Currency Code` →
-  `AutoFormatExpression = Rec.GetCurrencyCode()`.
-- **3.6b** `Sales Line.Validate("No.")` dělá `Init()` → extension pole se
-  ztratí při archive restore (`OnAfterTransferFromArchToSalesLine`), Copy
-  Document s Recalculate (`OnBeforeInsertToSalesLine`) a RecreateSalesLines
-  (`OnBeforeSalesLineInsert`) → sdílený `Reapply` helper. `fieldgroups`
-  z tableextension fungují.
-- **3.6c** Blob pole na Sales Header: `TransferFields` ho bez `CalcFields` **tiše
-  nepřenese** → subscriber na každém přenosu (post, archiv, Quote→Order, Copy
-  Document) s `CalcFields` na zdroji. Délku/typ vlastního Text pole drž
-  stejnou v celé sadě tabulek (LC0044 = warning = CI fail).
+- **3.5–3.6f** Propagace vlastních polí do účtovaných dokladů, archivu a kopií → skill
+  `bc-al-posting` (soubor `bc-al-posting.md`).
 - **3.7** `[EventSubscriber]` event a element jako **identifikátory**
   (`OnAfterValidateEvent`, `"Operation No."`), ne string literály (LC0028);
   prázdný element zůstává `''`.

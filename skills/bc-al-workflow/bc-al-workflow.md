@@ -555,7 +555,7 @@ Doplněk k 12.1c (tam je jen `PC0037`). Čísla z druhého úklidu — **cust-zl
   Shipment / Return Receipt** (a obdobně u nákupu). Je to **reálný nález, ne kosmetika** —
   `TransferFields` delší text tiše ořízne. Fix = dorovnat délku na všech tabulkách sady
   (rozšíření je nedestruktivní, sync mode Add projde; zmenšení dat NE). Souvisí s pravidlem
-  „posted/archive sady drží stejné field ID" (3.6 v `bc-al-data.md`).
+  „posted/archive sady drží stejné field ID" (3.6 v `bc-al-posting.md`).
   ⚠️ Než začneš dorovnávat, ověř `git diff`, jestli tu nerovnost nezavedla **něčí rozpracovaná
   změna** ve working tree — u Zlomka pocházelo všech 10 hlášení z necommitnutého prototypu,
   který zvedl `Comment 1 ZLK` na `Text[2048]` jen na hlavičce. Dorovnání zbylých pěti tabulek

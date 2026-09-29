@@ -15,7 +15,7 @@
 >
 > Starší konfigurátorové poznatky žijí zatím i v `bc-al-objects.md`
 > (5.x10 `Effective Hidden`, 5.x12 find-or-create varianty + public API dialogu,
-> 5.x2b tracking na nabídce, 5.x8 Item Charge Assignment) a v `bc-al-data.md`
+> 5.x2b tracking na nabídce, 5.x8 Item Charge Assignment) a v `bc-al-posting.md`
 > (3.6b `Validate("No.")` → `Init()`, 5.x4 `Attached to Line No.`). Při dalším
 > průchodu je sem přesuň; odkazy „viz X.Y" nechávej funkční.
 
@@ -249,7 +249,7 @@ Když tam vyjde nula, hledej ji v parametru, který popis používá, ne v typu 
 
 ⚠️ **Pořadí: texty až po `Validate("Variant Code")` a `Validate("Unit of Measure Code")`** —
 oba triggery volají `Item Reference Management.EnterSalesItemReference` a `Description`
-i `Description 2` přepíšou z karty zboží (detail 3.6b v `bc-al-data.md`).
+i `Description 2` přepíšou z karty zboží (detail 3.6b v `bc-al-posting.md`).
 
 ## C5. Identita varianty = množina hodnot parametrů
 
@@ -390,7 +390,7 @@ Od PBI 66389 reaguje jen na variantu s příznakem `Price Variant PMEBS` **nebo*
 hledá nejdřív alternativní kusovník podle `Variant Code` (Default přednost, jen Certified); když ho nenajde, pokračuje beze změny
 kusovníkem z karty + eventem `OnAfterSetProdBOMHeaderFilters…` (PMALU cenová varianta, jen při kusovníku na kartě). Na řádek zapisuje
 base subscriber **`Sales Line.OnAfterGetUnitCost`** (ne triggery polí — `GetUnitCost` volá i `Location Code`, `Quantity`, `Return Reason
-Code`, detail 3.6b v `bc-al-data.md`) a **jen pro řádek, jehož varianta má vlastní kusovník** — `FixedCost × "Qty. per Unit of Measure"`,
+Code`, detail 3.6b v `bc-al-posting.md`) a **jen pro řádek, jehož varianta má vlastní kusovník** — `FixedCost × "Qty. per Unit of Measure"`,
 nula nepřepisuje. Cenová varianta a řádek bez varianty zůstaly v PMALU (`Sales Line PMALU`: po `No.` a `Sales Price Var. Code`, zapisuje
 i nulu, nenásobí MJ) — uživatel chtěl řešit jen výrobní variantu; sjednocení je otevřený bod v `docs/open-issues/59877_…md`.
 Base čte `Alternative Prod. BOM ATEBS` na každém řádku s variantou → `tabledata … = R` v `Alumistr-READ ALU` + závislost base na ATEBS.

@@ -32,7 +32,7 @@ publisher Essence International s.r.o.), zákaznická rozšíření
 1. **Přečti `ess-configurator-notes.md` z adresáře tohoto skillu celý.**
    Když se Read ořízne, dočti přes `offset` — částečně přečtený soubor
    = nepřečtený.
-2. Obecná AL pravidla platí dál: `bc-al-style`, `bc-al-data` (3.6b `Validate("No.")`
+2. Obecná AL pravidla platí dál: `bc-al-style`, `bc-al-posting` (3.6b `Validate("No.")`
    → `Init()`, 5.x4 `Attached to Line No.`), `bc-al-ui`, u netriviální funkčnosti
    `bc-al-autotests`. Starší konfigurátorové poznatky zatím i v `bc-al-objects.md`
    (5.x10, 5.x12, 5.x2b, 5.x8).
