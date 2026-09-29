@@ -285,6 +285,12 @@ Assert.ExpectedErrorCode('Dialog');
   SalesOrder.SalesLines.Type.SetValue("Sales Line Type"::Item) else
   SalesOrder.SalesLines.FilteredTypeField.SetValue(Format("Sales Line Type"::Item))`.
   (2026-09-09, prod-ess-configurator-bc `Attached Lines Tests COEBS`, helper `SetNewSubformLineTypeItem`)
+- **`LibrarySales.CreateSalesOrder(SalesHeader)` (jen s hlavičkou) založí i řádek s náhodným zboží** (`CreateSalesOrderForCustomerNo`
+  → `CreateSalesLine(…, CreateItemWithUnitPriceAndUnitCost, RandInt(100))`). Testovaný řádek přidaný po ní je až **druhý** →
+  `TestPage.SalesLines.First()` stojí na cizím řádku; ber `Last()` (vzor `System Param Tests COEBS`), nebo hlavičku zakládej
+  `CreateSalesHeader`. Zdrojáky MS test knihoven (`.app` je nemají): **microsoft/BCApps `src/Layers/W1/Tests/ApplicationTestLibrary/`**
+  (raw.githubusercontent, `main`; najdeš přes `gh api "search/code?q=<procedura>+filename:<Soubor>.Codeunit.al"`).
+  (2026-09-29, prod-ess-configurator-bc review větve ParametersForPrint.)
 - **Čtení CI logu: stejné `Document No.` v chybách několika testů za sebou = každý z nich spadl a odroloval se**
   (číselná řada se vrátila); prošlý test commitne a číslo posune. Runner úspěšné testy nevypisuje, ale z čísel dokladů
   v hláškách jde poznat, které testy mezi faily prošly (build 28149: „1003" u testů 3–5, „1005" od testu 9 = testy 6 a 8
