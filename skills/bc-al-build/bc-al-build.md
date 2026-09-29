@@ -395,7 +395,12 @@ z cz 28.3 artifactu a variable group vrátit.
   **tiše neprojeví** — zkontroluj, na který objekt rozšíření míří. Vzor přepínače v cust-alumistr-bc: `#if SubcontractBC28Obsolete`
   (nové objekty) / `#else` (legacy) a symbol v `app.json` `preprocessorSymbols` — **podtržítko na konci (`"SubcontractBC28Obsolete_"`)
   symbol vypíná**, snadno se přehlédne. Zapnutí = přímá závislost na Subcontracting 28.3.0.0 (odstavce výše).
-- Report 20505 i `SetWkShLine` běží jen při **`Manufacturing Setup."Legacy Subcontracting" = false`** (`Subc. Feature Flag Handler`,
+- **Množství řádku sešitu z reportu 20505 už obsahuje prořez** (`CalcQtyAdjdForRoutingScrap(CalcQtyAdjdForBOMScrap(ProdOrderLine."Quantity (Base)",
+  ProdOrderLine."Scrap %"), …)` − výstup na NO a skutečný výstup) a `Prod. Order Component."Expected Quantity"` taky (`ProdOrderLine.Quantity ×
+  (1 + Scrap %) × (1 + prořez postupu) × (1 + Scrap % komponenty)`). Poměr „nakupované množství / `ProdOrderLine.Quantity`" pro přepočet komponent
+  tak prořez započte **dvakrát** — poměr ber vůči množství VZ upravenému stejně jako v reportu. (w1-28 `SubcCalculateSubcontracts`,
+  `ProdOrderComponent.Table.al`, 2026-09-29.)
+- Report 20505 i `SetWkShLine` běží jen při **`Manufacturing Setup."Legacy Subcontracting" = false`** (cs-CZ *Staré subdodávky*; `Subc. Feature Flag Handler`,
   `#if not CLEAN28`) — jinak `CurrReport.Quit()` bez chyby. Pole je base, obsolete pending → v testu `#pragma warning disable AL0432`
   kolem přiřazení + `LibrarySetupStorage.Save(Database::"Manufacturing Setup")` **před** první změnou (MS testy ho nenastavují, spoléhají
   na výchozí `false`).
