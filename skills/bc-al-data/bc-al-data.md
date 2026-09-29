@@ -785,6 +785,21 @@ fakturovanou cenu (`CalcUnitPriceUsingUOMCoef`). `BlanketOrderIsRelated` je `int
 
 (2026-09-02, cust-zlomek-bc — rich text prototyp `Comment 2 ZLK`.)
 
+**Kam se zavěsit (BC 28, ověřeno ve zdrojích w1-28 a zkompilováno):**
+
+| Přenos | Event | Stačí |
+|---|---|---|
+| Účtování → dodávka / faktura / dobropis / příjemka vratky | `Sales-Post.OnInsertShipmentHeaderOnBeforeTransferfieldsToSalesShptHeader`, `OnInsertInvoiceHeaderOnBeforeSalesInvHeaderTransferFields`, `OnInsertCrMemoHeaderOnBeforeSalesCrMemoHeaderTransferFields`, `OnInsertReturnReceiptHeaderOnBeforeReturnReceiptHeaderTransferFields` — všechny `(var SalesHeader)` těsně před `TransferFields` | jen `SalesHeader.CalcFields(<Bloby>)`, přenos udělá base (stejná ID) |
+| Archivace | `ArchiveManagement.OnBeforeSalesHeaderArchiveInsert(var Archive, SalesHeader)` (před `Insert`) | přiřazení Blobů |
+| Obnova z archivu | `ArchiveManagement.OnAfterTransferFromArchToSalesHeader(var SalesHeader, var Archive)` (za ním `Modify(true)`) | přiřazení |
+| Nabídka → objednávka | `Sales-Quote to Order.OnBeforeModifySalesOrderHeader(var Order, Quote)` (base tam přiřazuje `Work Description`) | přiřazení |
+| Kopie dokladu | **jeden** `Copy Document Mgt.OnAfterCopySalesHeaderDone(var ToSalesHeader, Old, FromSalesHeader, FromShpt, FromInv, FromRetRcpt, FromCrMemo, FromArchive, FromDocType)` pro všechny zdroje (volá se jen s `IncludeHeader`, za ním `Modify`) | `case FromDocType` → přiřazení ze správného zdroje |
+
+Base u příjemky vratky `Work Description` ani nekalkuluje (w1-28) — vlastní subscriber tam přesto dej. Generické
+kopírování mezi různými tabulkami: `Temp Blob.FromRecord(FromVariant, FieldNo)` (sám udělá `CalcField`) →
+`Temp Blob.ToRecordRef(ToRecRef, FieldNo)` → `ToRecRef.SetTable(ToRec)`. (2026-09-29, cust-zlomek-bc PBI 65651,
+`Sales Comment Mgt. ZLK`.)
+
 ### 3.6e Guard na page `OnModifyRecord` nestav na diffu `Rec` vs `xRec` — hlídej invarianty
 
 Page trigger `OnModifyRecord` dostane **spolehlivý `xRec` jen z reálného UI vstupu**. Guard
