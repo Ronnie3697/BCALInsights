@@ -276,6 +276,13 @@ Gen. Bus. Posting Group / Base Unit of Measure a sales flow na tom padá.
   Totéž `cust-zlomek-bc` (definice 176, ověřeno 2026-09-24 — všechny buildy jen `refs/heads/master`): PR se testy
   neověří, nový test codeunit poprvé běží až po merge. Plán „po PR buildu zkontroluj testy" tam neplatí.
 
+- **Které appky CI testuje, pozná šablona podle JMÉNA, ne podle složky ani závislostí.** `scripts/TestBCApps.ps1` (v2-0) bere
+  z kontejneru appky `publisher -ne 'Microsoft' -and name -imatch $testAppNames` (default `'Test'`) a na každou pustí
+  `Run-TestsInBcContainer`. Druhá test appka v repu (`testCZ/` vedle `test/`) tedy poběží sama, **když má v `name` „Test“**
+  (`Essence Configurator CZ Tests`); test appka pojmenovaná jinak se v CI nespustí vůbec a build zůstane zelený. Naopak
+  produkční appka se slovem „Test“ v názvu se „testuje“ taky (bez test codeunitů jen prázdný běh). (2026-09-29,
+  prod-ess-configurator-bc, zakládání `testCZ` pro Essence Configurator CZ.)
+
 ### 7.16 Squash merge PR → falešné konflikty při dalším mergi + three-dot diff klame
 
 Azure DevOps (a GitHub) umí PR zapsat jako **squash merge** — obsah větve doputuje
