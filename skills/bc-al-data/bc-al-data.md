@@ -293,6 +293,12 @@ každý další nezávislý filtr (atributy, …) do vlastní skupiny. Kompilace
 filtr a hledané pole splývají. (cust-zlomek-bc `Nested Cfg Runtime COZLK.TableLookupValueExists`, master build 28453,
 2026-09-24; stejný vzor v COEBS `ValidateTableLookupValue` — detail C5 v `ess-configurator-notes.md`.)
 
+**Sdílený helper, který přidává filtr na cizí `RecordRef` (typicky „filtr atributů → `Item."No."`"), ať si skupinu přepne
+sám:** `Old := RecRef.FilterGroup(); RecRef.FilterGroup(10); FldRef := RecRef.Field(…); FldRef.SetFilter(…); RecRef.FilterGroup(Old);`.
+Oprava na jednom místě spraví všechny volající (i ty v cizích větvích / appkách, které helper volají) a volající, kteří si skupinu
+nastavují sami, dostanou stejný výsledek. Test: filtr volajícího na stejném poli + helper → `Count()` pod oběma filtry a
+`RecRef.FilterGroup() = 0` po návratu. (2026-09-29, prod-ess-configurator-bc 65364, `Item Attr. Filter Mgt.ApplyToRecRef`.)
+
 ### 2.7 Nové flag/marker pole → projít i field-by-field copy procedury (šablony, buffery)
 
 Když do tabulky přidáváš nové pole (typicky Boolean marker jako `Has Value` /

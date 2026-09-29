@@ -318,6 +318,13 @@ Totéž má API 66387: `Config. API Session Mgt. COEBS.FillTableLookupValues` (p
 `value` přepíše filtr atributů (`No.`) filtr tabulky na `No.`; stejně v dialogu `Table Values Lookup`, `Variant Config Params` a v
 `Variant Config. Engine` (jediná hodnota). Uživatel 2026-09-24 rozhodl: oprava zůstává v tasku 65364 (větev
 `65364_SLActionLineCopyEvent`, commit 599429a – kontrola už vrací výsledek, ale filter groups ještě ne), PR 66387 ji neobsahuje.
+**Dokončeno 2026-09-29** (commit 739c732, větev pushnutá, PR zakládá uživatel): **`Item Attr. Filter Mgt.ApplyToRecRef` dává
+filtr atributů sám do filter group 10** (`internal AttributeFilterGroup()`) a skupinu volajícího vrátí → opraveni všichni volající
+najednou (lookup, auto-výběr jediné hodnoty, `GetSingleFilteredRecordValue`, kontrola hodnoty) a po merge i API 66387 (volá stejnou
+proceduru); `ValidateTableLookupValue` dává hledanou hodnotu do skupiny 11. COZLK si 10/11 nastavuje sám, výsledek stejný.
+**Zbývá jen API:** filtr `value`/`displayText` v `FillTableLookupValues` (`TrySetRecRefFieldFilter` ve skupině filtru tabulky) —
+do 66387 nebo po merge obou větví. `Param. Display Text Mgt.GetTableLookupDisplayText` beze změny (hledá přesnou vybranou
+hodnotu, přepsání filtru tabulky na stejném poli výsledek nemění).
 
 ## C6. Diagnostika konfigurace v běžícím BC
 
