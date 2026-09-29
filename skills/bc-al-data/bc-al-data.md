@@ -751,6 +751,10 @@ a `Variant Code` / `Unit of Measure Code` ji plánují jen `if <pole> <> xRec.<p
 s variantou z dialogu), dostane přepočtenou pořizovací cenu, ale jednotková zůstane stará. Cenu z vlastního výpočtu proto nastavuj **i
 v `OnAfterGetUnitCost`** (a v `OnAfterUpdateUnitPrice` kvůli přepočtům bez `GetUnitCost` — množství, zákazník, měna). Test: přiřaď pole +
 `Modify(false)`, `Get`, `Validate` se stejnou hodnotou, assert ceny. (2026-09-25, cust-alumistr-bc BC-TEST2 PO2500211.)
+⚠️ Vlastní cena v `OnAfterUpdateUnitPrice` / `OnAfterGetUnitCost` obchází **ochranné větve `UpdateUnitPriceByField`** (w1-28): řádek z rámcovky
+dostane cenu rámcovky (`BlanketOrderIsRelated` → `CopyUnitPriceAndLineDiscountPct`), dobropisový doklad s `Copied From Posted Doc.` drží
+fakturovanou cenu (`CalcUnitPriceUsingUOMCoef`). `BlanketOrderIsRelated` je `internal` → guard sám: `"Blanket Order Line No." <> 0` a
+`"Copied From Posted Doc." and IsCreditDocType()` (public) → exit. (Code review cust-alumistr-bc 66389, 2026-09-29.)
 
 **Bonus — `fieldgroups` z tableextension:** `fieldgroups { addlast(DropDown; "My Field") }` v tableextension funguje
 (vzor base app `ReturnReasonExt.TableExt.al`) — nejlevnější způsob, jak vlastní atribut ukázat ve všech lookupech

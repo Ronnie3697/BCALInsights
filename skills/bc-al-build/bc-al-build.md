@@ -392,10 +392,16 @@ z cz 28.3 artifactu a variable group vrátit.
 - Base objekty (*Subcontracting Worksheet* 99000886, report *Calculate Subcontracts* 99001015, typ šablony `"For. Labor"`) jsou
   `ObsoleteState = Pending` (28.0); zákazník s appkou Subcontracting používá **`Subc. Subcontracting Worksheet` (20504)** a **`Subc.
   Calculate Subcontracts` (20505)**, typ šablony `Subcontracting` (enumextension appky). Pageext / subscriber na legacy objekty se u něj
-  **tiše neprojeví** — zkontroluj, na který objekt rozšíření míří. Vzor přepínače v cust-alumistr-bc: `#if SubcontractBC28Obsolete`
-  (nové objekty) / `#else` (legacy) a symbol v `app.json` `preprocessorSymbols` — **podtržítko na konci (`"SubcontractBC28Obsolete_"`)
-  symbol vypíná**, snadno se přehlédne. Zapnutí = přímá závislost na Subcontracting 28.3.0.0 (odstavce výše).
-- Report 20505 i `SetWkShLine` běží jen při **`Manufacturing Setup."Legacy Subcontracting" = false`** (`Subc. Feature Flag Handler`,
+  **tiše neprojeví** — zkontroluj, na který objekt rozšíření míří. Přepínač `#if <symbol>` (nové objekty) / `#else` (legacy) se symbolem
+  v `app.json` `preprocessorSymbols` jde, ale pozor: **podtržítko na konci (`"SubcontractBC28Obsolete_"`) symbol vypíná** a snadno se
+  přehlédne. Zákazník, který jede rovnou appku, přepínač nepotřebuje — v cust-alumistr-bc 2026-09-29 odstraněn i s legacy větvemi, base stojí
+  jen na objektech appky (přímá závislost na Subcontracting 28.3.0.0, odstavce výše).
+- **Množství řádku sešitu z reportu 20505 už obsahuje prořez** (`CalcQtyAdjdForRoutingScrap(CalcQtyAdjdForBOMScrap(ProdOrderLine."Quantity (Base)",
+  ProdOrderLine."Scrap %"), …)` − výstup na NO a skutečný výstup) a `Prod. Order Component."Expected Quantity"` taky (`ProdOrderLine.Quantity ×
+  (1 + Scrap %) × (1 + prořez postupu) × (1 + Scrap % komponenty)`). Poměr „nakupované množství / `ProdOrderLine.Quantity`" pro přepočet komponent
+  tak prořez započte **dvakrát** — poměr ber vůči množství VZ upravenému stejně jako v reportu. (w1-28 `SubcCalculateSubcontracts`,
+  `ProdOrderComponent.Table.al`, 2026-09-29.)
+- Report 20505 i `SetWkShLine` běží jen při **`Manufacturing Setup."Legacy Subcontracting" = false`** (cs-CZ *Staré subdodávky*; `Subc. Feature Flag Handler`,
   `#if not CLEAN28`) — jinak `CurrReport.Quit()` bez chyby. Pole je base, obsolete pending → v testu `#pragma warning disable AL0432`
   kolem přiřazení + `LibrarySetupStorage.Save(Database::"Manufacturing Setup")` **před** první změnou (MS testy ho nenastavují, spoléhají
   na výchozí `false`).
@@ -416,9 +422,29 @@ z cz 28.3 artifactu a variable group vrátit.
   — „zbytečná poznámka" na PO se vypíná tímhle polem, bez kódu. Vlastní řádky **pod** finál: subscriber `OnAfterInsertPurchOrderLine`
   s `var NextLineNo` (`+= 10000`, `Insert(false)`, `Attached to Line No.` = finál) — další finál naváže od `NextLineNo`, takže bloky
   zůstanou u svých finálů. Pozor: `Purchase Line.IsExtendedText()` = Type " " + Attached ≠ 0 + **Quantity = 0** — poznámka s množstvím
-  se za rozšířený text nepovažuje (smazání finálu ji smaže přes `Attached to Line No.` i tak). Hlášení *Změnit množství* na existující
+  se za rozšířený text nepovažuje (smazání finálu ji smaže přes `Attached to Line No.` i tak). ⚠️ **Poznámku s `Quantity ≠ 0` ale vůbec
+  nezakládej:** `Purch.-Post.PostPurchLine` (w1-28) při `Quantity <> 0` volá `TestField("No.")` (a `Type`, účto skupiny) na **každém**
+  řádku dokladu → příjem i faktura kooperační objednávky spadnou na „No. must have a value". Množství a MJ komponenty dej do `Description` /
+  `Description 2`, `Quantity` nech 0 (code review větve 66389/66397 2026-09-29; test objednávku neúčtoval, proto to neodhalil). Hlášení *Změnit množství* na existující
   PO `OnAfterInsertPurchOrderLine` nevyvolá (appka aktualizuje své komponenty přes `Carry Out Action`.`OnPurchOrderChgAndResheduleOnAfterGetPurchHeader`).
   (2026-09-25, cust-alumistr-bc PBI 66397 bod 4 — kusovník jako poznámky pod řádkem kooperace.)
+- **Řádek kooperace na NO má `Qty. per Unit of Measure` = 0 a `Quantity (Base)` = 0** — nepočítej z něj poměry. Report 20505 (i legacy 99001015
+  a `Subc. Purchase Order Creator.InsertReqWkshLine`) nastaví řádku sešitu `"Qty. per Unit of Measure" := 0; "Quantity (Base)" := 0`,
+  `Req. Wksh.-Make Order.InitPurchOrderLine` to zkopíruje (`PurchOrderLine."Qty. per Unit of Measure" := RequisitionLine."Qty. per Unit of Measure"`)
+  a `Purchase Line."Unit of Measure Code".OnValidate` dává u `IsProdOrder()` taky 0; `UOMMgt.CalcBaseQty` s nulou vrátí 0. Appka sama si
+  base množství dopočítává až na příjemce (`SubcPurchPostExt.SetQuantityBaseOnSubcontractingServiceLine`). Množství v MJ řádku VZ ber jako
+  `PurchOrderLine.Quantity × ProdOrderLine."Qty. per Unit of Measure"` (MJ řádku NO = MJ řádku VZ). (Code review cust-alumistr-bc 66397,
+  2026-09-29 — poměr `"Quantity (Base)" / množství s prořezem` dával 0 u všech komponent; zdroje Base App 28.5, Subcontracting 28.5.)
+- **Akce *Create Subcontracting Order* na postupu vydané VZ** (`SubcProdOrderRtng.PageExt` → `Subc. Purchase Order Creator.CreateSubcontractingPurchaseOrderFromRoutingLine`)
+  založí řádek sešitu vlastním `InsertReqWkshLine` (šablona/list z `Manufacturing Setup."Subcontracting Template/Batch Name"`, **bez eventů**)
+  a pustí `Carry Out Action Msg. - Req.` → eventy reportu 20505 (`OnAfterTransferProdOrderRoutingLine`, `OnBeforeReqWkshLineInsert`) se
+  nevolají, eventy `Req. Wksh.-Make Order` ano. Pole, která plníš v reportu, na téhle cestě chybí. Obě cesty pokryje jeden subscriber
+  **`Requisition Line.OnBeforeInsertEvent`** (platforma ho volá i u `Insert()` bez triggeru; filtr `Prod. Order No.` + `Operation No.` <> '' a
+  pole ještě prázdné, hodnota z `Prod. Order Routing Line` / `Prod. Order Line` přes `Get` se stavem Released) — na rozdíl od fallbacku při
+  přenosu na řádek NO respektuje, co uživatel na řádku sešitu později přepíše nebo smaže. Pozor: fallback na NO přes
+  `OnInsertPurchOrderLineOnAfterTransferFromReqLineToPurchLine` by se s jiným subscriberem téhož eventu (přenos pole Req → Purchase) přetahoval
+  o pořadí. (2026-09-29, cust-alumistr-bc 66397 — subscribery reportu nahrazeny, test přes `CreateSubcontractingPurchaseOrderFromRoutingLine`
+  (public, list sešitu v `Manufacturing Setup."Subcontracting Template/Batch Name"`, bez dialogů); zatím jen kompilace.)
 
 ### 7.18 Essence Deploy Staging — `sync_mode` je hardcoded 'Add', destruktivní schema změna ho shodí
 

@@ -284,6 +284,13 @@ systém → akce krok za krokem → co se děje při účtování a archivaci �
 nedělá** (otevřené business otázky z RFC, ať to testeři hlídají) → testovací scénář
 k odškrtání. Terminologii ber **z `Translations/*.cs-CZ.xlf`** (captiony polí a akcí), ne
 z hlavy — uživatel musí najít přesně ten popisek, který vidí na obrazovce.
+Captiony standardních objektů jsou v XLIFF **uvnitř `.app`** (`unzip` Base Application / Subcontracting
+→ `Translations/Base%20Application.cs-CZ.xlf`). Pozor, MS XLIFF nemá kontext v poznámce `Xliff Generator`
+(ta je prázdná), ale v `Developer` poznámce jako `(LookupHint=Table Sales Line - Field Unit Cost (LCY) - Property Caption)`.
+Regex `LookupHint=([^)]*)\)` na jménech se závorkou uřízne, ber `LookupHint=(.*?)\)</note>`. Pole s `CaptionClass`
+v XLIFF jako celek nenajdeš (Jednotková cena + `ExclVATTxt` „bez DPH“ z `VAT CaptionClass Mgmt`). Ne každá Essence appka
+má překlady (EM Alternative BOM and Routing 28.0 žádné `Translations/` nemá, v CZ klientu ukazuje anglické popisky) —
+v příručce to zmiň. (2026-09-29, cust-alumistr-bc prezentace 66389/66397.)
 
 **Screenshoty z reálného prostředí** (Claude in Chrome, detail a pasti v 12.3): nafoť
 nastavení, kartu s klíčovým polem, hlavičku dokladu s akcí a řádky; k obrázku vždy popisek
