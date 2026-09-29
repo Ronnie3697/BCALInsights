@@ -416,7 +416,10 @@ z cz 28.3 artifactu a variable group vrátit.
   — „zbytečná poznámka" na PO se vypíná tímhle polem, bez kódu. Vlastní řádky **pod** finál: subscriber `OnAfterInsertPurchOrderLine`
   s `var NextLineNo` (`+= 10000`, `Insert(false)`, `Attached to Line No.` = finál) — další finál naváže od `NextLineNo`, takže bloky
   zůstanou u svých finálů. Pozor: `Purchase Line.IsExtendedText()` = Type " " + Attached ≠ 0 + **Quantity = 0** — poznámka s množstvím
-  se za rozšířený text nepovažuje (smazání finálu ji smaže přes `Attached to Line No.` i tak). Hlášení *Změnit množství* na existující
+  se za rozšířený text nepovažuje (smazání finálu ji smaže přes `Attached to Line No.` i tak). ⚠️ **Poznámku s `Quantity ≠ 0` ale vůbec
+  nezakládej:** `Purch.-Post.PostPurchLine` (w1-28) při `Quantity <> 0` volá `TestField("No.")` (a `Type`, účto skupiny) na **každém**
+  řádku dokladu → příjem i faktura kooperační objednávky spadnou na „No. must have a value". Množství a MJ komponenty dej do `Description` /
+  `Description 2`, `Quantity` nech 0 (code review větve 66389/66397 2026-09-29; test objednávku neúčtoval, proto to neodhalil). Hlášení *Změnit množství* na existující
   PO `OnAfterInsertPurchOrderLine` nevyvolá (appka aktualizuje své komponenty přes `Carry Out Action`.`OnPurchOrderChgAndResheduleOnAfterGetPurchHeader`).
   (2026-09-25, cust-alumistr-bc PBI 66397 bod 4 — kusovník jako poznámky pod řádkem kooperace.)
 
