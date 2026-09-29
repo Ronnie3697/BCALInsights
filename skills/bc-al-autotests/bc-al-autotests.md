@@ -234,6 +234,13 @@ Assert.ExpectedErrorCode('Dialog');
   lokálně s vypnutým Dynamic LLC projde. Před úpravou komponenty ji načti znovu (`ComponentItem.Get(ComponentItem."No.")`). Výrobek sám
   problém nemá (codeunit dělá `Rec.Copy(Item2)`). (2026-09-29, cust-alumistr-bc PR 9604 build 28526,
   `CreditMemoCopiedFromPostedInvoiceKeepsInvoicedPrice`; zdroj Base App 28.5 `CalculateLowLevelCode.Codeunit.al`, `MfgItem.TableExt.al`.)
+- **Zákaznická appka, která při Quote → Order dá objednávce ČÍSLO NABÍDKY (`OnBeforeInsertSalesOrderHeader`:
+  `SalesOrderHeader."No." := SalesQuoteHeader."No."`), shodí `LibrarySales.QuoteMakeOrder` na *„The record in table Sales
+  Header already exists. Document Type='Order', No.='1001'"*.** V CI firmě (CRONUS CZ) začínají řady nabídek i objednávek
+  na 1001 a objednávku 1001 už založil dřívější test téhož codeunitu (AutoCommit). Lokálně ani jednotlivě to nespadne.
+  Nabídku pro převod zakládej s unikátním číslem mimo řadu (`Init` + `"No." := <GUID kód>` + `Insert(true)`, v Zlomku
+  `Library - Zlomek ZLK.CreateSalesHeader`). (2026-09-29, cust-zlomek-bc master build 28530,
+  `Sales Comment Tests ZLK.MakingOrderFromQuoteCarriesComments`.)
 - **Undo dodávky označí `Correction = true` i na PŮVODNÍM řádku dodávky** (`Undo Sales Shipment Line.Code`: původní řádek
   dostane `Quantity Invoiced := Quantity`, `Correction := true`, `Modify`; teprve pak `InsertNewShipmentLine` vloží korekční
   řádek se záporným množstvím, taky `Correction = true`). `SetRange(Correction, true) + FindFirst` tedy vrátí původní řádek
