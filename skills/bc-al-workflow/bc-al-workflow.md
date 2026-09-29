@@ -712,6 +712,21 @@ parametru pro textovou formuli.)
   přesně cílový a klikání přes souřadnice funguje. Tady je top dokument phone klienta rovnou BC (iframy jsou
   jen control add-iny), overlay tedy otevře druhou BC session. Snippet v `ew-mobile-ui-notes.md` (osobní skill
   `ew-mobile-ui`). (2026-09-29, Alumistr BC-TEST2, EWM Karta zboží 62206.)
+  V rámečku **nefunguje šipka Zpět** phone klientu (historie iframu) – akce s `CurrPage.Close()` ano; na úvod se
+  vrátíš novým `iframe.src` (po `Error` může v rámečku zůstat „Došlo k chybě… není žádná stránka" → taky nový src).
+  Klepnutí na řádek listpartu v phone klientu otevře jen **náhled záznamu**; `OnDrillDown` pole se spustí až
+  klepnutím na hodnotu v náhledu. (2026-09-29, BC-DEV, návody `prod-ew-mobileBase-bc/docs/guides`.)
+- **Zadávání dat klávesnicí v desktop BC (příprava testovacích dat):** BC zpracuje `Tab` asynchronně – `type` +
+  hned `Tab` + `type` slije druhý text do prvního pole (kód přihrádky `PRIJEMPŘÍJMOVÁ ZÓNA`, název listu deníku).
+  Postup: **klik přímo do buňky → `type` → wait 2 s → `Tab` → wait 2–3 s**, u prvního pole nového řádku (insert)
+  ještě déle. Na řádcích dokladů/deníků klikej na buňky podle x sloupce (`[role=columnheader]` × 1568/`innerWidth`)
+  místo řetězení Tabů – Tab skáče přes skryté sloupce a po validaci (lokace → přihrádka) focus uteče.
+  Option pole v editovatelném listu (*Typ odkazu*) je nativní `<select>`: psaný text nic nevybere → klik,
+  `Down`×n, `Enter`. Přejmenování čísla ze série na kartě (zboží `1004` → `EWM-1001`) hodí potvrzení
+  „Změna může aktualizovat související záznamy" → Ano. Grid dokladu se po vyplnění ceny sám posune doprava –
+  další řádek začni `scroll left`. Screenshot přes `zoom` + `save_to_disk` ukládá v rozlišení podle `scale`
+  (0.3 → 247 px), pro dokumentaci `scale: 0.75`. **Skrytá záložka** (`visibilityState = 'hidden'`) zastaví
+  smooth scroll/animace a screenshot bývá prázdný – počkej, zopakuj, stav ověř JS. (2026-09-29, BC-DEV.)
 - **Zápis do prostředí zákazníka (vyplnění setupu, založení zákazníka a dokladu, naklikání testovacího
   scénáře) smíš dělat — ale JEN s výslovným svolením uživatele** pro dané prostředí a seanci. Bez něj
   jen čti a foť; data připraví uživatel. Svolení si vyžádej **dopředu**, než začneš fotit, ať nevzniknou
