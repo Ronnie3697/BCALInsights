@@ -939,6 +939,20 @@ NEmodifikuje). Směr částky: odchozí platba dodavateli z výpisu má na řád
   `28.3.52162.52754` alc 17.0 čistě (2026-09-22, prod-ef-bank-bc/Test).
 (2026-09-22, prod-ef-bank-bc `BankEBSTestsEBS`.)
 
+### MS test knihovny v temp cache drž v JEDNÉ minor řadě; testy za `#IF TESTS` ověř kopií projektu
+
+- **Smíchané minor verze MS test knihoven** (Tests-TestLibraries / Test Runner / Library Assert 28.3 + `Library Variable
+  Storage` 28.4) v jedné package cache = `error AL1022: A package with publisher 'Microsoft', name 'Library Assert', and a
+  version compatible with '28.4.0.0' could not be found` — 28.4 knihovna si tranzitivně chce 28.4 Assert, i když test
+  `app.json` deklaruje jen `28.0.0.0`. Zákeřné: dvě kompilace se stejnou cache prošly a třetí spadla (rozlišení závislostí
+  není stabilní). Ber celou sadu z jednoho místa — hotová **28.4.53241.53504** sada (Test Runner, Tests-TestLibraries, SysApp
+  Test Lib, App Test Lib, Permissions Mock, Library Assert, Library Variable Storage) leží v soitron scratchpadu `cache_soi/`
+  (`find /c/Users/<user>/AppData/Local/Temp/claude -iname "Microsoft_Library Variable Storage_28.4*"`), `Any` 28.3 k ní nevadí.
+- **Test appka s testy za `#IF TESTS` a `"preprocessorSymbols": ["TESTS_Skip"]`** (prod-ef-replications-bc, commit „test skip"
+  2026-05) se v CI přeloží na prázdno — nové testy piš pod stejný guard (konzistence s rozhodnutím repa) a lokálně je ověř
+  kopií `test/` ve scratchpadu se symbolem přepnutým na `TESTS` (`sed` na `app.json` kopie); jinak se chyby v testech neukážou.
+  (2026-09-29, prod-ef-replications-bc, Send With Parent Record.)
+
 ## Odkazy
 
 - [MS Docs – Testing the Application](https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/developer/devenv-testing-application)
