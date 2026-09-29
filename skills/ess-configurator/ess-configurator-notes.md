@@ -322,8 +322,14 @@ Totéž má API 66387: `Config. API Session Mgt. COEBS.FillTableLookupValues` (p
 filtr atributů sám do filter group 10** (`internal AttributeFilterGroup()`) a skupinu volajícího vrátí → opraveni všichni volající
 najednou (lookup, auto-výběr jediné hodnoty, `GetSingleFilteredRecordValue`, kontrola hodnoty) a po merge i API 66387 (volá stejnou
 proceduru); `ValidateTableLookupValue` dává hledanou hodnotu do skupiny 11. COZLK si 10/11 nastavuje sám, výsledek stejný.
+⚠️ **Neplatný filtr tabulky: kontrola se musí chovat jako lookup.** `Table Values Lookup.SetTableAndField` filtr, který
+`TrySetView` nepřijme, tiše vynechá a nabídne všechno; kontrola ho původně brala jako `false` → s novou chybou by neprošel
+žádný ručně napsaný kód, i když ho lookup nabízí. Po review (2026-09-29) ho vynechá taky (`RecRef.Reset()`, kód jen musí
+existovat), test `ValidateTableLookupValueLeavesOutFilterThatCannotBeApplied`. Riziko neplatného filtru: `Source Table Filter`
+se ukládá přes `FilterPageBuilder.GetView(…, false)` = **captiony** polí (neověřeno, jestli ho `SetView` přečte v jiném jazyce).
 **Zbývá jen API:** filtr `value`/`displayText` v `FillTableLookupValues` (`TrySetRecRefFieldFilter` ve skupině filtru tabulky) —
-do 66387 nebo po merge obou větví. `Param. Display Text Mgt.GetTableLookupDisplayText` beze změny (hledá přesnou vybranou
+do 66387 nebo po merge obou větví. Popis PR 9577 (sekce *Pro review*) ho vede jako známé omezení „oprava v 65364", ale kód je jen
+v 66387 → opraví ho větev, která se mergne druhá. `Param. Display Text Mgt.GetTableLookupDisplayText` beze změny (hledá přesnou vybranou
 hodnotu, přepsání filtru tabulky na stejném poli výsledek nemění).
 
 ## C6. Diagnostika konfigurace v běžícím BC
@@ -478,8 +484,10 @@ master, nasazeno COALU 28.0.20.3 / PMEBS 28.0.5.0 / COEBS 28.0.22.2.)
   i `CopySLActionLinesForCondition` (návrh `OnAfterCopySLActionLine(var NewLine; var SourceLine; var ParamLineNoMapping)`).
   Subscriber pozná kopii v rámci téže konfigurace podle `NewLine."Configuration No." = SourceLine."Configuration No."`
   (parametry beze změny), ne podle prázdné mapy.
-- **Stav od větve `65364_SLActionLineCopyEvent`** (commit 599429a, čeká na PR): `OnAfterCopySLActionLine` přidán přesně podle
-  návrhu, v obou cestách **před** kopií vzorců a textových vzorců řádku. ⚠️ **Vzorce nejsou u eventu zkopírované ani
+- **Stav od větve `65364_SLActionLineCopyEvent`** (commit 599429a, čeká na PR): `OnAfterCopySLActionLine(var NewLine;
+  SourceLine; var ParamLineNoMapping)` přidán, v obou cestách **před** kopií vzorců a textových vzorců řádku. `SourceLine`
+  po review **bez `var`** — je to kurzor kopírovací smyčky (`SetRange` + `FindSet`/`Next`), subscriber by ho `SetRange`/`Find`
+  rozbil; `OnAfterCopyBOMActionLine` ho má s `var` (starší, nechán kvůli kompatibilitě). ⚠️ **Vzorce nejsou u eventu zkopírované ani
   u `OnAfterCopyBOMActionLine` při kopii celé konfigurace** — `CopyBOMActionLines` ho volá hned po `Insert`, vzorce
   (`CopyBOMQtyFormulaLines`, `CopyActionTextFormulaLines`) jdou až dalším průchodem; jen `CopyBOMActionLinesForCondition`
   (kopie jedné BOM akce) ho volá až po vzorcích. Subscriber, který čte vzorce nového řádku, tedy v kopii celé konfigurace
