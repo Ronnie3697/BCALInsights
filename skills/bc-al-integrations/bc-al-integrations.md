@@ -304,6 +304,11 @@ IntegrationRecordSynch.Codeunit.al`, `IntegrationTableMapping.Table.al`, `Integr
   OptionMembers) nastupuje jen u rozdílných typů a u constant value. Hodnoty Choice v Dataverse proto musí sedět na
   `OptionOrdinalValues` (ne výchozí `100000000+`). Enum `Vendor Blocked` má `AssignmentCompatibility = true`. Přenos indexu
   ověřuje test `VendorBlockedValueIsTransferredToDataverseOption` (k datu zápisu jen lokální kompilace, CI běh ještě ne).
+  **Proč ne Enum:** `Enum` pole s `ExternalType = 'Picklist'` se na CDS tabulce zkompiluje, ale `OptionOrdinalValues` na něm
+  alc 17.0 odmítne (`AL0171: The property value '-1, 1, 2' on property 'OptionOrdinalValues' is not valid` — i pro `0, 1, 2`),
+  takže nejde vyjádřit prázdná ↔ `null` ani jiné než ordinální hodnoty Choice; MS proxy tabulky i AL Table Proxy Generator
+  používají výhradně Option (idea „Replace Option Fields in Tables of Table Type=CRM/CDS" je u MS ve stavu New). Hodnotu `-1`
+  pro prázdnou bere generátor i base `CRM Account` (`AccountCategoryCode`), hodnoty ostatních členů musí sedět na Choice v Dataverse.
 - **Field mapping jedním směrem uvnitř Bidirectional tabulkového mapování** je normální (`Direction::ToIntegrationTable` na
   řádku, vzor `No. → ebs_bcnumber`). `Integration Field Mapping.CreateRecord` vždy vkládá nový řádek (PK AutoIncrement) —
   duplicity při opakovaném „Default Synchronization Setup" řeší až `Integration Table Mapping.CreateRecord` (`Get → Delete(true)`
