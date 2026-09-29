@@ -438,8 +438,13 @@ z cz 28.3 artifactu a variable group vrátit.
 - **Akce *Create Subcontracting Order* na postupu vydané VZ** (`SubcProdOrderRtng.PageExt` → `Subc. Purchase Order Creator.CreateSubcontractingPurchaseOrderFromRoutingLine`)
   založí řádek sešitu vlastním `InsertReqWkshLine` (šablona/list z `Manufacturing Setup."Subcontracting Template/Batch Name"`, **bez eventů**)
   a pustí `Carry Out Action Msg. - Req.` → eventy reportu 20505 (`OnAfterTransferProdOrderRoutingLine`, `OnBeforeReqWkshLineInsert`) se
-  nevolají, eventy `Req. Wksh.-Make Order` ano. Pole, která plníš v reportu, na téhle cestě chybí — doplň je jako fallback při přenosu na
-  řádek NO (`OnInsertPurchOrderLineOnAfterTransferFromReqLineToPurchLine`, z `Prod. Order Routing Line` / `Prod. Order Line`). (2026-09-29, tamtéž.)
+  nevolají, eventy `Req. Wksh.-Make Order` ano. Pole, která plníš v reportu, na téhle cestě chybí. Obě cesty pokryje jeden subscriber
+  **`Requisition Line.OnBeforeInsertEvent`** (platforma ho volá i u `Insert()` bez triggeru; filtr `Prod. Order No.` + `Operation No.` <> '' a
+  pole ještě prázdné, hodnota z `Prod. Order Routing Line` / `Prod. Order Line` přes `Get` se stavem Released) — na rozdíl od fallbacku při
+  přenosu na řádek NO respektuje, co uživatel na řádku sešitu později přepíše nebo smaže. Pozor: fallback na NO přes
+  `OnInsertPurchOrderLineOnAfterTransferFromReqLineToPurchLine` by se s jiným subscriberem téhož eventu (přenos pole Req → Purchase) přetahoval
+  o pořadí. (2026-09-29, cust-alumistr-bc 66397 — subscribery reportu nahrazeny, test přes `CreateSubcontractingPurchaseOrderFromRoutingLine`
+  (public, list sešitu v `Manufacturing Setup."Subcontracting Template/Batch Name"`, bez dialogů); zatím jen kompilace.)
 
 ### 7.18 Essence Deploy Staging — `sync_mode` je hardcoded 'Add', destruktivní schema změna ho shodí
 
