@@ -478,6 +478,12 @@ master, nasazeno COALU 28.0.20.3 / PMEBS 28.0.5.0 / COEBS 28.0.22.2.)
   i `CopySLActionLinesForCondition` (návrh `OnAfterCopySLActionLine(var NewLine; var SourceLine; var ParamLineNoMapping)`).
   Subscriber pozná kopii v rámci téže konfigurace podle `NewLine."Configuration No." = SourceLine."Configuration No."`
   (parametry beze změny), ne podle prázdné mapy.
+- **Stav od větve `65364_SLActionLineCopyEvent`** (commit 599429a, čeká na PR): `OnAfterCopySLActionLine` přidán přesně podle
+  návrhu, v obou cestách **před** kopií vzorců a textových vzorců řádku. ⚠️ **Vzorce nejsou u eventu zkopírované ani
+  u `OnAfterCopyBOMActionLine` při kopii celé konfigurace** — `CopyBOMActionLines` ho volá hned po `Insert`, vzorce
+  (`CopyBOMQtyFormulaLines`, `CopyActionTextFormulaLines`) jdou až dalším průchodem; jen `CopyBOMActionLinesForCondition`
+  (kopie jedné BOM akce) ho volá až po vzorcích. Subscriber, který čte vzorce nového řádku, tedy v kopii celé konfigurace
+  nic nenajde. (Code review 2026-09-29 — dokumentace větve tvrdila „už i s jeho vzorci".)
 - Mazání je v pořádku: `Configuration Definition.OnDelete` maže podmínky přes `DeleteAll(true)`, takže `OnAfterDeleteEvent`
   na `SL Action Condition/Line COEBS` běží per záznam a kaskáda v rozšíření (COZLK `Configurator Events`) data uklidí.
 
