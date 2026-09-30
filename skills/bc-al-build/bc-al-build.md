@@ -610,3 +610,33 @@ se Internal kontraktem se stejně dřív nebo později vrátí → Hidden v rule
 
 Zachyceno 2026-09-22, prod-ef-advanceCZ-bc build 28371 (master po merge PR 9166) — hodinu to vypadá
 jako „spadly testy", přitom testy vůbec neběžely.
+
+### 7.22 Release deploy SaaS: `(409) Conflict` „Sorry, we just updated this page" = souběžný deploy do TÉHOŽ prostředí
+
+Classic Release (`Publish-PerTenantExtensionApps`, Automation API) spadne ~15 s po startu, hned po výpisu
+`Extensions before/after`:
+
+```
+The remote server returned an error: (409) Conflict.
+{"error":{"code":"Internal_ServerError","message":"Sorry, we just updated this page. Reopen it, and try again. CorrelationId: …"}}
+At …\BcContainerHelper\6.1.18\Saas\Publish-PerTenantExtensionApps.ps1:264
+```
+
+- **Příčina:** do stejného SaaS prostředí (tenant + environment, např. `BC-LIVE` zákazníka) ve stejnou chvíli
+  nahrává jiný release — `extensionUpload` v Automation API je sdílený záznam firmy a druhý zápis dostane
+  optimistic concurrency chybu BC („we just updated this page" = SaaS znění „Another user has modified the
+  record"). `Internal_ServerError` v kódu je zavádějící, není to výpadek Microsoftu ani chyba appky.
+- **Diagnóza (ADO MCP classic release neumí → REST s MCP PAT, `curl -4`):**
+  `https://vsrm.dev.azure.com/essencebs/Projects/_apis/release/deployments?minStartedTime=<čas−1h>&maxStartedTime=<čas+1h>&api-version=7.1`
+  → hledej jiný `releaseDefinition` se stejným zákazníkem/stage (`… - Alumistrse | deploy to live`), který
+  startoval o pár sekund vedle. Log tasku: `…/_apis/Release/releases/<id>/environments/<envId>/deployPhases/<phaseId>/tasks/<taskId>/logs`
+  (ID vypíše `GET …/_apis/release/releases/<id>`, `environments[].deploySteps[].releaseDeployPhases[].deploymentJobs[].tasks[]`).
+- **Fix:** počkat, až ten druhý deploy doběhne (`deployments?deploymentStatus=inProgress` prázdné), a dát
+  **Redeploy** failnuté stage. Upload neproběhl → v prostředí zůstala stará verze, nic se neuklízí.
+- `WARNING: Dependency … not found` (EM Alternative BOM, Subcontracting) na začátku téhož logu je jen
+  `Sort-AppFoldersByDependencies` nad složkou artifactu — deps jsou v prostředí nainstalované, s 409 nesouvisí.
+- Prevence: releasy do jednoho prostředí pouštět postupně (produktové appky jednoho zákazníka — Configurator,
+  Cutting Plan, Pricing Matrix… — se schvalují často naráz).
+
+Zachyceno 2026-09-30, prod-ess-configurator-bc release 15114 (28.0.28), stage „deploy to live" Alumistr: start
+07:31:05, o 2 s později `Release-prod-em-cuttingPlan-bc-28.0.4-1` do téhož BC-LIVE (prošel) → Configurator 409.
