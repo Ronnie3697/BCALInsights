@@ -359,6 +359,8 @@ Postup: nejdřív `getConsumption`, porovnat s ID ve zdrojácích (grep BOM-awar
 
 Hromadně (víc appek / stovky ID): pole tabulek a hodnoty enumů se evidují jako klíče `table_<id>` / `tableextension_<id>` (ID polí) a `enum_<id>` / `enumextension_<id>` (hodnoty) — `getConsumption` je vrací taky, takže diff musí porovnat i je. Zápis: `PATCH /api/v3/syncIds/<hash>` s `{ids:{<klíč>:[…]}, appId:<hash>}` (merge, nic nemaže; ID appky, kterou backend nezná — `App not found` při čtení — vytvoří). Vždy nejdřív dry-run diff, po zápisu znovu diff = 0. (2026-09-30, prod-ess-configurator-bc — 4 appky, 164 ID.)
 
+Warning ve VS Code (`N0301 … is not assigned with AL Object ID Ninja`, `features/AssignmentMonitor.js`) porovnává **jen objekty (typ + ID)** s `getConsumption` — pole a hodnoty enumů nediagnostikuje, ty jsou jen v evidenci (range explorer / další přidělení). Když CLI diff hlásí 0 chybějících objektů a VS Code warning pořád svítí, je to cache extensionu → `Developer: Reload Window`. Hodnota enumu `0` je v JS falsy — filtr `if (!id)` ji tiše vynechá (tak zůstaly nezapsané `value(0; …)` u enumů 63155/63197). (2026-09-30, prod-ess-configurator-bc)
+
 ### 7.3 Práce s BC source na GitHubu
 
 Repo: `https://github.com/StefanMaron/MSDyn365BC.Code.History`
