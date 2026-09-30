@@ -357,6 +357,8 @@ Postup: nejdřív `getConsumption`, porovnat s ID ve zdrojácích (grep BOM-awar
 `storeAssignment`, znovu `getConsumption` na kontrolu. (2026-09-25, prod-ess-configurator-bc 66387 — 24 API pages
 63290–63313 v novém range, backend znal 60 stránek, žádnou z nového bloku.)
 
+Hromadně (víc appek / stovky ID): pole tabulek a hodnoty enumů se evidují jako klíče `table_<id>` / `tableextension_<id>` (ID polí) a `enum_<id>` / `enumextension_<id>` (hodnoty) — `getConsumption` je vrací taky, takže diff musí porovnat i je. Zápis: `PATCH /api/v3/syncIds/<hash>` s `{ids:{<klíč>:[…]}, appId:<hash>}` (merge, nic nemaže; ID appky, kterou backend nezná — `App not found` při čtení — vytvoří). Vždy nejdřív dry-run diff, po zápisu znovu diff = 0. (2026-09-30, prod-ess-configurator-bc — 4 appky, 164 ID.)
+
 ### 7.3 Práce s BC source na GitHubu
 
 Repo: `https://github.com/StefanMaron/MSDyn365BC.Code.History`
