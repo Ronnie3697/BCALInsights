@@ -85,7 +85,8 @@ kdy reálně potřebuješ povýšit isolation pro celou transakci (vzácné).
 V novém kódu ale defaultně sahej po `ReadIsolation`.
 
 **Pozn.:** Starší dvouargumentová forma `FindSet(ForUpdate, UpdateKey)` je
-v moderním AL zastaralá — nepoužívat.
+v moderním AL zastaralá — nepoužívat. **ALCops FormattingCop FC0005** hlásí přiřazení `Rec.ReadIsolation := …` —
+piš **`Rec.ReadIsolation(IsolationLevel::UpdLock);`** (metoda, ne property); příklady výše platí sémanticky. (2026-09-30, cust-soitron-bc)
 
 ### 2.2 `Insert` / `Modify` / `Delete` — vždy explicitní argument
 

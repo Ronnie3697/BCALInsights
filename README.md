@@ -24,6 +24,7 @@ V kořeni zůstává jen README, `mcp-setup.md`, `check-skills.py` a archiv.
 | `bc-al-build.md` | NuGet dependencies, test symboly, kolize ID, major bump, Essence CI build & deploy gotchas (sekce 7.11–7.19) |
 | `bc-al-autotests.md` | automatizované testy — codeunits, libraries, runner, povinnost |
 | `bc-al-autotests-saas-fallback.md` | příloha autotestů — vlastní Assert/Library pro SaaS-only test appku bez `Tests-TestLibraries` (reference) |
+| `bc-al-autotests-domains.md` | autotesty — doménové recepty: plánování / Carry Out, CZZ zálohy s platbou, párování CZB (vyčleněno 2026-10-01) |
 | `ess-configurator-notes.md` | Essence Configurator — parametry, systémové parametry, vzorce, varianty, akce (sekce C1–C6) |
 | `skills/bc-al/bc-al-mcp-server.md` | **draft** — oficiální BC MCP server (konfigurace v BC, auth / device login, Claude Code `--mcp-config` + `headersHelper`); bez skill-wrapperu, v Routeru jen jako řádek |
 | `mcp-setup.md` (kořen) | jednorázová instalace MCP serverů pro Claude Code (npm, `claude mcp add`, PAT, timeouty) — **není notes**, skilly ho nenačítají; ostatní nástroje viz níže |
@@ -39,6 +40,7 @@ V kořeni zůstává jen README, `mcp-setup.md`, `check-skills.py` a archiv.
   Vzory: 7.11–7.19 → `bc-al-build.md` (2026-09-01); sekce 4 → `bc-al-ui.md` a 5.y2 + 11 →
   `bc-al-integrations.md` (2026-09-08, `bc-al-objects.md` měl 57 KB = 26k tokenů a Read ho ořízl);
   3.5–3.6f → `bc-al-posting.md` (2026-09-29, `bc-al-data.md` přesáhl 1000 řádků).
+  Doménové recepty testů → `bc-al-autotests-domains.md` (2026-10-01, `bc-al-autotests.md` přesáhl 1000 řádků).
 - Každý nový poznatek = commit s krátkou zprávou, co a odkud (repo, PR, datum).
 
 Klon může ležet kdekoli — od 2026-09-22 se notes odkazují relativně k adresáři skillu (dřív

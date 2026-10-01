@@ -34,7 +34,9 @@ v souboru.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
-3. Sousední témata: symboly test frameworku z MSSymbols feedu a sandbox
+3. Doménové recepty (plánování / Carry Out, CZZ zálohy, párování CZB) jsou od 2026-10-01 ve skillu
+   `bc-al-autotests-domains` (soubor `bc-al-autotests-domains.md`) — načti ho u testů těchto domén.
+4. Sousední témata: symboly test frameworku z MSSymbols feedu a sandbox
    package cache → `bc-al-build` (7.12); Confirm / `CurrFieldNo` chování
    Sales Line → `bc-al-objects` (5.x4); ID test objektů od konce range
    → `bc-al-style` (1.12 „Přidělování ID"); ruleset konvence →

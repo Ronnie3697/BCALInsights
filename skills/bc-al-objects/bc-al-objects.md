@@ -983,3 +983,17 @@ vždy vyžádej export (Definice výměny dat → Export definice výměny dat),
   příjmu" tak dá 0 i v čistém standardu (build 28479+, `Purch. Consumption Test IMEBS`, 2026-09-25): po `PostPurchaseDocument(true,
   false)` assertuj ILE, pro JLE/Usage Link doúčtuj `Get` hlavičky + `PostPurchaseDocument(false, true)`. Guard „spotřeba už existuje"
   proto nesmí stát jen na Usage Linku (viz výše).
+
+### 5.x17 Job Planning Line `Gen. Prod. Posting Group` = zdroj pravdy pro deník projektů; změna default dimenze projektu
+
+- **`Job Transfer Line.FromPlanningLineToJnlLine` (w1-28) kopíruje `Gen. Bus./Prod. Posting Group` z řádku plánování přiřazením,
+  bez `Validate("No.")`** — vlastní mapování účto skupiny zavěšené na `Job Planning Line.OnAfterCopyFromItem/Resource` (nové řádky)
+  se do deníku projektů dostane jen přes uložený řádek plánování; sales/purchase řádky z planning line si skupinu naopak přepočítají
+  (`Validate("Job No.")` → `CopyFromItem`). Pole 81 na Job Planning Line je `Editable = false` **bez OnValidate** (jen TableRelation)
+  → oprava existujících řádků = přímé přiřazení + `Modify(false)` (žádný přepočet ceny, rezervací ani `OnModify` s `UpdateReservation`).
+- **Změna default dimenze projektu (Job card shortcut dim 1–8 i `Job Default Dimensions`) končí VŽDY v tabulce `Default Dimension`**:
+  `Job.ValidateShortcutDimCode` → `DimensionManagement.SaveDefaultDim` → `Get` + `Validate("Dimension Value Code")` + `Modify()` / `Insert()` /
+  `Delete()` z kódu → v `OnAfterModifyEvent` je `xRec = Rec` (3.9 v `bc-al-data.md`). Starou hodnotu ber v **`OnBeforeModifyEvent`**
+  `Get`-em uložené verze (`SetLoadFields("Dimension Value Code")`), Insert = `'' → nová`, Delete = `stará → ''`; filtr `Table ID =
+  Database::Job` + `Dimension Code` ze setupu + `IsTemporary` exit. Rename (PK) hodnotu nemění → neřešit.
+  (2026-09-30, cust-soitron-bc `Job Type Posting Mgt. SOI.UpdateJobPlanningLinesOnJobTypeChange`, testy `Job Type Posting Test SOI`.)

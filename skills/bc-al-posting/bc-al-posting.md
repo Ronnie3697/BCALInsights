@@ -461,3 +461,19 @@ w1-28 `SalesPost.Codeunit.al` (raw.githubusercontent, cesta `BaseApp/Source/Base
 - Kontroly „Job No. musí být prázdné" na objednávce: `TestSalesLineJob` (hook `OnBeforeTestSalesLineJob`) a `PostSalesLine`
   (`OnPostSalesLineOnBeforeTestJobNo`); `Job Planning Line` dostává `Job Contract Entry No.` v OnInsert **vždy** (i budget řádky), takže filtr
   na kontrakt 0 nic nenajde. `LibraryJob.Job2SalesConsumableType(JPL.Type)` převádí typ planning line na `Sales Line Type` (Item=2 vs. job Item=1).
+
+### 3.6g Vlastní kontrola „co se tímhle účtováním vyfakturuje" NESMÍ číst `Qty. to Invoice` z řádku — zrcadli `MaxQtyToInvoice`
+
+`Sales Line."Qty. to Invoice"` na objednávce **zahrnuje i `Qty. to Ship`** (`InitQtyToInvoice` = Quantity Shipped + Qty. to Ship −
+Quantity Invoiced; po každém zaúčtování dodávky se řádkům znovu nastaví `Qty. to Ship` = zbytek podle „Default Quantity to Ship" a
+tím i plné `Qty. to Invoice`). Nedodaný řádek má tedy K fakturaci = celé množství. Teprve **Sales-Post** to v
+`UpdateSalesLineBeforePost` srovná: bez `Ship` → `Qty. to Ship := 0`, bez `Receive` → `Return Qty. to Receive := 0`, faktura z dodávky
+(`Shipment No. <> ''`) → `Quantity Shipped := Quantity`, dobropis z vratky obdobně, a pak `InitSalesLineQtyToInvoice`: když
+`Abs(Qty. to Invoice) > Abs(MaxQtyToInvoice())`, ořízne na `MaxQtyToInvoice` (= Quantity Shipped + Qty. to Ship − Quantity Invoiced;
+u vratek Return Qty. Received + Return Qty. to Receive − Quantity Invoiced; blanket Quantity − Invoiced; prepayment 1).
+Důsledek: kontrola v `OnBeforePostSalesDoc` typu „řádek se fakturuje celý" napsaná jako `"Qty. to Invoice" = Quantity − "Quantity Invoiced"`
+**projde** u objednávky účtované „jen fakturovat" po částečné dodávce, i když se z nedodaných řádků nevyfakturuje nic. Správně: spočítej
+množství jako Sales-Post (upravit lokální kopii řádku podle příznaků hlavičky + `SalesLine.MaxQtyToInvoice()` je public) a teprve to
+porovnej; pravidlo „všechno nebo nic" navíc vyhodnocuj **per skupina** (nejdřív zjisti, jestli se z ní vůbec něco fakturuje). Test:
+ship jen část řádků → `PostSalesDocument(SalesHeader, false, true)` musí spadnout, po dodání všech řádků projít.
+(2026-09-30, cust-soitron-bc `Sales Aggregation Mgt. SOI.CheckNoPartialInvoiceOnAggregatedLines`, zdroje w1-28.)
