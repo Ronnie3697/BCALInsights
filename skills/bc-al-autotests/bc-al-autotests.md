@@ -208,6 +208,9 @@ Assert.ExpectedErrorCode('Dialog');
   `LibrarySetupStorage.Save(Database::"Sales & Receivables Setup")` + `Restore()` v `Initialize()` (Restore hned po
   `OnTestInitialize`, Save při prvním suite initu před `Commit`). Izoluje změny setupu i při lokálním běhu
   v dev kontejneru, kde po testu nezůstane v setupu testovací zákazník. (2026-09-04, cust-alumistr-bc 65916)
+  ⚠️ **`Save` assertuje přesně jeden záznam** („Setup table with only one entry is allowed. Expected:<1> Actual:<0>") —
+  vlastní setup tabulka v CI DB **neexistuje** (nic ji nezaložilo), takže před `Save(Database::"<Setup> XXX")` zavolej
+  `Setup.GetSetup()` (= Get-or-Insert). Lokálně to neuvidíš, dev DB setup má. (2026-09-30, cust-soitron-bc build 28552, 4 testy.)
 - **Negativní test `TestStatusOpen` po `ReleaseSalesDocument` — validuj na NOVÉ instanci recordu.** `Sales Line`
   si hlavičku cachuje v globální proměnné instance (`GetSalesHeader` znovu nečte, když sedí Document Type + No.);
   `SalesLine` proměnná, kterou prošel `LibrarySales.CreateSalesLine`, tak drží hlavičku se Status Open i po
