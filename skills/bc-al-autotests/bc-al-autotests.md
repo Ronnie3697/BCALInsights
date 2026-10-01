@@ -218,6 +218,14 @@ Assert.ExpectedErrorCode('Dialog');
   řádku objednávky. Test logiky „dohledej projekt z řádku" musí u Copy Document dát projekt do hlavičky (`Job No. EPEBS`),
   jinak se fallback přes řádek nikdy nespustí; u Get Shipment Lines se naopak testuje cesta přes contract entry.
   (2026-10-01, cust-soitron-bc `Sales Aggregation Test SOI`, zdroj Base App w1-28 `CopyDocumentMgt.Codeunit.al` 1818/7761.)
+- **`Job.Validate("Sell-to Customer No." | "Bill-to Customer No.")` na existujícím projektu = Confirm „Do you want to change…?"
+  (default No).** `SellToCustomerNoUpdated` / `BillToCustomerNoUpdated` se ptají, jakmile `xRec` zákazníka má a `GuiAllowed()`
+  (v test runneru true) — bez handleru „Unhandled UI: Confirm", s handlerem `Reply := false` se změna tiše vrátí a navazující
+  logika (vlastní dotaz, propagace) se vůbec nespustí. Sell-to navíc kaskáduje do Bill-to = druhý dotaz. Řešení v testu:
+  `Job.SetHideValidationDialog(true)` před Validate (skryje jen standardní dotazy, vlastní `ConfirmManagement` dotaz appky
+  zůstane testovatelný), nebo zákazníka dát rovnou `LibraryJob.CreateJob(Job, CustomerNo)` místo pozdějšího přepisu
+  (`LibraryJob.CreateJob(Job)` si zákazníka založí sám a nastaví Sell-to i Bill-to). (2026-10-01, cust-soitron-bc
+  `Job Segment Test SOI` / `QB Buffer Test SOI`; zdroj Base App w1-28 `Job.Table.al`.)
 - **Default Dimension projektu, který už má úkoly (Job Task) → Confirm „You have changed a dimension. Do you want to update
   the lines?"** — `DimensionManagement.UpdateJobTaskDim` (volané z `DefaultDimOnInsert/OnModify/OnDelete`) se ptá přes
   `Confirm Management`, jakmile `Job Task` projektu není prázdný. Test, který `LibraryDimension.CreateDefaultDimension` /
