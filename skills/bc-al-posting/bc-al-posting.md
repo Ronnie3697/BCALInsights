@@ -477,3 +477,23 @@ množství jako Sales-Post (upravit lokální kopii řádku podle příznaků hl
 porovnej; pravidlo „všechno nebo nic" navíc vyhodnocuj **per skupina** (nejdřív zjisti, jestli se z ní vůbec něco fakturuje). Test:
 ship jen část řádků → `PostSalesDocument(SalesHeader, false, true)` musí spadnout, po dodání všech řádků projít.
 (2026-09-30, cust-soitron-bc `Sales Aggregation Mgt. SOI.CheckNoPartialInvoiceOnAggregatedLines`, zdroje w1-28.)
+
+### 3.6h Subscriber na `Purch.-Post.OnPostPurchLineOnAfterPostByType` běží pro KAŽDÝ řádek a při každém typu účtování; Whse.-Post Receipt před ním commitne
+
+- `PostPurchLine` volá `OnPostPurchLineOnAfterPostByType` pro všechny řádky dokladu bez ohledu na `Qty. to Receive` /
+  `Qty. to Invoice` a bez ohledu na `PurchHeader.Receive/Invoice` (w1-28 `PurchPost.Codeunit.al` ř. ~1068; podmínka
+  `"Qty. to Invoice" <> 0` je až ZA eventem). Vlastní kontrola „nákupní řádek sedí s řádkem plánování projektu" zavěšená
+  sem proto padá i při **účtování skladové příjemky** (Receive only) na řádku, který v příjemce vůbec není (zdroj / finanční
+  účet, `Qty. to Receive = 0`). Guard „jen když se z řádku něco fakturuje" (`PurchHeader.Invoice and "Qty. to Invoice" <> 0`)
+  musí stát PŘED kontrolou, ne až v `case Document Type`.
+- `Whse.-Post Receipt.Code` (w1-28 ř. 147–158): `InitSourceDocumentLines` (řádky NO v příjemce dostanou `Qty. to Receive` ze
+  skladové příjemky, řádky mimo příjemku `Validate("Qty. to Receive", 0)`) → `InitSourceDocumentHeader` → **`Commit()`** →
+  `PostSourceDocument`. Když účtování zdrojového dokladu spadne, rollback vrátí jen posting; **přepsaná `Qty. to Receive` /
+  `Qty. to Invoice` na řádcích objednávky zůstanou** (uživatel vidí „prohozené" K příjmu / K fakturaci: řádek zboží najednou
+  vyplněný, řádek zdroje prázdný). Není to poškození dat — další pokus o účtování příjemky je přepočítá znovu — ale
+  v analýze chyby to nepovažuj za příčinu.
+- Souvislost EPEBS: `Job Purch Invoice Track EPEBS.ValidatePurchaseRelationship` porovnává i `Location Code`, zatímco
+  `Project Functions EPEBS.CreatePurchaseOrderLine` / `Job Purch Order Trans EPEBS` kopírují lokaci z JPL jen pro `Type = Item`
+  (zdroj / G/L dostane lokaci hlavičky z `InitHeaderDefaults`, JPL ji má z Job Task přes `InitLocation`, 5.x18 v
+  `bc-al-objects.md`) → řádek zdroje s odlišnou lokací padne při každém účtování.
+  (2026-10-01, prod-ep-projectBase-bc, SK-TEST NO 1106260008 / skladová příjemka 5101260008.)
