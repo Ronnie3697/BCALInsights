@@ -727,6 +727,15 @@ parametru pro textovou formuli.)
   další řádek začni `scroll left`. Screenshot přes `zoom` + `save_to_disk` ukládá v rozlišení podle `scale`
   (0.3 → 247 px), pro dokumentaci `scale: 0.75`. **Skrytá záložka** (`visibilityState = 'hidden'`) zastaví
   smooth scroll/animace a screenshot bývá prázdný – počkej, zopakuj, stav ověř JS. (2026-09-29, BC-DEV.)
+- **Focení „jen pro čtení" (bez svolení k zápisu) – pasti** (2026-10-01, BC-TEST Sonnentor, prod-ess-shopifyConnector-bc):
+  `Escape` na kartě/stránce ji **zavře** (skok na Role Center) – menu akcí zavírej klikem jinam; request page sestavy otevři
+  akcí, nafoť a zavři tlačítkem **Storno** (nic se nespustí). Klik do buňky editovatelného listu (`Upravit seznam`) ji otevře
+  s **označeným textem** → jakékoli psaní přepíše hodnotu; lookup otevři tlačítkem `…` v buňce a zavři **Storno**. List grid
+  renderuje jen viditelné řádky (virtualizace) – pro výpis přes JS radši zužuj URL filtrem (`&filter='Shop Code' IS 'X'`)
+  než scrolluj. FactBox (např. Atributy zboží) najdi přes caption a `scrollIntoView`, data čti z jeho `table` v DOM. Stránka
+  typu ListPart (7504) přes `&page=` nejde otevřít (chyba serveru) – použij kartu s factboxem. Záložku karty rozbalíš klikem
+  na nadpis záložky (bez zápisu). Lookup s nečekaně jedním řádkem a ikonou filtru v hlavičce sloupce = filtry zapomenuté
+  v kódu na temp recordu před `Page.RunModal` (nález SCEBS) – dobré screenshotem doložit do dokumentace jako bug.
 - **Zápis do prostředí zákazníka (vyplnění setupu, založení zákazníka a dokladu, naklikání testovacího
   scénáře) smíš dělat — ale JEN s výslovným svolením uživatele** pro dané prostředí a seanci. Bez něj
   jen čti a foť; data připraví uživatel. Svolení si vyžádej **dopředu**, než začneš fotit, ať nevzniknou

@@ -95,6 +95,15 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
   i ruční akce **Map Variant** na stránce Shopify Variants nebo `Try Find Product Mapping` (SKU dle SKU Mapping).
 - **Kde spouštět sync nových variant:** `Shpfy Sync Products` (30108) filtruje jen shop; jediný report s filtrem na zboží
   je `Add Item to Shopify` (30106), který existující produkt přeskočí — typická záměna u uživatelů.
+- **Co export produktu z BC do Shopify reálně pošle u metapolí a značek** (BC 28.4, `Shpfy Product Export` / `Shpfy Metafield API`):
+  metapole jen při `Shop."Product Metafields To Shopify"` (pole 130; zákazník 131, společnost 132) přes
+  `SyncMetafieldsToShopify` → `CollectMetafieldsInBC` bere jen `Type <> string & <> integer` (legacy typy se **nikdy** nepošlou),
+  `Value <> ''` (vyprázdnění v BC se do Shopify nepropíše) a `"Last Updated by BC"` > `updatedAt` v Shopify (OnModify záznamu ho
+  nastaví). Značky jdou v `productUpdate` jen když `Tags Hash` změnil produkt a seznam **není prázdný** (smazání všech značek v BC se
+  nepošle). `Only Sync Price` metapole přeskočí. `Shpfy Product.OnDelete` maže metapole `DeleteAll()` → subscriber na
+  `Shpfy Metafield` OnAfterDelete se spustí po řádcích. Hromadné plnění hodnot metapolí / značek z dat BC (pole, atribut, dimenze,
+  funkce, maska JSON) řeší produktová appka **Essence Shopify Connector (SCEBS)** – dokumentace a známé chyby
+  `prod-ess-shopifyConnector-bc/docs/module/Essence Shopify Connector.md` (větev Dokumentace, 2026-10-01).
 
 ### 5.y3 Shopify Connector — vlastní GraphQL mutace z PTE = vlastní HttpClient, vlastní token i vlastní adresa shopu
 
