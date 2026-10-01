@@ -7,7 +7,7 @@
 > parent↔child řádky, Requisition Line / Req. Wksh.-Make Order, VerifyOnInventory, Auto Format / částky v textu.
 >
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
-> **Essence Configurator** má od 2026-09-21 vlastní soubor `ess-configurator-notes.md` (parametry, vzorce, systémové parametry, varianty) — sekce 5.x10, 5.x12, 5.x2b a 5.x8 zatím zůstávají tady, při dalším průchodu je přesuň.
+> **Essence Configurator** má od 2026-09-21 vlastní soubor `ess-configurator-notes.md` (parametry, vzorce, systémové parametry, varianty) — sekce 5.x10 a 5.x12 tam přesunuty 2026-10-01 jako C13 / C14; 5.x2b (Item Tracking na Sales Quote) a 5.x8 (Item Charge Assignment) jsou obecné BC a zůstávají tady.
 
 Obsahuje:
 - **5.** Specifické objekty a API (bez 5.y2 Shopify → `bc-al-integrations.md`)
@@ -746,29 +746,6 @@ cesta vzniku řádku má jiný hook. Ověřeno ve zdrojích Base App 28.4 (cust-
   `LibraryPurchase.CreateDropShipmentPurchasingCode`, `OrderPlanningMgt.PlanSpecificSalesOrder(var ReqLine; SONo)`,
   `OrderPlanningMgt.SetDemandType("Demand Order Source Type"::"Production Demand") + GetOrdersToPlan(var ReqLine)`.
 
-### 5.x10 Essence Configurator: `Effective Hidden` na `Variant Configuration COEBS` JE persistovaný
-
-Pole 14 `Effective Hidden` se plní v **temporary bufferu** dialogu
-(`Variant Config Params COEBS.UpdateEffectiveHiddenStates` volá `Config. Condition Mgt.
-COEBS.IsParameterHidden` nad `TempRec.Copy(Rec, true)`), takže na první pohled vypadá jako
-čistě UI pomůcka. **Není** — `Variant Configuration COEBS.SaveVariantConfiguration` vytáhne
-záznamy z toho bufferu přes `GetAllRecords` (dělá `Reset()`, takže vrací i skryté) a zapisuje je
-`VariantConfigValue.TransferFields(TempConfigRecs)` + `Insert`, čímž se hodnota dostane do ostré
-tabulky. Vlastní read-only zobrazení parametrů varianty (factbox, report) tedy může podmínkové
-skrytí respektovat prostým filtrem `"Effective Hidden" = const(false)`, **bez přepočtu podmínek**.
-
-- `IsParameterHidden` vrací true i pro **statický** `Configuration Parameter COEBS.Hidden`
-  („Static hidden flag … takes priority"), takže snapshot pokrývá obě cesty skrytí.
-- `Parameter Hidden` (FlowField ze statického flagu) si přesto nech ve filtru vedle něj:
-  varianty uložené dřív, než konfigurátor snapshot plnil, mají `Effective Hidden = false`
-  a statický Hidden by jinak prosákl.
-- Pozor na obrácený omyl: „pole se plní jen v bufferu dialogu, takže je v uložených datech vždy
-  false" je **nesprávný** závěr z pouhého grepu na název pole — rozhoduje `TransferFields`
-  v ukládací proceduře, kde jméno pole nikde nefiguruje.
-
-(2026-09-15, cust-zlomek-bc 65148 — code review factboxu parametrů konfigurátoru; ověřeno ve
-zdrojáku prod-ess-configurator-bc na master.)
-
 ### 5.x11 EM Cutting Plan `Qty. of Pcs.` / `Qty. per Piece` na Production BOM Line — přepíšou `Quantity per`; tři pasti
 
 `tableextension "Production BOM Line CUEBS"` (prod-em-cuttingPlan-bc) počítá z dvojice polí
@@ -826,61 +803,6 @@ verze a všechno „funguje"; jakmile někdo číselnou řadu verzí nastaví, f
 
 (2026-09-21, cust-alumistr-bc, `CNC Print Mgt. COALU.GetProfileLengthFromBOM` — zachyceno při psaní
 uživatelské příručky k PBI 62959.)
-
-### 5.x12 Essence Configurator: „najdi nebo vytvoř variantu" je `local` v dialogu 63143 — z jiné appky ji nezavoláš
-
-Celý find-or-create mechanismus varianty (`FindExistingVariantWithSameValues`, `CompareParameterValues`,
-`GenerateVariantCode`, ukládací část `SaveVariantConfiguration`) žije jako **`local procedure` na stránce**
-`Variant Configuration COEBS` (63143), a `HasParameterValue()` na tabulce `Variant Configuration COEBS`
-(63143) je **`internal`**. Rozšíření, které potřebuje variantu dohledat/založit z kódu (bez dialogu),
-si tu logiku musí **zduplikovat** — page jde pustit jen `RunModal`, což v subscriberu při vytváření
-prodejního řádku nechceš. Duplikát označ `TODO keep in sync` s ověřenou verzí COEBS (stejný vzor jako
-`SL Act. Variant Lookup COZLK` u validity rules) a správné řešení — public helper v COEBS — nabídni.
-
-Co je naopak z COZLK/COALU dosažitelné a nemusíš psát znovu:
-
-- **`Config Param. Lookup COEBS` (63156)** — hotová výběrová page nad `Configuration Parameter COEBS`.
-  Předfiltruj record (`SetRange("Configuration No.")`, `SetRange("Parameter Type")`), `SetTableView` +
-  `LookupMode(true)` + `RunModal() = Action::LookupOK` + `GetRecord`. Base ji takhle používá v
-  `SL Action Line COEBS."Item From Parameter"` OnLookup.
-- **`Config. Condition Mgt. COEBS`** má procedury public (`GetCopiedValueFrom`, `IsParameterHidden`,
-  `GetFilteredParameterValues`, `ValidateParameterValue`, …) — podmínky parametrů neřeš sám.
-- **`Param. Display Text Mgt. COEBS` (63160)** — `GetOptionDisplayText` / `GetTableLookupDisplayText`
-  pro dopočet `Display Text` u Option / Table Lookup hodnot.
-- **`SL Action Line COEBS.HasPriceFormula()` / `HasDiscountFormula()` / `HasFormula()`** jsou public —
-  hodí se, když v `OnBeforeModifyNewSalesLineFromAction` přepisuješ variantu a musíš rozhodnout, jestli
-  po `Validate("Variant Code")` vrátit cenu z akce, nebo nechat vyhrát standardní cenotvorbu. Texty
-  (`Description`, `Description 2`) vracej vždycky — validace varianty je přepíše z karty zboží (3.6b
-  v `bc-al-posting.md`).
-
-**Dialog pustí na další parametr, teprve když ten aktuální MÁ hodnotu.** `Variant Config Params COEBS`
-(63147) staví seznam postupně: `AddNextEmptyParameter` → `FindLastFilledSortOrder` (bere jen parametry,
-kde `HasParameterValue()`) a `HasUnfilledPreviousParameter` drží následující parametry read-only.
-Rozšíření, které parametr „vyřeší" jinak než zadáním hodnoty (mapování na jiný parametr, převzetí odjinud),
-proto **musí hodnotu stejně nastavit**, jinak se dialog zasekne. U `Integer`/`Decimal` stačí
-`"Has Value" := true` (nula je platná hodnota), u `Text`/`Option`/`Table Lookup` musí být hodnota neprázdná —
-neutrální hodnota tam neexistuje, takže tam nezbývá než nechat zadání na uživateli.
-**Nula ale u číselného parametru s rozsahem neprojde** — dialog hodnotu při potvrzení kontroluje
-(`SaveValueFromText` → `Config. Condition Mgt. COEBS.ValidateParameterValue` → `ValidateDecimalRange`),
-takže u „Šířka 500–1900" musí startovní hodnota být default parametru, jinak **dolní mez rozsahu**
-(`Configuration Parameter."Min. Decimal Value"` / `"Min. Integer Value"`; podmínkové override mezí
-(`ApplyDecimalConditionOverrides`) jsou `local`, zvenku je nezjistíš).
-
-Posun vpřed sám (`AddNextEmptyParameter`, `RefreshAfterValueChange`, `RebuildMissingParameters`) byl **`local`**;
-od **COEBS 28.0.22.1** má page public obálku **`RefreshAfterExternalValueChange()`**, kterou rozšíření zavolá
-po zápisu hodnoty do bufferu a dialog se přepočítá stejně, jako když hodnotu zadá uživatel. Bez ní zbývá
-nechat uživatele hodnotu potvrdit (skrytá base akce `ConfirmValue` má `ShortcutKey = 'Return'`, takže Enter
-ji vyvolá i bez změny hodnoty). Ostatní public procedury: `LoadParameters` (přenačte celý buffer od nuly —
-zahodí rozdělané hodnoty), `GetAllRecords`, `GetParameterValues`, `ValidateAllValues`, `GenerateDescription`.
-Defaultní hodnoty jde dopočítat mimo page — `Config. Condition Mgt. COEBS.HasDefaultDecimalValue` /
-`HasDefaultIntegerValue` / `GetDefaultTextValue` / `GetDefaultCodeValue` jsou public a berou v potaz i podmínky.
-
-Hodnoty parametrů putují v `Dictionary of [Code[20], Text]` klíčované `Parameter Code` a čísla v nich jsou
-v **invariantním formátu** (`Format(x, 0, 9)`, tečka) — při zpětném parsování `Evaluate(…, 9)` po normalizaci
-(`DelChr` mezer/NBSP, `,` → `.`), viz vzor `InitializeParameterCopiedValue` v `Variant Config Params COEBS`.
-
-(2026-09-17, cust-zlomek-bc 65364 — přebírání hodnot parametrů z hlavní konfigurace do vnořené;
-zdroje prod-ess-configurator-bc master, COEBS 28.0.22.0.)
 
 ### 5.x14 Job Queue z účtování a z kódu — práva, follow-up a proč `ScheduleRecurrentJobQueueEntry*` nevytvoří opakovanou entry
 
@@ -997,3 +919,25 @@ vždy vyžádej export (Definice výměny dat → Export definice výměny dat),
   `Get`-em uložené verze (`SetLoadFields("Dimension Value Code")`), Insert = `'' → nová`, Delete = `stará → ''`; filtr `Table ID =
   Database::Job` + `Dimension Code` ze setupu + `IsTemporary` exit. Rename (PK) hodnotu nemění → neřešit.
   (2026-09-30, cust-soitron-bc `Job Type Posting Mgt. SOI.UpdateJobPlanningLinesOnJobTypeChange`, testy `Job Type Posting Test SOI`.)
+
+### 5.x18 `Location Code` na Job / Job Task NEpropisuje do existujících řádků plánování; vazba budget ↔ billable řádku (IMEBS)
+
+- **Job (167) `Location Code` (35) i Job Task (1001) `Location Code` (30) při změně jen hlásí zprávu** (`MessageIfJobTaskExist` /
+  `MessageIfJobPlanningLineExist`: „You have changed %1 on the project (task), but it has not been changed on the existing …")
+  a `SetDefaultBin()` — žádná smyčka přes řádky, žádný Confirm „update lines?". Lokace z hlavičky teče jen **dolů při založení**:
+  Job Task `InitLocation(Job)` přiřadí `Location Code`/`Bin Code` z Job, Job Planning Line `InitLocation()` dělá
+  `Validate("Location Code", JobTask."Location Code")` jen když má úkol lokaci (OnInsert cesta přes `InitJobPlanningLine`). Vlastní
+  „synchronizuj lokaci mezi řádky" tedy nemusí počítat s hromadným přepisem z hlavičky. (Zdroj w1-28 `Job.Table.al` 271–290,
+  `JobTask.Table.al` 329–343 + 1310, `JobPlanningLine.Table.al` 407–432 + `InitLocation`; cust-soitron-bc 2026-10-01.)
+- **`Job Planning Line."Location Code".OnValidate`** (w1-28): `ValidateModification` (TestField `Qty. Transferred to Invoice` = 0 při
+  změně), `"Bin Code" := ''`, a jen u `Type = Item` dál `GetLocation` → `CheckItemAvailable` (dostupnostní dialog, v testech
+  `LibrarySales.SetStockoutWarning(false)`) → `UpdateReservation` → `Validate(Quantity)` → `SetDefaultBin` → warehouse
+  `JobPlanningLineVerifyChange` / `DeleteWarehouseRequest` + `CreateWarehouseRequest`. Resource/G/L/Text řádky mají validate
+  prakticky bez vedlejších efektů.
+- **Vazba budget ↔ billable řádku = pole `Purch. Job Cont.Entry No.IMEBS` (65130) na BILLABLE řádku** (Essence Project Item
+  Management) = `"Job Contract Entry No."` budget řádku, jehož nákup ho zásobuje; klíč `Key65130IMEBS`. Opačný směr = `SetRange("Job No.")`
+  + `SetRange("Purch. Job Cont.Entry No.IMEBS", Budget."Job Contract Entry No.")`. Plní ho QB processing
+  (`QB Buffer Processing Mgt. SOI.LinkRevenueToCost`) i IMEBS `CreatePurchaseJobPlanningLines`; OnValidate pole
+  (`ValidatePurchJobContractEntryNo`) hlídá typ Budget na druhé straně, stejný projekt, žádnou spotřebu/usage a 1:1 (jeden budget
+  řádek ↔ jeden billable). `"Job Contract Entry No."` dostane každý řádek v OnInsert (`JobJnlManagement.GetNextEntryNo()`), takže
+  před Insertem je 0 — subscribery na vazbu to musí brát jako „ještě není co hledat".

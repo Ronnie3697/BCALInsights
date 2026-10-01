@@ -1,16 +1,16 @@
 ---
 name: bc-al-objects
 description: >-
-  BC/AL specifické objekty a API z praxe (BC, sekce 5): All Profile, Upgrade Tag, No. Series GetNextNo vs
-  PeekNextNo, kontrola Document No., Unix timestamp/UTC, Item Tracking (Lot No., Reservation Entry u Prod. Order
-  Line, Sales Quote → Order), NMEBS vazba SO↔VZ, al-mcp ByReference past, atributy zboží, DateFormula limity,
-  CaptionClass + Translation Helper, CZ↔EN terminologie BC, CZZ zálohy, Sales Line Attached to Line No.
-  parent↔child (xRec, Validate(No.) Init, CurrFieldNo), Requisition Line (OnAfterGetDirectCost, Make Order,
-  Order Planning, Calculate Plan, Carry Out), VerifyOnInventory, Item Jnl. Line UoM qty-per, Auto Format /
-  částky v textu, Item Charge Assignment z kódu, Job Queue z účtování (práva, recurring, follow-up),
-  Data Exchange Framework / import camt.053 (merge sloupců s mezerou, Regex Match vs Replace, pole tabulky 274).
-  Načti u číselných řad, trackingu, výroby, plánování, vazeb řádků dokladů, Job Queue, bankovního importu,
-  překladů. (Shopify, HttpClient → bc-al-integrations.)
+  BC/AL specifické objekty a API (sekce 5): All Profile, Upgrade Tag, No. Series GetNextNo vs PeekNextNo,
+  kontrola Document No., Unix timestamp/UTC, Item Tracking (Lot No., Prod. Order Line, Sales Quote → Order),
+  NMEBS vazba SO↔VZ, al-mcp ByReference past, atributy zboží, DateFormula limity, CaptionClass + Translation
+  Helper, CZ↔EN terminologie, CZZ zálohy, Attached to Line No. parent↔child (xRec, Validate(No.) Init,
+  CurrFieldNo), Requisition Line (OnAfterGetDirectCost, Make Order, Order Planning, Carry Out), VerifyOnInventory,
+  Item Jnl. Line UoM qty-per, Auto Format / částky v textu, Item Charge Assignment z kódu, Job Queue z účtování
+  (práva, recurring), Data Exchange Framework / camt.053 (merge sloupců, Regex Match, pole 274), Job Planning Line
+  (účto skupina do deníku, Location Code z Job/Job Task jen pro nové řádky, vazba budget↔billable Purch. Job
+  Cont.Entry No.IMEBS). Načti u číselných řad, trackingu, výroby, plánování, projektů, Job Queue, bankovního
+  importu. (Shopify, HttpClient → bc-al-integrations.)
 user-invocable: true
 ---
 

@@ -294,6 +294,19 @@ Pro **třetí strany** je to obráceně: tělo procedury na GitHubu **není**, M
 z `.app` symbolů taky vrátí jen signaturu — plný kód jen když máš jejich source
 repo (sekce 7.6).
 
+**⚠️ al-mcp NEVRACÍ akce stránek** (`al_get_object_definition` page = jen `Controls`, `al_search_object_members`
+s `pattern` na controls vrátilo 0 i pro existující pole) → přesné názvy akcí pro `modify(<akce>)` v pageextension
+ber ze `SymbolReference.json` v symbolovém `.app`: `unzip -o -j "<Base Application>.app" SymbolReference.json -d <dir>`
+(warning „40 extra bytes at beginning" je v pořádku, unzip hlavičku přeskočí; 59 MB, UTF-8 BOM) a projdi ho **node**
+skriptem (python v Bash toolu chybí): `JSON.parse(fs.readFileSync(f,'utf8').replace(/^﻿/,''))`, rekurzivně
+`Namespaces[].Pages/Tables`, u page `Actions[]` (strom `Kind` 1 group / 2 action / 3 separator / 4 actionref, `Name`,
+`Properties` Caption/RunObject/Visible), u tabulky `Methods[]` s `Attributes` (IntegrationEvent). Takhle 2026-10-01
+(cust-soitron-bc) vyšlo: Job Card `"Create Job &Sales Invoice"` + `SalesInvoicesCreditMemos`, Job Planning Lines
+`"Create &Sales Invoice"` / `"Create Sales &Credit Memo"` / `"Sales &Invoices/Credit Memos"`, Job Task Lines (Subform)
+`"Create &Sales Invoice"`, Job Planning Lines Part má jen `"Sales &Invoices/Credit Memos"`. Těla triggerů tam nejsou — na
+ně dál GitHub (7.3); `.alpackages` často drží víc řad MS symbolů (27.5, 28.0, 28.4…) → `ls … | head -1` vezme nejstarší,
+vybírej jmenovitě podle `application` v `app.json`.
+
 #### 7.2b Oficiální AL MCP server od Microsoftu (`altool launchmcpserver`) — spouštění autotestů v BC
 
 Jiný server než komunitní `al-mcp-server` výše. Je součástí AL extensionu (`<ext>/bin/altool.exe`,

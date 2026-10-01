@@ -41,6 +41,7 @@ V kořeni zůstává jen README, `mcp-setup.md`, `check-skills.py` a archiv.
   `bc-al-integrations.md` (2026-09-08, `bc-al-objects.md` měl 57 KB = 26k tokenů a Read ho ořízl);
   3.5–3.6f → `bc-al-posting.md` (2026-09-29, `bc-al-data.md` přesáhl 1000 řádků).
   Doménové recepty testů → `bc-al-autotests-domains.md` (2026-10-01, `bc-al-autotests.md` přesáhl 1000 řádků).
+  5.x10 + 5.x12 (Configurator) → `ess-configurator-notes.md` C13/C14 (2026-10-01, `bc-al-objects.md` by přesáhl 1000 řádků).
 - Každý nový poznatek = commit s krátkou zprávou, co a odkud (repo, PR, datum).
 
 Klon může ležet kdekoli — od 2026-09-22 se notes odkazují relativně k adresáři skillu (dřív
