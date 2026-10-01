@@ -497,3 +497,9 @@ ship jen část řádků → `PostSalesDocument(SalesHeader, false, true)` musí
   (zdroj / G/L dostane lokaci hlavičky z `InitHeaderDefaults`, JPL ji má z Job Task přes `InitLocation`, 5.x18 v
   `bc-al-objects.md`) → řádek zdroje s odlišnou lokací padne při každém účtování.
   (2026-10-01, prod-ep-projectBase-bc, SK-TEST NO 1106260008 / skladová příjemka 5101260008.)
+  **Oprava (2026-10-01, větev features/salesQuotes):** guard `"Qty. to Invoice" = 0 → exit` před `ValidatePurchaseRelationship`
+  (Purch.-Post `UpdatePurchLineBeforePost` nuluje `Qty. to Invoice` při `not Invoice`, takže jeden test pokryje příjem i řádky
+  bez množství) a lokace z JPL se při vzniku řádku NO kopíruje pro všechny typy (přihrádka dál jen Item — base `Bin Code`
+  OnValidate má `TestField(Type, Item)`, což byl skutečný důvod původní podmínky `Type = Item`, lokace do ní spadla omylem).
+  Testy: `PostOrder_ReceiveOnly_LinkedLineWithOtherLocation_PostsWithoutTracking`, `PostOrder_Invoice_…_RaisesFieldError`
+  (`Job Purch Inv Track Test EPEBS`). Receive-only test se zdrojem funguje: `PostResJnlLine` se u příjmu nic neúčtuje.
