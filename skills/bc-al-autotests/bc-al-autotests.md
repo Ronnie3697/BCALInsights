@@ -430,6 +430,13 @@ vypadá v CI (krok „Compile AL Apps" doběhne bez `##[error]`, pozná se až p
 `SucceededNode() → False` u dalších kroků) → **7.21 v `bc-al-build.md`**.
 (2026-09-22, prod-ef-advanceCZ-bc, build 28371.)
 
+⚠️ **`internalsVisibleTo` musí nést PŘESNĚ `id` z `test/app.json`.** Když GUID nesedí (test appka založená s jiným
+GUIDem, než se zapsalo do hlavní appky), test appka nezkompiluje s *`error AL0161: 'Procedura(…)' is inaccessible due
+to its protection level`* na každém volání `internal` procedury — hláška o GUIDu nic neříká, tak porovnej `id` v obou
+`app.json` (`grep -n internalsVisibleTo -A4 app/app.json; grep '"id"' test/app.json`). Oprav GUID v hlavní appce
+(identita test appky už žije v CI / `.alpackages`). (2026-10-01, cust-soitron-bc CZ/CDS.CZ: `Soitron CDS CZ Tests`
+30a70d4b vs d8b7ff02.)
+
 ### Test app nepotřebuje vlastní permissionset
 
 **Do test appky NEpiš permissionset** (execute permissiony na test codeunity).
