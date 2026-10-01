@@ -226,6 +226,11 @@ Assert.ExpectedErrorCode('Dialog');
   zůstane testovatelný), nebo zákazníka dát rovnou `LibraryJob.CreateJob(Job, CustomerNo)` místo pozdějšího přepisu
   (`LibraryJob.CreateJob(Job)` si zákazníka založí sám a nastaví Sell-to i Bill-to). (2026-10-01, cust-soitron-bc
   `Job Segment Test SOI` / `QB Buffer Test SOI`; zdroj Base App w1-28 `Job.Table.al`.)
+- **Účtování nákupního dokladu s řádkem projektu bez plánovací řádky a s prázdným `Job Line Type` = Confirm „There are
+  purchase lines without a Job Planning Line No. and with a Job Line Type of blank. Do you want to continue posting?"**
+  (`Purch.-Post`, ještě před `OnBeforePostPurchaseDoc`). Test, který dává `Purchase Line."Job No."` jen přiřazením, nastaví
+  i `"Job Line Type" := Budget` (nebo přidá ConfirmHandler), jinak „Unhandled UI: Confirm" dřív, než se dostane ke slovu
+  vlastní kontrola. Prodejní řádky tenhle dotaz nemají. (2026-10-01, cust-soitron-bc build 28579, `Job Close Test SOI`.)
 - **Default Dimension projektu, který už má úkoly (Job Task) → Confirm „You have changed a dimension. Do you want to update
   the lines?"** — `DimensionManagement.UpdateJobTaskDim` (volané z `DefaultDimOnInsert/OnModify/OnDelete`) se ptá přes
   `Confirm Management`, jakmile `Job Task` projektu není prázdný. Test, který `LibraryDimension.CreateDefaultDimension` /
