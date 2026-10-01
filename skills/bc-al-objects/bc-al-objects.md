@@ -941,3 +941,35 @@ vždy vyžádej export (Definice výměny dat → Export definice výměny dat),
   (`ValidatePurchJobContractEntryNo`) hlídá typ Budget na druhé straně, stejný projekt, žádnou spotřebu/usage a 1:1 (jeden budget
   řádek ↔ jeden billable). `"Job Contract Entry No."` dostane každý řádek v OnInsert (`JobJnlManagement.GetNextEntryNo()`), takže
   před Insertem je 0 — subscribery na vazbu to musí brát jako „ještě není co hledat".
+
+### 5.x19 Dimenze na Job Journal Line z řádku plánování — kde `OnAfterCreateDim` NEstačí (w1-28)
+
+Vlastní dimenze řádku plánování (Soitron `Job Planning Line SOI."Dimension Set ID SOI"`) se do deníku projektů přes
+subscriber na `Job Journal Line.OnAfterCreateDim` + `OnAfterValidateEvent "Job Planning Line No."` dostanou jen z ručně
+vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-01, reklamace „Line of business" v deníku):
+
+- **`Job Transfer Line.FromPlanningLineToJnlLine`** (akce *Vytvořit řádky deníku projektů*): `"Job No."`/`"Job Task No."`/`Type`/
+  `"No."` **přiřazuje**, ne validuje; `"Job Planning Line No."` nastaví **jen při `Usage Link = true`** (bez usage linku deník
+  vazbu na řádek plánování vůbec nemá); dimenze dělá až na konci `JobJnlLine.UpdateDimensions()` = `CreateDimFromDefaultDim(0)`
+  (→ `CreateDim` → `OnAfterCreateDim`) **a potom** `GetCombinedDimensionSetID([výsledek, CreateDimSetFromJobTaskDim, vyšší priority])`
+  — dimenze úkolu projektu se tedy mergují **po** tvém `OnAfterCreateDim` a na stejném kódu dimenze tvoji hodnotu přepíšou.
+  `GetTableValuePair(0)` vrací prázdný slovník a `IsDefaultDimDefinedForTable(prázdné)` = `true`, takže `CreateDim` se zavolá vždy.
+  Event `OnAfterFromPlanningLineToJnlLine(var JobJnlLine, JobPlanningLine)` běží **před** `UpdateDimensions` → cokoliv tam do
+  `"Dimension Set ID"` dáš, se přepočítá. Použitelné: **`OnAfterUpdateDimensions(var JobJournalLine, var DimensionSetIDArr)`**
+  (fire i při `IsHandled` z `OnBeforeUpdateDimensions`) — tam merge zopakuj; pro řádky bez usage linku si řádek plánování
+  z `OnAfterFromPlanningLineToJnlLine` zapamatuj (globální proměnné subscriber codeunitu + PK deníkového řádku jako klíč, smazat
+  v `OnBeforeInsertEvent`). Instance static-subscriber codeunitu žije celou session, globály mezi eventy drží.
+- **Essence Project TimeSheets** (`ExtTimeSheetJobJournalTSEBS` 71058700 / `Ext. TS Auto Post Line TSEBS` 71058713, větev
+  `features/newEvent`): u řádku plánování s **placeholder resource** (`Resource."Placeholder Resource TSEBS"`) dělá
+  `JobJournalLine."Job Planning Line No." := …` **přiřazením** (standardní `Validate` by spadl na `TestField("Usage Link", true)`
+  a `TestField("No.")`), pak už jen `Validate("Location Code"/"Bin Code")` když jsou vyplněné → žádný `CreateDim` s vazbou
+  v ruce. Stejně `Suggest Job Jnl. Lines.OnAfterTransferTimeSheetDetailToJobJnlLine` (TSEBS přiřadí
+  `"Job Planning Line No. TSEBS"` z Time Sheet Line). Nezávisle na appce to chytí **`Job Journal Line.OnBeforeInsertEvent`**
+  (`RunTrigger`, ne temporary) — merge podle `"Job Planning Line No."`; opakovaný merge téže sady je idempotentní.
+- `Job Planning Line."Usage Link"` řídí `ControlUsageLink()`: při `Job."Apply Usage Link" = true` je na budget řádku **vždy** true
+  (ruční `Validate("Usage Link", false)` se vrátí) → v testu „bez usage linku" nastav `Job.Validate("Apply Usage Link", false)`
+  před založením řádků. `Job Task.OnInsert` → `DimMgt.InsertJobTaskDim` kopíruje default dimenze projektu do `Job Task Dimension`
+  (založ default dim před `CreateJobTask`, jinak Confirm „update the lines?"). Řádek deníku bez usage linku má po transferu
+  `"Job Planning Line No." = 0` — assertuj to jako precondition scénáře. Testy `JPL Dim. Transfer Test SOI` (54443).
+- Cache setupu v globálu subscriber codeunitu (`SetupLoaded`) = změna setupu platí až v nové session **a** test, který setup
+  přepíná, čte starou hodnotu → setup čti při každém volání (`Get` jedné věty platforma cachuje sama).

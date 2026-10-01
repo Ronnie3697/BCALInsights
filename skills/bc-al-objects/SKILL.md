@@ -9,7 +9,8 @@ description: >-
   Item Jnl. Line UoM qty-per, Auto Format / částky v textu, Item Charge Assignment z kódu, Job Queue z účtování
   (práva, recurring), Data Exchange Framework / camt.053 (merge sloupců, Regex Match, pole 274), Job Planning Line
   (účto skupina do deníku, Location Code z Job/Job Task jen pro nové řádky, vazba budget↔billable Purch. Job
-  Cont.Entry No.IMEBS). Načti u číselných řad, trackingu, výroby, plánování, projektů, Job Queue, bankovního
+  Cont.Entry No.IMEBS, dimenze do Job Journal Line: UpdateDimensions po OnAfterCreateDim, Usage Link, TSEBS
+  placeholder). Načti u číselných řad, trackingu, výroby, plánování, projektů, Job Queue, bankovního
   importu. (Shopify, HttpClient → bc-al-integrations.)
 user-invocable: true
 ---

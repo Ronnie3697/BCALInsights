@@ -361,6 +361,10 @@ přidělil přes IntelliSense. Objekty s ID napsaným ručně (AI agent, kopie s
 - Host `https://backend.alid.ninja`, appka = **SHA256 hex z `id` v `app.json`** (bez `.objidconfig` s poolem / authKey).
 - Hlavičky: `Ninja-App-Id: <GUID>` a `Ninja-Header-Payload` = base64 JSON `{gitUserName, gitUserEmail, appPublisher,
   appName, appVersion, ninjaVersion}` (git user z `git config`, e-mail lowercase — licence se váže na git e-mail).
+  **`ninjaVersion` musí být ≥ 3.1.0** — s `3.0.0` backend odpoví textem *„Extension version 3.1.0 or higher required"*
+  místo JSONu; ber verzi z nainstalované extension (`ls ~/.vscode/extensions | grep vjeko-al-objid`, 2026-10: 3.4.5).
+  Odpověď nese `warning ORG_GRACE_PERIOD` — informativní, zápis proběhl (`"updated":true`). (2026-10-01, cust-soitron-bc test appka:
+  backend znal jen 54430–54432, 54433–54443 doplněny.)
 - Čtení: `POST /api/v3/getConsumption/<hash>` s `{}` → `{ page: [...], table: [...], "table_<id>": [field IDs], … }`.
 - Zápis jednoho ID: `POST /api/v3/storeAssignment/<hash>/<type>/<id>` s `{"appId":"<hash>"}` → `{"updated":true}`
   (aditivní, bezpečné). `…/<id>/delete` uvolní. Hromadně `/api/v3/syncIds/<hash>` — **PATCH = merge, POST = replace**.
