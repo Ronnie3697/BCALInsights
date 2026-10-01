@@ -211,6 +211,12 @@ Assert.ExpectedErrorCode('Dialog');
   ⚠️ **`Save` assertuje přesně jeden záznam** („Setup table with only one entry is allowed. Expected:<1> Actual:<0>") —
   vlastní setup tabulka v CI DB **neexistuje** (nic ji nezaložilo), takže před `Save(Database::"<Setup> XXX")` zavolej
   `Setup.GetSetup()` (= Get-or-Insert). Lokálně to neuvidíš, dev DB setup má. (2026-09-30, cust-soitron-bc build 28552, 4 testy.)
+- **Default Dimension projektu, který už má úkoly (Job Task) → Confirm „You have changed a dimension. Do you want to update
+  the lines?"** — `DimensionManagement.UpdateJobTaskDim` (volané z `DefaultDimOnInsert/OnModify/OnDelete`) se ptá přes
+  `Confirm Management`, jakmile `Job Task` projektu není prázdný. Test, který `LibraryDimension.CreateDefaultDimension` /
+  `Validate("Dimension Value Code") + Modify(true)` / `Delete(true)` na projektu s úkoly dělá, potřebuje `[HandlerFunctions('ConfirmHandler')]`;
+  bez úkolů (default dim založená před `CreateJobTask`) dialog nevyskočí a registrovaný handler by naopak shodil test
+  jako nevyužitý. (2026-10-01, cust-soitron-bc build 28562, `Job Type Posting Test SOI`.)
 - **Negativní test `TestStatusOpen` po `ReleaseSalesDocument` — validuj na NOVÉ instanci recordu.** `Sales Line`
   si hlavičku cachuje v globální proměnné instance (`GetSalesHeader` znovu nečte, když sedí Document Type + No.);
   `SalesLine` proměnná, kterou prošel `LibrarySales.CreateSalesLine`, tak drží hlavičku se Status Open i po
