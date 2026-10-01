@@ -211,6 +211,13 @@ Assert.ExpectedErrorCode('Dialog');
   ⚠️ **`Save` assertuje přesně jeden záznam** („Setup table with only one entry is allowed. Expected:<1> Actual:<0>") —
   vlastní setup tabulka v CI DB **neexistuje** (nic ji nezaložilo), takže před `Save(Database::"<Setup> XXX")` zavolej
   `Setup.GetSetup()` (= Get-or-Insert). Lokálně to neuvidíš, dev DB setup má. (2026-09-30, cust-soitron-bc build 28552, 4 testy.)
+- **Copy Document maže vazbu na projekt, Get Shipment Lines ji drží.** `Copy Document Mgt.CopySalesDocLine` → `UpdateSalesLine`
+  → `SetDefaultValuesToSalesLine` → `InitJobFieldsForSalesLine` nuluje `Job No.`, `Job Task No.` i `Job Contract Entry No.`
+  (bez i s Recalculate Lines; kopíruje je jen `CopyJobData` = opravné dobropisy). `Sales Shipment Line.InsertInvLineFromShptLine`
+  naopak dělá `SalesLine := SalesOrderLine` → řádek faktury z Get Shipment Lines nese `Job Contract Entry No.` i vlastní pole
+  řádku objednávky. Test logiky „dohledej projekt z řádku" musí u Copy Document dát projekt do hlavičky (`Job No. EPEBS`),
+  jinak se fallback přes řádek nikdy nespustí; u Get Shipment Lines se naopak testuje cesta přes contract entry.
+  (2026-10-01, cust-soitron-bc `Sales Aggregation Test SOI`, zdroj Base App w1-28 `CopyDocumentMgt.Codeunit.al` 1818/7761.)
 - **Default Dimension projektu, který už má úkoly (Job Task) → Confirm „You have changed a dimension. Do you want to update
   the lines?"** — `DimensionManagement.UpdateJobTaskDim` (volané z `DefaultDimOnInsert/OnModify/OnDelete`) se ptá přes
   `Confirm Management`, jakmile `Job Task` projektu není prázdný. Test, který `LibraryDimension.CreateDefaultDimension` /
