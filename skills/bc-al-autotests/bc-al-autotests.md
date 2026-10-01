@@ -203,6 +203,15 @@ Assert.ExpectedErrorCode('Dialog');
 
 ## Gotchas
 
+- **`Job.Validate(Status, …)` má v base dialogy na obě strany (w1-28 `Job.Table.al`):** přechod **na Completed** →
+  `Validate(Complete, true)` → `ChangeJobCompletionStatus` → `Message(EndingDateChangedMsg)` (→ `[MessageHandler]`);
+  přechod **z Completed** → `ConfirmManagement.GetResponseOrDefault(StatusChangeQst, true)` („This will delete any unposted
+  WIP entries…") a po něm `Message(ReverseCompletionEntriesMsg)` (→ `[ConfirmHandler]` Reply true **+** `[MessageHandler]`).
+  Bez ConfirmHandleru reopen spadne na „Unhandled UI: Confirm", s handlerem `Reply := false` se stav tiše vrátí na Completed.
+  Vlastní kontrola s `[ErrorBehavior(ErrorBehavior::Collect)]` + `Show Errors SOI` (Page.Run `Error Messages` + `Error('')`)
+  se testuje přes `asserterror` + `[PageHandler]` na `TestPage "Error Messages"` (`First()` + `.Description.Value()` do globální
+  proměnné, pak `Close()`), `Commit()` po GIVEN; `ExpectedError` nepoužívat (hláška je prázdná). (2026-10-01, cust-soitron-bc
+  `Job Cancel Test SOI`, 66504 — kompilace čistá, CI běh po PR.)
 - **`Library - Setup Storage`: pohodlné wrappery `SaveSalesSetup()` / `SavePurchasesSetup()` / `SaveGeneralLedgerSetup()` …
   mají scope OnPrem** → v test appce s `"target": "Cloud"` `error AL0296 ... has scope 'OnPrem'`. Použij generické
   `LibrarySetupStorage.Save(Database::"Sales & Receivables Setup")` + `Restore()` v `Initialize()` (Restore hned po

@@ -105,6 +105,13 @@ def alhash(name: str) -> int:
 - Use case: přidáváš pole a chceš rovnou doplnit překlad do `.cs-CZ.xlf`
   bez čekání na build + NAB Refresh — spočítej hash jména pole a napiš
   trans-unit ručně se správným ID. Refresh ho pak už jen potvrdí.
+- **Skriptované doplnění unitů z `.g.xlf` do `.cs-CZ.xlf` — hlídej konce řádků.** `.g.xlf` generuje alc s **CRLF**, ručně
+  vedené `.cs-CZ.xlf` / `.sk-SK.xlf` bývají **LF bez BOM**; když do nich zkopíruješ `<trans-unit>` blok z `.g.xlf` (node/python
+  regex), vznikne soubor se smíšenými konci (`tr -cd '\r' < f | wc -c` > 0) a git hlásí „LF will be replaced by CRLF". Po vložení
+  normalizuj (`sed -i 's/\r$//'` na LF souboru je tu správně) a zkontroluj duplicity ID (`grep -o 'trans-unit id="[^"]*"' | sort |
+  uniq -d`). Postup, který seděl: node skript 1 = diff `.g.xlf` vs. překlady (MISSING / CHANGED source) → soubor pro Read tool
+  (diakritika), skript 2 = mapa id → [cs, sk], MISSING vloží blok z `.g.xlf` + `<target>` před `</group>`, CHANGED přepíše
+  `<source>` i `<target>` (6.3). Bez pythonu v Bash toolu (Store stub) jede node bez problémů. (2026-10-01, cust-soitron-bc 66504.)
 
 > **⚠️ Výjimka — víc extensionů na stejný target objekt.** Algoritmus výše
 > platí pro jména elementů, ALE když **víc tableextension (nebo víc

@@ -123,6 +123,12 @@ plný název dej tam (`Caption = 'EM Operation Output Chaining'`) — to uživat
 vidí v UI; zkrácený object name je jen interní identifikátor.
 (Zjištěno 2026-06, `prod-em-operOutputChaining-bc`.)
 
+**⚠️ `enum` identifikátor nad 30 znaků = `warning AL0659`** („The length of the enum identifier … should not exceed 30
+characters as it may result in runtime issues in cases where there are other enums with the same first 30 characters") —
+kompilace projde, ale s Essence `failOn warning` to shodí CI. Enum tedy drž **≤ 30 znaků včetně affixu**
+(`"Job Cancellation Entry Type SOI"` = 31 → `"Job Cancel. Entry Type SOI"`). Tabulky/codeunity/page mají tvrdý limit 30
+(error), u enumu je to „jen" warning, takže si ho při psaní snadno nevšimneš. (2026-10-01, cust-soitron-bc 66504.)
+
 **Proč:**
 
 - VS Code File Explorer + naming konvence `<Name>.<Type>.al` = okamžitě vidíš,
