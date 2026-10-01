@@ -736,6 +736,12 @@ parametru pro textovou formuli.)
   typu ListPart (7504) přes `&page=` nejde otevřít (chyba serveru) – použij kartu s factboxem. Záložku karty rozbalíš klikem
   na nadpis záložky (bez zápisu). Lookup s nečekaně jedním řádkem a ikonou filtru v hlavičce sloupce = filtry zapomenuté
   v kódu na temp recordu před `Page.RunModal` (nález SCEBS) – dobré screenshotem doložit do dokumentace jako bug.
+  ⚠️ **Rozjeté souřadnice v novém okně / po restartu skupiny tabů** (DPR 1,5, `innerWidth` > `outerWidth`): screenshot
+  hlásí rámec 1288×952, ale stránka v něm zabírá jen ~75 % a **kliky i `zoom` se přepočítávají jinak** – zoom vyřízne
+  jiné místo, klik na „Storno" trefí prázdno a dialog zůstane otevřený. Před focením zkontroluj `zoom` celého rámce
+  (`[0,0,šířka,výška]`, `scale 0.5`): když obsah nevyplní obrázek, kalibruj (zoom výřez, porovnej polohu známého prvku)
+  a výsledek dialogu po každém kliku ověř screenshotem. Request page zavřená navigací pryč se nespustí (bez **Ok** nic).
+  (2026-10-01, BC-TEST Sonnentor.)
 - **Zápis do prostředí zákazníka (vyplnění setupu, založení zákazníka a dokladu, naklikání testovacího
   scénáře) smíš dělat — ale JEN s výslovným svolením uživatele** pro dané prostředí a seanci. Bez něj
   jen čti a foť; data připraví uživatel. Svolení si vyžádej **dopředu**, než začneš fotit, ať nevzniknou
