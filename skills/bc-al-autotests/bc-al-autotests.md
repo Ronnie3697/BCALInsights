@@ -399,6 +399,24 @@ Assert.ExpectedErrorCode('Dialog');
 - `TestPage` neumí všechno – pole s `AssistEdit`, některé FactBoxy a custom controly mají omezení
 - Permission testy musí běžet pod **NAVUserPassword** auth, ne Windows
 
+- **`[HttpClientHandler]` je OnPrem-only** (MS docs: „supported only in Business Central on-premises", runtime 15+) → v test
+  appce s `"target": "Cloud"` mock HTTP volání nenapíšeš. Odchozí HTTP (Jira `PUT /rest/api/3/issue/{id}`) testuj po vrstvách:
+  stav fronty + payload builder v testu, samotný request ručně v sandboxu; blokátor řekni uživateli, žádný placeholder test.
+  (2026-10-02, cust-soitron-bc `Jira JPL Change Test SOI`.)
+- **Odmítnutý Confirm v table triggeru: cust-soitron-bc má konvenci explicitní `Error(<Label>)` místo tichého `Error('')`**
+  (komentář v `Replication Mgt. SOI`: tichý error TestPage i `asserterror` spolknou a odmítnutá změna vypadá jako provedená).
+  Test pak jde přímočaře: `asserterror Page.Field.SetValue(...)` + `Assert.ExpectedError('... cancelled.')`, `Commit()` po GIVEN,
+  `Page.Close()` až po assertu. `Rec.Delete(true)` z kódu má v runneru `GuiAllowed() = true` → Confirm v `OnBeforeDelete` vyskočí
+  i bez stránky, test potřebuje `[ConfirmHandler]` (Reply z globální proměnné, otázku si ulož na assert). (2026-10-02)
+- **CodeCop `AA0181` + `AA0175` na `Find('=')` uvnitř `Assert.IsTrue/IsFalse`** („Find only with Next", „queries the database but
+  does not use the queried record") — oba warning → s `failOn warning` CI fail. Existenci záznamu assertuj `Rec.SetRecFilter()` +
+  `Assert.RecordIsNotEmpty(Rec)` / `RecordIsEmpty(Rec)` (funguje i po `Delete`, PK v proměnné zůstává), refresh hodnot přes
+  `Get(PK)`. (2026-10-02, cust-soitron-bc)
+- **Kompilace kopie test appky ve scratchpadu:** `test/app.json` mívá `"logo": "..\\app\\essence.png"` → vedle kopie `test/`
+  musí ležet složka **`app/`** s logem (jinak `AL1001 Source file '..\app\essence.png' could not be found`). A test `app.json`
+  musí deklarovat **explicitní dependency na každou appku, jejíž tabulku test čte** — `Record "External Time Sheet Line TSEBS"`
+  bez `Essence Project TimeSheets` v deps = `AL0185 Table ... is missing`, i když hlavní appka na ní závisí. (2026-10-02)
+
 ## Spouštění z CLI / CI
 
 - `BcContainerHelper`: `Run-TestsInBcContainer` – PowerShell
