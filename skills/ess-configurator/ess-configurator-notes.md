@@ -559,10 +559,14 @@ enginu 63162; ten je jediná implementace pro dialog i API. Co z toho plyne:
 - **Změny chování dialogu:** neparsovatelné číslo = chyba *Value "abc" is not valid for parameter "Width".* (dřív tiché
   vymazání + smazání závislých parametrů — `ValidateParameterValue` vrací `false` jen u neparsovatelného čísla, rozsah / Option /
   Table Lookup hází chybu sám); výběr z lookupu se validuje jako napsaná hodnota (popis vybraného řádku drží overload
-  `SetParameterValue(…; PickedDisplayText)`); Enter (skrytá akce `ConfirmValue`) uloží jen změněnou hodnotu na editovatelném
-  řádku — dřív opakovaný Enter smazal ručně zadané závislé hodnoty.
+  `SetParameterValue(…; PickedDisplayText)` **vždy, i prázdný** — „prázdný = dohledej podle hodnoty" by u neunikátního zdrojového
+  pole (MJ zboží…) vzal popis jiného řádku; code review); Enter (skrytá akce `ConfirmValue`) uloží jen změněnou hodnotu na editovatelném
+  řádku — dřív opakovaný Enter smazal ručně zadané závislé hodnoty. Veřejný parametr, který nová implementace nepotřebuje
+  (`LoadParameters(…; NewTempVariantCode; …)`), **neignoruj potichu**: nový overload bez něj + starý `[Obsolete]` a nepodporovanou
+  hodnotu odmítni chybou (code review).
 - **Table Lookup nad polem mimo Code/Text:** lookup nabízí `Format()` hodnoty (lokalizované číslo, caption Option), `FldRef.SetRange(Text)`
-  na takovém poli nesedí → `ValidateTableLookupValue` porovnává `UpperCase(Format(FldRef.Value()))` přes vyfiltrované řádky.
+  na takovém poli nesedí → `ValidateTableLookupValue` číslo, které se `Evaluate` + `Format` vrátí na stejný text, filtruje typovaně
+  (klíč), jinak / bez nálezu porovná `UpperCase(Format(FldRef.Value()))` přes vyfiltrované řádky (průchod u širokého lookupu je drahý).
 - Testy: TestPage dialogu přes `ModalPageHandler` a výběr řádku podle `"Parameter Name".Value()` (pořadí/kurzor neassertovat);
   neviditelnou akci (`Visible = false`, ShortcutKey) TestPage nevyvolá. Nový codeunit `Var. Config Dialog Tests COEBS` (63173).
 - Follow-up: COZLK `Nested Variant Mgt.` (kopie find-or-create s TODO „nahradit public COEBS helperem") → engine; jejich kopie
