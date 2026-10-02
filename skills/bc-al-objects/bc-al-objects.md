@@ -783,6 +783,18 @@ i `Length` se počítají dvakrát.
 (2026-09-16, cust-alumistr-bc — analýza kusovníků variant 103200-COEBS0209/0210, definice konfigurace 0052;
 zdroje prod-em-cuttingPlan-bc master, prod-ess-configurator-bc master.)
 
+**Na komponentě VZ (`Prod. Order Component CUEBS`) je to jinak než na kusovníku — bez větvení podle MJ.** Refresh zakázky
+(`Calculate Prod. Order.OnTransferBOMProcessItemOnBeforeGetPlanningParameters`) zkopíruje `Qty. of Pcs.` z řádku kusovníku
+a validuje `Qty. per Piece` → `CalcQtyFieldsCUEBS`: `Quantity per := Qty. of Pcs.`, **`Qty. per Unit of Measure := Qty. per Piece`**,
+`Length := Qty. per Piece × konstanta`. Jedna „jednotka" komponenty je tedy jeden kus, `Expected Quantity` = počet kusů (base
+`CalculateComponents` ji po eventu přepočítá přes `Validate("Routing Link Code")`) a **délka kusu je v základní MJ zboží**, ne v MJ
+komponenty → text typu „22x 1,87 M" skládej ze základní MJ (`Item."Base Unit of Measure"`). `Qty. of Pcs.` je na jednotku řádku VZ
+(v jeho MJ; `ProdOrderNeeds` násobí `ProdOrderLine.Quantity`). cs-CZ captiony: `Qty. of Pcs.` = **„Množství (výrobní jednotky)"**,
+`Qty. per Piece` = **„Množství ve výrobní jednotce"** — zadání od konzultanta „Množství (výrobní jednotky) x Množství (výrobní
+jednotky)" myslí právě tahle dvě pole. Test bez Cutting Plan setupu: pole na komponentě po refreshi **přiřaď** (`Validate` chce
+`Unit of Measure."Length Type CUEBS"`, `TestField`). Zákaznická appka, která pole čte, potřebuje vlastní dependency na EM Cutting
+Plan (tranzitivně přes configurator ne). (2026-10-02, cust-alumistr-bc 66397 — kooperace lakování, poznámky komponent na NO.)
+
 ### 5.x13 Délka profilu z výrobního kusovníku: pole `Length` (40) — a `Version Nos.` NENÍ kód verze
 
 Rozměry řádku výrobního kusovníku drží standardní pole **`Production BOM Line."Length"` (ID 40, Decimal)**,
