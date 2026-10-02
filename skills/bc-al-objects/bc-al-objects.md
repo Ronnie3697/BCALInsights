@@ -970,7 +970,11 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   `"Dimension Set ID"` dáš, se přepočítá. Použitelné: **`OnAfterUpdateDimensions(var JobJournalLine, var DimensionSetIDArr)`**
   (fire i při `IsHandled` z `OnBeforeUpdateDimensions`) — tam merge zopakuj; pro řádky bez usage linku si řádek plánování
   z `OnAfterFromPlanningLineToJnlLine` zapamatuj (globální proměnné subscriber codeunitu + PK deníkového řádku jako klíč, smazat
-  v `OnBeforeInsertEvent`). Instance static-subscriber codeunitu žije celou session, globály mezi eventy drží.
+  v `OnBeforeInsertEvent`). ⚠️ **Globály static-subscriber codeunitu mezi dvěma eventy NEDRŽÍ** — bez `SingleInstance = true`
+  dostane každé volání eventu čerstvou instanci (CI build 28618: oba testy „bez usage linku" padly, zapamatovaná sada byla
+  prázdná; s usage linkem prošly). Stav mezi eventy = `SingleInstance = true` na subscriber codeunitu (vzor TSEBS
+  `Single Instance TSEBS`), pomocné `DimensionManagement` pak drž v lokálních proměnných, ne v globálu singletonu.
+  Stejně tak „cache setupu v globálu" static subscriberu nikdy necachovala — jen to vypadalo, že funguje.
 - **Essence Project TimeSheets** (`ExtTimeSheetJobJournalTSEBS` 71058700 / `Ext. TS Auto Post Line TSEBS` 71058713, větev
   `features/newEvent`): u řádku plánování s **placeholder resource** (`Resource."Placeholder Resource TSEBS"`) dělá
   `JobJournalLine."Job Planning Line No." := …` **přiřazením** (standardní `Validate` by spadl na `TestField("Usage Link", true)`
