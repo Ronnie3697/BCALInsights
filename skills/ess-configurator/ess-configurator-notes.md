@@ -337,9 +337,10 @@ a master build 28532 spadl — **`SetView` neznámé pole tiše ignoruje** (2.6c
 syntaxi → test bere `'BADDATA'` (větev `65364_InvalidViewTestFix`, 2026-09-29, PR zakládá uživatel). Riziko neplatného filtru:
 `Source Table Filter` se ukládá přes `FilterPageBuilder.GetView(…, false)` = **captiony** polí — kdyby je `SetView` v jiném jazyce
 nepřečetl, filtr se ztratí potichu (bez chyby, víc nabízených hodnot); neověřeno.
-**Zbývá jen API:** filtr `value`/`displayText` v `FillTableLookupValues` (`TrySetRecRefFieldFilter` ve skupině filtru tabulky) —
-do 66387 nebo po merge obou větví. Popis PR 9577 (sekce *Pro review*) ho vede jako známé omezení „oprava v 65364", ale kód je jen
-v 66387 → opraví ho větev, která se mergne druhá. `Param. Display Text Mgt.GetTableLookupDisplayText` beze změny (hledá přesnou vybranou
+**API (dořešeno 2026-10-02, větev `VariantConfigEngineUnify`, čeká na PR):** filtr `value`/`displayText` v `FillTableLookupValues`
+(`TrySetRecRefFieldFilter`) šel do skupiny filtru tabulky → filtr parametru na `No.` přepsal. Teď `RecRef.FilterGroup(11)` pro
+`value` a `12` pro `displayText` (odvozeno z `AttributeFilterGroup() + 1/+2`), po nich `FilterGroup(0)`; test
+`AllowedValuesOfATableLookupKeepTheTableFilterOfTheParameter`. Popis PR 9577 (sekce *Pro review*) ho vedl jako známé omezení. `Param. Display Text Mgt.GetTableLookupDisplayText` beze změny (hledá přesnou vybranou
 hodnotu, přepsání filtru tabulky na stejném poli výsledek nemění).
 
 ## C6. Diagnostika konfigurace v běžícím BC
