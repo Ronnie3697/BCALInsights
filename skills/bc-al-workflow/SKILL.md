@@ -10,7 +10,9 @@ description: >-
   prezentace featury jako HTML se screenshoty v docs/ (base64, obsah, focení
   BC přes Claude in Chrome a jeho pasti), co číst před editem AL objektu
   (hlavička, app.json, .alpackages je binární ZIP → al-mcp, permission set),
-  Word layouty (repeater w15:dataBinding), build a analyzery AA/CA/PTE/LC
+  Word layouty (repeater w15:dataBinding, layout štítků generovaný skriptem,
+  namespace vazeb bez teček, zip s lomítky, barcode fonty IDAutomation,
+  GS1-128 / FNC1 vlastním encoderem), build a analyzery AA/CA/PTE/LC
   (lokální verifikace všech dotčených appek, failOn warning), XML doc
   komentáře (LC0072, & = AL0640), runtime errory bez spekulačních smyček,
   Essence ruleset per projekt (*Ruleset*.json vedle app.json). Načti při
@@ -90,3 +92,7 @@ příklady jsou v souboru.
 - **12.4** Essence build bere **první `*Ruleset*.json` (case-insensitive)
   rekurzivně ve složce s `app.json`**; `ruleSetPath` v `app.json` = AL0124; `.vscode` je
   gitignored, `.code-workspace` řídí jen editor. `failOn = 'warning'`.
+- **12.5** Word layout psaný skriptem: namespace vazeb = název reportu bez teček,
+  mezery → `_` (ověř v `customXml` po kompilaci), zip položky s lomítky, jeden štítek
+  na stránku přes řádek tabulky s `hRule="exact"`. GS1-128 přes System App nejde
+  (bez FNC1) → vlastní Code 128 encoder pro font `IDAutomationC128*`.

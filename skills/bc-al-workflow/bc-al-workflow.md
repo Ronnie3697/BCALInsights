@@ -791,3 +791,42 @@ Test ruleset typicky dědí root přes `includedRuleSets`
 (`..\..\<repo>.ruleset.json`) a přidá výjimky (např. `LC0015` Hidden —
 permission set coverage netřeba pro test codeunity).
 
+
+### 12.5 Word layout štítků generovaný skriptem + barcode fonty / GS1-128 (BC online)
+
+Štítky 100×100 / 100×50 mm s EAN a GS1-128 pro Sonnentor (PBI 65662, 2026-10-02) — Word layout
+psaný skriptem (node generuje `document.xml` + customXml, PowerShell zipuje), bez Wordu. Co platí:
+
+- **Namespace vazeb:** `urn:microsoft-dynamics-nav/reports/<Název>/<ID>/`, kde `<Název>` = název
+  reportu s mezerami → `_` a **tečky vypuštěné** (`"Prod.Order Transport Label SON"` →
+  `Prod_Order_Transport_Label_SON`). Ověř po první kompilaci: `alc` do `.docx` přegeneruje
+  `customXml/item*.xml` (UTF-16) s datasetem — otevři ho a porovnej s `prefixMappings` v
+  `document.xml`. Element dataitemu = **jméno dataitemu** (`ProductionOrder`, ne tabulka), vnořený
+  dataitem = vnořený element (`/ns0:ProductionOrder[1]/ns0:LabelCopy`).
+- **Zip musí mít v názvech položek lomítka.** PS 5.1 `[IO.Compression.ZipFile]::CreateFromDirectory`
+  píše `customXml\item1.xml` (backslash) → Word/alc balíček nemusí přijmout. Zipuj přes `ZipArchive`
+  + `CreateEntry(rel.Replace('\','/'))`, `[Content_Types].xml` první.
+- **Jeden štítek na stránku bez zalomení:** vnější tabulka 1×1 s `w:trHeight w:hRule="exact"` o výšce
+  těla stránky minus ~40 twips + `w:cantSplit`; za tabulkou povinný prázdný odstavec s `w:line="20"
+  w:lineRule="exact"`, aby nevyrobil prázdnou stranu. Kopie = vnořený `Integer` dataitem (`LabelCopy`,
+  `SetRange(Number, 1, NoOfCopies)`) a **všechny sloupce na vnitřním dataitemu** — vazba uvnitř
+  vnitřního repeateru na sloupce vnějšího není jistá.
+- **Obrázek (logo):** `w:picture` content control s `w:dataBinding` na Blob sloupec
+  (`column(CompanyPicture; CompanyInformation.Picture)` po `CalcFields`) + placeholder PNG v
+  `word/media` a `r:embed`; vzor `DisposalProtocol.Report.docx` (header).
+- **Barcode fonty BC online** (MS Learn `devenv-report-barcode-fonts`, IDAutomation): Code 128 =
+  `IDAutomationC128XS/S/M/L/XL` (XS při 12 pt ≈ X 0,19 mm → ~420 modulů GS1 kódu ≈ 80 mm), UPC/EAN =
+  `IDAutomationUPCEAN*` (M). Text pro font: `Barcode Font Provider` (`Enum::"Barcode Font
+  Provider"::IDAutomation1D`, `ValidateInput` + `EncodeFont(Text, Enum::"Barcode Symbology"::"EAN-13")`).
+- **GS1-128 přes System App NEJDE:** `IDA 1D Code128 Encoder` volá DotNet `FontEncoder.Code128(Text)`
+  bez `ApplyTilde` → FNC1 (`~202`) ani závorková metoda IDAutomation se neuplatní. Vlastní encoder
+  (vzor `GS1 Barcode Mgt. SON`, cust-sonnentor-bc): hodnoty Code 128 (subset C pro páry číslic, B jinak,
+  `FNC1 = 102`, `Start C = 105`, `Code B = 100`, `Code C = 99`, `Stop = 106`), checksum
+  `(start + Σ i·v_i) mod 103`, mapování na IDAutomation font: 0 → chr 194 (mezera), 1–94 → chr(v+32),
+  95–106 → chr(v+100) (FNC1 = Ê 202, Start C = Í 205, Stop = Î 206). GS1: FNC1 za startem a za každým
+  prvkem proměnné délky (AI 10, 30), AI 02 = GTIN-14 (EAN zleva nulami), AI 15 = `<Year,2><Month,2><Day,2>`.
+  Ručně ověřitelné vektory do testu: `FNC1 0201` → check 8, `FNC1 10AB` → check 5.
+- **Název objektu max 30 znaků** (`Prod. Order Transport Label SON` = 31 → `Prod.Order …`), AA0215 pak
+  chce soubor podle zkráceného názvu (`ProdOrderCommercialLbl.Report.al`).
+- `Library - Item Tracking.CreateProdOrderItemTracking` je od 27.0 deprecated (AL0432) → stejná signatura
+  v `Library - Manufacturing`.
