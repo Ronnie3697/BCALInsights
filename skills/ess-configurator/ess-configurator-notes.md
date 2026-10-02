@@ -84,7 +84,8 @@ Volá ji **jen `SL Action Cond. Mgt. COEBS`** (přes lokální `InjectSalesLineQ
 | CNC tisk (`CNC Print Mgt. COALU`) — tam se plní X1/X/Y/Z, ne QUANTITY | ❌ |
 
 **Proč dialog hodnotu nemá:** `Variant Config Params COEBS` (63147) si slovník staví
-vlastní procedurou `GetParameterValues` — projde jen řádky bufferu parametrů
+procedurou `GetParameterValues` (od větve `VariantConfigEngineUnify` jen obálka nad
+`Variant Config. Engine COEBS.GetParameterValues`, chování stejné — viz C11) — projde jen řádky bufferu parametrů
 konfigurace. Systémové parametry v tom bufferu nejsou. Navíc při úplně prvním
 načtení (`LoadParameters`) se default počítá nad **prázdným** slovníkem
 (`EmptyParameterValues`).
@@ -281,6 +282,9 @@ jen parametry s hodnotou a dialog se zasekne). Na feedu **od 28.0.24** (PR 9533 
 2026-09-18); 28.0.23 ji ještě nemá → minimum dependency `28.0.24.0`. Lokální buildy `28.0.22.1` / `28.0.22.2`
 z `prod-ess-configurator-bc/app` ji mají, ale na feedu neexistují — minimum podle nich nenastavuj (7.11
 v `bc-al-build.md`). Vzor: cust-zlomek-bc `Variant Cfg Params COZLK` (task 65364, 2026-09-23).
+Od větve `VariantConfigEngineUnify` (C11) je to obálka nad public **`Variant Config. Engine COEBS.RefreshAfterValueChange(var
+TempBuffer)`** — změněnou hodnotu nejdřív ulož `Modify` (engine záznam znovu čte), vložený řádek potřebuje `Sort Order`
+a Variant Code z `GetBufferVariantCode()`.
 
 ⚠️ **OK v dialogu `Variant Configuration COEBS` (63143) chce vyplněné VŠECHNY aktivní parametry** —
 `OnQueryClosePage` → `SaveVariantConfiguration` → `ValidateAllParametersHaveValues` → `Variant Config Params
@@ -298,6 +302,9 @@ COEBS.ExecuteRoutingActions` (obojí public, v balíčku i s ATEBS; kusovník `I
 v Alternative BOM/Routing, každé hlásí `Message`), znovu použitá varianta je nevolá. Kopie find-or-create logiky
 v rozšíření (COZLK `Nested Variant Mgt.`) bez nich dá prodejnímu řádku variantu bez kusovníku a postupu — a další
 použití téže varianty to už nenapraví. Chytil code review 2026-09-23 (cust-zlomek-bc 65364).
+**Od COEBS 28.0.30 (PR 9577) kopii nepiš:** `Variant Config. Engine COEBS` (63162) je public a `CreateVariant` /
+`FindOrCreateVariant` dělají Item Variant + hodnoty + text pro tisk + kusovník a postup; od `VariantConfigEngineUnify`
+navíc `Effective Hidden` a `RefreshReusedVariant` u znovu použité varianty (C11, C13).
 
 ⚠️ **`Config. Condition Mgt. COEBS.ValidateParameterValue` u Table Lookup pustí cokoli** (COEBS 28.0.26): větev
 volá `ValidateTableLookupValue`, výsledek zahodí a vrátí `true`; ta navíc filtruje jen základní `Source Table Filter`
@@ -537,6 +544,29 @@ koncept 0054 na správné (`KOLEJ_DOLE_PROFIL`…) → apply padá *Pole Číslo
 Diagnostika přes API: `bomActionLines?$filter=configurationNumber eq '…' and itemFromParameterLineNumber ne 0` + mapa
 `configurationParameters` (`parameterLineNumber` → `parameterCode`).
 
+**Sjednocení dialogu s enginem (větev `VariantConfigEngineUnify` z masteru 339539c, 2026-10-02, čeká na PR):** ListPart 63147
+už nemá vlastní kopii pravidel (dřív ~900 řádků a v enginu „keep both in step") — předává svůj temporary `Rec` jako buffer do
+enginu 63162; ten je jediná implementace pro dialog i API. Co z toho plyne:
+- **Předání page `Rec` (SourceTableTemporary, s filtrem `Effective Hidden = false` a klíčem Sort Order) přes `var` funguje** —
+  engine nikde nemění filtry ani klíč volajícího: procházení přes `Copy(…, true)` + `Reset`, zápisy přes `Get`/`Insert`/
+  `Modify`/`Delete` (filtry ignorují), `LoadParameters` maže přes kopii. Kurzor se hýbe → stránka si po volání sama nastaví
+  pozici (`FindFirst` po načtení, první zobrazený bez hodnoty / `FindLast` po změně) a `CurrPage.Update(false)`.
+  `OnAfterGetRecord` volá jen procedury nad kopií (`IsParameterEditable`, `GetValueAsText`, `GetParameterValues`) → kurzor drží.
+- **Bug API do 28.0.30:** engine `Effective Hidden` nepočítal (dělal to jen ListPart) → varianty z API ho mají `false` a text pro
+  tisk obsahuje parametry skryté podmínkou. Engine ho teď udržuje po každé změně, `CreateVariant` ho přepočítá a
+  `RefreshReusedVariant` ho při znovupoužití zapíše i do uložených řádků (staré API varianty se tak opraví).
+- **Změny chování dialogu:** neparsovatelné číslo = chyba *Value "abc" is not valid for parameter "Width".* (dřív tiché
+  vymazání + smazání závislých parametrů — `ValidateParameterValue` vrací `false` jen u neparsovatelného čísla, rozsah / Option /
+  Table Lookup hází chybu sám); výběr z lookupu se validuje jako napsaná hodnota (popis vybraného řádku drží overload
+  `SetParameterValue(…; PickedDisplayText)`); Enter (skrytá akce `ConfirmValue`) uloží jen změněnou hodnotu na editovatelném
+  řádku — dřív opakovaný Enter smazal ručně zadané závislé hodnoty.
+- **Table Lookup nad polem mimo Code/Text:** lookup nabízí `Format()` hodnoty (lokalizované číslo, caption Option), `FldRef.SetRange(Text)`
+  na takovém poli nesedí → `ValidateTableLookupValue` porovnává `UpperCase(Format(FldRef.Value()))` přes vyfiltrované řádky.
+- Testy: TestPage dialogu přes `ModalPageHandler` a výběr řádku podle `"Parameter Name".Value()` (pořadí/kurzor neassertovat);
+  neviditelnou akci (`Visible = false`, ShortcutKey) TestPage nevyvolá. Nový codeunit `Var. Config Dialog Tests COEBS` (63173).
+- Follow-up: COZLK `Nested Variant Mgt.` (kopie find-or-create s TODO „nahradit public COEBS helperem") → engine; jejich kopie
+  neukládá `Effective Hidden` a nevolá `UpdatePrintParameters`.
+
 ## C12. Strom podmínek parametru — zastaralé `Root Condition No.` (Zlomek)
 
 `Parameter Condition COEBS` je binární strom: `True Child Line No.` / `False Child Line No.` + pole **`Root Condition No.`**.
@@ -611,10 +641,19 @@ skrytí respektovat prostým filtrem `"Effective Hidden" = const(false)`, **bez 
 (2026-09-15, cust-zlomek-bc 65148 — code review factboxu parametrů konfigurátoru; ověřeno ve
 zdrojáku prod-ess-configurator-bc na master.)
 
+**Aktualizace 2026-10-02:** od větve `VariantConfigEngineUnify` počítá `Effective Hidden` **engine** (`Variant Config.
+Engine COEBS`, local `UpdateEffectiveHiddenStates`), ListPart jen filtruje. Platí pro dialog i API; varianty z API
+(28.0.30) ho mají `false`, dokud je někdo znovu nepoužije (`RefreshReusedVariant`) — detail C11.
+
 
 ## C14. „najdi nebo vytvoř variantu" je `local` v dialogu 63143 — z jiné appky ji nezavoláš
 
 > Přesunuto 2026-10-01 z `bc-al-objects.md` (sekce 5.x12); odkazy „viz 5.x12" míří sem.
+>
+> ⚠️ **Od COEBS 28.0.30 (PR 9577) neplatí:** find-or-create je public v `Variant Config. Engine COEBS` (63162) —
+> `LoadParameters` → `SetParameterValue` → `FindOrCreateVariant` (→ `ApplyToSalesLine`), a od větve `VariantConfigEngineUnify`
+> je engine jediná implementace pravidel i pro dialog (`RefreshAfterValueChange` public, C11). Text níž popisuje stav
+> do 28.0.29 a platí pro rozšíření s nižším minimem dependency.
 
 Celý find-or-create mechanismus varianty (`FindExistingVariantWithSameValues`, `CompareParameterValues`,
 `GenerateVariantCode`, ukládací část `SaveVariantConfiguration`) žije jako **`local procedure` na stránce**
