@@ -562,8 +562,9 @@ enginu 63162; ten je jediná implementace pro dialog i API. Co z toho plyne:
   `SetParameterValue(…; PickedDisplayText)` **vždy, i prázdný** — „prázdný = dohledej podle hodnoty" by u neunikátního zdrojového
   pole (MJ zboží…) vzal popis jiného řádku; code review); Enter (skrytá akce `ConfirmValue`) uloží jen změněnou hodnotu na editovatelném
   řádku — dřív opakovaný Enter smazal ručně zadané závislé hodnoty. Veřejný parametr, který nová implementace nepotřebuje
-  (`LoadParameters(…; NewTempVariantCode; …)`), **neignoruj potichu**: nový overload bez něj + starý `[Obsolete]` a nepodporovanou
-  hodnotu odmítni chybou (code review).
+  (`LoadParameters(…; NewTempVariantCode; …)`), **neignoruj potichu** (code review): ověř konzumenty (COEBS běží jen u Alumistru
+  a Zlomka — `git grep` přes všechny větve obou rep) a když ho nikdo nevolá, změň podpis rovnou (rozhodnutí uživatele 2026-10-02,
+  bez obsolete fáze); jinak nový overload + starý `[Obsolete]`, který nepodporovanou hodnotu odmítne chybou.
 - **Table Lookup nad polem mimo Code/Text:** lookup nabízí `Format()` hodnoty (lokalizované číslo, caption Option), `FldRef.SetRange(Text)`
   na takovém poli nesedí → `ValidateTableLookupValue` číslo, které se `Evaluate` + `Format` vrátí na stejný text, filtruje typovaně
   (klíč), jinak / bez nálezu porovná `UpperCase(Format(FldRef.Value()))` přes vyfiltrované řádky (průchod u širokého lookupu je drahý).
