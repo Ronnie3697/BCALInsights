@@ -15,7 +15,7 @@
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
 Obsahuje:
-- **7.** Nástroje a workflow — část **7.11–7.19** (dependencies, CI build, deploy)
+- **7.** Nástroje a workflow — část **7.11–7.23** (dependencies, CI build, deploy, lokální testovací kontejner)
 
 ## 7. Nástroje a workflow — dependencies, build & deploy (7.11–7.19)
 ### 7.11 NuGet „earliest match" — nízké minimum dependency = symbol bez novějších polí
@@ -640,3 +640,48 @@ At …\BcContainerHelper\6.1.18\Saas\Publish-PerTenantExtensionApps.ps1:264
 
 Zachyceno 2026-09-30, prod-ess-configurator-bc release 15114 (28.0.28), stage „deploy to live" Alumistr: start
 07:31:05, o 2 s později `Release-prod-em-cuttingPlan-bc-28.0.4-1` do téhož BC-LIVE (prošel) → Configurator 409.
+
+### 7.23 Lokální testovací kontejner — autotesty před merge, bez admina (BcContainerHelper)
+
+PR buildy testy nespouští (7.15), takže první běh nových testů je až na masteru. Lokální Docker kontejner
+s test toolkitem to obejde: repo se do něj nahraje, otestuje a appky se zase odinstalují. **Reprodukuje CI věrně**:
+prod-ess-configurator-bc master eeba4b9 v něm spadl na **stejných 2 testech se stejnými hláškami** jako master build 28617
+a opravená větev prošla (2026-10-05, BC 28.4 cz, BcContainerHelper 6.1.18).
+
+Nástroj (skripty + README, lokálně, ne v gitu): `C:\WorkTasks\bc-test-container\` — `Install-Helper.ps1`,
+`New-TestContainer.ps1` (kontejner `bctest28`), `Test-Repo.ps1 -RepoPath <repo> [-TestCodeunit <id>] [-KeepApps]`.
+
+**Předpoklady a pasti (Windows 11, uživatel bez admina):**
+
+- Docker Desktop ve **Windows containers** módu a uživatel ve skupině **`docker-users`** — jinak Docker Desktop nenastartuje
+  (*„checking group membership: user is not a member of the group"*, engine pipe `dockerDesktopWindowsEngine` neexistuje).
+  Skupina bývá prázdná; přidání jen admin (`Add-LocalGroupMember -Group docker-users -Member corpnet\<user>`) + odhlášení
+  / restart (členství je v přihlašovacím tokenu). Kontrola z Git Bash: `MSYS2_ARG_CONV_EXCL="*" whoami.exe /groups` (bez
+  přepínače MSYS přepíše `/groups` na cestu a `whoami` z Gitu `/groups` nezná).
+- **Windows PowerShell 5.1 spuštěný z Git Bash zdědí `PSModulePath` PowerShellu 7** → `PowerShellGet`, `Get-ExecutionPolicy`
+  apod. selžou („module could not be loaded"). Ve skriptu nejdřív `$env:PSModulePath` = jen 5.1 cesty (Program Files +
+  System32).
+- `Install-Module -Scope CurrentUser` spadl na `Documents\WindowsPowerShell\Modules` (složku nejde vytvořit ani `mkdir` —
+  nejspíš Controlled Folder Access) → **`Save-Module BcContainerHelper -Path <vlastní složka>`** + `Import-Module <cesta>\BcContainerHelper.psd1`.
+- BcContainerHelper bez admina funguje; varování *„does NOT have Full Control to C:\ProgramData\BcContainerHelper"* a k
+  `hosts` jsou jen varování (`-updateHosts` nepoužívat). `Compile-AppInBcContainer` sahá na dev endpoint přes **IP kontejneru**,
+  hosts záznam netřeba.
+- `New-BcContainer -accept_eula -artifactUrl (Get-BcArtifactUrl -type OnPrem -version 28.4 -country cz -select Latest)
+  -auth NavUserPassword -Credential <cred> -includeTestToolkit -includeTestLibrariesOnly -memoryLimit 8G -shortcuts None`
+  — první vytvoření ~25 min (artefakt + generic image `ltsc2025`, Hyper-V izolace), AI Test Toolkit v kontejneru už byl.
+  Heslo admina generuj náhodně a ulož `Export-Clixml` (DPAPI). Onprem artefakty: 28.3.52162.52222, **28.4.53241.0**, 28.5.54151.0.
+- **Závislosti z `BCNugetPackages` stačí read-only MCP PAT** (`DevOpsPAT.txt`, 7.9 v `bc-al-tools.md`): `Publish-BcNuGetPackageToContainer
+  -nuGetServerUrl https://pkgs.dev.azure.com/essencebs/Projects/_packaging/BCNugetPackages/nuget/v3/index.json -nuGetToken <PAT>
+  -packageName (Get-BcNuGetPackageId -publisher … -name … -id …) -version "[<min>,<Major>.<Minor+1>.0.0)" -select Latest`
+  (= MajorMinor + LatestMatching pipeline, 7.11). Tranzitivní závislosti stáhne sám — Essence balíčky mají závislosti v `.nuspec`
+  (vyrábí je `New-BcNuGetPackage`). Basic auth `user:<PAT>`, redirect `.nupkg` na blob zvládne.
+- **`Compile-AppInBcContainer` chce projekt, output i symboly ve složce sdílené s kontejnerem** (*„is not shared with the
+  container"*) → appky repa zkopíruj do `C:\ProgramData\BcContainerHelper\Extensions\<container>\…` a kompiluj tam
+  (bonus: alc nepřepíše `.docx` layouty ani `.g.xlf` v repu, 7.1 v `bc-al-tools.md`); `-CopyAppToSymbolsFolder` pro další appky.
+- Instalace `Publish-BcContainerApp -skipVerification -sync -syncMode ForceSync -install` (testovací kontejner, data nevadí),
+  testy `Run-TestsInBcContainer -extensionId <test app> -testCodeunit … -detailed -returnTrueIfAllPassed -JUnitResultFileName …`
+  (testovací appka = „Test" v názvu jako v CI), úklid `UnPublish-BcContainerApp -unInstall -doNotSaveData -doNotSaveSchema
+  -force` v pořadí `Get-BcContainerAppInfo -sort DependenciesLast` (= závislé první).
+- Doba: konfigurátor (4 appky) kompilace ~2,5 min, celý běh jednoho codeunitu ~6 min. Verze kontejneru 28.4 je novější než
+  `BC_ARTIFACT` pipeline (28.0–28.3); appky deklarují `application 28.0.0.0`, takže běží — výsledek se teoreticky může od CI lišit.
+- Alternativa bez kontejneru: pipeline jde pustit ručně na feature větvi (Run pipeline → branch), testy pak proběhnou před merge.

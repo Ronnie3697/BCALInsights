@@ -575,6 +575,7 @@ enginu 63162; ten je jediná implementace pro dialog i API. Co z toho plyne:
   (chyba už ze starého ListPartu, 4.14 v `bc-al-ui.md`); oprava = `ApplyParameterView()` i v `OnOpenPage` ListPartu. (2) test
   po `asserterror SetValue('abc')` pokračoval v téže TestPage a `First()` vrátilo `false` → chyba teď dojde z handleru na
   `asserterror RunModal()`, že hodnoty zůstanou, drží engine test (`bc-al-autotests.md`). Větev `VarConfigDialogTestsFix` z masteru eeba4b9.
+  Ověřeno v lokálním kontejneru (7.23 v `bc-al-build.md`): master padá na týchž 2 testech jako CI, větev projde.
 - Follow-up: COZLK `Nested Variant Mgt.` (kopie find-or-create s TODO „nahradit public COEBS helperem") → engine; jejich kopie
   neukládá `Effective Hidden` a nevolá `UpdatePrintParameters`.
 

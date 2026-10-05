@@ -423,8 +423,7 @@ i řádky, které měl filtr schovat — až do první akce, která filtr nastav
 
 Zachyceno 2026-10-05, prod-ess-configurator-bc master build 28617: test `ReusingAVariantInTheDialogRepairsItsSavedHiddenState`
 čekal `Color;Handle;`, dialog po otevření znovu použité varianty vypsal `Color;Width;Handle;` (WIDTH skrytý podmínkou).
-Příznak ověřený v CI; vysvětlení „pohled se při otevření partu ztratí" je odvozené z toho, že po první změně hodnoty filtr
-funguje (jiné dva testy téhož codeunitu prošly) — oprava (filtr v `OnOpenPage` partu `Variant Config Params COEBS`) na větvi
-`VarConfigDialogTestsFix` čeká na build po merge. Stejný návrh měl ListPart i před sjednocením s enginem, chyba je tedy starší.
+**Ověřeno 2026-10-05 v lokálním testovacím kontejneru** (7.23 v `bc-al-build.md`): master eeba4b9 spadl stejně jako CI, s filtrem
+i v `OnOpenPage` partu `Variant Config Params COEBS` (jediná změna v appce) test prošel — větev `VarConfigDialogTestsFix`. Stejný návrh měl ListPart i před sjednocením s enginem, chyba je tedy starší.
 
 ---

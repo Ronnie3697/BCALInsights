@@ -316,7 +316,8 @@ Assert.ExpectedErrorCode('Dialog');
   (`SetValue` bez `asserterror` jako poslední krok handleru) a chyť ji na volání `asserterror Page.RunModal()` +
   `Assert.ExpectedError`; že se stav nezměnil, testuj o vrstvu níž (engine / codeunit nad bufferem). `MessageHandler`
   pak z `[HandlerFunctions]` vyhoď — dialog nic neuloží a nevyužitý handler test shodí. Pravděpodobná příčina: stránka
-  drží odmítnutý text na řádku jako klient (opustit řádek nejde, dokud se neopraví) — neověřeno, oprava čeká na build.
+  drží odmítnutý text na řádku jako klient (opustit řádek nejde, dokud se neopraví) — příčina neověřená; původní test lokálně
+  spadl stejně jako v CI a přepsaný prošel (7.23 v `bc-al-build.md`, 2026-10-05).
   (2026-10-05, prod-ess-configurator-bc `Var. Config Dialog Tests COEBS`, větev `VarConfigDialogTestsFix`.)
 - **Modální `PageType = Worksheet` (i List mimo lookup mode) nemá built-in Cancel.** `TestPage.Cancel().Invoke()`
   v `[ModalPageHandler]` spadne na *„The built-in action = Cancel is not found on the page."* — a reálné BC
@@ -439,6 +440,8 @@ Assert.ExpectedErrorCode('Dialog');
 - `BcContainerHelper`: `Run-TestsInBcContainer` – PowerShell
 - AL-Go for GitHub: má built-in test step
 - Lokálně: VS Code task nebo `bc-test-runner` extension
+- **Lokální testovací kontejner pro všechna repa** (Docker + BcContainerHelper bez admina, závislosti z NuGetu, nahrát → testy →
+  odinstalovat; reprodukuje CI) → **7.23 v `bc-al-build.md`**, nástroj `C:\WorkTasks\bc-test-container\Test-Repo.ps1`.
 - **VS Code extension AL Test Runner** (James Pearson, `jamespearson.al-test-runner`; dřív tu chybně „luc-vandyck")
   — codelens "Run Test" / "Debug Test", Testing pane, zvýraznění padající řádky, code coverage. **Kontejner nevyrábí**:
   appku publikuje přes `launch.json` (nebo PowerShell) a testy pouští přes BcContainerHelper `Run-TestsInBcContainer`

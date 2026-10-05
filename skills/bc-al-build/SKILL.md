@@ -2,7 +2,7 @@
 name: bc-al-build
 description: >-
   BC/AL dependencies, CI build a deploy z praxe (Business Central, AL,
-  Essence pipeline, sekce 7.11–7.22): NuGet v2-0 (MajorMinor +
+  Essence pipeline, sekce 7.11–7.23): NuGet v2-0 (MajorMinor +
   LatestMatching; dedupe minim per GUID → stejná verze deps ve všech
   app.json), symboly test frameworku z MSSymbols feedu, lokalizační MS
   appky (CZ packy) od BC 28 pod ID s .cz. infixem (staré končí u 27.0,
@@ -13,9 +13,9 @@ description: >-
   konflikty a three-dot diff lže, Microsoft Subcontracting ≥ 28.3.0.0 +
   BC_ARTIFACT 28.3 (falešné AL0118/AL0132), Deploy Staging sync_mode 'Add'
   / ForceSync maže data / obsolete dvoufázově, smíchané řady MS symbolů
-  (falešné AL0132 bez AL1022), release deploy SaaS (altool .NET 10, 409
-  Conflict = souběžný deploy). Načti při CI/build/release failech,
-  dependencies a symbolech z feedu, upgrade BC majoru, merge po squash.
+  (falešné AL0132 bez AL1022), release SaaS (altool .NET 10, 409
+  = souběžný deploy), lokální testovací kontejner (Docker, docker-users).
+  Načti při CI/build/release failech, deps z feedu, BC major, squash.
 user-invocable: true
 ---
 
