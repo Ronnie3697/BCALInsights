@@ -90,4 +90,9 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   Line No.`), `ValidateModification` + `CheckRelatedJobPlanningLineInvoice` (převedeno/fakturováno), Usage Link → `JobUsageLink` neprázdný.
   `DeleteAttachedJobPlanningLines` smaže i řádky s `Attached to Line No.` → hromadné mazání dělej `while FindFirst() do Delete(true)`.
   Neblokuje otevřenou nákupní objednávku bez příjmu → tu hlídej sám (`Purchase Line` Order s `Job No.`).
-  (2026-10-05, cust-soitron-bc 66489 — přegenerování QB bufferu, `QB Buffer Regenerate Mgt. SOI`.)
+- **Essence Project Base přidává `Job Planning Line EPEBS.OnBeforeDelete`** (prod-ep-projectBase-bc): `Tender No. EPEBS` <> '' →
+  tender Won = `TestField`, jinak Confirm (default **No**); `Job Ledger Entry` s `Job Planning Line No. EPEBS` → `Error`; `Sales Line` /
+  `Purchase Line` s `Job Planning Line No. (EPEBS)` → Confirm (default No) a po souhlasu odpojení řádků. Confirmy jdou přes
+  `GetResponseOrDefault` → **bez GUI (API, Job Queue, test bez handleru) skončí tichým `Error('')`**. Hromadné mazání z kódu proto
+  **pre-checkni sám** (tender, Job Ledger Entry projektu, Sales/Purchase Line libovolného typu s `Job No.`) a dej vlastní hlášku,
+  jinak akce spadne uprostřed bez textu. (2026-10-05, cust-soitron-bc 66489 — přegenerování QB bufferu, `QB Buffer Regenerate Mgt. SOI`.)
