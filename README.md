@@ -9,7 +9,8 @@ jediný zdroj; always-on soubory jednotlivých nástrojů na něj jen odkazují.
 Notes leží **vedle svého skill-wrapperu** ve `skills/<název>/` (podpůrný soubor skillu podle
 Agent Skills spec). Skill na ně odkazuje jen jménem, relativně k vlastnímu adresáři — proto
 **klon repa může být kdekoli** a v repu není žádná absolutní cesta (hlídá `check-skills.py`).
-V kořeni zůstává jen README, `mcp-setup.md`, `check-skills.py` a archiv.
+V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho spouštěč `AGENTS.md` /
+`.claude/CLAUDE.md`), `mcp-setup.md`, šablona launcheru `setup/ado-mcp.mjs`, `check-skills.py` a archiv.
 
 | Soubor (ve `skills/<název>/`, pokud není uvedeno jinak) | Obsah |
 |---|---|
@@ -27,7 +28,10 @@ V kořeni zůstává jen README, `mcp-setup.md`, `check-skills.py` a archiv.
 | `bc-al-autotests-domains.md` | autotesty — doménové recepty: plánování / Carry Out, CZZ zálohy s platbou, párování CZB (vyčleněno 2026-10-01) |
 | `ess-configurator-notes.md` | Essence Configurator — parametry, systémové parametry, vzorce, varianty, akce (sekce C1–C6) |
 | `skills/bc-al/bc-al-mcp-server.md` | **draft** — oficiální BC MCP server (konfigurace v BC, auth / device login, Claude Code `--mcp-config` + `headersHelper`); bez skill-wrapperu, v Routeru jen jako řádek |
+| `SETUP.md` (kořen) | **průvodce prvotním nastavením pro AI agenta** — ptá se na cesty, nástroje, PAT a krok za krokem nastaví junctiony, always-on soubory a MCP; **není notes** |
+| `AGENTS.md` (kořen) + `.claude/CLAUDE.md` | always-on pro agenta otevřeného přímo v tomhle repu: chybí napojení skillů → nabídne `SETUP.md`. `.claude/CLAUDE.md` jen importuje `AGENTS.md` pro Claude Code — v kořeni být nesmí, `claude plugin validate` by varoval („CLAUDE.md at the plugin root is not loaded") |
 | `mcp-setup.md` (kořen) | jednorázová instalace MCP serverů pro Claude Code (npm, `claude mcp add`, PAT, timeouty) — **není notes**, skilly ho nenačítají; ostatní nástroje viz níže |
+| `setup/ado-mcp.mjs` | šablona launcheru Azure DevOps MCP — kopíruje se do `MCP_PAT\` vedle `DevOpsPAT.txt` (`mcp-setup.md`, krok 3) |
 | `bc-al-notes.archived-2026-06-23.md` (kořen) | archiv původního monolitu — **needitovat**, jen reference |
 
 ## Pravidla údržby
@@ -65,32 +69,24 @@ níže):
    agent skill načte jen, když si ho sám vybere podle `description`, nebo ručně.
 4. **MCP servery.** Globální npm instalace je společná (`mcp-setup.md`, krok 1:
    `npm i -g al-mcp-server bc-code-intelligence-mcp @azure-devops/mcp @demiliani/d365bc-admin-mcp`),
-   registrace je per nástroj (Claude Code = zbytek `mcp-setup.md`, ostatní níže). Bez MCP skilly
-   fungují, agent jen hádá signatury z paměti.
+   registrace je per nástroj (Claude Code = zbytek `mcp-setup.md`, ostatní níže). Azure DevOps
+   PAT patří do `<MCP_PAT>\DevOpsPAT.txt` a server spouští launcher `<MCP_PAT>\ado-mcp.mjs`
+   (šablona `setup/ado-mcp.mjs`, `mcp-setup.md` krok 3). Bez MCP skilly fungují, agent jen hádá
+   signatury z paměti.
 
-### Prvotní nastavení s AI
+### Prvotní nastavení s AI — `SETUP.md`
 
-Otevři svůj AI nástroj (Claude Code apod.) v klonu tohoto repa a vlož mu tenhle prompt. Cesty
-a preference jsou per uživatel a žijí v **jeho** always-on souboru mimo repo — proto se na ně
-agent ptá a `git pull` je nikdy nepřepíše:
+Naklonuj repo a **otevři svůj AI nástroj přímo v klonu**. Nástroje, které čtou `AGENTS.md` /
+`.claude/CLAUDE.md` v repu (Claude Code, Codex, Copilot), si všimnou, že skilly ještě nejsou
+napojené, a samy nabídnou průvodce `SETUP.md`. Jinak napiš **„proveď SETUP.md"**.
 
-```text
-Nastav mi BCALInsights podle README (sekce „Nový stroj / kolega"). Postupuj interaktivně
-a před každým zápisem mimo tento repo se zeptej:
-1. Zeptej se, kde mám klon BCALInsights (tenhle repo) — cestu použij všude jako <KLON>.
-   Ověř, že tam existuje skills/bc-al/SKILL.md.
-2. Zeptej se, ve které složce mám pracovní BC repa (cust-*-bc, prod-*-bc).
-3. Zeptej se, které AI nástroje používám (Claude Code / GitHub Copilot / Codex / Antigravity),
-   a pro každý vytvoř junction skillů podle sekce daného nástroje (cmd /c mklink /J …);
-   když cíl už existuje, přeskoč ho a řekni to.
-4. Do always-on souboru každého nástroje přidej „Šablonu startup pravidla" s dosazeným
-   <KLON>, <SKILL-DIR> a <RUČNĚ> + jednu větu se složkou mých pracovních rep. Ukaž mi
-   výsledný text a zapiš ho až po mém souhlasu; existující obsah souboru nech být.
-5. Zeptej se, v jakém jazyce a tónu mám komunikovat, a zapiš to do always-on souboru
-   (osobní preference, ne součást repa).
-6. Ověř: Claude Code `claude plugin validate <KLON>` a `claude plugin details bcal-insights`,
-   ostatní nástroje podle jejich sekce. MCP servery (mcp-setup.md) nabídni jako další krok.
-```
+Průvodce se ptá postupně (kde je klon, „Kde máš složku s repozitáři?", které nástroje používáš,
+„Máš PAT? Ulož ho do `DevOpsPAT.txt` ve složce `MCP_PAT`", jazyk a tón) a podle odpovědí vytvoří
+junctiony skillů, zapíše startup pravidlo do always-on souborů, nainstaluje a zaregistruje MCP
+servery a na konci všechno ověří. Před každým zápisem mimo repo se zeptá, co už je hotové,
+přeskočí, a PAT nikdy nečte do chatu. Cesty a preference žijí v **tvých** souborech mimo repo,
+takže je `git pull` nikdy nepřepíše. Průvodce jde kdykoli pustit znovu, třeba po přidání dalšího
+AI nástroje.
 
 ### Šablona startup pravidla (společná pro všechny nástroje)
 
@@ -150,8 +146,8 @@ ji používá na sibling repa, sdílenou `.alpackages` a zdroje závislých appe
   `claude plugin validate <KLON>`, `claude plugin details bcal-insights`,
   v seanci `/bc-al`.
 - **Always-on:** `~/.claude/CLAUDE.md` (globální) — šablona výše.
-- **MCP:** `mcp-setup.md` (npm, `claude mcp add -s user …`, read-only PAT, `MCP_TIMEOUT`,
-  ověření `claude mcp list`).
+- **MCP:** `mcp-setup.md` (npm, `claude mcp add -s user …`, read-only PAT v
+  `MCP_PAT\DevOpsPAT.txt` + launcher, `MCP_TIMEOUT`, ověření `claude mcp list`).
 
 ### GitHub Copilot (VS Code + Copilot CLI)
 
@@ -183,14 +179,13 @@ ji používá na sibling repa, sdílenou `.alpackages` a zdroje závislých appe
     "servers": {
       "al-symbols-mcp":       { "type": "stdio", "command": "cmd", "args": ["/c", "al-mcp-server"] },
       "bc-code-intelligence": { "type": "stdio", "command": "cmd", "args": ["/c", "bc-code-intelligence-mcp"] },
-      "azure-devops": {
-        "type": "stdio", "command": "cmd",
-        "args": ["/c", "mcp-server-azuredevops", "essencebs", "--authentication", "pat"],
-        "env": { "NODE_OPTIONS": "--dns-result-order=ipv4first", "PERSONAL_ACCESS_TOKEN": "<base64 email:PAT, viz mcp-setup.md krok 3>" }
-      }
+      "azure-devops":         { "type": "stdio", "command": "node", "args": ["<MCP_PAT>/ado-mcp.mjs"] }
     }
   }
   ```
+
+  `<MCP_PAT>` = složka s launcherem a `DevOpsPAT.txt` (`mcp-setup.md`, krok 3); v JSON piš cestu
+  s `/`, nebo zdvojuj `\\`.
 
 - **MCP (Copilot CLI):** `~/.copilot/mcp-config.json` — stejné servery, ale pod klíčem
   `mcpServers` (formát jako Claude Code). Kontrola v CLI: `/mcp`.
@@ -218,10 +213,13 @@ ji používá na sibling repa, sdílenou `.alpackages` a zdroje závislých appe
   args = ["/c", "bc-code-intelligence-mcp"]
 
   [mcp_servers.azure-devops]
-  command = "cmd"
-  args = ["/c", "mcp-server-azuredevops", "essencebs", "--authentication", "pat"]
-  env = { NODE_OPTIONS = "--dns-result-order=ipv4first", PERSONAL_ACCESS_TOKEN = "<base64 email:PAT>" }
+  command = 'C:\Program Files\nodejs\node.exe'
+  args = ['<MCP_PAT>\ado-mcp.mjs']
+  startup_timeout_sec = 60
   ```
+
+  Launcher předá další argumenty serveru: `args = ['<MCP_PAT>\ado-mcp.mjs', '-d', 'core', 'work-items']`
+  omezí domény toolů (spolu s `enabled_tools = [...]` drží seznam toolů krátký).
 
   Pracovní repa přidej do `[projects.'C:\WorkTasks\<repo>'] trust_level = "trusted"`, jinak
   Codex v nich nespouští nástroje. Kontrola: `/mcp` v TUI.
@@ -234,8 +232,8 @@ ji používá na sibling repa, sdílenou `.alpackages` a zdroje závislých appe
   volej rovnou `node.exe` + entry JS globálně nainstalovaného balíčku (cesta výše; po
   `npm update -g` zůstává) a přidej `startup_timeout_sec = 60`. `cmd /c <shim>` funguje, ale
   při ukončení seance klient zabije jen `cmd.exe` a `node` zůstane jako sirotek. Stejný vzor
-  jde použít i pro `bc-code-intelligence-mcp` (`dist/index.js`) a `@azure-devops/mcp`
-  (`dist/index.js`, argumenty `essencebs --authentication pat`).
+  jde použít i pro `bc-code-intelligence-mcp` (`dist/index.js`). `@azure-devops/mcp` to má
+  vyřešené v launcheru `ado-mcp.mjs` (spouští globální `dist/index.js` ve vlastním procesu).
 
 ### Antigravity
 
@@ -256,14 +254,13 @@ ji používá na sibling repa, sdílenou `.alpackages` a zdroje závislých appe
     "mcpServers": {
       "al-symbols-mcp":       { "command": "cmd", "args": ["/c", "al-mcp-server"] },
       "bc-code-intelligence": { "command": "cmd", "args": ["/c", "bc-code-intelligence-mcp"] },
-      "azure-devops": {
-        "command": "cmd",
-        "args": ["/c", "mcp-server-azuredevops", "essencebs", "--authentication", "pat"],
-        "env": { "NODE_OPTIONS": "--dns-result-order=ipv4first", "PERSONAL_ACCESS_TOKEN": "<base64 email:PAT>" }
-      }
+      "azure-devops":         { "command": "C:/Program Files/nodejs/node.exe", "args": ["<MCP_PAT>/ado-mcp.mjs"] }
     }
   }
   ```
+
+  Launcher běží i ve WSL (Node z WSL, cesta `/mnt/c/…/MCP_PAT/ado-mcp.mjs`) — `DevOpsPAT.txt` hledá
+  vždy vedle sebe.
 
 ### Co platí napříč nástroji
 
@@ -271,6 +268,9 @@ ji používá na sibling repa, sdílenou `.alpackages` a zdroje závislých appe
   startup pravidlo + osobní preference, **ne** Router — neduplikuj ho tam.
 - Název MCP serveru je libovolný (`al-mcp-server` v Claude Code, `al-symbols-mcp` jinde);
   skilly mluví o toolech (`al_packages`, `al_search_objects`…), ne o názvu serveru.
+- Azure DevOps PAT je **jeden soubor** `<MCP_PAT>\DevOpsPAT.txt` pro všechny nástroje — každý konfig
+  volá stejný launcher `ado-mcp.mjs`, token v žádném konfigu není. Rotace = přepsat soubor +
+  restart seance.
 - `user-invocable: true` ve frontmatteru je specifikum Claude Code; ostatní nástroje neznámé
   klíče ignorují.
 - Limit jednoho čtení souboru se liší per nástroj (Claude Code Read ≈ 25k tokenů); pravidlo

@@ -241,7 +241,7 @@ Diagnóza: `%LOCALAPPDATA%\claude-cli-nodejs\Cache\<projekt>\mcp-logs-<server>\<
 (řádek `Connection failed (CONNECT_TIMEOUT)`); ruční `npx -y <balíček>` + JSON-RPC `initialize`
 na stdin ukáže, že server sám o sobě běží. **Fix (nasazeno 2026-08-25):** (a) `npm i -g` balíček a
 v `~/.claude.json` volat přímo shim z `%APPDATA%\npm` (`cmd /c bc-code-intelligence-mcp`,
-`cmd /c al-mcp-server`, `cmd /c mcp-server-azuredevops essencebs --authentication pat`) — start
+`cmd /c al-mcp-server`; `azure-devops` od 2026-10 přes launcher `MCP_PAT\ado-mcp.mjs`, 7.9) — start
 pod 1 s místo 6–30 s; (b) pojistka `"env": {"MCP_TIMEOUT": "90000"}` v `~/.claude/settings.json`.
 V seanci jde spadlý server oživit přes `/mcp` → reconnect. Nevýhoda globální instalace: verze se
 sama neaktualizuje — občas `npm update -g`.
@@ -768,23 +768,34 @@ Tickety a repa Essence BC projektů (Zlomek, Kalas, JIRI, produktové appky…)
 
 Když uživatel zmíní číslo ticketu („task 64359", „bug 62667") nebo pošle
 `dev.azure.com/essencebs/...` URL, sáhni po MCP serveru **`azure-devops`**
-(`@azure-devops/mcp`, globálně v `~/.claude.json`, PAT auth, loaduje se sám):
+(`@azure-devops/mcp` spouštěný launcherem `MCP_PAT\ado-mcp.mjs`, globálně v `~/.claude.json`,
+PAT auth, loaduje se sám):
 
-- `wit_get_work_item` (id) — fetch ticketu; `expand: all` přitáhne i parent /
-  relations
-- `wit_my_work_items`, `search_workitem` (fulltext)
-- `wit_create_work_item`, `wit_update_work_item`, `wit_add_work_item_comment`
-  (zápisové — s read-only PAT vrátí 401, viz ⚠️ níže)
+- `wit_work_item` — `action: get` (`id`, `expand: All` přitáhne relations = parent / child
+  tasky), `get_batch`, `list_comments`, `my` (moje tickety)
+- `wit_work_item_attachment` (`attachmentId` = GUID z URL obrázku v popisu / Acceptance Criteria,
+  `…/_apis/wit/attachments/<GUID>?fileName=…`) — screenshoty ze zadání; obrázek přijde inline,
+  hláška „OUTPUT TRUNCATED" pod ním je jen o base64 textu, obrázek je vidět
+- `search_workitem` (fulltext)
+- `wit_work_item_write`, `wit_work_item_comment_write`, `wit_work_item_link_write`,
+  `repo_pull_request_write` (zápisové — s read-only PAT vrátí 401, viz ⚠️ níže)
 - `repo_*`, `pipelines_*`, `wiki_*`, `core_*` — PRs, buildy, wiki, identity
 
 **Vazba na repo:** Ticket většinou neuvádí, do kterého repa patří — odvoď z
 **CWD** (`cust-zlomek-bc` = Zlomek, `prod-epb-pricingMatrix-bc` = produktová
 Pricing Matrix…), z Area Path a Iteration Path.
 
-**PAT:** base64(`email:rawPAT`) v `env.PERSONAL_ACCESS_TOKEN` v `.claude.json`,
-scope záměrně jen **Read** (viz ⚠️ níže), expiruje ~90 dní (firemní policy). Po expiraci
-vygeneruj nový na `https://dev.azure.com/essencebs/_usersSettings/tokens`,
-zakóduj a přepiš v `.claude.json` (session pak restartovat).
+**PAT:** surový token v `<MCP_PAT>\DevOpsPAT.txt` (typicky `<složka pracovních rep>\MCP_PAT`,
+mimo git), **v žádném konfigu není**. Launcher `ado-mcp.mjs` vedle něj (šablona `setup/ado-mcp.mjs`
+v notes repu) ho při startu MCP serveru = startu seance přečte, zakóduje jako base64(`:PAT`) do
+`PERSONAL_ACCESS_TOKEN` a spustí `@azure-devops/mcp essencebs --authentication pat`; token pak
+drží běžící proces, agent ho nikdy nevidí. Stejný launcher volají Claude Code, Codex, Copilot
+i Antigravity (jeden soubor pro všechny). Scope záměrně jen **Read** (viz ⚠️ níže), expiruje
+~90 dní (firemní policy). Po expiraci vygeneruj nový na
+`https://dev.azure.com/essencebs/_usersSettings/tokens`, **přepiš `DevOpsPAT.txt`** a restartuj
+seanci (`/mcp` → reconnect stačí taky); konfigy se nemění. Nastavení od nuly: `SETUP.md` /
+`mcp-setup.md` krok 3 v kořeni notes repa. (2026-10-05; dřív base64 `email:PAT` přímo
+v `env` `.claude.json`.)
 
 **⚠️ PAT je read-only ZÁMĚRNĚ — 401 na zápisy NEobcházet:** MCP PAT má jen Read scopes **schválně** — Pull Requesty (a další zápisy do ADO) si uživatel dělá **sám**. Když `repo_create_pull_request` / `wit_link_work_item_to_pull_request` vrátí 401, **není to chyba k opravě** — je to záměrná zábrana. **Nikdy** neobcházet jiným credentialem (token z Git Credential Manageru přes `git credential fill`, az CLI, cokoliv jiného) — přesně to se stalo 2026-07-07 (PR 9096, prod-epb-pricingMatrix-bc) a uživatel to výslovně zakázal. Správný postup: připravit větev (merge, resoluce, push pokud je vyžádán), předat uživateli shrnutí + navrhovaný title/description PR a **nechat založení PR na něm**. Platí i když uživatel řekne „potřebuju udělat PR" — tím myslí, že ho udělá on, ne já.
 
@@ -796,9 +807,9 @@ zakóduj a přepiš v `.claude.json` (session pak restartovat).
 **Gotcha — IPv6 reset (ECONNRESET):** Některé MS endpointy (`aex.dev.azure.com`)
 resolvují primárně na IPv6 a corp síť/firewall jejich spojení **resetuje**
 (`fetch failed` / „Failed to fetch tenant for ADO org essencebs"). IPv4 přes
-stejný host funguje. Fix: `NODE_OPTIONS=--dns-result-order=ipv4first` v `env`
-sekci toho MCP serveru v `.claude.json` (ne globálně). Stejný workaround platí
-pro jakýkoli Node/npm MCP server volající MS API (Graph, M365…).
+stejný host funguje. Fix: u `azure-devops` to řeší launcher (`dns.setDefaultResultOrder('ipv4first')`,
+u npx fallbacku `NODE_OPTIONS`); u jiných Node/npm MCP serverů volajících MS API (Graph, M365…)
+`NODE_OPTIONS=--dns-result-order=ipv4first` v `env` sekci toho serveru v `.claude.json` (ne globálně).
 
 ### 7.10 Case-only rename složky appky = časovaná bomba na Windows build agentech
 
