@@ -408,6 +408,14 @@ Assert.ExpectedErrorCode('Dialog');
   Test pak jde přímočaře: `asserterror Page.Field.SetValue(...)` + `Assert.ExpectedError('... cancelled.')`, `Commit()` po GIVEN,
   `Page.Close()` až po assertu. `Rec.Delete(true)` z kódu má v runneru `GuiAllowed() = true` → Confirm v `OnBeforeDelete` vyskočí
   i bez stránky, test potřebuje `[ConfirmHandler]` (Reply z globální proměnné, otázku si ulož na assert). (2026-10-02)
+- **cust-soitron-bc: `LibraryPurchase.CreateVendor` / `CreateVendorNo` padá na „Vendors can only be created from a customer using
+  the Create Vendor action."** — `Cust. Vendor Mgt. SOI` (SingleInstance) blokuje přímý `Vendor.Insert` při `GuiAllowed()` (v runneru
+  true); `Allow Manual Cust./Vend. SOI` v setupu na to nemá vliv (řídí jen zákazníky). Dodavatele v testu zakládej přes one-shot
+  bypass: `CustVendorMgt.SetAllowVendorInsert(true); LibraryPurchase.CreateVendor(Vendor); SetAllowVendorInsert(false)` (vzor
+  `BusinessUnitAssignTest`). Lokální kompilace to nechytí, až CI. (2026-10-05, build 28636, `QB Buffer Test SOI`.)
+- **Změna textu Labelu = projdi `Assert.ExpectedError` v testech** — ExpectedError hledá podřetězec, přepsaná hláška shodí test
+  až v CI (build 28636: `its check did not pass` → `its check ended with the status`). Po úpravě labelu grepni test appku na
+  jeho klíčová slova.
 - **CodeCop `AA0181` + `AA0175` na `Find('=')` uvnitř `Assert.IsTrue/IsFalse`** („Find only with Next", „queries the database but
   does not use the queried record") — oba warning → s `failOn warning` CI fail. Existenci záznamu assertuj `Rec.SetRecFilter()` +
   `Assert.RecordIsNotEmpty(Rec)` / `RecordIsEmpty(Rec)` (funguje i po `Delete`, PK v proměnné zůstává), refresh hodnot přes
