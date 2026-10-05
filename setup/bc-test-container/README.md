@@ -14,7 +14,8 @@ a pasti 7.23 v `bc-al-build.md`.
 - Docker Desktop (`winget install Docker.DockerDesktop`) ve **Windows containers** módu (pravým na ikonu →
   *Switch to Windows containers…*, nebo `& "$env:ProgramFiles\Docker\Docker\DockerCli.exe" -SwitchWindowsEngine`).
   Licence Docker Desktopu je pro firmy nad 250 lidí / 10 M$ obratu placená — ověř.
-- Uživatel ve skupině `docker-users`: v PowerShellu **jako správce**
+- Uživatel ve skupině `docker-users` — nejdřív ověř: `whoami /groups` (přihlašovací token) a `net localgroup docker-users`
+  (skupina). Ve skupině je, v tokenu ne → stačí odhlásit / restart. Není ani ve skupině → v PowerShellu **jako správce**
   `Add-LocalGroupMember -Group docker-users -Member "<DOMÉNA>\<uživatel>"` (celé jméno vypíše `whoami`), pak
   **odhlásit / restart**. Bez toho Docker Desktop hlásí *„checking group membership: user is not a member of the group"*.
 - RAM: kontejner si vezme ~8,5 GB (limit `memoryLimit`), disk ~40 GB (artefakty + image).

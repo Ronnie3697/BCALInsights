@@ -155,16 +155,23 @@ chce (doporučeno; bez něj agent před push jen řekne, že testy neověřil). 
 `<KLON>\setup\bc-test-container\`, detail a pasti 7.23 v `bc-al-build.md`.
 
 1. **Zjisti a ukaž:** Docker Desktop (`Test-Path "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe"`), mód
-   (`docker version --format '{{.Server.Os}}'` = `windows`, když Docker běží), členství v `docker-users`
-   (`whoami /groups`; z Git Bash `MSYS2_ARG_CONV_EXCL="*" whoami.exe /groups`), RAM (≥ 16 GB, kontejner si vezme
-   ~8,5 GB) a volné místo na `C:` (~40 GB).
+   (`docker version --format '{{.Server.Os}}'` = `windows`, když Docker běží), členství v `docker-users` **dvakrát** —
+   v přihlašovacím tokenu (`whoami /groups`; z Git Bash `MSYS2_ARG_CONV_EXCL="*" whoami.exe /groups`) a ve skupině
+   samotné (`net localgroup docker-users`; `Get-LocalGroupMember` u doménových účtů občas spadne), RAM (≥ 16 GB,
+   kontejner si vezme ~8,5 GB) a volné místo na `C:` (~40 GB). Docker Desktop už běží a `docker version` odpoví →
+   členství je v pořádku a bod 3 přeskoč (⏭️); mód rozhoduje `Server.Os` (bod 4).
 2. **Chybí Docker Desktop** → nabídni `winget install Docker.DockerDesktop` (instalace chce admina a restart).
    Řekni, že licence Docker Desktopu je pro firmy nad 250 lidí / 10 M$ obratu placená.
-3. **Není v `docker-users`** → to **udělá uživatel sám jako správce** (bezpečnostní nastavení systému, agent admin
-   nemá ani ho nemá obcházet): PowerShell jako správce →
-   `Add-LocalGroupMember -Group docker-users -Member "<celé jméno z whoami>"` → **odhlásit / restart** (členství je
-   v přihlašovacím tokenu). Upozorni, že odhlášení ukončí i seanci AI nástroje — po přihlášení průvodce pusť znovu
-   (kroky jsou idempotentní), v Claude Code `claude --continue`. Bez toho Docker Desktop hlásí *„checking group
+3. **`docker-users` podle výsledku bodu 1** (nikomu neříkej, ať se přidá, dokud to neověříš):
+   - v tokenu je → ✅, nic nedělej;
+   - ve skupině je, v tokenu ne (přidaný, ale od té doby se neodhlásil) → **jen odhlásit / restart**, nic nepřidávat;
+   - není ani ve skupině → to **udělá uživatel sám jako správce** (bezpečnostní nastavení systému, agent admin nemá
+     ani ho nemá obcházet): PowerShell jako správce →
+     `Add-LocalGroupMember -Group docker-users -Member "<celé jméno z whoami>"` → **odhlásit / restart** (členství je
+     v přihlašovacím tokenu).
+
+   U obou posledních upozorni, že odhlášení ukončí i seanci AI nástroje — po přihlášení průvodce pusť znovu (kroky
+   jsou idempotentní), v Claude Code `claude --continue`. Bez členství v tokenu Docker Desktop hlásí *„checking group
    membership: user is not a member of the group"*.
 4. **Docker v Linux módu** → `& "$env:ProgramFiles\Docker\Docker\DockerCli.exe" -SwitchWindowsEngine`.
 5. **Nástroj:** zkopíruj `<KLON>\setup\bc-test-container\*` do `<PRACOVNÍ-REPA>\bc-test-container\` (existuje a liší
