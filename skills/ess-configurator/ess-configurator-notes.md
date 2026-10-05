@@ -570,6 +570,11 @@ enginu 63162; ten je jediná implementace pro dialog i API. Co z toho plyne:
   (klíč), jinak / bez nálezu porovná `UpperCase(Format(FldRef.Value()))` přes vyfiltrované řádky (průchod u širokého lookupu je drahý).
 - Testy: TestPage dialogu přes `ModalPageHandler` a výběr řádku podle `"Parameter Name".Value()` (pořadí/kurzor neassertovat);
   neviditelnou akci (`Visible = false`, ShortcutKey) TestPage nevyvolá. Nový codeunit `Var. Config Dialog Tests COEBS` (63173).
+- **Master build 28617 (PR 9639, 2026-10-02) – 2 faily dialogových testů:** (1) filtr `Effective Hidden = false` z `LoadParameters`
+  volaného z `OnOpenPage` dialogu 63143 otevření ListPartu nepřežije → znovu otevřená varianta ukázala parametr skrytý podmínkou
+  (chyba už ze starého ListPartu, 4.14 v `bc-al-ui.md`); oprava = `ApplyParameterView()` i v `OnOpenPage` ListPartu. (2) test
+  po `asserterror SetValue('abc')` pokračoval v téže TestPage a `First()` vrátilo `false` → chyba teď dojde z handleru na
+  `asserterror RunModal()`, že hodnoty zůstanou, drží engine test (`bc-al-autotests.md`). Větev `VarConfigDialogTestsFix` z masteru eeba4b9.
 - Follow-up: COZLK `Nested Variant Mgt.` (kopie find-or-create s TODO „nahradit public COEBS helperem") → engine; jejich kopie
   neukládá `Effective Hidden` a nevolá `UpdatePrintParameters`.
 

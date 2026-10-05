@@ -309,6 +309,15 @@ Assert.ExpectedErrorCode('Dialog');
   přesto odroluje k poslednímu commitu); holé `Page.Field.SetValue(...)`; pak assert, že se otázka položila, a DB stav
   (hodnota nezměněná). `ExpectedError('')` nikdy (`StrPos(x, '')` = 0 → vždy fail).
   (2026-09-07 / oprava 2026-09-09, prod-ess-configurator-bc `Attached Lines Tests COEBS`)
+- **Po `asserterror Part.Pole.SetValue(x)`, který odmítne `Error` z `OnValidate`, se TestPage na jiný řádek nepřesune** —
+  `Part.First()` vrátí `false` (build 28617: helper „jdi na řádek podle jména" hned po odmítnutí hlásil, že parametr v dialogu
+  není), ačkoli temp řádky partu zůstaly (temp tabulky transakce nerolují). Navazující kroky ve stejné stránce (přečíst
+  hodnotu jiného řádku, OK) tedy po odmítnuté hodnotě nestav. Ověřuj jinak: chybu nech **dojít z `ModalPageHandler`**
+  (`SetValue` bez `asserterror` jako poslední krok handleru) a chyť ji na volání `asserterror Page.RunModal()` +
+  `Assert.ExpectedError`; že se stav nezměnil, testuj o vrstvu níž (engine / codeunit nad bufferem). `MessageHandler`
+  pak z `[HandlerFunctions]` vyhoď — dialog nic neuloží a nevyužitý handler test shodí. Pravděpodobná příčina: stránka
+  drží odmítnutý text na řádku jako klient (opustit řádek nejde, dokud se neopraví) — neověřeno, oprava čeká na build.
+  (2026-10-05, prod-ess-configurator-bc `Var. Config Dialog Tests COEBS`, větev `VarConfigDialogTestsFix`.)
 - **Modální `PageType = Worksheet` (i List mimo lookup mode) nemá built-in Cancel.** `TestPage.Cancel().Invoke()`
   v `[ModalPageHandler]` spadne na *„The built-in action = Cancel is not found on the page."* — a reálné BC
   to má stejně: zavření Worksheetu (X, handler bez `Invoke`, `TestPage.Close()`) vrátí z `RunModal()` **`Action::OK`**

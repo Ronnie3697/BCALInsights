@@ -6,11 +6,11 @@ description: >-
   u destruktivních akcí, factbox SourceTableTemporary a Rec.Reset maže SubPageLink (filter group 4),
   CaptionClass cache per session, expression control bez přejmenování controlu (AL0270, XLIFF ID), modify()
   na kontrolu cizí pageextension (přímá dependency), smyčka aktualizace mezi aktivačními událostmi (žádný
-  zápis ani CurrPage.Update v OnAfterGetRecord / OnAfterGetCurrRecord), Visible = Rec.pole v pageextension
+  zápis ani CurrPage.Update v OnAfterGet(Curr)Record), Visible = Rec.pole v pageextension
   padá → page proměnná v OnOpenPage, MultiLine pevné 3 řádky / RichContent v root group (HTML → Blob) /
   control add-in, page procedura se jménem metody Rec (AL0604, AA0228), List v LookupMode jen pro čtení
-  (checkbox výběru nejde → SetSelectionFilter / StandardDialog). Načti u page, pageextension, factboxů,
-  RoleCenter partů, výběrových dialogů, potvrzení, captionů, viditelnosti a dlouhých textů.
+  (checkbox nejde → SetSelectionFilter / StandardDialog); filtr partu z OnOpenPage hostitele zmizí. Načti u page, pageextension, factboxů,
+  partů, výběrových dialogů, potvrzení, captionů, viditelnosti a dlouhých textů.
 user-invocable: true
 ---
 

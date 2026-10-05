@@ -5,12 +5,12 @@
 > Načítej, když řešíš: chování page / pageextension — RunModal a výběr záznamu na RoleCenter, OnDrillDown vs OnLookup,
 > ConfirmManagement default, factbox SubPageLink, CaptionClass cache, názvy controlů / expression pole, modify cizí
 > pageextension, smyčka aktualizace v OnAfterGet*Record, Visible/Enabled přes page proměnnou, MultiLine / RichContent /
-> control add-in.
+> control add-in, filtr partu nastavený z hostitelova OnOpenPage.
 >
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
 Obsahuje:
-- **4.** UI patterny (4.1–4.10)
+- **4.** UI patterny (4.1–4.14)
 
 ## 4. UI patterny
 
@@ -401,5 +401,30 @@ Možnosti (vyber podle UX, neověřeno všechno):
 pole zapíše, nebo spadne na needitovatelném poli, neověřeno) — výběrový dialog vždycky proklikej v prohlížeči.
 (2026-09-23, cust-zlomek-bc 65364 BC-DEV2 — `Take Params Dialog COZLK`: uživatel „vybral všechny, OK",
 tabulka `SL Act. Taken Param COZLK` zůstala prázdná.)
+
+---
+
+### 4.14 Filtr na `Rec` partu nastavený z hostitelova `OnOpenPage` otevření partu nepřežije
+
+Dialog (StandardDialog / Card) v **svém `OnOpenPage`** naplní part přes veřejnou proceduru
+(`CurrPage.<Part>.Page.LoadParameters(…)`), která temp `Rec` partu naplní a nastaví mu klíč a filtr
+(`Rec.SetRange("Effective Hidden", false)`). **Data zůstanou, filtr ne** — part se otevírá až po hostitelově
+`OnOpenPage` (pořadí host `OnOpenPage` → part `OnOpenPage` → host `OnAfterGetCurrRecord`; StefanMaron AL.Runner
+issue #2689 popisuje reálné BC) a pohled, který mu procedura nastavila, při otevření nedrží. Repeater pak ukáže
+i řádky, které měl filtr schovat — až do první akce, která filtr nastaví znovu (po změně hodnoty).
+
+- **Fix:** filtr (a klíč) nastav **i v `OnOpenPage` partu** — sdílenou lokální procedurou, kterou volá i načítací
+  procedura (pro případ, že se part otevře dřív, nebo se načítá znovu po otevření, např. po změně konfigurace v hlavičce).
+- Řádky, které tím vynecháš, v temp tabulce zůstávají (filtr není `Delete`), takže `GetAllRecords` přes kopii s `Reset`
+  je pořád vidí.
+- Lokálně / ručně to snadno přehlédneš: u nového záznamu bývá všechno viditelné a první změna filtr nastaví. Projeví se
+  u **znovu otevřeného** záznamu (varianta s parametrem skrytým podmínkou) a u řádků skrytých hned od začátku
+  (statický příznak).
+
+Zachyceno 2026-10-05, prod-ess-configurator-bc master build 28617: test `ReusingAVariantInTheDialogRepairsItsSavedHiddenState`
+čekal `Color;Handle;`, dialog po otevření znovu použité varianty vypsal `Color;Width;Handle;` (WIDTH skrytý podmínkou).
+Příznak ověřený v CI; vysvětlení „pohled se při otevření partu ztratí" je odvozené z toho, že po první změně hodnoty filtr
+funguje (jiné dva testy téhož codeunitu prošly) — oprava (filtr v `OnOpenPage` partu `Variant Config Params COEBS`) na větvi
+`VarConfigDialogTestsFix` čeká na build po merge. Stejný návrh měl ListPart i před sjednocením s enginem, chyba je tedy starší.
 
 ---
