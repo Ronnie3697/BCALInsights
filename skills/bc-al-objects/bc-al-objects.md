@@ -4,7 +4,8 @@
 > Shopify Connector (5.y2) a SaaS/Cloud gotchas (sekce 11) vyčleněny 2026-09-08 do `bc-al-integrations.md`.
 > Načítej, když řešíš: No. Series, Upgrade Tag, All Profile, Item Tracking/Lot (i Sales Quote), Reservation Entry u VZ, NMEBS vazba SO↔VZ,
 > Unix timestamp, atributy zboží, DateFormula, CaptionClass/Translation Helper, CZ↔EN terminologie, CZZ zálohy, Attached to Line No. /
-> parent↔child řádky, Requisition Line / Req. Wksh.-Make Order, VerifyOnInventory, Auto Format / částky v textu.
+> parent↔child řádky, Requisition Line / Req. Wksh.-Make Order / Calculate Plan bez dotazů, VerifyOnInventory, Auto Format / částky v textu,
+> přepočet ceny z Množství bez ceníku (IsPriceUpdateNeeded, 5.x21).
 >
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 > **Essence Configurator** má od 2026-09-21 vlastní soubor `ess-configurator-notes.md` (parametry, vzorce, systémové parametry, varianty) — sekce 5.x10 a 5.x12 tam přesunuty 2026-10-01 jako C13 / C14; 5.x2b (Item Tracking na Sales Quote) a 5.x8 (Item Charge Assignment) jsou obecné BC a zůstávají tady.
@@ -640,6 +641,39 @@ Doplněno 2026-09-07 (přesun vazby do base `prod-ess-configurator-bc`, větev `
   `OnAfterDeleteEvent` chodí per řádek (pattern „list prázdný → reset session stavu" funguje).
 
 (2026-08-28, cust-sonnentor-bc PBI 64046 — review větve BlanketOrders_64046.)
+
+- **„Během Calculate Plan se neptej" = manuální bind ve `reportextension` na report 699, ne SingleInstance příznak.**
+  Plánuje se v `Item.OnAfterGetRecord` reportu (po `OnPreReport`, `Commit` per zboží); řádek vzniká v
+  `MaintainPlanningLine` a `Validate(Quantity)` (→ `GetDirectCost`) běží ještě **před `Insert`** — `Line No.` už je
+  přidělené, `"Planning Line Origin" := Planning` taky. Vzor: codeunit s `EventSubscriberInstance = Manual` odpovídá na
+  `[InternalEvent]` publishera („auto-odpověď aktivní?"), reportextension drží jeho instanci v globální proměnné, `OnPreReport`
+  → `BindSubscription`, `OnPostReport` → `UnbindSubscription`. Příznak v SingleInstance by po chybě plánu zůstal nastavený
+  na celou relaci. ⚠️ Ani bind není neprůstřelný: **`Req. Worksheet` drží report v `protected var CalculatePlan` a `Clear`
+  dělá až po úspěšném `RunModal`** → po chybě instance i vazba přežijí, dokud je stránka otevřená, a vazba platí **pro celou
+  relaci** (jiné stránky taky). Proto: auto-odpověď konzultovat jen na cestách, které mají mlčet (řádek sešitu), a v
+  `OnPreReport` nejdřív `if UnbindSubscription(X) then;` (opakovaný bind téže instance spadne). Test: report 699 přes
+  `SetTemplAndWorksheet` + `InitializeRequest` + `SetTableView` + `UseRequestPage(false)` + `RunModal` **bez
+  ConfirmHandleru** (dotaz test shodí), druhý test ruční změna po plánu s handlerem (vazba skončila). Ověřeno v lokálním
+  kontejneru 28.4 (7.23 v `bc-al-build.md`). (2026-10-05, cust-sonnentor-bc PBI 64046, komentář PFIL 24. 9.)
+
+### 5.x21 Přepočet ceny vyvolaný Množstvím bez ceníku cenu NEPŘEPÍŠE — odpojený řádek si nechá cenu hromadné objednávky
+
+`Purchase Line - Price` / `Sales Line - Price` / `Requisition Line - Price` `.IsPriceUpdateNeeded(AmountType, FoundPrice,
+CalledByFieldNo)` (w1-28.4): když ceník nic nenajde (`FoundPrice = false`), cena se **nepřepíše**, pokud přepočet vyvolalo
+pole **Quantity** (nákup navíc `Job No.`, `Job Task No.`; všude `Variant Code` bez SKU) — aby ruční cena přežila změnu
+množství. Vazba na hromadnou objednávku přitom cenu jen drží (`BlanketOrderIsRelated` → cena z řádku HNO/HPO) a
+`Validate("Blanket Order No.", '')` na ceně nic nemění. Důsledek: řádek odpojený od HNO/HPO po změně množství (nebo řádek
+sešitu, kterému se zruší vazba v `OnAfterGetDirectCost` po změně Quantity) **zůstane s cenou a slevou z hromadné
+objednávky**, pokud ceník na položku nemá řádek. `UpdateDirectUnitCost(FieldNo("No."))` na tomtéž řádku v UI nepomůže —
+`UpdateDirectUnitCostByField` skončí na `(CalledByFieldNo <> CurrFieldNo) and (CurrFieldNo <> 0)`.
+
+**Fix:** spočítat cenu na **temporary kopii** jako při zadání zboží a převzít ji:
+`Temp := Line; Temp.UpdateDirectUnitCost(Temp.FieldNo("No."))` (prodej `UpdateUnitPrice(FieldNo("No."))`, sešit veřejné
+`GetDirectCost(FieldNo("No."))` — vlastní `OnAfterGetDirectCost` subscriber temp kopii pustí díky `IsTemporary`), pak
+`Line.Validate("Direct Unit Cost" / "Unit Price", Temp…)` + `Validate("Line Discount %", Temp…)`. Kopie má `CurrFieldNo = 0`,
+takže výpočet doběhne. Zachyceno 2026-10-05 v lokálním kontejneru (test čekal Last Direct Cost 7.77 / Unit Price 55.55,
+dostal 11.11 / 99.99 z HNO/HPO); s opravou zelené. Starý komentář „po přepočtu už řádek nese standardní cenu" platil jen
+s řádkem ceníku. (cust-sonnentor-bc PBI 64046, `Blanket Purch./Sales Link Mgt. SON.ApplyStandardPrice`.)
 
 ### 5.x6 „Nemáte dostatečné množství zboží … na skladě" u spotřeby/transferu — `VerifyOnInventory` ignoruje Prevent Negative Inventory
 

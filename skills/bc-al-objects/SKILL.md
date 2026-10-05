@@ -5,8 +5,9 @@ description: >-
   kontrola Document No., Unix timestamp/UTC, Item Tracking (Lot No., Prod. Order Line, Sales Quote → Order),
   NMEBS vazba SO↔VZ, al-mcp ByReference past, atributy zboží, DateFormula limity, CaptionClass + Translation
   Helper, CZ↔EN terminologie, CZZ zálohy, Attached to Line No. parent↔child (xRec, Validate(No.) Init,
-  CurrFieldNo), Requisition Line (GetDirectCost, Make Order, Order Planning, Carry Out), VerifyOnInventory,
-  Item Jnl. Line UoM qty-per, Auto Format částek, Item Charge Assignment, Job Queue z účtování / recurring,
+  CurrFieldNo), Requisition Line (GetDirectCost, Make Order, Order Planning, Carry Out, Calculate Plan bez dotazu
+  přes manual bind), IsPriceUpdateNeeded (cena po odpojení HNO), VerifyOnInventory,
+  Item Jnl. Line UoM qty-per, Auto Format částek, Item Charge Assignment, Job Queue z účtování / recurring / na popředí,
   Data Exchange / camt.053 (merge sloupců, Regex Match, 274). Načti u číselných řad, trackingu, výroby,
   plánování, Job Queue, bankovního importu. (Shopify, HttpClient → bc-al-integrations; Job Planning Line /
   projekty → bc-al-projects.)
