@@ -1,17 +1,18 @@
 ---
 name: bc-al-integrations
 description: >-
-  BC/AL integrace, SaaS/Cloud gotchas (5.y2, 5.y3, 11): Shopify Connector BC28 (Available For Sales
-  jen v BC, export varianty nemaže, nové varianty jen sync s Can Update Shopify Products, Add Item
+  BC/AL integrace, SaaS/Cloud gotchas (5.y2–5.y4, 11): Shopify Connector BC28+ (Available For Sales
+  jen v BC, export varianty nemaže, nové varianty jen sync (Can Update Shopify Products), Add Item
   existující přeskočí, userErrors tiché, produkt bez options, OnAfterCreateTempShopifyProduct, Add
-  z karty mimo 30106, BCShopifyConnectorDocs, Internal vrstva → vlastní HttpClient + custom
-  app, fronta místo HTTP v postingu), HttpClient na SaaS (Allow HttpClient Requests silent fail,
-  UseDefaultNetworkWindowsAuthentication OnPrem-only), Isolated Storage scope, SecretText (Unwrap
-  OnPrem-only AL0296, HMAC Crypto Mgt., SecretStrSubstNo), Power Automate: External Business Events
-  preview vs fronta + API page; vlastní API page pro zápis (POST validace, temporary OnFindRecord,
-  $filter před limitem, stale relace); Dataverse/CDS sync (Integration Table Filter jen Dataverse→BC,
-  Enum→Choice = Option Picklist + OptionOrdinalValues, testy bez Dataverse: @@test@@, Integration
-  Record Synch.). Načti u Shopify, HTTP, API a Dataverse.
+  z karty mimo 30106, BCShopifyConnectorDocs, Internal vrstva → vlastní HttpClient + custom app,
+  fronta místo HTTP v postingu; BC29: expirující tokeny 2027-01-01, GQL → .graphql,
+  HttpClientHandler), HttpClient na SaaS (Allow HttpClient Requests silent fail, Windows auth
+  OnPrem-only), Isolated Storage scope, SecretText (Unwrap AL0296, HMAC,
+  SecretStrSubstNo), Power Automate (Business Events preview vs fronta + API page); vlastní
+  API page pro zápis (POST validace, temporary OnFindRecord, $filter před limitem, stale relace);
+  Dataverse/CDS sync (Integration Table Filter jen Dataverse→BC, Enum→Choice = Option Picklist +
+  OptionOrdinalValues, testy přes @@test@@ + Integration Record Synch.). Načti u Shopify,
+  HTTP, API, Dataverse.
 user-invocable: true
 ---
 

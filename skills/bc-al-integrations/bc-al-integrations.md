@@ -34,7 +34,7 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
   `CreateProductVariant`). **Neexistuje IsHandled/cancel event** — vytvoření nejde z extension
   zablokovat: `OnBeforeSendAddShopifyProductVariant` je uvnitř skládání mutace (všechna pole
   if-guarded, poison-pill nejde), communication eventy (`OnClientSend`…) běží jen při
-  `IsTestInProgress`. Per-variant filtrování create path = jedině PR do microsoft/BCApps.
+  `IsTestInProgress` (v BC 29 smazané úplně, viz 5.y4). Per-variant filtrování create path = jedině PR do microsoft/BCApps.
 - **Filtrování variant při Add Item to Shopify** jde čistě: `OnAfterCreateTempShopifyProduct
   (Item, var TempProduct, var TempVariant, var TempTag)` — smaž nechtěné temp varianty
   (mark-and-delete přes List of [BigInteger], ne Delete v FindSet smyčce); při vyprázdnění
@@ -45,9 +45,11 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
 - Zdroják konektoru: **microsoft/BCApps**, `src/Apps/W1/Shopify/App/src/...`, branch
   `releases/<major>.<minor>` — před použitím eventu ověř, že existuje ve verzi z CI
   artifactu (`BC_ARTIFACT`), lokální `.alpackages` může být novější minor.
-  Lokální rozcestník konektoru (DNEM, GitHub `Ronnie3697/BCShopifyConnectorDocs`, generovaný z w1-28): `C:\WorkTasks\BCShopifyConnectorDocs`
+  Lokální rozcestník konektoru (DNEM, GitHub `Ronnie3697/BCShopifyConnectorDocs`, generovaný z microsoft/BCApps
+  `releases/29.0`; stav 28.5 v historii repa, commit `b0db0b2`): `C:\WorkTasks\BCShopifyConnectorDocs`
   — `shopify_codeunits|tables|pages|reports.md` (ID → název → GitHub link), `shopify_functional_breakdown.md`,
-  `VersionChanges/Changes27-28.md` + `Changes28.md` (minor diffy), update přes `python scratch/update_docs.py`.
+  `VersionChanges/Changes27-28.md`, `Changes28.md` (minor diffy 28.x), `Changes28-29.md`, `Changes29.md`, update přes
+  `python scratch/update_docs.py`.
 
 - **Nové varianty existujícího produktu zakládá JEN produktový sync, ne Add Item to Shopify.**
   `Shpfy Create Product.OnRun` produkt pro dvojici Shop Code + Item SystemId tiše přeskočí, když už
@@ -130,6 +132,31 @@ Zjištění z cust-sonnentor-bc 63637 (slevové kódy pro dárkové poukazy, kon
   „uplatněno během běžícího create"). Ownership marker do titulu discountu (`[BC <SystemId>]`) + lookup podle kódu před
   create = recovery po timeoutu bez duplicit a bez převzetí cizího kódu. Detail: `docs/proposals/63637-shopify-voucher-discounts.md`
   v cust-sonnentor-bc.
+
+### 5.y4 Shopify Connector BC 29 — co se mění pro PTE a provoz
+
+Z přímého diffu microsoft/BCApps `releases/28.5` → `releases/29.0` (snapshot `84f94fce`, 2026-10-05; detail
+`VersionChanges/Changes28-29.md` v BCShopifyConnectorDocs):
+
+- ⚠️ **Expirující offline tokeny — termín 2027-01-01.** Shopify pak odmítne neexpirující offline tokeny veřejných appek
+  založených před 2026-04-01. BC 29 token sám jednou vymění (`Shpfy Authentication Mgt.EnsureValidAccessToken` před každým
+  voláním; access token 1 h, refresh token 90 dní → po propadnutí notifikace **Reconnect** na kartě obchodu). V
+  `releases/28.x` (28.6) k 2026-10-02 **není** → zákazník, který do 1. 1. 2027 zůstane na BC 28 bez backportu, přijde o
+  spojení. Hlídat při plánování upgradů. U vlastního tokenu PTE (5.y3) ověř v dokumentaci Shopify, jestli se ho požadavek týká.
+- **GQL codeunity → `.graphql` resource soubory** (`App/.resources/graphql/<Oblast>/<Dotaz>.graphql`, `# cost: N` + JSON,
+  `NavApp.GetResourceAsText`). 129 codeunitů `Shpfy GQL *` smazáno, 14 zůstalo jako `ObsoleteState = Pending` pod
+  `#if not CLEAN29`; interface `Shpfy IGraphQL` a interní eventy `OnBefore/AfterGetGrapQLInfo`, `OnBefore/AfterReplaceParameters`
+  pryč. Enum `Shpfy GraphQL Type` má hodnoty `{Oblast}_{Dotaz}` a `Extensible = false`. PTE s odkazem na smazaný GQL codeunit
+  (typicky **permission set**) se na 29 nezkompiluje. Objektů konektoru je 509 místo 639.
+- **Test mocking:** `Shpfy Communication Events` (30200; `OnClientSend/Post/Get`, `OnGetContent`, `OnGetAccessToken`),
+  `Set/GetTestInProgress` i `OnBeforeUploadImage` jsou smazané → testy PTE mockují HTTP platformním `[HttpClientHandler]`
+  s `TestHttpRequestPolicy = BlockOutboundRequests` (vzor v testech konektoru).
+- **Nové public API:** `Shpfy Product` (30234) `ConfirmAddItemToShopify`, `CheckItemAttributesCompatibleForProductOptions`,
+  `GetProductUrl` (stejný postup jako Add to Shopify z karty); setery stránky `Shpfy Add Item Confirm` (30144) public. Nový
+  event `OnAfterMapShopifyOrder(var ShopifyOrderHeader; Result)` v `Shpfy Order Events` (30162), `internal` +
+  `[IntegrationEvent]` jako ostatní (z PTE jde odebírat, viz 5.y2), `CommitBehavior::Ignore`.
+- **Internal zůstává** `Shpfy Communication Mgt.`, `Shpfy Authentication Mgt.`, `Shpfy GraphQL Type` i `Shpfy Shop."Shopify URL"`
+  → 5.y3 platí i pro 29.0 (tokeny dál v Isolated Storage scope `Module`). Admin API verze 2026-07.
 
 ## 11. SaaS gotchas — HttpClient a Cloud target
 
