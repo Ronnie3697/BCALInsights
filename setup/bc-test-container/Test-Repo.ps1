@@ -90,6 +90,10 @@ function Install-MicrosoftApp([string] $appId, [string] $appName) {
 $allPassed = $false
 # Apps published before this run started (after removing leftovers of this repo) - the cleanup removes only the others
 $baseline = $null
+# Seconds per phase, printed at the end (TIMING)
+$phaseSeconds = [ordered]@{ 'start' = 0.0; 'dependencies' = 0.0; 'compile' = 0.0; 'publish' = 0.0; 'tests' = 0.0; 'cleanup' = 0.0 }
+$totalTimer = [System.Diagnostics.Stopwatch]::StartNew()
+$phaseTimer = [System.Diagnostics.Stopwatch]::StartNew()
 try {
     Start-TestContainer -ContainerName $ContainerName
     $credential = Get-TestContainerCredential
@@ -104,6 +108,8 @@ try {
         Write-Warning ('The container has apps of another run: {0} - remove them if they collide (object IDs).' -f (($foreign | ForEach-Object { "$($_.Name) $($_.Version)" }) -join ', '))
     }
     $baseline = @(Get-BcContainerAppInfo -containerName $ContainerName | ForEach-Object { "$($_.AppId):$($_.Version)" })
+    $phaseSeconds['start'] += $phaseTimer.Elapsed.TotalSeconds
+    $phaseTimer.Restart()
 
     # --- External dependencies -------------------------------------------------------------------------------------
     $external = @{}
@@ -131,6 +137,8 @@ try {
         Publish-BcNuGetPackageToContainer -nuGetServerUrl $TestContainerSettings.nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageId `
             -version $range -select Latest -containerName $ContainerName -appSymbolsFolder $symbolsFolder -skipVerification
     }
+    $phaseSeconds['dependencies'] += $phaseTimer.Elapsed.TotalSeconds
+    $phaseTimer.Restart()
 
     # --- Compile and install the apps of the repo ------------------------------------------------------------------
     foreach ($app in $apps) {
@@ -143,11 +151,16 @@ try {
     }
     foreach ($app in $apps) {
         Write-Host "Compiling $($app.Name)"
+        $phaseTimer.Restart()
         $appFile = Compile-AppInBcContainer -containerName $ContainerName -credential $credential `
             -appProjectFolder (Join-Path $srcFolder $app.Folder) -appOutputFolder $outputFolder -appSymbolsFolder $symbolsFolder `
             -CopyAppToSymbolsFolder -basePath $srcFolder
+        $phaseSeconds['compile'] += $phaseTimer.Elapsed.TotalSeconds
+        $phaseTimer.Restart()
         Publish-BcContainerApp -containerName $ContainerName -appFile $appFile -skipVerification -sync -syncMode ForceSync -install
+        $phaseSeconds['publish'] += $phaseTimer.Elapsed.TotalSeconds
     }
+    $phaseTimer.Restart()
 
     # --- Tests --------------------------------------------------------------------------------------------------------
     $allPassed = $true
@@ -160,6 +173,7 @@ try {
         $append = $true
         if (-not $passed) { $allPassed = $false }
     }
+    $phaseSeconds['tests'] += $phaseTimer.Elapsed.TotalSeconds
 
     # --- Summary --------------------------------------------------------------------------------------------------
     if (Test-Path $junitFile) {
@@ -176,12 +190,15 @@ try {
     }
 }
 finally {
+    $phaseTimer.Restart()
     if ((-not $KeepApps) -and ($null -ne $baseline)) {
         # Everything this run added that is not Microsoft (the toolkit apps stay for the next run)
         Get-BcContainerAppInfo -containerName $ContainerName -tenantSpecificProperties -sort DependenciesLast |
             Where-Object { $_.Publisher -ne 'Microsoft' -and $baseline -notcontains "$($_.AppId):$($_.Version)" } |
             ForEach-Object { Remove-ContainerApp $_ }
     }
+    $phaseSeconds['cleanup'] += $phaseTimer.Elapsed.TotalSeconds
+    Write-Host ('TIMING: {0}, total {1:mm\:ss}' -f (($phaseSeconds.GetEnumerator() | ForEach-Object { '{0} {1:N0} s' -f $_.Key, $_.Value }) -join ', '), $totalTimer.Elapsed)
     Write-Host "Run folder: $runFolder"
     Stop-Transcript | Out-Null
 }

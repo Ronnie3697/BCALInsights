@@ -62,6 +62,7 @@ Co dělá (stejně jako Essence pipeline):
 - appky zkopíruje do sdílené složky kontejneru (repo zůstane netknuté), zkompiluje a nainstaluje,
 - pustí testy testovacích appek, vypíše `SUMMARY: <n> tests, <n> failed, …` + seznam failů, uloží `TestResults.xml` (JUnit),
 - na konci odinstaluje a unpublishne všechno, co přidal (kromě Microsoft appek). Exit code 0 = vše prošlo.
+- poslední řádky: `TIMING: start …, dependencies …, compile …, publish …, tests …, cleanup …, total mm:ss` a cesta k výstupu běhu.
 
 Výstup běhu: `C:\ProgramData\BcContainerHelper\Extensions\<container>\test-runs\<repo>-<čas>\`
 (`run.log`, `TestResults.xml`, `output\*.app`). Doba: konfigurátor (4 appky, ~900 testů) ~6 min.
