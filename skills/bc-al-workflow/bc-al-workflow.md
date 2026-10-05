@@ -99,6 +99,10 @@ def alhash(name: str) -> int:
 
 - Vstup je čisté jméno elementu: `alhash("Caption")` = 2879900210,
   `alhash("ToolTip")` = 1295455071, `alhash("CNC Macro COALU")` = 66836948.
+- **V node (bez pythonu v Bash toolu) počítej přes `BigInt`**, jinak `(h ^ b) * 16777619` přeteče přesnost `Number`
+  (2^53) a hash je tiše špatně (`Caption` vyjde 3710425303 místo 2879900210):
+  `h=0x811c9dc5n; for (const b of Buffer.from(name,"utf16le")) h=((h^BigInt(b))*16777619n)%4294967296n; return (h+2147483647n)%4294967296n`.
+  Vždy si ověř `alhash("Caption")` = 2879900210, než ID zapíšeš. (2026-10-05, cust-soitron-bc, `CRM Project CWSOI.ebs_synchronizetobc`.)
 - ID se skládá z `<Typ> <hash(jméno)>` po cestě od objektu k labelu:
   `Table X - Field Y - Property Z`. Source text se nehashuje — změna
   ToolTip textu ID nemění, **rename pole/objektu ano** (starý unit osiří).
