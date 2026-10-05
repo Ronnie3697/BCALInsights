@@ -331,3 +331,6 @@ IntegrationRecordSynch.Codeunit.al`, `IntegrationTableMapping.Table.al`, `Integr
   lokální `IntegrationEvent` publisher standardu z testu nevyvoláš a `CDS Setup Defaults.ResetVendorAccountMapping` táhne job queue.
   Reset konfiguračních šablon hlásí chybějící `Config. Template Header` přes `Message` → v testu šablony založ (helper
   `EnsureConfigTemplatesExist`), nebo `MessageHandler`.
+  Test připojení registruj v `Initialize()` **každého** testu, který se CRM proxy tabulky jen dotkne — padá už
+  `IntegrationTableMapping.CreateRecord(..., Database::"CRM Account", ...)` bez jediného čtení záznamu („Table connection for table
+  type CRM must be registered using RegisterTableConnection" — cust-soitron-bc build 28646, `Tax Reg. No. Sync Test CCSOI`, 2026-10-05).
