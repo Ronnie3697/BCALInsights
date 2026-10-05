@@ -56,16 +56,22 @@ Co dělá (stejně jako Essence pipeline):
 - nastartuje Docker Desktop a kontejner, když stojí,
 - najde `app.json` v repu, seřadí appky podle závislostí, testovací = má „Test" v názvu; repo bez testovací appky
   hned skončí (`SUMMARY: … nothing to run`, exit 0),
-- externí závislosti stáhne z NuGet feedu `BCNugetPackages` — nejnovější verze v MajorMinor rozsahu deklarovaného
-  minima, i s tranzitivními,
+- externí závislosti: na feedu `BCNugetPackages` zjistí nejnovější verzi v MajorMinor rozsahu deklarovaného minima
+  (i tranzitivních z `.nuspec`), stáhne jen novou verzi do `dependency-cache\` kontejneru a v kontejneru je drží
+  **publikované, ale nenainstalované** mezi běhy — další běh je jen nainstaluje (novější verze na feedu = publish nové,
+  stará se odpublikuje). Nenainstalované nespouští kód při testech jiného repa,
 - chybějící Microsoft appky (např. AI Test Toolkit) doinstaluje z artefaktu v kontejneru,
 - appky zkopíruje do sdílené složky kontejneru (repo zůstane netknuté), zkompiluje a nainstaluje,
 - pustí testy testovacích appek, vypíše `SUMMARY: <n> tests, <n> failed, …` + seznam failů, uloží `TestResults.xml` (JUnit),
-- na konci odinstaluje a unpublishne všechno, co přidal (kromě Microsoft appek). Exit code 0 = vše prošlo.
+- na konci odinstaluje všechno, co nainstaloval (data i schéma pryč, Microsoft appky zůstanou), appky repa
+  unpublishne, závislosti nechá publikované; smaže zdrojáky a symboly běhu. Exit code 0 = vše prošlo.
+- kroky uvnitř kontejneru jedou ve 4 relacích (`ContainerSide.ps1`): úklid zbytků, závislosti, appky repa, úklid —
+  ne relace na každou appku (režie BcContainerHelperu).
 - poslední řádky: `TIMING: start …, dependencies …, compile …, publish …, tests …, cleanup …, total mm:ss` a cesta k výstupu běhu.
 
 Výstup běhu: `C:\ProgramData\BcContainerHelper\Extensions\<container>\test-runs\<repo>-<čas>\`
-(`run.log`, `TestResults.xml`, `output\*.app`). Doba: konfigurátor (4 appky, ~900 testů) ~6 min.
+(`run.log`, `TestResults.xml`, `output\*.app`). Doba (Zlomek, 4 appky + 6 závislostí, 144 testů): **~3:45** se
+závislostmi už publikovanými (závislosti 10 s, kompilace 2:30, publish 8 s, testy 47 s, úklid 8 s), ~4:20 poprvé.
 
 ## Proč Windows PowerShell 5.1
 

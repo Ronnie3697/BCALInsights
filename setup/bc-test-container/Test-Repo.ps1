@@ -1,7 +1,12 @@
 # Publishes the apps of an AL repo into the shared test container, runs the tests of its test apps and removes the
 # apps again - the way the Essence pipeline does it: dependencies from BCNugetPackages (latest in the MajorMinor range of
-# the declared minimum), apps compiled and installed in dependency order, test apps = apps with "Test" in the name.
-# Starts Docker Desktop and the container when they are stopped. A repo without a test app ends right away.
+# the declared minimum, transitive ones from the .nuspec), apps compiled and installed in dependency order, test apps =
+# apps with "Test" in the name. Starts Docker Desktop and the container when they are stopped. A repo without a test app
+# ends right away.
+#
+# The dependencies stay PUBLISHED (not installed) for the next run: each run checks the version on the feed, installs the
+# published one when it is the latest and publishes a newer one otherwise. Not installed, they run no code during the
+# tests of another repo. The steps inside the container run in three sessions (ContainerSide.ps1).
 #
 #   .\Test-Repo.ps1 -RepoPath C:\WorkTasks\prod-ess-configurator-bc
 #   .\Test-Repo.ps1 -RepoPath C:\WorkTasks\prod-ess-configurator-bc -TestCodeunit 63173
@@ -36,7 +41,7 @@ $apps = @(foreach ($folder in $sortedFolders) {
     $json = [System.IO.File]::ReadAllText((Join-Path $RepoPath "$folder\app.json")) | ConvertFrom-Json
     [pscustomobject]@{
         Folder       = $folder
-        Id           = "$($json.id)"
+        Id           = "$($json.id)".ToLowerInvariant()
         Name         = $json.name
         Publisher    = $json.publisher
         IsTest       = $json.name -match 'Test'
@@ -60,87 +65,128 @@ $outputFolder = Join-Path $runFolder 'output'
 $junitFile = Join-Path $runFolder 'TestResults.xml'
 New-Item -ItemType Directory -Path $srcFolder, $symbolsFolder, $outputFolder -Force | Out-Null
 Start-Transcript -Path (Join-Path $runFolder 'run.log') | Out-Null
+Copy-Item -Path (Join-Path $PSScriptRoot 'ContainerSide.ps1') -Destination $runFolder
 
 function Get-DependencyId($dependency) {
-    if ($dependency.PSObject.Properties.Name -contains 'id') { return "$($dependency.id)" }
-    return "$($dependency.appId)"
+    if ($dependency.PSObject.Properties.Name -contains 'id') { return "$($dependency.id)".ToLowerInvariant() }
+    return "$($dependency.appId)".ToLowerInvariant()
 }
 
-function Remove-ContainerApp($appInfo) {
-    Write-Host "Removing $($appInfo.Name) $($appInfo.Version)"
-    UnPublish-BcContainerApp -containerName $ContainerName -name $appInfo.Name -publisher $appInfo.Publisher -version $appInfo.Version `
-        -unInstall -doNotSaveData -doNotSaveSchema -force
+function Get-MajorMinorRange([version] $minimum) {
+    # The pipeline: the latest version in the MajorMinor range of the declared minimum
+    '[{0},{1}.{2}.0.0)' -f $minimum, $minimum.Major, ($minimum.Minor + 1)
 }
 
-function Install-MicrosoftApp([string] $appId, [string] $appName) {
-    # A Microsoft app the container does not have installed (e.g. AI Test Toolkit) - taken from the artifact in the container
-    Invoke-ScriptInBcContainer -containerName $ContainerName -argumentList $appId, $appName -scriptblock {
-        Param($appId, $appName)
-        $candidates = @(Get-ChildItem -Path 'C:\Applications' -Filter '*.app' -Recurse | Where-Object { $_.Name -like "*$appName*" })
-        $file = $candidates | Where-Object { "$((Get-NAVAppInfo -Path $_.FullName).AppId)" -eq $appId } | Select-Object -First 1
-        if (-not $file) { throw "Microsoft app $appName ($appId) is not in C:\Applications of the container." }
-        $info = Get-NAVAppInfo -Path $file.FullName
-        Write-Host "Installing $($info.Name) $($info.Version) from $($file.FullName)"
-        Publish-NAVApp -ServerInstance $ServerInstance -Path $file.FullName -SkipVerification
-        Sync-NAVApp -ServerInstance $ServerInstance -Name $info.Name -Publisher $info.Publisher -Version $info.Version
-        Install-NAVApp -ServerInstance $ServerInstance -Name $info.Name -Publisher $info.Publisher -Version $info.Version
+# appId -> app file in the symbols folder, dependencies before the apps that need them
+$dependencyFiles = [ordered]@{}
+# Packages taken from the feed, by package id and version - kept between the runs
+$dependencyCache = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$ContainerName\dependency-cache"
+# appId -> name filter of a Microsoft app the container must have installed
+$microsoftApps = @{}
+
+function Resolve-NuGetDependency([string] $packageId, [version] $minimum) {
+    # Finds the latest version in the range on the feed, takes the package from the cache of the container (downloads
+    # it only when a new version came out) and resolves the dependencies of its .nuspec first
+    $appId = ($packageId -split '\.')[-1].ToLowerInvariant()
+    if ($dependencyFiles.Contains($appId)) { return }
+    $range = Get-MajorMinorRange $minimum
+    $found = @(Find-BcNuGetPackage -nuGetServerUrl $TestContainerSettings.nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageId -version $range -select Latest)
+    if ($found.Count -lt 3 -or -not $found[1]) { throw "Package $packageId $range is not on $($TestContainerSettings.nuGetServerUrl)" }
+    $foundId = $found[1]
+    $foundVersion = $found[2]
+    $packageCache = Join-Path $dependencyCache $foundId
+    $packageFolder = Join-Path $packageCache $foundVersion
+    if (Get-ChildItem -Path $packageFolder -Filter '*.app' -ErrorAction SilentlyContinue) {
+        Write-Host "Dependency $foundId $foundVersion (range $range) - cached"
     }
+    else {
+        Write-Host "Dependency $foundId $foundVersion (range $range) - downloading"
+        # Get-BcNuGetPackage extracts into a new temp folder on every call - kept in the cache of the container instead
+        $downloaded = @(Get-BcNuGetPackage -nuGetServerUrl $TestContainerSettings.nuGetServerUrl -nuGetToken $nuGetToken -packageName $foundId -version $foundVersion -select Exact)[-1]
+        Remove-Item -Path $packageCache -Recurse -Force -ErrorAction SilentlyContinue   # older versions
+        New-Item -ItemType Directory -Path $packageFolder -Force | Out-Null
+        Copy-Item -Path (Join-Path $downloaded '*.app'), (Join-Path $downloaded '*.nuspec') -Destination $packageFolder
+        Remove-Item -Path $downloaded -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    $nuspecFile = Get-ChildItem -Path $packageFolder -Filter '*.nuspec' | Select-Object -First 1
+    if ($nuspecFile) {
+        [xml]$nuspec = [System.IO.File]::ReadAllText($nuspecFile.FullName)
+        foreach ($node in @($nuspec.SelectNodes("//*[local-name()='dependency']"))) {
+            $dependencyPackageId = $node.GetAttribute('id')
+            if ($dependencyPackageId -match '^Microsoft\.(.+)\.([0-9a-fA-F]{8}-[0-9a-fA-F-]{27})$') {
+                $microsoftApps[$Matches[2].ToLowerInvariant()] = $Matches[1]
+                continue
+            }
+            if ($dependencyPackageId -like 'Microsoft.*') { continue }   # Microsoft.Application / Microsoft.Platform
+            $minimumText = [regex]::Match($node.GetAttribute('version'), '\d+(\.\d+){1,3}').Value
+            Resolve-NuGetDependency -packageId $dependencyPackageId -minimum ([version]$minimumText)
+        }
+    }
+    $appFile = Get-ChildItem -Path $packageFolder -Filter '*.app' | Select-Object -First 1
+    if (-not $appFile) { throw "Package $foundId $foundVersion has no .app file" }
+    Copy-Item -Path $appFile.FullName -Destination $symbolsFolder -Force
+    $dependencyFiles[$appId] = Join-Path $symbolsFolder $appFile.Name
 }
 
 $allPassed = $false
-# Apps published before this run started (after removing leftovers of this repo) - the cleanup removes only the others
-$baseline = $null
+# Installed apps (not Microsoft) this run found and did not install - the cleanup leaves them alone; $null = not prepared yet
+$keepIds = $null
 # Seconds per phase, printed at the end (TIMING)
 $phaseSeconds = [ordered]@{ 'start' = 0.0; 'dependencies' = 0.0; 'compile' = 0.0; 'publish' = 0.0; 'tests' = 0.0; 'cleanup' = 0.0 }
 $totalTimer = [System.Diagnostics.Stopwatch]::StartNew()
 $phaseTimer = [System.Diagnostics.Stopwatch]::StartNew()
+$containerSide = Get-BcContainerPath -containerName $ContainerName -path (Join-Path $runFolder 'ContainerSide.ps1')
 try {
     Start-TestContainer -ContainerName $ContainerName
     $credential = Get-TestContainerCredential
     if (-not (Test-Path $TestContainerSettings.patFile)) { throw "PAT file $($TestContainerSettings.patFile) not found (settings.json, patFile)." }
     $nuGetToken = (Get-Content -Path $TestContainerSettings.patFile -Raw).Trim()
-
-    # --- Clean slate: apps of this repo left by an earlier run, and a warning about apps of other repos ---------------
-    $published = @(Get-BcContainerAppInfo -containerName $ContainerName -tenantSpecificProperties -sort DependenciesLast)
-    $published | Where-Object { $repoIds -contains "$($_.AppId)" } | ForEach-Object { Remove-ContainerApp $_ }
-    $foreign = @($published | Where-Object { $_.Publisher -ne 'Microsoft' -and $repoIds -notcontains "$($_.AppId)" })
-    if ($foreign) {
-        Write-Warning ('The container has apps of another run: {0} - remove them if they collide (object IDs).' -f (($foreign | ForEach-Object { "$($_.Name) $($_.Version)" }) -join ', '))
-    }
-    $baseline = @(Get-BcContainerAppInfo -containerName $ContainerName | ForEach-Object { "$($_.AppId):$($_.Version)" })
     $phaseSeconds['start'] += $phaseTimer.Elapsed.TotalSeconds
     $phaseTimer.Restart()
 
-    # --- External dependencies -------------------------------------------------------------------------------------
-    $external = @{}
-    $microsoft = @{}
+    # --- Dependencies: versions from the feed (host), then one container session ------------------------------------
     foreach ($app in $apps) {
         foreach ($dependency in $app.Dependencies) {
             $dependencyId = Get-DependencyId $dependency
             if ($repoIds -contains $dependencyId) { continue }
-            $target = if ($dependency.publisher -eq 'Microsoft') { $microsoft } else { $external }
-            if (-not $target.ContainsKey($dependencyId) -or ([version]$dependency.version -gt [version]$target[$dependencyId].version)) {
-                $target[$dependencyId] = $dependency
+            if ($dependency.publisher -eq 'Microsoft') {
+                $microsoftApps[$dependencyId] = $dependency.name
+                continue
             }
+            $packageId = Get-BcNuGetPackageId -publisher $dependency.publisher -name $dependency.name -id $dependencyId
+            Resolve-NuGetDependency -packageId $packageId -minimum ([version]$dependency.version)
         }
     }
-    $installedIds = @(Get-BcContainerAppInfo -containerName $ContainerName -tenantSpecificProperties | Where-Object { $_.IsInstalled } | ForEach-Object { "$($_.AppId)" })
-    foreach ($entry in $microsoft.GetEnumerator()) {
-        if ($installedIds -notcontains $entry.Key) { Install-MicrosoftApp -appId $entry.Key -appName $entry.Value.name }
-    }
-    foreach ($entry in $external.GetEnumerator()) {
-        $minimum = [version]$entry.Value.version
-        # The pipeline: MajorMinor range of the declared minimum, latest version in it
-        $range = '[{0},{1}.{2}.0.0)' -f $minimum, $minimum.Major, ($minimum.Minor + 1)
-        $packageId = Get-BcNuGetPackageId -publisher $entry.Value.publisher -name $entry.Value.name -id $entry.Key
-        Write-Host "Dependency $($entry.Value.name) $range from NuGet ($packageId)"
-        Publish-BcNuGetPackageToContainer -nuGetServerUrl $TestContainerSettings.nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageId `
-            -version $range -select Latest -containerName $ContainerName -appSymbolsFolder $symbolsFolder -skipVerification
+    $containerFiles = @($dependencyFiles.Values | ForEach-Object { Get-BcContainerPath -containerName $ContainerName -path $_ })
+    $microsoftList = @($microsoftApps.GetEnumerator() | ForEach-Object { "$($_.Key)|$($_.Value)" })
+    # Session 1: clean slate - the apps of this repo left by an earlier run, all versions (e.g. a published dependency of
+    # another repo) - and the installed apps of another run (-KeepApps), which the cleanup leaves as they are
+    $snapshot = @(Invoke-ScriptInBcContainer -containerName $ContainerName -argumentList $containerSide, $repoIds -scriptblock {
+        Param([string] $containerSide, [string[]] $repoIds)
+        . $containerSide
+        $leftovers = @(Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant default -TenantSpecificProperties | Where-Object { $repoIds -contains "$($_.AppId)" })
+        Remove-TestApps -Apps $leftovers -Unpublish
+        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant default -TenantSpecificProperties |
+            Where-Object { $_.IsInstalled -and ($_.Publisher -ne 'Microsoft') } | ForEach-Object { "KEEP:$($_.AppId):$($_.Name) $($_.Version)" }
+    })
+    $keepIds = @($snapshot | Where-Object { "$_" -like 'KEEP:*' } | ForEach-Object { ("$_" -split ':')[1] })
+    $kept = @($snapshot | Where-Object { "$_" -like 'KEEP:*' } | ForEach-Object { ("$_" -split ':', 3)[2] })
+    if ($kept) { Write-Warning ('The container has apps installed by another run: {0} - remove them if they collide (object IDs).' -f ($kept -join ', ')) }
+    # Session 2: missing Microsoft apps from the artifact, then the dependencies - published only when not there yet
+    Invoke-ScriptInBcContainer -containerName $ContainerName -argumentList $containerSide, $microsoftList, $containerFiles -scriptblock {
+        Param([string] $containerSide, [string[]] $microsoftList, [string[]] $files)
+        . $containerSide
+        $installed = @(Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant default -TenantSpecificProperties | Where-Object { $_.IsInstalled } | ForEach-Object { "$($_.AppId)" })
+        foreach ($entry in $microsoftList) {
+            $id, $name = $entry -split '\|', 2
+            if ($installed -notcontains $id) { Install-MicrosoftAppFromArtifact -AppId $id -NameFilter $name | Out-Null }
+        }
+        Install-TestAppFiles -Files $files | Out-Null
     }
     $phaseSeconds['dependencies'] += $phaseTimer.Elapsed.TotalSeconds
     $phaseTimer.Restart()
 
-    # --- Compile and install the apps of the repo ------------------------------------------------------------------
+    # --- Compile the apps of the repo (copies in the shared folder), then install them in one session ---------------------
     foreach ($app in $apps) {
         $source = Join-Path $RepoPath $app.Folder
         $target = Join-Path $srcFolder $app.Folder
@@ -149,17 +195,22 @@ try {
         robocopy $source $target /E /NFL /NDL /NJH /NJS /NP /XD .alpackages .output output .snapshots .git /XF *.app | Out-Null
         if ($LASTEXITCODE -ge 8) { throw "Copying $source failed (robocopy $LASTEXITCODE)" }
     }
+    $compiledFiles = @()
     foreach ($app in $apps) {
         Write-Host "Compiling $($app.Name)"
-        $phaseTimer.Restart()
         $appFile = Compile-AppInBcContainer -containerName $ContainerName -credential $credential `
             -appProjectFolder (Join-Path $srcFolder $app.Folder) -appOutputFolder $outputFolder -appSymbolsFolder $symbolsFolder `
             -CopyAppToSymbolsFolder -basePath $srcFolder
-        $phaseSeconds['compile'] += $phaseTimer.Elapsed.TotalSeconds
-        $phaseTimer.Restart()
-        Publish-BcContainerApp -containerName $ContainerName -appFile $appFile -skipVerification -sync -syncMode ForceSync -install
-        $phaseSeconds['publish'] += $phaseTimer.Elapsed.TotalSeconds
+        $compiledFiles += Get-BcContainerPath -containerName $ContainerName -path $appFile
     }
+    $phaseSeconds['compile'] += $phaseTimer.Elapsed.TotalSeconds
+    $phaseTimer.Restart()
+    Invoke-ScriptInBcContainer -containerName $ContainerName -argumentList $containerSide, $compiledFiles -scriptblock {
+        Param([string] $containerSide, [string[]] $files)
+        . $containerSide
+        Install-TestAppFiles -Files $files -SyncMode ForceSync | Out-Null
+    }
+    $phaseSeconds['publish'] += $phaseTimer.Elapsed.TotalSeconds
     $phaseTimer.Restart()
 
     # --- Tests --------------------------------------------------------------------------------------------------------
@@ -191,12 +242,21 @@ try {
 }
 finally {
     $phaseTimer.Restart()
-    if ((-not $KeepApps) -and ($null -ne $baseline)) {
-        # Everything this run added that is not Microsoft (the toolkit apps stay for the next run)
-        Get-BcContainerAppInfo -containerName $ContainerName -tenantSpecificProperties -sort DependenciesLast |
-            Where-Object { $_.Publisher -ne 'Microsoft' -and $baseline -notcontains "$($_.AppId):$($_.Version)" } |
-            ForEach-Object { Remove-ContainerApp $_ }
+    if ((-not $KeepApps) -and ($null -ne $keepIds)) {
+        # One session: everything this run installed (not Microsoft) is uninstalled without data and schema; the apps of
+        # the repo are unpublished, the dependencies stay published for the next run
+        Invoke-ScriptInBcContainer -containerName $ContainerName -argumentList $containerSide, $repoIds, $keepIds -scriptblock {
+            Param([string] $containerSide, [string[]] $repoIds, [string[]] $keepIds)
+            . $containerSide
+            $installedByRun = @(Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant default -TenantSpecificProperties |
+                Where-Object { $_.IsInstalled -and ($_.Publisher -ne 'Microsoft') -and ($keepIds -notcontains "$($_.AppId)") })
+            Remove-TestApps -Apps $installedByRun
+            $repoApps = @(Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant default -TenantSpecificProperties | Where-Object { $repoIds -contains "$($_.AppId)" })
+            Remove-TestApps -Apps $repoApps -Unpublish
+        }
     }
+    # The sources and symbols of the run are not needed any more (the Base Application symbols alone take tens of MB)
+    Remove-Item -Path $srcFolder, $symbolsFolder -Recurse -Force -ErrorAction SilentlyContinue
     $phaseSeconds['cleanup'] += $phaseTimer.Elapsed.TotalSeconds
     Write-Host ('TIMING: {0}, total {1:mm\:ss}' -f (($phaseSeconds.GetEnumerator() | ForEach-Object { '{0} {1:N0} s' -f $_.Key, $_.Value }) -join ', '), $totalTimer.Elapsed)
     Write-Host "Run folder: $runFolder"

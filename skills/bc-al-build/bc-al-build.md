@@ -673,18 +673,28 @@ v `bc-al-tools.md`).
   -auth NavUserPassword -Credential <cred> -includeTestToolkit -includeTestLibrariesOnly -memoryLimit 8G -shortcuts None`
   — první vytvoření ~25 min (artefakt + generic image `ltsc2025`, Hyper-V izolace), AI Test Toolkit v kontejneru už byl.
   Heslo admina generuj náhodně a ulož `Export-Clixml` (DPAPI). Onprem artefakty: 28.3.52162.52222, **28.4.53241.0**, 28.5.54151.0.
-- **Závislosti z `BCNugetPackages` stačí read-only MCP PAT** (`DevOpsPAT.txt`, 7.9 v `bc-al-tools.md`): `Publish-BcNuGetPackageToContainer
+- **Závislosti z `BCNugetPackages` stačí read-only MCP PAT** (`DevOpsPAT.txt`, 7.9 v `bc-al-tools.md`): `Find-BcNuGetPackage
   -nuGetServerUrl https://pkgs.dev.azure.com/essencebs/Projects/_packaging/BCNugetPackages/nuget/v3/index.json -nuGetToken <PAT>
-  -packageName (Get-BcNuGetPackageId -publisher … -name … -id …) -version "[<min>,<Major>.<Minor+1>.0.0)" -select Latest`
-  (= MajorMinor + LatestMatching pipeline, 7.11). Tranzitivní závislosti stáhne sám — Essence balíčky mají závislosti v `.nuspec`
-  (vyrábí je `New-BcNuGetPackage`). Basic auth `user:<PAT>`, redirect `.nupkg` na blob zvládne.
+  -packageName (Get-BcNuGetPackageId -publisher … -name … -id …) -version "[<min>,<Major>.<Minor+1>.0.0)" -select Latest` vrátí
+  `feed, packageId, version` (= MajorMinor + LatestMatching pipeline, 7.11; ~1 s), `Get-BcNuGetPackage … -select Exact` balíček
+  stáhne. Essence balíčky mají závislosti v `.nuspec` (vyrábí je `New-BcNuGetPackage`): Essence ID s GUIDem, Microsoft appky jako
+  `Microsoft.<Name>.<guid>` (Subcontracting), plus `Microsoft.Application` / `Microsoft.Platform`. Basic auth `user:<PAT>`.
+  ⚠️ `Get-BcNuGetPackage` rozbaluje při **každém volání do nové temp složky** — mezi běhy necachuje; vlastní cache dle id/verze.
 - **`Compile-AppInBcContainer` chce projekt, output i symboly ve složce sdílené s kontejnerem** (*„is not shared with the
   container"*) → appky repa zkopíruj do `C:\ProgramData\BcContainerHelper\Extensions\<container>\…` a kompiluj tam
   (bonus: alc nepřepíše `.docx` layouty ani `.g.xlf` v repu, 7.1 v `bc-al-tools.md`); `-CopyAppToSymbolsFolder` pro další appky.
-- Instalace `Publish-BcContainerApp -skipVerification -sync -syncMode ForceSync -install` (testovací kontejner, data nevadí),
-  testy `Run-TestsInBcContainer -extensionId <test app> -testCodeunit … -detailed -returnTrueIfAllPassed -JUnitResultFileName …`
-  (testovací appka = „Test" v názvu jako v CI), úklid `UnPublish-BcContainerApp -unInstall -doNotSaveData -doNotSaveSchema
-  -force` v pořadí `Get-BcContainerAppInfo -sort DependenciesLast` (= závislé první).
-- Doba: konfigurátor (4 appky) kompilace ~2,5 min, celý běh jednoho codeunitu ~6 min. Verze kontejneru 28.4 je novější než
+- ⚠️ **Čas nežere práce, ale relace BcContainerHelperu.** Každé `Publish-BcNuGetPackageToContainer` / `Publish-BcContainerApp` /
+  `UnPublish-BcContainerApp` otevře vlastní relaci do kontejneru a znovu čte seznam appek, platformu, zemi. Naměřeno (Zlomek,
+  6 závislostí): přes `Publish-BcNuGetPackageToContainer` **134 s**, čisté operace uvnitř kontejneru — stažení 8 s, `Publish-NAVApp`
+  8 s, `Sync-NAVApp` 2 s, `Install-NAVApp` 3 s; úklid 36 s proti 3 s. Proto **jedna `Invoke-ScriptInBcContainer` relace na krok**
+  s `Publish/Sync/Install/Uninstall/Unpublish-NAVApp` uvnitř (funkce v `ContainerSide.ps1`, dot-source ze sdílené složky): závislosti
+  23 s poprvé. **Závislosti nech publikované, ne nainstalované**: další běh jen `Sync` + `Install` (2,4 s za všech 6; s cache
+  a kontrolou verze na feedu 10 s). Nainstalované by během testů jiného repa pouštěly své subscribery → výsledek jinak než CI.
+  Odinstalace `-DoNotSaveData` + `Sync-NAVApp -Mode Clean` (data i schéma pryč), pořadí závislé první (`Dependencies` z
+  `Get-NAVAppInfo -Id -Version`). Repo, jehož appka je jinde závislost (konfigurátor), si na začátku smaže všechny verze svých ID.
+  Testy dál `Run-TestsInBcContainer -extensionId <test app> -testCodeunit … -detailed -returnTrueIfAllPassed -JUnitResultFileName …`
+  (testovací appka = „Test" v názvu jako v CI).
+- Doba (Zlomek, 4 appky, 144 testů): 7:03 → **4:23** (relace na krok) → **3:45** (závislosti publikované) — z toho kompilace
+  `Compile-AppInBcContainer` ~2:30 (symboly pro každou appku znovu z dev endpointu). Verze kontejneru 28.4 je novější než
   `BC_ARTIFACT` pipeline (28.0–28.3); appky deklarují `application 28.0.0.0`, takže běží — výsledek se teoreticky může od CI lišit.
 - Alternativa bez kontejneru: pipeline jde pustit ručně na feature větvi (Run pipeline → branch), testy pak proběhnou před merge.
