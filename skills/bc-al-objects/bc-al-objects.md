@@ -843,6 +843,14 @@ Zdroj w1-28 `Modules/System/JobQueue/JobQueueEntry.Table.al` + `JobQueueEnqueue.
   Manual`) před účtováním/plánováním — subscriber `OnBeforeJobQueueScheduleTask` nastaví `DoNotScheduleTask`, entry se
   založí ve stavu On Hold a v testu nevznikne skutečný scheduled task. Lokální proměnná codeunitu se na konci testu
   odváže sama. Otevření `Job Queue Entry Card` přes `Page.Run` chce `[PageHandler]`.
+- **„Spustit jednou (na popředí)" (`Run once (foreground)`) NENÍ test běhu na pozadí.** Akce na `Job Queue Entries` / kartě
+  volá `Job Queue Management.RunJobQueueEntryOnce` → kopie entry + `Codeunit.Run(Codeunit::"Job Queue Dispatcher", …)`
+  **v UI session uživatele** → `GuiAllowed() = true`, takže `ConfirmManagement.GetResponseOrDefault` / `Confirm` dialog
+  **ukáže a úloha „čeká na potvrzení"**. Skutečný scheduled task běží bez GUI: `Confirm Management Impl.IsGuiAllowed` →
+  `GetResponseOrDefault` vrátí default bez dialogu, `GetResponse` vrátí `false`, holý `Confirm()` hodí chybu (entry
+  skončí ve stavu Chyba, nevisí). Hlášení „automatická úloha se zasekla a ptá se" = skoro jistě běh na popředí — nejdřív se
+  zeptej, jak ji spouštěl. Zdroj w1-28.4 `JobQueueManagement.Codeunit.al`, `ConfirmManagementImpl.Codeunit.al`
+  (2026-10-05, cust-sonnentor-bc PBI 64046 — dotaz na HNO při Calculate Plan z fronty).
 
 ### 5.x15 Item Tracking na fakturačním řádku z Get Shipment Lines — smí být JEN `Prospect` z dodávky; subscriber na `Validate(Quantity)` tam nesmí sahat
 
