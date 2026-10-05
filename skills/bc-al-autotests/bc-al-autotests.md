@@ -439,10 +439,14 @@ Assert.ExpectedErrorCode('Dialog');
 - `BcContainerHelper`: `Run-TestsInBcContainer` – PowerShell
 - AL-Go for GitHub: má built-in test step
 - Lokálně: VS Code task nebo `bc-test-runner` extension
-- **VS Code extension `ALTestRunner`** (luc-vandyck) — codelens "Run Test" /
-  "Debug Test" přímo v editoru. Nejrychlejší dev loop. Vyžaduje launch.json
-  setup (sandbox/Docker container). Pro denní vývoj jeď ALTestRunner, pro
-  release ověření Test Tool page (130401).
+- **VS Code extension AL Test Runner** (James Pearson, `jamespearson.al-test-runner`; dřív tu chybně „luc-vandyck")
+  — codelens "Run Test" / "Debug Test", Testing pane, zvýraznění padající řádky, code coverage. **Kontejner nevyrábí**:
+  appku publikuje přes `launch.json` (nebo PowerShell) a testy pouští přes BcContainerHelper `Run-TestsInBcContainer`
+  v Docker kontejneru — lokálním, nebo na vzdáleném hostu přes PS remoting (`.altestrunner/config.json`: `containerName`,
+  `dockerHost`, `remoteContainerName`, `launchConfigName`); varianta `runTestsViaUrl` volá vlastní appku *Test Runner Service*
+  (doinstaluje si ji, `testRunnerServiceUrl`), přes ni jde i debug testu. Test toolkit musí v cílovém BC být → na SaaS sandbox
+  s `Tests-TestLibraries` nepoužitelné. Pro denní vývoj jeď AL Test Runner, pro release ověření Test Tool page (130401).
+  (Ověřeno z readme/changelogu 10.16.8 a `package.json`, 2026-10-05.)
 
 ## `TestPermissions` — kdy co
 
