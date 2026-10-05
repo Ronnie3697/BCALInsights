@@ -7,10 +7,9 @@ description: >-
   Helper, CZ↔EN terminologie, CZZ zálohy, Attached to Line No. parent↔child (xRec, Validate(No.) Init,
   CurrFieldNo), Requisition Line (GetDirectCost, Make Order, Order Planning, Carry Out), VerifyOnInventory,
   Item Jnl. Line UoM qty-per, Auto Format částek, Item Charge Assignment, Job Queue z účtování / recurring,
-  Data Exchange / camt.053 (merge sloupců, Regex Match, 274), Job Planning Line (účto skupina a dimenze do
-  Job Journal Line: UpdateDimensions po OnAfterCreateDim, Usage Link, TSEBS placeholder; Location Code nové
-  řádky, vazba budget↔billable IMEBS). Načti u číselných řad, trackingu, výroby, plánování,
-  projektů, Job Queue, bankovního importu. (Shopify, HttpClient → bc-al-integrations.)
+  Data Exchange / camt.053 (merge sloupců, Regex Match, 274). Načti u číselných řad, trackingu, výroby,
+  plánování, Job Queue, bankovního importu. (Shopify, HttpClient → bc-al-integrations; Job Planning Line /
+  projekty → bc-al-projects.)
 user-invocable: true
 ---
 
@@ -31,7 +30,7 @@ cesty) a příklady jsou v souboru.
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
 3. Sousední témata: Shopify Connector, HttpClient/SecretText na SaaS, Power
-   Automate → `bc-al-integrations` (5.y2, 11); subscribery a propagace polí →
+   Automate → `bc-al-integrations` (5.y2, 11); projekty / Job Planning Line → `bc-al-projects` (5.x17–5.x20); subscribery a propagace polí →
    `bc-al-data`; Cloud target patterny obecně → `bc-al-style` (10); ověření
    signatur z .app → `bc-al-tools` (7.2, 7.6).
 
