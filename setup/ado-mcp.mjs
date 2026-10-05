@@ -13,6 +13,8 @@ const patFile = join(dirname(fileURLToPath(import.meta.url)), 'DevOpsPAT.txt');
 const pat = existsSync(patFile) ? readFileSync(patFile, 'utf8').trim() : '';
 if (!pat) throw new Error(`Azure DevOps PAT file ${patFile} is missing or empty.`);
 process.env.PERSONAL_ACCESS_TOKEN = Buffer.from(':' + pat).toString('base64');
+// Default project for tools called without `project` — skips the "Select the Azure DevOps project" prompt.
+process.env.ado_mcp_project ??= 'Projects';
 
 const win = process.platform === 'win32';
 const mcpArgs = ['essencebs', '--authentication', 'pat', ...process.argv.slice(2)];

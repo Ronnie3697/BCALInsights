@@ -96,7 +96,8 @@ Token **není v žádném konfigu**. Leží jako surový text v `<MCP_PAT>\DevOp
 3. Ulož ho do **`<MCP_PAT>\DevOpsPAT.txt`** — jen surový PAT na jednom řádku, **bez e-mailu a bez
    base64** (launcher si ho zakóduje sám jako base64 `:PAT`, prázdný username ADO bere).
 4. **Co launcher dělá při startu seance:** přečte `DevOpsPAT.txt` vedle sebe, nastaví
-   `PERSONAL_ACCESS_TOKEN`, zapne `ipv4first` (`aex.dev.azure.com` resolvuje na IPv6 a corp síť
+   `PERSONAL_ACCESS_TOKEN` a výchozí projekt `ado_mcp_project=Projects` (tooly bez parametru
+   `project` se pak neptají formulářem na výběr projektu), zapne `ipv4first` (`aex.dev.azure.com` resolvuje na IPv6 a corp síť
    spojení resetuje — `fetch failed` / „Failed to fetch tenant") a spustí globálně nainstalovaný
    `@azure-devops/mcp` **ve stejném procesu** (start pod 1 s, po ukončení seance nezůstane
    sirotek). Bez globální instalace spadne na `npx -y @azure-devops/mcp` (pomalejší, riziko

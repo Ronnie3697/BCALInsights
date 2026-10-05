@@ -1,23 +1,21 @@
 ---
 name: bc-al-workflow
 description: >-
-  BC/AL lokalizace, dokumentace a verifikace:
-  NAB AL Tools XLIFF workflow ([NAB: …] prefixy, jeden target, Xliff
-  Generator note nemazat), trans-unit ID hash (FNV-1a) a past u více
-  extensionů na stejný objekt (LC0091), změna labelu s %n = update <source>
-  i <target>, duplicitní trans-unity po merge (AL0479),
-  dokumentace requirementů PBI/Task → docs/*.md, uživatelská příručka /
-  prezentace featury jako HTML se screenshoty v docs/ (base64, obsah, focení
-  BC přes Claude in Chrome a jeho pasti), co číst před editem AL objektu
-  (hlavička, app.json, .alpackages je binární ZIP → al-mcp, permission set),
-  Word layouty (repeater w15:dataBinding, layout štítků generovaný skriptem,
-  namespace vazeb bez teček, zip s lomítky, barcode fonty IDAutomation,
-  GS1-128 / FNC1 vlastním encoderem), build a analyzery AA/CA/PTE/LC
-  (lokální verifikace všech dotčených appek, failOn warning), XML doc
+  BC/AL lokalizace, dokumentace a verifikace: NAB AL Tools XLIFF ([NAB: …]
+  prefixy, jeden target, note Xliff Generator nemazat), trans-unit ID hash
+  (FNV-1a) a víc extensionů na stejný objekt (LC0091), label s %n = update
+  <source> i <target>, duplicitní trans-unity po merge (AL0479); dokumentace
+  PBI/Task → docs/*.md, uživatelská příručka / prezentace featury jako HTML se
+  screenshoty (base64, focení BC přes Claude in Chrome a pasti); co číst před
+  editem AL objektu (hlavička, app.json, .alpackages = binární ZIP → al-mcp,
+  permission set); Word layouty (repeater w15:dataBinding, layout štítků
+  skriptem, namespace vazeb bez teček, zip s lomítky, barcode fonty
+  IDAutomation, GS1-128 / FNC1 vlastním encoderem); build a analyzery
+  AA/CA/PTE/LC (verifikace všech dotčených appek, failOn warning), XML doc
   komentáře (LC0072, & = AL0640), runtime errory bez spekulačních smyček,
-  Essence ruleset per projekt (*Ruleset*.json vedle app.json). Načti při
-  překladech / XLIFF, dokumentaci ticketu, psaní uživatelské příručky, před
-  netriviálním editem, při řešení warningů, analyzerů a rulesetů.
+  Essence ruleset per projekt (*Ruleset*.json vedle app.json). Načti u
+  překladů / XLIFF, dokumentace ticketu, uživatelské příručky, před
+  netriviálním editem, u warningů, analyzerů a rulesetů.
 user-invocable: true
 ---
 

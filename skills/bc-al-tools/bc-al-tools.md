@@ -788,7 +788,8 @@ Pricing Matrix…), z Area Path a Iteration Path.
 **PAT:** surový token v `<MCP_PAT>\DevOpsPAT.txt` (typicky `<složka pracovních rep>\MCP_PAT`,
 mimo git), **v žádném konfigu není**. Launcher `ado-mcp.mjs` vedle něj (šablona `setup/ado-mcp.mjs`
 v notes repu) ho při startu MCP serveru = startu seance přečte, zakóduje jako base64(`:PAT`) do
-`PERSONAL_ACCESS_TOKEN` a spustí `@azure-devops/mcp essencebs --authentication pat`; token pak
+`PERSONAL_ACCESS_TOKEN`, nastaví výchozí projekt `ado_mcp_project=Projects` (tooly bez `project`
+se pak neptají na výběr) a spustí `@azure-devops/mcp essencebs --authentication pat`; token pak
 drží běžící proces, agent ho nikdy nevidí. Stejný launcher volají Claude Code, Codex, Copilot
 i Antigravity (jeden soubor pro všechny). Scope záměrně jen **Read** (viz ⚠️ níže), expiruje
 ~90 dní (firemní policy). Po expiraci vygeneruj nový na
