@@ -744,6 +744,11 @@ pusť autotesty. Ať pushujeme větev, která pak nespadne na testech po PR, a z
 každé malé změně."*). Platí pro každý pokyn, který vede k push (`pushni`, `oboje`, „commitni a pushni", „pošli to na
 server"…). PR buildy testy nespouští (7.15 v `bc-al-build.md`), bez toho by nový test poprvé běžel až na masteru.
 
+**Jen pro uživatele s lokálním testovacím kontejnerem** (rozhodnutí v `SETUP.md` krok 9, pokyn uživatele 2026-10-05):
+always-on soubor uživatele má větu `Lokální testovací kontejner: ano …`, nebo — bez té věty — existuje
+`<PRACOVNÍ-REPA>\bc-test-container\settings.json`. Věta `Lokální testovací kontejner: ne …` (kontejner v setupu odmítl)
+= autotesty před push **nepouštěj nikdy**, neptej se na ně a neříkej, že chybí — pushni podle zbytku 7.7b.
+
 1. Po merge masteru a kompilaci pusť **celé** testy repa v lokálním kontejneru (7.23 v `bc-al-build.md`), na pozadí:
    `powershell -NoProfile -ExecutionPolicy Bypass -File "<PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1" -RepoPath <kořen repa>`.
    Skript sám nastartuje Docker Desktop i kontejner; výsledek = řádek `SUMMARY: <n> tests, <n> failed` + exit code
@@ -751,8 +756,8 @@ server"…). PR buildy testy nespouští (7.15 v `bc-al-build.md`), bez toho by 
    `<KLON>\setup\bc-test-container\` — liší-li se (po `git pull` notes), nejdřív zkopíruj `*.ps1` + `README.md`.
 2. **0 failů → push.** Fail → **nepushuj**: ukaž faily (test + hláška) a oprav je, je-li to tvoje změna, jinak se zeptej.
    Fail, který padá i na masteru (ne regrese větve), řekni a rozhodnutí nech na uživateli.
-3. Repo bez testovací appky (`nothing to run`) → push, jen to zmiň. Docker / kontejner chybí nebo nenaběhne → řekni to
-   a zeptej se, jestli pushnout bez testů.
+3. Repo bez testovací appky (`nothing to run`) → push, jen to zmiň. Kontejner uživatel má, ale teď nenaběhne (Docker
+   nestartuje, kontejner smazaný) → řekni to a zeptej se, jestli pushnout bez testů.
 4. **Jen před push** — ne po každé změně, ne u samotného `commitni`, ne po kompilaci. Při ladění konkrétního testu
    `-TestCodeunit <id>` (rychlejší), před push ale vždy celé repo.
 

@@ -85,7 +85,7 @@ New-Item -ItemType Junction -Path "<CESTA>" -Target "<CÍL>"
 | Antigravity | `%USERPROFILE%\.gemini\GEMINI.md` (agent ve WSL → přidej k cestám i variantu `/mnt/c/…`) |
 
 Vezmi „Šablonu startup pravidla" z `README.md`, dosaď `<KLON>`, `<SKILL-DIR>` a `<RUČNĚ>`
-(tabulka pod šablonou) a `<PRACOVNÍ-REPA>`. Ukaž výsledný text a po souhlasu ho **připiš na
+(tabulka pod šablonou) a `<PRACOVNÍ-REPA>`; `<TEST-KONTEJNER>` zatím vynech — větu doplní krok 9. Ukaž výsledný text a po souhlasu ho **připiš na
 konec** souboru (neexistuje → založ). Pravidlo tam už je (hledej `Povinný startup pro AL`) →
 ukaž rozdíl a zeptej se, jestli ho aktualizovat.
 
@@ -151,8 +151,23 @@ Token tak není v žádném konfigu a všechny nástroje sdílí jeden soubor.
 
 Agent pouští autotesty repa v lokálním Docker kontejneru **před každým push** (7.7b v `bc-al-tools.md`) — PR
 buildy testy nespouští a nový test by poprvé běžel až na masteru po merge. Vysvětli to a zeptej se, jestli kontejner
-chce (doporučeno; bez něj agent před push jen řekne, že testy neověřil). Šablona nástroje a jeho README:
-`<KLON>\setup\bc-test-container\`, detail a pasti 7.23 v `bc-al-build.md`.
+chce. **K otázce rovnou řekni, co to stojí:**
+
+- **RAM:** běžící kontejner si vezme ~7–8,5 GB (limit `memoryLimit` 8 GB) → v počítači doporučeno **≥ 16 GB**. Když se
+  netestuje, jde zastavit (`docker stop bctest28`, RAM se uvolní) — `Test-Repo.ps1` si ho před testy nastartuje sám.
+- **Disk:** ~20–25 GB — Docker image BC ~11 GB, artefakty BC 28.4 ~3,6 GB, kontejner s databází jednotky GB, pracovní
+  složka kontejneru ~1 GB. Počítej s **~30 GB volného** na `C:`.
+- **Čas:** první stavba ~25 min (běží na pozadí); jeden běh testů repa 4–6 min (Zlomek 144 testů 3:45, konfigurátor
+  ~900 testů ~5,5 min), jen před push.
+- Instalace Docker Desktopu a členství v `docker-users` chtějí jednou admina.
+
+**Odmítne → celý krok ⏭️** a do always-on souborů z kroku 6 připiš větu
+`Lokální testovací kontejner: ne — autotesty před push nepouštěj (SETUP.md krok 9).` Agent pak autotesty **nepouští
+nikdy** a ani se na ně před push neptá (7.7b). **Přijme →** body 1–8 a nakonec do stejných souborů
+`Lokální testovací kontejner: ano — <PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1, autotesty před každým push (7.7b).`
+Rozmyslí si to později → průvodce pusť znovu, krok 9 větu přepíše.
+
+Šablona nástroje a jeho README: `<KLON>\setup\bc-test-container\`, detail a pasti 7.23 v `bc-al-build.md`.
 
 1. **Zjisti a ukaž:** Docker Desktop (`Test-Path "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe"`), mód
    (`docker version --format '{{.Server.Os}}'` = `windows`, když Docker běží), členství v `docker-users` **dvakrát** —

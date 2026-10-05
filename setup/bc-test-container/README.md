@@ -18,7 +18,9 @@ a pasti 7.23 v `bc-al-build.md`.
   (skupina). Ve skupině je, v tokenu ne → stačí odhlásit / restart. Není ani ve skupině → v PowerShellu **jako správce**
   `Add-LocalGroupMember -Group docker-users -Member "<DOMÉNA>\<uživatel>"` (celé jméno vypíše `whoami`), pak
   **odhlásit / restart**. Bez toho Docker Desktop hlásí *„checking group membership: user is not a member of the group"*.
-- RAM: kontejner si vezme ~8,5 GB (limit `memoryLimit`), disk ~40 GB (artefakty + image).
+- RAM: běžící kontejner ~7–8,5 GB (limit `memoryLimit` 8 GB) → v počítači ≥ 16 GB; zastavený (`docker stop bctest28`)
+  nebere nic a `Test-Repo.ps1` si ho nastartuje. Disk ~20–25 GB (image BC ~11 GB, artefakty 28.4 ~3,6 GB, kontejner
+  s databází jednotky GB, pracovní složka ~1 GB) → ~30 GB volného.
 
 ## Instalace (bez admina)
 

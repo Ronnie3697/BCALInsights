@@ -125,8 +125,7 @@ Notes jsou závazné; rozpor s tvou expertizou → upozorni uživatele, nepřepi
 platí pro notes, skilly i README.
 Pracovní BC repa (`cust-*-bc`, `prod-*-bc`) mám ve složce <PRACOVNÍ-REPA>.
 V pracovních repech commit / push / PR nikdy bez pokynu, verzi `app.json` nepovyšuj, ADO PAT je
-read-only záměrně (401 na zápis neobcházet). Před každým vyžádaným push pusť autotesty repa v lokálním
-kontejneru `<PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1` (7.7b v `bc-al-tools.md`). Jazyk kódu a UI textů anglicky, čeština jen do XLIFF.
+read-only záměrně (401 na zápis neobcházet). <TEST-KONTEJNER> Jazyk kódu a UI textů anglicky, čeština jen do XLIFF.
 ```
 
 | Nástroj | `<SKILL-DIR>` | `<RUČNĚ>` |
@@ -138,6 +137,10 @@ kontejneru `<PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1` (7.7b v `bc-al-too
 
 `<PRACOVNÍ-REPA>` = složka s tvými klony `cust-*-bc` / `prod-*-bc` (např. `C:\WorkTasks`) — agent
 ji používá na sibling repa, sdílenou `.alpackages` a zdroje závislých appek.
+
+`<TEST-KONTEJNER>` = věta z `SETUP.md` krok 9: `Lokální testovací kontejner: ano — <PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1,
+autotesty před každým push (7.7b).`, nebo `Lokální testovací kontejner: ne — autotesty před push nepouštěj (SETUP.md krok 9).`
+Bez kontejneru agent autotesty nepouští nikdy (7.7b v `bc-al-tools.md`).
 
 ### Claude Code
 

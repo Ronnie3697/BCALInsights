@@ -47,7 +47,8 @@ v souboru.
 - **Před každým vyžádaným push** pusť celé testy repa v lokálním Docker kontejneru
   (`<PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1 -RepoPath <repo>`, 7.7b v `bc-al-tools`,
   7.23 v `bc-al-build`); fail = nepushovat. Jen před push, ne po každé změně — PR buildy
-  testy nespouští, jinak se fail ukáže až na masteru.
+  testy nespouští, jinak se fail ukáže až na masteru. Jen kdo kontejner v setupu přijal
+  (always-on `Lokální testovací kontejner: ano`); `ne` = autotesty nepouštět nikdy.
 - **Povinnost:** netriviální funkčnost (business logika, validace, výpočty,
   posting/propagace, integrace, flow) = testy **součást úkolu**, bez
   vyžádání, zmíněné v souhrnu. Ne u banalit (pole bez logiky, captiony,
