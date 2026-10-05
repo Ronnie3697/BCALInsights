@@ -441,7 +441,8 @@ Assert.ExpectedErrorCode('Dialog');
 - AL-Go for GitHub: má built-in test step
 - Lokálně: VS Code task nebo `bc-test-runner` extension
 - **Lokální testovací kontejner pro všechna repa** (Docker + BcContainerHelper bez admina, závislosti z NuGetu, nahrát → testy →
-  odinstalovat; reprodukuje CI) → **7.23 v `bc-al-build.md`**, nástroj `C:\WorkTasks\bc-test-container\Test-Repo.ps1`.
+  odinstalovat; reprodukuje CI) → **7.23 v `bc-al-build.md`**, nástroj `<PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1`;
+  pouští se **před každým push** (7.7b v `bc-al-tools.md`).
 - **VS Code extension AL Test Runner** (James Pearson, `jamespearson.al-test-runner`; dřív tu chybně „luc-vandyck")
   — codelens "Run Test" / "Debug Test", Testing pane, zvýraznění padající řádky, code coverage. **Kontejner nevyrábí**:
   appku publikuje přes `launch.json` (nebo PowerShell) a testy pouští přes BcContainerHelper `Run-TestsInBcContainer`

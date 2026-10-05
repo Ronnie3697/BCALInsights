@@ -41,7 +41,9 @@ preference, ne součást notes).
    oznam, které soubory a jak; merge commit je tady v pořádku. Když merge
    odmítne kvůli necommitnutým změnám v dotčených souborech, nestashuj —
    řekni to uživateli. Stejný krok opakuj **před každým `commitni` / `pushni`**
-   (detail 7.7b v `bc-al-tools.md`). Uživatel na to nechce myslet.
+   (detail 7.7b v `bc-al-tools.md`); před `pushni` navíc **autotesty celého repa v lokálním
+   kontejneru** (`<PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1`, fail = nepushovat).
+   Uživatel na to nechce myslet.
 1. **Router → notes.** Podle typu úkolu vyber řádky z tabulky níže a načti
    příslušné skilly (Claude Code: `Skill` tool; Copilot `/název`, Codex
    `$název`, Antigravity zmínkou jménem) **nebo rovnou soubory** — každý skill
@@ -122,7 +124,8 @@ Archiv monolitu `bc-al-notes.archived-2026-06-23.md` — **needituj, jen referen
   jen do XLIFF. **Jazyk komunikace:** podle always-on souboru uživatele.
 - **Git v pracovních repech:** commit / push / PR **nikdy sám** (7.7 v
   `bc-al-tools.md`). Na startu seance a před každým vyžádaným commitem/pushem
-  **mergni `origin/master`** a vyřeš konflikty (7.7b). Verzi `app.json`
+  **mergni `origin/master`** a vyřeš konflikty (7.7b); **před každým pushem pusť autotesty
+  v lokálním kontejneru** — jen před push, ne po každé změně (7.7b, 7.23 v `bc-al-build.md`). Verzi `app.json`
   nepovyšuj (7.8). ADO PAT je read-only záměrně — 401 na zápis neobcházet (7.9).
 - **Nový poznatek → zapiš.** Když během práce zjistíš něco užitečného pro
   BC/AL, doplň to do příslušného `bc-al-*.md` (nebo to nabídni) a **rovnou

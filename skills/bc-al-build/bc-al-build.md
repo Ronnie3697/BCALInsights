@@ -648,8 +648,11 @@ s test toolkitem to obejde: repo se do něj nahraje, otestuje a appky se zase od
 prod-ess-configurator-bc master eeba4b9 v něm spadl na **stejných 2 testech se stejnými hláškami** jako master build 28617
 a opravená větev prošla (2026-10-05, BC 28.4 cz, BcContainerHelper 6.1.18).
 
-Nástroj (skripty + README, lokálně, ne v gitu): `C:\WorkTasks\bc-test-container\` — `Install-Helper.ps1`,
-`New-TestContainer.ps1` (kontejner `bctest28`), `Test-Repo.ps1 -RepoPath <repo> [-TestCodeunit <id>] [-KeepApps]`.
+Nástroj: šablona v notes repu **`setup/bc-test-container/`** (vlastní README), `SETUP.md` krok 9 ji zkopíruje do
+`<PRACOVNÍ-REPA>\bc-test-container\` (tam i `Modules\`, `credential.xml`, `settings.json`) — `Install-Helper.ps1`,
+`New-TestContainer.ps1` (kontejner `bctest28`), `Test-Repo.ps1 -RepoPath <repo> [-TestCodeunit <id>] [-KeepApps]`
+(nastartuje Docker Desktop i kontejner; repo bez testovací appky hned skončí). **Agent ho pouští před každým push** (7.7b
+v `bc-al-tools.md`).
 
 **Předpoklady a pasti (Windows 11, uživatel bez admina):**
 

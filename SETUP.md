@@ -9,7 +9,8 @@
 ## Pravidla průvodce
 
 - Mluv česky a tykej (dokud si uživatel v kroku 7 neřekne jinak), stručně. Na začátku řekni, co
-  ho čeká: 9 kroků, ~15 minut, jde kdykoli přerušit a pustit znovu — kroky jsou idempotentní.
+  ho čeká: 10 kroků, ~15 minut (+ ~25 minut stavby testovacího kontejneru na pozadí), jde kdykoli
+  přerušit a pustit znovu — kroky jsou idempotentní.
 - **Jedna otázka naráz**, počkej na odpověď. Co jde zjistit samo (cesty, verze, existující
   soubory), zjisti a nech jen potvrdit.
 - **Před každým zápisem mimo tenhle repo** (junction, always-on soubor, MCP konfig, npm instalace)
@@ -146,7 +147,38 @@ Token tak není v žádném konfigu a všechny nástroje sdílí jeden soubor.
 - Server se jménem `azure-devops` už existuje a má token v `env` (`PERSONAL_ACCESS_TOKEN`, starý
   způsob) → nabídni přepnutí na launcher: PAT ulož do `DevOpsPAT.txt` (8b) a záznam nahraď.
 
-## Krok 9 — Ověření a shrnutí
+## Krok 9 — „Chceš lokální kontejner na autotesty?" (`<PRACOVNÍ-REPA>\bc-test-container`)
+
+Agent pouští autotesty repa v lokálním Docker kontejneru **před každým push** (7.7b v `bc-al-tools.md`) — PR
+buildy testy nespouští a nový test by poprvé běžel až na masteru po merge. Vysvětli to a zeptej se, jestli kontejner
+chce (doporučeno; bez něj agent před push jen řekne, že testy neověřil). Šablona nástroje a jeho README:
+`<KLON>\setup\bc-test-container\`, detail a pasti 7.23 v `bc-al-build.md`.
+
+1. **Zjisti a ukaž:** Docker Desktop (`Test-Path "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe"`), mód
+   (`docker version --format '{{.Server.Os}}'` = `windows`, když Docker běží), členství v `docker-users`
+   (`whoami /groups`; z Git Bash `MSYS2_ARG_CONV_EXCL="*" whoami.exe /groups`), RAM (≥ 16 GB, kontejner si vezme
+   ~8,5 GB) a volné místo na `C:` (~40 GB).
+2. **Chybí Docker Desktop** → nabídni `winget install Docker.DockerDesktop` (instalace chce admina a restart).
+   Řekni, že licence Docker Desktopu je pro firmy nad 250 lidí / 10 M$ obratu placená.
+3. **Není v `docker-users`** → to **udělá uživatel sám jako správce** (bezpečnostní nastavení systému, agent admin
+   nemá ani ho nemá obcházet): PowerShell jako správce →
+   `Add-LocalGroupMember -Group docker-users -Member "<celé jméno z whoami>"` → **odhlásit / restart** (členství je
+   v přihlašovacím tokenu). Upozorni, že odhlášení ukončí i seanci AI nástroje — po přihlášení průvodce pusť znovu
+   (kroky jsou idempotentní), v Claude Code `claude --continue`. Bez toho Docker Desktop hlásí *„checking group
+   membership: user is not a member of the group"*.
+4. **Docker v Linux módu** → `& "$env:ProgramFiles\Docker\Docker\DockerCli.exe" -SwitchWindowsEngine`.
+5. **Nástroj:** zkopíruj `<KLON>\setup\bc-test-container\*` do `<PRACOVNÍ-REPA>\bc-test-container\` (existuje a liší
+   se → ukaž rozdíl a zeptej se). Zapiš tam `settings.json` s `"patFile"` = `<MCP_PAT>\DevOpsPAT.txt` z kroku 8b
+   (ostatní klíče — `containerName` `bctest28`, `version` `28.4`, `country` `cz`, `memoryLimit` `8G` — jen když chce
+   jiné). Soubor piš nástrojem pro zápis souborů, ne Bash heredocem — ten sráží `\\` v JSON cestě na `\`.
+6. `powershell -NoProfile -ExecutionPolicy Bypass -File "<PRACOVNÍ-REPA>\bc-test-container\Install-Helper.ps1"` —
+   BcContainerHelper do `.\Modules` (bez admina; `Install-Module -Scope CurrentUser` do `Documents` umí selhat).
+7. `New-TestContainer.ps1` stejně, **na pozadí** — první stavba ~25 min (artefakty + generic image). Mezitím pokračuj
+   krokem 10. Varování *„does NOT have Full Control to C:\ProgramData\BcContainerHelper"* a k `hosts` jsou neškodná.
+8. **Kontrola:** `docker ps` → kontejner `Up`; když má uživatel naklonované repo s testy, volitelně pilot
+   `Test-Repo.ps1 -RepoPath <repo> -TestCodeunit <id jednoho test codeunitu>` (~5 min, končí `SUMMARY: … 0 failed`).
+
+## Krok 10 — Ověření a shrnutí
 
 - **Claude Code:** `claude plugin validate "<KLON>"`, `claude plugin details bcal-insights`,
   `claude mcp list` (všechny `✔ Connected`; `postman` / `claude.ai …` „Needs authentication" jsou
@@ -163,3 +195,6 @@ Token tak není v žádném konfigu a všechny nástroje sdílí jeden soubor.
   - PAT vyprší (max. 90 dní) → nový přepsat do `<MCP_PAT>\DevOpsPAT.txt` + restart seance.
   - Občas `npm update -g`.
   - Když se v repu změní `setup/ado-mcp.mjs`, zkopírovat ho znovu do `<MCP_PAT>`.
+  - Když se změní `setup/bc-test-container/`, zkopírovat `*.ps1` + `README.md` znovu do
+    `<PRACOVNÍ-REPA>\bc-test-container\` (`Modules\`, `credential.xml` a `settings.json` zůstanou); BcContainerHelper
+    občas aktualizovat `Install-Helper.ps1`.

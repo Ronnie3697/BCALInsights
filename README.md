@@ -10,7 +10,8 @@ Notes leží **vedle svého skill-wrapperu** ve `skills/<název>/` (podpůrný s
 Agent Skills spec). Skill na ně odkazuje jen jménem, relativně k vlastnímu adresáři — proto
 **klon repa může být kdekoli** a v repu není žádná absolutní cesta (hlídá `check-skills.py`).
 V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho spouštěč `AGENTS.md` /
-`.claude/CLAUDE.md`), `mcp-setup.md`, šablona launcheru `setup/ado-mcp.mjs`, `check-skills.py` a archiv.
+`.claude/CLAUDE.md`), `mcp-setup.md`, šablony v `setup/` (launcher `ado-mcp.mjs`, testovací kontejner
+`bc-test-container/`), `check-skills.py` a archiv.
 
 | Soubor (ve `skills/<název>/`, pokud není uvedeno jinak) | Obsah |
 |---|---|
@@ -23,7 +24,7 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
 | `bc-al-integrations.md` | Shopify Connector, HttpClient na SaaS, SecretText/Isolated Storage, Business Events / Power Automate, vlastní API page pro zápis, Dataverse/CDS sync (5.y2, sekce 11) |
 | `bc-al-workflow.md` | lokalizace/XLIFF, dokumentace vč. uživatelské příručky, verifikace (sekce 6, 8, 9, 12) |
 | `bc-al-tools.md` | nástroje (alc, al-mcp, BC source), nová appka, git/PR, Azure DevOps (sekce 7.1–7.10) |
-| `bc-al-build.md` | NuGet dependencies, test symboly, kolize ID, major bump, Essence CI build & deploy gotchas (sekce 7.11–7.19) |
+| `bc-al-build.md` | NuGet dependencies, test symboly, kolize ID, major bump, Essence CI build & deploy gotchas, lokální testovací kontejner (sekce 7.11–7.23) |
 | `bc-al-autotests.md` | automatizované testy — codeunits, libraries, runner, povinnost |
 | `bc-al-autotests-saas-fallback.md` | příloha autotestů — vlastní Assert/Library pro SaaS-only test appku bez `Tests-TestLibraries` (reference) |
 | `bc-al-autotests-domains.md` | autotesty — doménové recepty: plánování / Carry Out, CZZ zálohy s platbou, párování CZB (vyčleněno 2026-10-01) |
@@ -33,6 +34,7 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
 | `AGENTS.md` (kořen) + `.claude/CLAUDE.md` | always-on pro agenta otevřeného přímo v tomhle repu: chybí napojení skillů → nabídne `SETUP.md`. `.claude/CLAUDE.md` jen importuje `AGENTS.md` pro Claude Code — v kořeni být nesmí, `claude plugin validate` by varoval („CLAUDE.md at the plugin root is not loaded") |
 | `mcp-setup.md` (kořen) | jednorázová instalace MCP serverů pro Claude Code (npm, `claude mcp add`, PAT, timeouty) — **není notes**, skilly ho nenačítají; ostatní nástroje viz níže |
 | `setup/ado-mcp.mjs` | šablona launcheru Azure DevOps MCP — kopíruje se do `MCP_PAT\` vedle `DevOpsPAT.txt` (`mcp-setup.md`, krok 3) |
+| `setup/bc-test-container/` | šablona nástroje na autotesty v lokálním Docker kontejneru (`Test-Repo.ps1` = nahrát → testy → odinstalovat) — kopíruje se do `<PRACOVNÍ-REPA>\bc-test-container\` (`SETUP.md` krok 9, vlastní README); agent ho pouští před každým push (7.7b) |
 | `bc-al-notes.archived-2026-06-23.md` (kořen) | archiv původního monolitu — **needitovat**, jen reference |
 
 ## Pravidla údržby
@@ -83,9 +85,9 @@ Naklonuj repo a **otevři svůj AI nástroj přímo v klonu**. Nástroje, které
 napojené, a samy nabídnou průvodce `SETUP.md`. Jinak napiš **„proveď SETUP.md"**.
 
 Průvodce se ptá postupně (kde je klon, „Kde máš složku s repozitáři?", které nástroje používáš,
-„Máš PAT? Ulož ho do `DevOpsPAT.txt` ve složce `MCP_PAT`", jazyk a tón) a podle odpovědí vytvoří
-junctiony skillů, zapíše startup pravidlo do always-on souborů, nainstaluje a zaregistruje MCP
-servery a na konci všechno ověří. Před každým zápisem mimo repo se zeptá, co už je hotové,
+„Máš PAT? Ulož ho do `DevOpsPAT.txt` ve složce `MCP_PAT`", jazyk a tón, „Chceš lokální kontejner na
+autotesty?") a podle odpovědí vytvoří junctiony skillů, zapíše startup pravidlo do always-on souborů,
+nainstaluje a zaregistruje MCP servery, postaví testovací kontejner a na konci všechno ověří. Před každým zápisem mimo repo se zeptá, co už je hotové,
 přeskočí, a PAT nikdy nečte do chatu. Cesty a preference žijí v **tvých** souborech mimo repo,
 takže je `git pull` nikdy nepřepíše. Průvodce jde kdykoli pustit znovu, třeba po přidání dalšího
 AI nástroje.
@@ -123,7 +125,8 @@ Notes jsou závazné; rozpor s tvou expertizou → upozorni uživatele, nepřepi
 platí pro notes, skilly i README.
 Pracovní BC repa (`cust-*-bc`, `prod-*-bc`) mám ve složce <PRACOVNÍ-REPA>.
 V pracovních repech commit / push / PR nikdy bez pokynu, verzi `app.json` nepovyšuj, ADO PAT je
-read-only záměrně (401 na zápis neobcházet). Jazyk kódu a UI textů anglicky, čeština jen do XLIFF.
+read-only záměrně (401 na zápis neobcházet). Před každým vyžádaným push pusť autotesty repa v lokálním
+kontejneru `<PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1` (7.7b v `bc-al-tools.md`). Jazyk kódu a UI textů anglicky, čeština jen do XLIFF.
 ```
 
 | Nástroj | `<SKILL-DIR>` | `<RUČNĚ>` |
