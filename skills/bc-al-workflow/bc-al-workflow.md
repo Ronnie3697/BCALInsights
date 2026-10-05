@@ -512,6 +512,13 @@ soubor vedle `app.json`) umí **jen thresholdy a patterny** — `CognitiveComple
 `StatementBlockSpacing`, `Extends`. **Vypnout pravidlo se tam nedá** — to je pořád jen ruleset
 nebo `#pragma`.
 
+**Workspace s `"${analyzerFolder}BusinessCentral.LinterCop.dll"` v `al.codeAnalyzers` = na AL 18 žádný linter.**
+Ten DLL v `<al-ext>/bin` už není, VS Code ho tiše nenačte a LC* pravidla neběží (cust-mxb-bc, 2026-10-05). Nahraď ho
+jednotným blokem, který mají zlomek/alumistr/configurator/sonnentor: `${CodeCop}`, `${UICop}`, `${PerTenantExtensionCop}` +
+`${analyzerFolder}ALCops.ApplicationCop/DocumentationCop/FormattingCop/LinterCop/PlatformCop/TestAutomationCop.dll` +
+**`${analyzerFolder}ALCops.Common.dll`**. CI se tím nemění (ALCops tam neběží, viz výše) — uživatel jen začne ve VS Code
+vidět dosavadní ALCops nálezy (u MXB ~200 warningů, většinou `LC0092` / `PC0037`).
+
 **Log `alc.exe` z AL 18 je UTF-8, z AL 17 UTF-16.** Dekóduj podle BOM (`raw[:2] in (b'\xff\xfe', b'\xfe\xff')`
 → utf-16, jinak utf-8), ne natvrdo — `iconv -f UTF-16` na UTF-8 logu vyrobí CJK „čínštinu" a
 vypadá to jako rozbitý build (7.1 mluví o UTF-16 logu, od AL 18 to tak být nemusí).
