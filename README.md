@@ -211,8 +211,9 @@ ji používá na sibling repa, sdílenou `.alpackages` a zdroje závislých appe
   approval_mode = "approve"
 
   [mcp_servers.bc-code-intelligence]
-  command = "cmd"
-  args = ["/c", "bc-code-intelligence-mcp"]
+  command = 'C:\Program Files\nodejs\node.exe'
+  args = ['C:\Users\<user>\AppData\Roaming\npm\node_modules\bc-code-intelligence-mcp\dist\index.js']
+  startup_timeout_sec = 60
 
   [mcp_servers.azure-devops]
   command = 'C:\Program Files\nodejs\node.exe'
@@ -233,8 +234,8 @@ ji používá na sibling repa, sdílenou `.alpackages` a zdroje závislých appe
   `stdio_server_launcher` chybí řádek „AL MCP Server started successfully". Proto v Codexu
   volej rovnou `node.exe` + entry JS globálně nainstalovaného balíčku (cesta výše; po
   `npm update -g` zůstává) a přidej `startup_timeout_sec = 60`. `cmd /c <shim>` funguje, ale
-  při ukončení seance klient zabije jen `cmd.exe` a `node` zůstane jako sirotek. Stejný vzor
-  jde použít i pro `bc-code-intelligence-mcp` (`dist/index.js`). `@azure-devops/mcp` to má
+  při ukončení seance klient zabije jen `cmd.exe` a `node` zůstane jako sirotek. Stejně je
+  proto výše i `bc-code-intelligence-mcp` (`dist/index.js`); `@azure-devops/mcp` to má
   vyřešené v launcheru `ado-mcp.mjs` (spouští globální `dist/index.js` ve vlastním procesu).
 
 ### Antigravity
