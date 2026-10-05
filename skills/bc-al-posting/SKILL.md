@@ -9,7 +9,8 @@ description: >-
   CalcFields + subscriber na každém přenosu (Sales-Post 4× OnBefore…TransferFields, archiv + obnova,
   Quote → Order, Copy Document OnAfterCopySalesHeaderDone), délky Text polí (LC0044, PC0020), guard
   OnModifyRecord jako invarianty, kontrola dokladu OnAfterCheckSalesDoc vs OnBeforeIsApprovedForPosting, Job No.
-  dodávka vs faktura. Načti u vlastních polí na dokladech, postingu, archivace, kopie dokladu a rich text poznámek.
+  dodávka vs faktura, dvojí archivace při emailu (bind Mail Management). Načti u vlastních polí na
+  dokladech, postingu, archivace, kopie dokladu, emailu dokladu a rich text poznámek.
 user-invocable: true
 ---
 

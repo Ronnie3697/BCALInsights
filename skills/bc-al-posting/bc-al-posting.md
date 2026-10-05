@@ -11,7 +11,8 @@
 
 Obsahuje:
 - **3.5** Propagace vlastního pole přes Sales posting + Warehouse Shipment
-- **3.6** Vlastní pole na Sales/Purchase Header/Line — kompletní rozšíření (+ 3.6b–3.6f)
+- **3.6** Vlastní pole na Sales/Purchase Header/Line — kompletní rozšíření (+ 3.6b–3.6h)
+- **3.6i** Report dokladu pro tělo emailu z vlastního kódu archivuje podruhé (`Mail Management` bind)
 
 ## 3. Event Subscribery — propagace polí (3.5–3.6f)
 
@@ -503,3 +504,22 @@ ship jen část řádků → `PostSalesDocument(SalesHeader, false, true)` musí
   OnValidate má `TestField(Type, Item)`, což byl skutečný důvod původní podmínky `Type = Item`, lokace do ní spadla omylem).
   Testy: `PostOrder_ReceiveOnly_LinkedLineWithOtherLocation_PostsWithoutTracking`, `PostOrder_Invoice_…_RaisesFieldError`
   (`Job Purch Inv Track Test EPEBS`). Receive-only test se zdrojem funguje: `PostResJnlLine` se u příjmu nic neúčtuje.
+
+### 3.6i Report dokladu spuštěný pro tělo emailu vlastním kódem archivuje podruhé — bez `BindSubscription(Mail Management)` to není „preview"
+
+- Standardní reporty dokladů dělají side effects jen `if not IsReportInPreviewMode()`; u `Standard Sales - Quote` (1304, cz-28) je to
+  archivace (`Archive Quotes` Always → `ArchSalesDocumentNoConfirm`, Question → `ArchiveSalesDocument` s dotazem), `Sales-Printed`
+  (No. Printed +1) a log interakce v `OnPostReport`. Bez request page rozhoduje přímo setup (`<> Never`).
+- `IsReportInPreviewMode()` = `CurrReport.Preview() or MailManagement.IsHandlingGetEmailBody()`. `Mail Management` (9520) je
+  `EventSubscriberInstance = Manual` a true vrací jen při **bindnuté instanci**. Standard `Report Selections.SendEmailToCustDirectly` /
+  `SendEmailToVendorDirectly` dělá `BindSubscription(MailManagement)` jen kolem generování těla emailu → tělo nic nearchivuje,
+  archivuje jen běh pro PDF přílohu (1×).
+- Vlastní kód, který tělo vyrábí sám (`Report.SaveAs(…, ReportFormat::Html, …)` s Word email layoutem) bez bindu → report bere běh jako
+  ostrý tisk → **2 verze archivu na jeden email** (tělo + příloha, pár sekund po sobě; u Question i dva dotazy), No. Printed +2,
+  2× interakce. Totéž hrozí u objednávek (`Archive Orders`) a každého reportu s `IsReportInPreviewMode`.
+- Případ: prod-ess-documentEmail-bc `Send Email DEEBS.SaveReportAsHTML2DEEBS` (volá se ve smyčce příloh při `Use for Email Body` +
+  `Email Body Layout Type = Custom Report Layout`, ignoruje tělo už vygenerované standardem). Navržená oprava (zatím neimplementovaná
+  ani neověřená): `BindSubscription(MailManagement)` před `Report.SaveAs`, `UnbindSubscription` po, stejně jako standard.
+- Diagnostika v BC: Archivy prodejních nabídek = page **9348** (9346 = nákupní poptávky), sloupce Datum/Čas archivace — dvojice
+  verzí 2–4 s po sobě = dvojí běh reportu. (2026-10-05, Sonnentor BC-TEST: Výběr sestav Nabídka = 1304 s tělem i přílohou, `Archive
+  Quotes` = Question; zdroje cz-28.0.46665.48549.)
