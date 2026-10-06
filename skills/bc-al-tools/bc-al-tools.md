@@ -766,8 +766,10 @@ always-on soubor uživatele má větu `Lokální testovací kontejner: ano …`,
    Fail, který padá i na masteru (ne regrese větve), řekni a rozhodnutí nech na uživateli.
 3. Repo bez testovací appky (`nothing to run`) → push, jen to zmiň. Kontejner uživatel má, ale teď nenaběhne (Docker
    nestartuje, kontejner smazaný) → řekni to a zeptej se, jestli pushnout bez testů.
-4. **Jen před push** — ne po každé změně, ne u samotného `commitni`, ne po kompilaci. Při ladění konkrétního testu
-   `-TestCodeunit <id>` (rychlejší), před push ale vždy celé repo.
+4. **Jen před push** — ne po každé změně, ne u samotného `commitni`, ne po kompilaci. **Ani nově napsané nebo upravené
+   testy se předem „pro jistotu“ nespouští** — stačí je zkompilovat, případné chyby v nich se opraví až v běhu před push
+   (pokyn uživatele 2026-10-06: *„až před pushem prosím. Chyby v testech se prostě opraví až na konci.“*). `-TestCodeunit <id>`
+   jen při opravě testu, který spadl v běhu před push; před samotným push pak vždy celé repo.
 
 Nikdy `rebase` místo merge bez pokynu (přepisuje historii větve, kterou může mít kolega stažen) a nikdy `--force`.
 Case-only kolize složek po merge zkontroluj `git ls-tree -r HEAD --name-only | sort -f | uniq -di` (7.10).
