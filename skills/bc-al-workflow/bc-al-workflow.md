@@ -745,6 +745,22 @@ parametru pro textovou formuli.)
   další řádek začni `scroll left`. Screenshot přes `zoom` + `save_to_disk` ukládá v rozlišení podle `scale`
   (0.3 → 247 px), pro dokumentaci `scale: 0.75`. **Skrytá záložka** (`visibilityState = 'hidden'`) zastaví
   smooth scroll/animace a screenshot bývá prázdný – počkej, zopakuj, stav ověř JS. (2026-09-29, BC-DEV.)
+- **Ověření hlášení testera na jiném prostředí** (2026-10-06, Alumistr BC-TEST2 místo BC-TEST, PBI 65916):
+  - **Nejdřív porovnej nainstalované appky obou prostředí** (`d365bc-admin` `get_installed_apps` pro každé env, jen čtení).
+    BC-TEST2 měl hlavní appku jako *dev* build bez Pricing Matrix (PMALU + EPB), BC-TEST verzi z pipeline s ní. Pořizovací
+    cena na řádku pak pochází z jiného zdroje a stejný scénář dá jiná čísla. Rozdíl napiš do závěru, jinak se srovnávají jablka s hruškami.
+  - **Data nastavení se s appkou nenasazují.** Pole v setupu vyplněné při focení na jednom prostředí na druhém chybět může.
+    Když screenshot testera ukazuje, že vlastní logika vůbec neběžela, je to první podezřelý.
+  - **Řádky dokladu z DOM:** hlavička gridu a tělo jsou **dvě sousední `<table>`** (hlavička s `thead th`, hned za ní
+    tělo). Index sloupce ber z hlavičky, hodnoty z `tr` těla a z `input.value` buňky. **Skrytý sloupec** (Visible = false,
+    např. `Pořizovací cena (LM)` na nabídce) má v DOM šířku 0 a **žádnou hodnotu**, prázdno tedy neznamená 0.
+  - **Notifikační banner** (např. „Účet prodejní DPH chybí…“ po zadání řádku typu Finanční účet) posune grid o řádek dolů.
+    Další klik podle staré souřadnice trefí řádek nad tím. Po každém řádku s novou validací udělej screenshot.
+    Typ řádku dokladu (combobox) jde napsat textem (`Finanční účet` + `Tab`), to option `<select>` v deníku neumí.
+  - **Účtování na testu blokuje konfigurace:** lokace s Vyžadovat dodávku (dodávka ze skladu), Zakázat záporné zásoby,
+    chybějící Nastavení účtování zásob pro jinou lokaci. Než naplánuješ částečnou dodávku, zkontroluj Nastavení zásob a
+    kartu lokace. Konfiguraci neopravuj a účtovací scénář nech na autotestech. Neuložený řádek deníku po neúspěšném
+    účtování smaž (`Ctrl+Delete`) a nikdy neúčtuj cizí list deníku, má v sobě řádky někoho jiného.
 - **Focení „jen pro čtení" (bez svolení k zápisu) – pasti** (2026-10-01, BC-TEST Sonnentor, prod-ess-shopifyConnector-bc):
   `Escape` na kartě/stránce ji **zavře** (skok na Role Center) – menu akcí zavírej klikem jinam; request page sestavy otevři
   akcí, nafoť a zavři tlačítkem **Storno** (nic se nespustí). Klik do buňky editovatelného listu (`Upravit seznam`) ji otevře
