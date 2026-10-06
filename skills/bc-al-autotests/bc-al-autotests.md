@@ -385,6 +385,12 @@ Assert.ExpectedErrorCode('Dialog');
   expected (FindFirst bere nejnižší PK). Pro jména, na která se pak hledá, ber **`DelChr(Format(CreateGuid()), '=', '{}-')`**
   (platformový `CreateGuid()` seedovaný není), ne `GenerateGUID`. Předchozí věta („nekolidovaly") platila jen pro
   krátké kódy porovnávané na rovnost, ne pro lookup jménem — ověřeno na CRM Businessunit v `CRM Business Unit Test SOI`.
+- **`BindSubscription` na GLOBÁLNÍ proměnnou test codeunitu = od druhého testu „The binding of codeunit 132458 was
+  unsuccessful. The codeunit has already been bound."** Instance test codeunitu žije přes všechny jeho testy, globální
+  `LibraryJobQueue: Codeunit "Library - Job Queue"` zůstane nabindovaná z prvního testu a druhý `BindSubscription` spadne
+  (všechny testy kromě prvního červené). Manual-instance codeunity (`Library - Job Queue`, vlastní test codeunit s
+  override subscriberem) bindovat **přes lokální proměnnou** testu / helperu — odváže se na konci procedury sama.
+  (2026-10-06, cust-soitron-bc build 28703, `QB Buffer Job Queue Test SOI`.)
 - **Účtování / plánování v testu zakládá skutečný scheduled task** (`Job Queue Entry.ScheduleJobQueueEntryForLater`,
   `Codeunit.Run("Job Queue - Enqueue")`) → před ním `BindSubscription(LibraryJobQueue)` (`Library - Job Queue`, Manual) —
   jeho subscriber `OnBeforeJobQueueScheduleTask` nastaví `DoNotScheduleTask`, entry zůstane On Hold a dá se assertovat.
