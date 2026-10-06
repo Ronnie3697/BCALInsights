@@ -444,6 +444,27 @@ Assert.ExpectedErrorCode('Dialog');
 ## Spouštění z CLI / CI
 
 - `BcContainerHelper`: `Run-TestsInBcContainer` – PowerShell
+- **Lokální Docker běh celé sady jako CI (`Run-AlPipeline`, ověřeno 2026-10-05, cust-soitron-bc, BC 28.2 cz):**
+  repo template skripty (`scripts/Local-DevEnv.ps1`) jsou zastaralé (artifact 18.3, Key Vault) → vlastní skript:
+  `Run-AlPipeline -containerName bc28 -imageName '' -reUseContainer -keepContainer -useDevEndpoint
+  -installTestRunner -installTestFramework -installTestLibraries -licenseFile C:\WorkingFolder\Essence.28.0.Latest.bclicense`
+  + `-installApps` Essence závislostí (plné `.app` z `.alpackages` jdou publikovat — mají src, layouty, překlady).
+  Pasti: (a) **BcContainerHelper < 6.1.18 + AL extension 18** → `altool.exe … bin\win32 not found` už při
+  `Get-AppJsonFromAppFile` (řazení deps) — `Install-Module BcContainerHelper -RequiredVersion 6.1.18 -Scope CurrentUser`
+  (vyžaduje .NET 10 + ASP.NET Core 10, viz 7.20 v `bc-al-build.md`); (b) **bez `-imageName ''` staví Run-AlPipeline
+  cache image** (dočasný kontejner s náhodným jménem + commit, +7–14 GB) — na malém disku vypnout; (c)
+  `-testResultsFile` musí ležet **uvnitř `-baseFolder`**; (d) kompiluj **kopii repa** (robocopy do scratchpadu), alc
+  přepisuje `.docx` layouty; (e) Essence partner licence má expiraci — při startu testů warning „license expires in N days".
+  Jeden sdílený kontejner na BC verzi pro víc projektů = před publikací odpublikovat ne-Microsoft appky cizích projektů
+  (`Get-BcContainerAppInfo -sort DependenciesLast` + `Unpublish-BcContainerApp -unInstall -doNotSaveData -doNotSaveSchema`),
+  PTE ID rozsahy zákazníků kolidují. Image `ltsc2025` (~10,8 GB) + artifact jsou sdílené napříč kontejnery. Celkem ~26 min
+  při prvním běhu (testy 5 min, 204 testů), opakovaný běh ~11 min.
+  ⚠️ **Verze Essence závislostí ber stejné, jaké bere CI** (NuGet `LatestMatching` = nejnovější 28.0.x, 7.11 v `bc-al-build.md`),
+  ne „co leží v `.alpackages`": s Item Management 28.0.7.0 padaly 2 testy Get Shipment Lines (*Project No. must be equal to … in
+  Sales Shipment Line … Current value is ''*), s 28.0.16.0 (= CI) prošlo všech 204 — falešný fail prostředí, ne kódu. Upgrade
+  v běžícím kontejneru: `Publish-BcContainerApp -skipVerification -sync -install -upgrade` (závislé appky zůstanou), pak
+  `Unpublish-BcContainerApp` staré verze. Hotový `.app` z DevOps: MCP `pipelines_artifact download` vrátil 0B ZIP → buď `.app`
+  od kolegy / z feedu, nebo kompilace ze zdrojáků na `sourceVersion` buildu s verzí přepsanou v `app.json`.
 - AL-Go for GitHub: má built-in test step
 - Lokálně: VS Code task nebo `bc-test-runner` extension
 - **Lokální testovací kontejner pro všechna repa** (Docker + BcContainerHelper bez admina, závislosti z NuGetu, nahrát → testy →
