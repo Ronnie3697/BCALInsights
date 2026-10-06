@@ -580,6 +580,13 @@ Zachyceno 2026-09-14, cust-alumistr-bc release 14979 (28.0.29), stage „deploy 
 týž den dopoledne prod-epb-pricingMatrix-bc release 14970 (28.0.5): attempt #1 na APP22-2 identický
 pád, attempt #2 (Redeploy) na BLD22-6 prošel — Redeploy jako workaround ověřený.
 
+**Příbuzná past — `503 (Service Unavailable)` v kroku „Download Dependencies from NuGet" = výpadek VS Marketplace,
+ne repo.** Stejný mechanismus jako výš: `Download-BcNuGetPackageToFolder` → `Get-AppJsonFromAppFile` → `RunAlTool` →
+`DownloadLatestAlLanguageExtension` → `GetLatestAlLanguageExtensionVersionAndUrl` (POST na Marketplace extension query,
+`HelperFunctions.ps1:1275`). Když Marketplace vrátí 503, build spadne za ~50 s ještě před kompilací (`No test result files
+… were found` je jen následek). Stačí pustit build znovu, až Marketplace zase odpovídá. Kód větve se ani nekompiloval.
+(2026-10-06, cust-sonnentor-bc build 28707, PR 9673.)
+
 ### 7.21 „Compile AL Apps" spadne BEZ `##[error]` — jediný warning z `app.json` (PTE0012) shodí build
 
 Essence CI zapíná z MS analyzerů **jen `PerTenantExtensionCop`** (v logu kroku: `Enable Per Tenant
