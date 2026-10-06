@@ -96,3 +96,23 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   `GetResponseOrDefault` → **bez GUI (API, Job Queue, test bez handleru) skončí tichým `Error('')`**. Hromadné mazání z kódu proto
   **pre-checkni sám** (tender, Job Ledger Entry projektu, Sales/Purchase Line libovolného typu s `Job No.`) a dej vlastní hlášku,
   jinak akce spadne uprostřed bez textu. (2026-10-05, cust-soitron-bc 66489 — přegenerování QB bufferu, `QB Buffer Regenerate Mgt. SOI`.)
+
+### 5.x21 Vazba nákupních / prodejních dokladů na KONKRÉTNÍ řádek plánování (součty částek per řádek, w1-28)
+
+- **Nákup: standardní pole `Job Planning Line No.` má na `Purchase Line`, `Purch. Rcpt. Line`, `Purch. Inv. Line` i `Purch. Cr. Memo Line`
+  stejné field ID 1019** → `TransferFields` při účtování ho přenese do všech účtovaných řádků; filtr `Job No.` + `Job Task No.` +
+  `Job Planning Line No.` tedy funguje na otevřené objednávce i na účtovaných dokladech. `Purchase Line."Job Planning Line No."`
+  OnValidate vyžaduje `JobPlanningLine."Usage Link" = true` (→ `Job."Apply Usage Link"`), shodu `No.` a typu a nastaví
+  `Job Line Type`. **Essence Project Base** má vedle toho vlastní `Job Planning Line No. EPEBS` (71058660, taky stejné ID napříč
+  Purchase/Rcpt/Inv Line) a plní ho z `modify("Job Planning Line No.") OnAfterValidate` — EPEBS flowfieldy `Purchase Receipt/Invoice
+  Exists EPEBS` filtrují přes EPEBS pole, `Purchase Order/Cr. Memo Exists EPEBS` přes standardní; pro vlastní součty ber standardní
+  pole (zdroj pravdy, EPEBS je kopie).
+- **Prodej: `Job Contract Entry No.`** na `Sales Line`, `Sales Shipment Line`, `Sales Invoice Line`, `Sales Cr.Memo Line` = `Job
+  Planning Line."Job Contract Entry No."` billable řádku. ⚠️ Každý prodejní řádek bez projektu má 0 → před `SetRange` guard
+  `if "Job Contract Entry No." = 0 then exit(0)`, jinak sečteš celou firmu.
+- Vzor „částky dokladů per řádek plánování ve factboxu" = kopie `Job Purch. Doc. Amounts EPEBS` / `Job Sales Doc. Amounts IMEBS`
+  (page background task, výsledky `Format(x, 0, 9)` v Dictionary, `ToLCY` přes `Currency Exchange Rate.ExchangeAmtFCYToLCY`,
+  příjemka/dodávka = `Quantity × Direct Unit Cost/Unit Price × (1 − Line Discount %)`): cust-soitron-bc `JPL Doc. Amounts SOI` +
+  pageextension `Job Planning Line FactBox SOI` (`addfirst(Content)` na EPEBS CardPart 71058665), testy `JPL Doc. Amounts Test SOI`
+  (účtování příjemka → faktura z jedné objednávky, prodejka přes IMEBS `CreateSalesOrder` + `GenerateSalesOrderJobLines`, dobropisy
+  vložené přímo do účtovaných tabulek). (2026-10-06, cust-soitron-bc.)

@@ -564,6 +564,13 @@ Doplněk k 12.1c (tam je jen `PC0037`). Čísla z druhého úklidu — **cust-zl
   Rozdělení práv přes `IncludedPermissionSets` (READ = R ⊂ EDIT = IMD) pravidlo neřeší,
   ani zvýšení na `RIMD` — chybí mu ten `table` řádek. V test appce se `AC0010` naopak skrývá
   rulesetem (12.1c).
+- **`AC0006` „Invoke pages through the Page Management codeunit instead of Page.Run(...)"** hlásí `Page.Run(Page::"Sales Order
+  List", SalesHeader)` (a Purchase Header, Sales Invoice Header…) — tabulky, pro které má `Page Management` podmíněnou list page
+  podle `Document Type`. Posted Purchase Receipts/Invoices, Sales Shipments apod. nehlásí. Fix bez pragmy, který dělá i EP Project Base
+  (`Job Purch. Doc. Amounts EPEBS.ShowOrders`): `RecRef.GetTable(Rec)` → `if RecRef.FindFirst() then ListPageId :=
+  PageManagement.GetConditionalListPageID(RecRef)` → `if ListPageId = 0 then ListPageId := Page::<fallback>` → `Page.Run(ListPageId, Rec)`
+  (`GetTable` nese filtry i `MarkedOnly`; `FindFirst` je nutný, lookup čte `Document Type` ze záznamu a bez něj vrací 0).
+  (2026-10-06, cust-soitron-bc `JPL Doc. Amounts SOI`.)
 - **`AA0181` nehlásí jen `FindSet()` bez `Next()`, ale i holé `Find()`** („must be used only in
   connection with the Next() method"). Typický výskyt: refresh záznamu v testu
   (`SalesLine.Find();` po akci, pak assert). Fix je jednořádkový a sémanticky identický:
