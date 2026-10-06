@@ -709,6 +709,13 @@ Opraveno v šabloně: cesta ke `ContainerSide.ps1` se zjišťuje až po startu a
 - Doba (Zlomek, 4 appky, 144 testů): 7:03 → **4:23** (relace na krok) → **3:45** (závislosti publikované) — z toho kompilace
   `Compile-AppInBcContainer` ~2:30 (symboly pro každou appku znovu z dev endpointu). Verze kontejneru 28.4 je novější než
   `BC_ARTIFACT` pipeline (28.0–28.3); appky deklarují `application 28.0.0.0`, takže běží — výsledek se teoreticky může od CI lišit.
+  ⚠️ **Stalo se:** cust-sonnentor-bc build 28705 (CI `bcartifacts/onprem/28.1/cz/weekly`) spadl na testu, který v kontejneru
+  28.4 prošel samostatně, v celé codeunit i v celém repu (173/173). Příčina byla v base appce: `Req. Worksheet` umí otevřít list
+  předaný přes `Page.Run(…, ReqLine)` s vyplněným Template + Batch (`GetCurrentJnlBatchName`) až od **28.4**, starší verze otevře
+  první list šablony (recept v `bc-al-autotests-domains.md`). Když test lokálně projde a v CI ne, porovnej nejdřív verzi BC:
+  CI ji vypisuje v kroku *Compile AL Apps* (`Artifact Description: bcartifacts/onprem/<ver>/cz/…`), lokální je v
+  `bc-test-container\settings.json` (`version`). Rozdílné chování ověř přes historii souboru na StefanMaron
+  (`commits?sha=w1-28&path=<soubor>` → commity per minor, raw URL se SHA, 7.3 v `bc-al-tools.md`).
 - Alternativa bez kontejneru: pipeline jde pustit ručně na feature větvi (Run pipeline → branch), testy pak proběhnou před merge.
 
 ### 7.24 Ruční nasazení PTE z NuGetu do SaaS sandboxu (Automation API) — dev build stejné appky, AVS0109

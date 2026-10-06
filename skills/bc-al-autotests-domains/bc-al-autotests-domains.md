@@ -45,6 +45,16 @@ Order Lines` je zkopíruje na řádek a komponenta zůstane na WorkDate → Emer
 InventoryProfileOffsetting.Codeunit.al` (sparse clone `--filter=blob:none --sparse -b w1-28`, api.github.com
 z Claude Code sandboxu nejede — `http 000`; raw.githubusercontent ano). (2026-09-14, cust-alumistr-bc build 28223.)
 
+**`TestPage "Req. Worksheet"` na konkrétním listu: `ReqJnlManagement.TemplateSelectionFromBatch(RequisitionWkshName)`
+po `ReqWorksheet.Trap()`, ne `Page.Run(Page::"Req. Worksheet", ReqLine)` s vyplněným Template + Batch.** Druhý způsob
+funguje až od BC **28.4** (`OnOpenPage` → `GetCurrentJnlBatchName`). V 28.0–28.3 projde přes `WkshTemplateSelection` +
+`OpenJnl` s prázdným `CurrentJnlBatchName` a `CheckTemplateName` otevře **první list šablony**. Řádky zadané přes TestPage
+pak skončí v cizím listu: dotazy se položí a handler je spočítá, ale assert na řádky v testovacím listu najde 0. Lokální
+kontejner 28.4 to nechytí, CI na 28.1 ano. `TemplateSelectionFromBatch` jde přes větev `OpenedFromBatch` (Template '' +
+Batch na záznamu + filtr šablony ve filter group 2), kterou mají všechny verze 28.x, a stejně stránku otevírá
+i přehled listů. Jiné sešity (`Planning Worksheet`…) neověřeny, ale mají stejný vzor `OnOpenPage`, tak si na to dej pozor. (2026-10-06, cust-sonnentor-bc
+build 28705, `ReqWorksheetPageNewLinesAreAskedPerLine`; zdroj w1-28 `ReqWorksheet.Page.al` 28.0.46665 vs 28.4.53241.)
+
 **Testy volající `SL Action Cond. Mgt. COEBS.ExecuteSalesLineActions` potřebují `[HandlerFunctions('…MessageHandler')]`**
 — procedura končí nepodmíněným `Message('Sales Line actions have been executed …')`. Konfigurátorové testy to řeší
 `MessageHandler`, v cust-alumistr-bc `SLActionsExecutedMessageHandler` (před přidáním nového handleru grepni
