@@ -885,6 +885,18 @@ Zdroj w1-28 `Modules/System/JobQueue/JobQueueEntry.Table.al` + `JobQueueEnqueue.
   skončí ve stavu Chyba, nevisí). Hlášení „automatická úloha se zasekla a ptá se" = skoro jistě běh na popředí — nejdřív se
   zeptej, jak ji spouštěl. Zdroj w1-28.4 `JobQueueManagement.Codeunit.al`, `ConfirmManagementImpl.Codeunit.al`
   (2026-10-05, cust-sonnentor-bc PBI 64046 — dotaz na HNO při Calculate Plan z fronty).
+- **„Spusť existující Ready entry hned" (trigger z API / z kódu) = nastav `Earliest Start Date/Time` na teď a znovu
+  `Codeunit.Run(Codeunit::"Job Queue - Enqueue", Entry)`.** `Job Queue - Enqueue.InitEntryForSchedulerWithDelayInSec` posune
+  start na `CurrentDateTime + 1 s` **jen když je v minulosti** — budoucí (naplánovaný) start nechá, takže samotný Enqueue
+  opakovanou úlohu „teď" nespustí; `Restart()` start taky nemění (jen Inactivity Timeout). Enqueue existující entry
+  (`ID <> null`) zruší starý task (`CancelTask`), založí nový a vrátí Status Ready; po běhu si opakovaná entry další start
+  spočítá sama. Vzor: entry hledej `Object Type/ID to Run` + `Status = Ready` pod `ReadIsolation(UpdLock)` (paralelní API
+  volání se serializují, jinak `Modify` v Enqueue spadne na souběhu), už splatný start (`<= CurrentDateTime`) přeskoč, před
+  tím zrcadlo práv (`ReadPermission` na JQE + tři `WritePermission` z `CheckRequiredPermissions` + `CanCreateTask` přes
+  IntegrationEvent pro testy) → bez práv tiše nic, ať API POST nespadne. Test: entry Ready se startem zítra +
+  `BindSubscription(LibraryJobQueue)` → po volání `Earliest Start <= now + minuta` (status s DoNotScheduleTask zůstane On
+  Hold — neassertovat). Zdroj Base App 28.5 `JobQueueEnqueue.Codeunit.al`. (2026-10-06, cust-soitron-bc
+  `QB Buffer Automation Mgt. SOI.StartScheduledAutomation` — start QB automatizace z API page bufferu.)
 
 ### 5.x15 Item Tracking na fakturačním řádku z Get Shipment Lines — smí být JEN `Prospect` z dodávky; subscriber na `Validate(Quantity)` tam nesmí sahat
 
