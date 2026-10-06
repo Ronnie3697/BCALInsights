@@ -710,6 +710,10 @@ parametru pro textovou formuli.)
 - **Rozepsaná editace hodí „Leave site?" a navigace se neprovede** (nástroj vrátí chybu, stránka zůstane).
   Před odchodem `window.onbeforeunload = null` i na `contentWindow` iframu; zavřít a otevřít novou záložku
   je pomalejší a tab ID z předchozí skupiny už neplatí.
+  ⚠️ **Nulování `onbeforeunload` neuloženou změnu řádku ZAHODÍ** — „Leave site?" hlásí, že poslední editace řádku
+  (typicky množství po potvrzení dialogu) ještě není na serveru, i když stránka ukazuje „Uloženo". Na sešitu požadavků
+  tak po obnovení zbyl řádek s množstvím 0 a bez vazby. Před navigací **opusť řádek** (klik do jiného řádku nebo pod
+  mřížku, počkat 2–3 s) a pak teprve naviguj; po návratu hodnoty zkontroluj. (2026-10-06, BC-DEV CRONUS CZ, příručka 64046.)
 - **Sloupce řádků dokladu jsou daleko vpravo** (u vlastních polí za standardními). Kolečko s nimi nehne,
   funguje **tažení vodorovného posuvníku** (`left_click_drag` po ose x) po malých krocích a mezitím screenshot.
   Jména všech sloupců si nejdřív vypiš přes `[role="columnheader"]`, ať víš, kam táhnout.

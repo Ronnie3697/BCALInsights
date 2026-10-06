@@ -349,6 +349,12 @@ specified at startup. Use the al_addproject tool"; na AL 17 Petr hlásil, že be
   Kopírování klíčů klíčenky je potřeba jen na macOS. `al_auth_login` netřeba.
 - Totéž z CLI bez MCP: `altool runtests <codeunitId> --project <test-app> --raw`; dále `publishapp`,
   `auth login/logout`, `compile`, `graph`.
+- **`al_publish` (MCP) vrátí při chybě jen obecné `PublishFailed`** — skutečnou hlášku serveru ukáže `altool publishapp
+  <app> --environmenttype Sandbox --environmentname <env> --tenant <tenantId>` (dev endpoint, token z VS Code). Typicky
+  `UnprocessableEntity … Cannot install the extension X 28.0.28.1 because a newer version 28.0.28.5 was already installed`:
+  v sandboxu běží dev build jiné větve s vyšší verzí. Řešení bez zásahu do repa: zkompiluj **kopii** projektu ve scratchpadu
+  se zvednutou verzí (jen `app.json` kopie, verze v repu se nemění — 7.8) a publikuj tu. Ověř předem, že appka nemá
+  upgrade / install codeunity (dev publish vyšší verze spustí upgrade). (2026-10-06, cust-sonnentor-bc → BC-DEV.)
 - **„1 skipped" + EXIT 0 = test codeunit v prostředí NEEXISTUJE** (`Test codeunit with ID … not found`) —
   server hlásí úspěch, čti text zprávy.
 - Server nic nenasazuje: v prostředí musí být **test toolkit** (Test Runner + `Tests-TestLibraries` +
