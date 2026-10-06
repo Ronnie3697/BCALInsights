@@ -685,6 +685,16 @@ BC-TEST2 (Alumistr, split 10 ks se slevou 15 % → oba řádky 0 %) a ve zdrojá
 `UpdateUnitPriceByField`, `PriceCalculationV16.Codeunit.al` `ApplyDiscount`, `SalesLinePrice.Codeunit.al`
 `IsPriceUpdateNeeded`). (2026-10-06, prod-ess-configurator-bc PBI 66392, `Sales Line Split Mgt. COEBS`.)
 
+⚠️ **Ruční navázání přes `Blanket Order Line No.` spustí vnořené `Validate(Quantity)`.** Standardní `OnValidate` pole (Sales i
+Purchase Line, w1-28) po `TestField`ech volá `Validate("Variant Code" / "Location Code" / "Unit of Measure Code")` a UoM trigger
+končí `Validate(Quantity)` (prodej přes `UpdateQuantityFromUOMCode`) — teprve **potom** `Validate("Unit Price" / "Direct Unit Cost")`
++ `Validate("Line Discount %")` z řádku HNO/HPO. Subscriber na `OnAfterValidateEvent(Quantity)` tak běží i při ručním navázání:
+řádek už nese novou vazbu, `CurrFieldNo` = pole vazby (≠ 0, „vypadá jako UI změna množství"), uložená verze v DB vazbu ještě nemá.
+Když tam kód vazbu odpojí (`Validate("Blanket Order No.", '')`), standard po návratu stejně dopíše cenu a slevu z hromadné
+objednávky → **řádek bez vazby s cenou HNO/HPO**. „Rekontrolu navázaného řádku" pouštěj jen na řádek, který tutéž vazbu měl
+už v uložené verzi (`Get` + porovnat Blanket Order No./Line No.), ne na vazbu, která právě vzniká. (2026-10-06, cust-sonnentor-bc
+PBI 64046, code review větve `BlanketOrders_64046_Feedback`; zdroj w1-28 `SalesLine.Table.al` / `PurchaseLine.Table.al`.)
+
 ### 5.x6 „Nemáte dostatečné množství zboží … na skladě" u spotřeby/transferu — `VerifyOnInventory` ignoruje Prevent Negative Inventory
 
 - `Item Ledger Entry.VerifyOnInventory` volá `Item Jnl.-Post Line.InsertItemLedgEntry` **jen když je nová
