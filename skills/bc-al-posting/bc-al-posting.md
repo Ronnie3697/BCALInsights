@@ -287,6 +287,12 @@ OnAfterValidate` tří polí (No./Variant/UoM) tak tiše zmizí po změně lokac
 je bezpečné (base totéž dělá sám, kontrola standardní metody ocenění v OnValidate běží jen při `CurrFieldNo = Unit Cost (LCY)`), `IsTemporary`
 exit. Pozor na **jinou appku s vlastním hookem na `No.`**, která zapisuje i nulu: po zadání zboží přepíše hodnotu z karty, takže test nesmí
 assertovat náklad hned po `CreateSalesLine`, jen po validaci pole, které hlídáš. (2026-09-25, cust-alumistr-bc PBI 66389.)
+**Dvě appky na `OnAfterGetUnitCost` = pořadí subscriberů není dané.** Když závislá appka (PMALU) přidá vlastní náklad do stejného eventu, kde
+base appka (Cost Mgt.) dosazuje náklad varianty, výsledek by závisel na pořadí. Řešení: závislá appka po vlastním výpočtu **zavolá veřejnou
+proceduru base** (`UpdateSalesLineUnitCost`), takže pravidlo s předností („varianta s vlastním kusovníkem vyhrává") platí deterministicky.
+A **nulu nezapisuj** — hook, který přepíše náklad nulou („nemám fixní cenu"), po rozšíření na `OnAfterGetUnitCost` sežere i náklad z karty
+po každé změně lokace/varianty; spadly na tom base testy jiné feature (`Expected 50, Actual 0`) až v kontejneru se všemi appkami repa — test
+appka jedné appky běží s nainstalovanými odběrateli ostatních. (2026-10-06, cust-alumistr-bc, PMALU fix po 65916 / BC-TEST2.)
 
 **Vlastní `Unit Price` jen na `OnAfterUpdateUnitPrice` nestačí — přepočet ceny se plánuje jen při ZMĚNĚ pole.** `UpdateUnitPriceByField(FieldNo)`
 vyvolá cenovou kalkulaci i `OnAfterUpdateUnitPrice` jen když `IsPriceCalcCalledByField` (= pole si ji naplánovalo `PlanPriceCalcByField`),
