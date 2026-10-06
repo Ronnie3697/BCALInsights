@@ -905,8 +905,8 @@ Zdroj w1-28 `Modules/System/JobQueue/JobQueueEntry.Table.al` + `JobQueueEnqueue.
   skončí ve stavu Chyba, nevisí). Hlášení „automatická úloha se zasekla a ptá se" = skoro jistě běh na popředí — nejdřív se
   zeptej, jak ji spouštěl. Zdroj w1-28.4 `JobQueueManagement.Codeunit.al`, `ConfirmManagementImpl.Codeunit.al`
   (2026-10-05, cust-sonnentor-bc PBI 64046 — dotaz na HNO při Calculate Plan z fronty).
-- **„Spusť existující Ready entry hned" (trigger z API / z kódu) = nastav `Earliest Start Date/Time` na teď a znovu
-  `Codeunit.Run(Codeunit::"Job Queue - Enqueue", Entry)`.** `Job Queue - Enqueue.InitEntryForSchedulerWithDelayInSec` posune
+- **„Spusť existující Ready entry hned (nebo za N sekund)" (trigger z API / z kódu) = nastav `Earliest Start Date/Time`
+  na teď (+ prodleva) a znovu `Codeunit.Run(Codeunit::"Job Queue - Enqueue", Entry)`.** `Job Queue - Enqueue.InitEntryForSchedulerWithDelayInSec` posune
   start na `CurrentDateTime + 1 s` **jen když je v minulosti** — budoucí (naplánovaný) start nechá, takže samotný Enqueue
   opakovanou úlohu „teď" nespustí; `Restart()` start taky nemění (jen Inactivity Timeout). Enqueue existující entry
   (`ID <> null`) zruší starý task (`CancelTask`), založí nový a vrátí Status Ready; po běhu si opakovaná entry další start
