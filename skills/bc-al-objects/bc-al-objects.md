@@ -5,7 +5,7 @@
 > Načítej, když řešíš: No. Series, Upgrade Tag, All Profile, Item Tracking/Lot (i Sales Quote), Reservation Entry u VZ, NMEBS vazba SO↔VZ,
 > Unix timestamp, atributy zboží, DateFormula, CaptionClass/Translation Helper, CZ↔EN terminologie, CZZ zálohy, Attached to Line No. /
 > parent↔child řádky, Requisition Line / Req. Wksh.-Make Order / Calculate Plan bez dotazů, VerifyOnInventory, Auto Format / částky v textu,
-> přepočet ceny z Množství bez ceníku (IsPriceUpdateNeeded, 5.x21).
+> přepočet ceny z Množství bez ceníku (IsPriceUpdateNeeded, 5.x21; ruční Line Discount % změnu Množství/Varianty nepřežije).
 >
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 > **Essence Configurator** má od 2026-09-21 vlastní soubor `ess-configurator-notes.md` (parametry, vzorce, systémové parametry, varianty) — sekce 5.x10 a 5.x12 tam přesunuty 2026-10-01 jako C13 / C14; 5.x2b (Item Tracking na Sales Quote) a 5.x8 (Item Charge Assignment) jsou obecné BC a zůstávají tady.
@@ -656,7 +656,7 @@ Doplněno 2026-09-07 (přesun vazby do base `prod-ess-configurator-bc`, větev `
   ConfirmHandleru** (dotaz test shodí), druhý test ruční změna po plánu s handlerem (vazba skončila). Ověřeno v lokálním
   kontejneru 28.4 (7.23 v `bc-al-build.md`). (2026-10-05, cust-sonnentor-bc PBI 64046, komentář PFIL 24. 9.)
 
-### 5.x21 Přepočet ceny vyvolaný Množstvím bez ceníku cenu NEPŘEPÍŠE — odpojený řádek si nechá cenu hromadné objednávky
+### 5.x21 Přepočet ceny vyvolaný Množstvím bez ceníku cenu NEPŘEPÍŠE — odpojený řádek si nechá cenu hromadné objednávky (ruční slevu ale smaže)
 
 `Purchase Line - Price` / `Sales Line - Price` / `Requisition Line - Price` `.IsPriceUpdateNeeded(AmountType, FoundPrice,
 CalledByFieldNo)` (w1-28.4): když ceník nic nenajde (`FoundPrice = false`), cena se **nepřepíše**, pokud přepočet vyvolalo
@@ -674,6 +674,16 @@ objednávky**, pokud ceník na položku nemá řádek. `UpdateDirectUnitCost(Fie
 takže výpočet doběhne. Zachyceno 2026-10-05 v lokálním kontejneru (test čekal Last Direct Cost 7.77 / Unit Price 55.55,
 dostal 11.11 / 99.99 z HNO/HPO); s opravou zelené. Starý komentář „po přepočtu už řádek nese standardní cenu" platil jen
 s řádkem ceníku. (cust-sonnentor-bc PBI 64046, `Blanket Purch./Sales Link Mgt. SON.ApplyStandardPrice`.)
+
+⚠️ **Sleva se chová opačně — ruční `Line Discount %` změnu Množství / Varianty NEPŘEŽIJE.** `UpdateUnitPriceByField`
+volá `PriceCalculation.ApplyDiscount()` **před** `ApplyPrice` a `Price Calculation - V16.ApplyDiscount` slevu nastaví vždy:
+bez nalezené slevy v ceníku `FillBestLine` → `SetPrice(Discount, …)` = **0** (výjimka jen `IsDiscountAllowed() = false`,
+tj. `Allow Line Disc.` vypnuté). `IsPriceUpdateNeeded` chrání jen cenu. Kód, který řádku z kódu mění `Quantity` /
+`Variant Code` (dělení řádku, přepočet, kopie), musí slevu zapamatovat předem a po všech validacích vrátit
+(`Validate("Line Discount %", …)` + `Modify`) — jinak uživatel ruční slevu tiše ztratí, cena přitom zůstane. Ověřeno na
+BC-TEST2 (Alumistr, split 10 ks se slevou 15 % → oba řádky 0 %) a ve zdrojáku w1-28 (`SalesLine.Table.al`
+`UpdateUnitPriceByField`, `PriceCalculationV16.Codeunit.al` `ApplyDiscount`, `SalesLinePrice.Codeunit.al`
+`IsPriceUpdateNeeded`). (2026-10-06, prod-ess-configurator-bc PBI 66392, `Sales Line Split Mgt. COEBS`.)
 
 ### 5.x6 „Nemáte dostatečné množství zboží … na skladě" u spotřeby/transferu — `VerifyOnInventory` ignoruje Prevent Negative Inventory
 

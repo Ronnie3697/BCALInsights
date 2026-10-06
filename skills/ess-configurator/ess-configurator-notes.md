@@ -271,6 +271,13 @@ Přepočet generovaných řádků při změně zdrojového řádku řeší
 (reaguje na změnu `No.` / `Variant Code` / `Quantity`) — **hodnoty parametrů varianty
 ale nepřepočítává**, ty se jen čtou přes `LoadVariantParameterValues`.
 
+**Rozdělení řádku (`Sales Line Split Mgt. COEBS.ProcessSplitLine`) re-pricuje obě linky** — nová linka vzniká řetězem
+`Validate(… Variant Code / Quantity)`, originál `Validate(Quantity)`, `ApplyCurrentLineOverrides` validuje variantu nové
+linky znovu. Každá validace spustí `ApplyDiscount` a `Line Discount %` spadne na slevu z ceníku (0), ruční cena zůstane
+(5.x21 v `bc-al-objects.md`). Od PBI 66392 (větev `66392_SplitLineDiscount`, 2026-10-06) si split slevu originálu
+pamatuje a na konci ji vrací **na obě linky** — i přes CL slevu z konfigurace (rozhodnutí: ručně přepsaná sleva musí
+přežít i split se stejnou konfigurací). Nový krok do splitu, který mění řádek přes `Validate`, dej **před** `RestoreLineDiscount`.
+
 Dialog kontext prodejního řádku **zná**: `SalesLineConfigMgt.HandleVariantCodeLookup`
 volá `VariantConfigurationPage.SetSalesLineContext(DocType, DocNo, LineNo)`
 (`SetSourceQuantity` naopak plní jen split mode ze `Sales Line Split Mgt. COEBS`).
