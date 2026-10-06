@@ -690,6 +690,11 @@ Opraveno v šabloně: cesta ke `ContainerSide.ps1` se zjišťuje až po startu a
 - **`Compile-AppInBcContainer` chce projekt, output i symboly ve složce sdílené s kontejnerem** (*„is not shared with the
   container"*) → appky repa zkopíruj do `C:\ProgramData\BcContainerHelper\Extensions\<container>\…` a kompiluj tam
   (bonus: alc nepřepíše `.docx` layouty ani `.g.xlf` v repu, 7.1 v `bc-al-tools.md`); `-CopyAppToSymbolsFolder` pro další appky.
+  Totéž u **`Run-AlPipeline -reUseContainer -useDevEndpoint`**: `-baseFolder` musí být složka **nasdílená při vytvoření
+  kontejneru** (`docker inspect <container> --format '{{range .Mounts}}{{.Source}}{{"\n"}}{{end}}'` → typicky
+  `…\scratchpad\soitron-src -> c:\sources` z první seance), jinak krok „Compiling apps" spadne na *„<baseFolder> is not
+  shared with container"*. Nový scratchpad = pracovní kopii repa robocopy do té staré nasdílené složky (ne nový kontejner).
+  Pipeline Soitron (3 appky + 3 test appky, 212 testů) = 13 min, z toho testy 140 s. (2026-10-06, cust-soitron-bc 66675.)
 - ⚠️ **Čas nežere práce, ale relace BcContainerHelperu.** Každé `Publish-BcNuGetPackageToContainer` / `Publish-BcContainerApp` /
   `UnPublish-BcContainerApp` otevře vlastní relaci do kontejneru a znovu čte seznam appek, platformu, zemi. Naměřeno (Zlomek,
   6 závislostí): přes `Publish-BcNuGetPackageToContainer` **134 s**, čisté operace uvnitř kontejneru — stažení 8 s, `Publish-NAVApp`
