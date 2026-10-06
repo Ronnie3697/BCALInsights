@@ -427,3 +427,34 @@ Zachyceno 2026-10-05, prod-ess-configurator-bc master build 28617: test `Reusing
 i v `OnOpenPage` partu `Variant Config Params COEBS` (jediná změna v appce) test prošel — větev `VarConfigDialogTestsFix`. Stejný návrh měl ListPart i před sjednocením s enginem, chyba je tedy starší.
 
 ---
+
+### 4.15 Cue CardPart na RoleCenteru se `SourceTableTemporary = true` — kostky zamrznou na hodnotách z otevření
+
+Vlastní cue tabulka (FlowFieldy `count(...)`) + CardPart se `SourceTableTemporary = true`, `Rec.Insert` + `Rec.CalcFields(...)`
+v `OnOpenPage` a background task (`CurrPage.EnqueueBackgroundTask`) taky jen v `OnOpenPage`: **kostky ukazují čísla z okamžiku,
+kdy se Role Center otevřel**, a dál se nemění — drill-down (FlowField i vlastní `OnDrillDown` se `SetTableView`) přitom otevře
+list s aktuálními řádky, takže „kostka má špatné číslo, po rozkliku jsou řádky správně". Platforma při návratu na Role Center
+re-fetchne záznam partu, ale u temp tabulky nemá odkud FlowFieldy přepočítat (jsou jen v paměti instance z explicitního
+`CalcFields`) a `OnOpenPage` znovu neběží; microsoft/AL issue #6007 („Tile in a Cue Group is not Updated, if SourceTable is
+Temporary", workaround = `SourceTableTemporary = false`). Běžné `field` controly nad proměnnou se přitom aktualizují, jen cue
+tiles ne.
+
+**Vzor MS (`SO Processor Activities` 9060, `Team Member Activities` 9042):** cue tabulka **reálná** (jeden záznam s prázdným PK,
+`if not Rec.Get() then begin Rec.Init(); Rec.Insert(); end` v `OnOpenPage`), `RefreshOnActivate = true`, FlowFieldy nechat
+spočítat platformě (žádné ruční `CalcFields`), styly z hodnot v `OnAfterGetRecord`. Drahé KPI přes background task
+**enqueue v `OnAfterGetCurrRecord`** (běží při každém návratu na Role Center), s guardem proti souběhu:
+
+```al
+trigger OnAfterGetCurrRecord()
+begin
+    if CalcTaskId <> 0 then
+        if CurrPage.CancelBackgroundTask(CalcTaskId) then;
+    CurrPage.EnqueueBackgroundTask(CalcTaskId, Codeunit::"… Calc", TaskParameters, 120000, PageBackgroundTaskErrorLevel::Warning);
+end;
+```
+
+a v `OnPageBackgroundTaskCompleted` `CalcTaskId := 0` + `CurrPage.Update()`. Reálná cue tabulka = `tabledata` v permission setech
+(RIM) a jeden řádek per company; `DataClassification = SystemMetadata` stačí.
+(2026-10-06, cust-soitron-bc `Project Manager Cue SOI` — kostky Unprocessed buffers / Unapproved projects držely staré počty.)
+
+---
