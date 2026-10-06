@@ -705,3 +705,33 @@ Opraveno v šabloně: cesta ke `ContainerSide.ps1` se zjišťuje až po startu a
   `Compile-AppInBcContainer` ~2:30 (symboly pro každou appku znovu z dev endpointu). Verze kontejneru 28.4 je novější než
   `BC_ARTIFACT` pipeline (28.0–28.3); appky deklarují `application 28.0.0.0`, takže běží — výsledek se teoreticky může od CI lišit.
 - Alternativa bez kontejneru: pipeline jde pustit ručně na feature větvi (Run pipeline → branch), testy pak proběhnou před merge.
+
+### 7.24 Ruční nasazení PTE z NuGetu do SaaS sandboxu (Automation API) — dev build stejné appky, AVS0109
+
+Jen na výslovný pokyn uživatele (nasazení do sdíleného prostředí je těžko vratné). Ověřeno 2026-10-06, Alumistr BC-TEST2:
+EPB Pricing Matrix 28.0.6, Alumistr SE Pricing Matrix Ext 28.0.50, Essence Configurator 28.0.33 + CZ 28.0.29, Alumistr
+Configurator Ext 28.0.50.
+
+- **Balíčky:** `query2?q=<guid>` na `BCNugetPackages` (read-only MCP PAT, 7.11) → `flat2/<id-lowercase>/<ver>/<id>.<ver>.nupkg`
+  (`curl -4 -L -u u:<PAT>`; curl na redirect na blob auth nepřenese). `.nuspec` v balíčku vypíše závislosti, `.app` je uvnitř.
+  Pořadí nasazení podle závislostí, jedna appka po druhé (~5 min na appku v sandboxu).
+- **Upload = Automation API `extensionUpload`, totéž co `Publish-PerTenantExtensionApps`** (rychlejší to není, čas je
+  serverový). `GET …/companies(<id>)/extensionUpload` → když záznam **existuje**, `PATCH …/extensionUpload(<systemId>)/extensionContent`
+  (`If-Match: *`, `application/octet-stream`) + `POST …/Microsoft.NAV.upload`; když **neexistuje** (dokončený upload ho
+  spotřebuje), nejdřív `POST extensionUpload` s `{"schedule":"Current Version","schemaSyncMode":"Add"}`. Stav:
+  `GET …/extensionDeploymentStatus` (InProgress → Completed / Failed).
+  - MCP `d365bc-admin create_pte_upload` spadl na „Failed to upload extension content" a pak na „Failed to create extension
+    upload task" (záznam z prvního pokusu visel) — bez detailu; přímé volání API výš prošlo.
+  - Node `https` neparsuje odpověď `Microsoft.NAV.upload` (`Parse Error: Expected HTTP/`, ani `insecureHTTPParser` nepomůže) —
+    akci volej curlem. Polling `extensionDeploymentStatus` občas vrátí prázdné tělo → `JSON.parse` obal `try`.
+  - Token: `d365bc-admin get_microsoft_entra_id_token` (aud `api.businesscentral.dynamics.com`), drž ho v souboru ve scratchpadu
+    a po skončení smaž.
+- **Detail chyby** API nevrací: BC stránka 2508 *Stav instalace rozšíření* → řádek → 2509 → *Zobrazit podrobnosti*.
+- **`AVS0109` „cannot be deployed as it has missing dependencies or the dependencies are conflicting with currently installed
+  apps"** = v prostředí je **nainstalovaná DEV verze téže appky** (publikovaná z VS Code). Fix: `POST …/extensions(<packageId>)/Microsoft.NAV.uninstall`
+  (data zůstanou; nejdřív závislé, např. Configurator CZ, pak Configurator), odpublikovat netřeba — PTE pak projde a převezme data.
+  Odpublikovaný / přepsaný dev build už nevrátíš (nemáš jeho zdroják) → předem se zeptej. `GET …/extensions?$filter=id eq <guid>`
+  ukáže všechny publikované verze se `publishedAs` (Dev / PTE) a `isInstalled`.
+- **PTE smí záviset na DEV appce** (MS Learn *Extension types and scope*) — PMALU / Configurator Ext jako PTE nad dev buildem
+  Alumistr SE Extension prošly. Pozor: přesun / upgrade sandboxu odinstaluje DEV appky i PTE, které na nich závisí, a nový publish
+  DEV buildu z VS Code může závislé PTE odinstalovat (tak na TEST2 zmizely PTE Alumistr appky z 26. 8.).
