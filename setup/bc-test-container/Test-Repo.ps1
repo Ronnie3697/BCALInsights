@@ -135,9 +135,10 @@ $keepIds = $null
 $phaseSeconds = [ordered]@{ 'start' = 0.0; 'dependencies' = 0.0; 'compile' = 0.0; 'publish' = 0.0; 'tests' = 0.0; 'cleanup' = 0.0 }
 $totalTimer = [System.Diagnostics.Stopwatch]::StartNew()
 $phaseTimer = [System.Diagnostics.Stopwatch]::StartNew()
-$containerSide = Get-BcContainerPath -containerName $ContainerName -path (Join-Path $runFolder 'ContainerSide.ps1')
 try {
     Start-TestContainer -ContainerName $ContainerName
+    # Only after the start - Get-BcContainerPath reads the shared folders of the container from the Docker engine
+    $containerSide = Get-BcContainerPath -containerName $ContainerName -path (Join-Path $runFolder 'ContainerSide.ps1')
     $credential = Get-TestContainerCredential
     if (-not (Test-Path $TestContainerSettings.patFile)) { throw "PAT file $($TestContainerSettings.patFile) not found (settings.json, patFile)." }
     $nuGetToken = (Get-Content -Path $TestContainerSettings.patFile -Raw).Trim()

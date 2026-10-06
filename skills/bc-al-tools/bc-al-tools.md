@@ -168,6 +168,14 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   CZ packy stejné minor řady; starší CZ pack pod novější `Application` umbrellou nevadí,
   obráceně ano — 7.19 v `bc-al-build.md`) + Essence appky z `prod-*/.alpackages` nebo
   `prod-*/app/*.app`, a `/packagecachepath` nasměruj tam. (2026-09-02, cust-zlomek-bc)
+- **`AL0282` / `AL0284` na event subscriberu do Essence appky („member … parameter 'X' is not found", „type of the
+  parameter … does not match") při kompilaci zeleného masteru = zastaralý symbol v `.alpackages`**, ne chyba kódu.
+  `.alpackages` drží Essence appky často jako `…_28.0.0.0.app` z doby založení repa, kód masteru už volá eventy
+  novější verze z feedu. Aktuální symboly z feedu leží v **dependency-cache lokálního testovacího kontejneru**
+  (`C:\ProgramData\BcContainerHelper\Extensions\<container>\dependency-cache\<packageId>\<verze>\*.app`, plní ho
+  `Test-Repo.ps1`, 7.23 v `bc-al-build.md`) → do dočasné cache zkopíruj `.alpackages` **bez** staré verze té appky a
+  přidej verzi odtud (dvě verze téže appky v cache = nejisté, kterou alc vezme). (2026-10-06, cust-sonnentor-bc:
+  Essence Shopify Connector 28.0.0 v `.alpackages` vs. 28.0.6 v cache kontejneru, `ShpfyMetafieldMgmt.Codeunit.al`.)
 - **`alc.exe` při kompilaci PŘEPÍŠE `.docx` Word layouty reportů v `src/`** — kompilátor do
   layoutu regeneruje custom XML part s datasetem, takže i bez jediné změny v kódu vyleze
   po buildu `M ...Report.docx` (binární diff, typicky +1 kB). Není to tvoje změna —

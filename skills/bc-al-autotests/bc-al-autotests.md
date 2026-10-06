@@ -246,6 +246,12 @@ Assert.ExpectedErrorCode('Dialog');
   `Validate("Dimension Value Code") + Modify(true)` / `Delete(true)` na projektu s úkoly dělá, potřebuje `[HandlerFunctions('ConfirmHandler')]`;
   bez úkolů (default dim založená před `CreateJobTask`) dialog nevyskočí a registrovaný handler by naopak shodil test
   jako nevyužitý. (2026-10-01, cust-soitron-bc build 28562, `Job Type Posting Test SOI`.)
+- **Částečné zaúčtování (jen příjem / dodávka) doklad VYDÁ** — `Purch.-Post` / `Sales-Post` volají release, takže
+  následná změna řádku (`TestPage.Quantity.SetValue`, `Validate`) spadne na `TestStatusOpen` („Status must be equal to
+  'Open'") dřív, než se dostane ke slovu testovaná logika v `OnAfterValidateEvent`. Po `PostPurchaseDocument(…, true, false)`
+  / `PostSalesDocument(…, true, false)` dej `Get` hlavičky + `LibraryPurchase.ReopenPurchaseDocument` /
+  `LibrarySales.ReopenSalesDocument` (tak to dělá i uživatel). (2026-10-06, cust-sonnentor-bc 64046,
+  `Purch/SalesPartly…LinkedLineQtyBeyondRemainingFails`, zelené v kontejneru.)
 - **Negativní test `TestStatusOpen` po `ReleaseSalesDocument` — validuj na NOVÉ instanci recordu.** `Sales Line`
   si hlavičku cachuje v globální proměnné instance (`GetSalesHeader` znovu nečte, když sedí Document Type + No.);
   `SalesLine` proměnná, kterou prošel `LibrarySales.CreateSalesLine`, tak drží hlavičku se Status Open i po

@@ -81,4 +81,14 @@ function Start-TestContainer([string] $ContainerName) {
         Write-Host "Starting container $ContainerName"
         Start-BcContainer -containerName $ContainerName
     }
+    # Right after a Docker Desktop start the container is "running" again (restart policy), but the BC service inside is
+    # still starting - the first docker exec then fails ("No such exec instance"). Wait for the health check.
+    $deadline = (Get-Date).AddMinutes(10)
+    do {
+        $health = (Invoke-Docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' $ContainerName).Output.Trim()
+        if (($health -eq 'healthy') -or ($health -eq 'none')) { return }
+        Write-Host "Waiting for container $ContainerName ($health)"
+        Start-Sleep -Seconds 10
+    } until ((Get-Date) -gt $deadline)
+    throw "Container $ContainerName is not healthy after 10 minutes ($health)."
 }
