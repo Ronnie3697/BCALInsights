@@ -110,7 +110,12 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
 - **Položky projektu: standard váže JLE na řádek plánování jen přes `Job Usage Link`** (Entry No. ↔ Job No./Task/Line No.); EPEBS
   navíc stampuje `Job Ledger Entry."Job Planning Line No. EPEBS"` z `Job Journal Line."Job Planning Line No."` (subscriber
   `Job Jnl.-Post Line.OnBeforeJobLedgEntryInsert`), takže součet nákladů per řádek = `SetRange(Job No., Job Task No., "Job Planning
-  Line No. EPEBS")` + `CalcSums` bez joinu. Znaménka: Usage `Total Cost (LCY)` kladné, Sale `Line Amount (LCY)` u faktury záporné,
+  Line No. EPEBS")` + `CalcSums` bez joinu. ⚠️ **Platí jen pro Usage** — prodejní JLE z fakturace (`Job Post-Line.PostInvoiceContractLine`
+  → `PostJobOnSalesLine`) vzniká z deníkového řádku **bez `Job Planning Line No.`**, EPEBS pole je tam prázdné (ověřeno na datech
+  Soitron 2026-10-07). Vazbu prodejní položky drží standard v **`Job Planning Line Invoice`** (PK Job No./Task/Line No./Document
+  Type/Document No./Line No.): po zaúčtování `Document Type` = Posted Invoice / Posted Credit Memo a **`Job Ledger Entry No.`**
+  (`UpdateJobLedgerEntryNoOnJobPlanLineInvoice`) → `Get` JLE a seč `Line Amount (LCY)` (faktura záporně, dobropis kladně).
+  `Invoiced Amount (LCY)` v téže tabulce je přepočet z ceny plánovacího řádku, ne z dokladu — pro „fakturováno" ber JLE. Znaménka: Usage `Total Cost (LCY)` kladné, Sale `Line Amount (LCY)` u faktury záporné,
   u dobropisu kladné → součet = náklady − výnosy; Soitron ho u řádků Billable / Both otáčí (zisk kladně), u Budget nechává náklady
   kladné (`JPL Doc. Amounts SOI.CalcJobLedgerEntryAmountLCY`). V testu `LibraryJob.UseJobPlanningLine(JPL, UsageLineTypeBlank(),
   1, JobJnlLine)` + explicitní `Validate("Job Planning Line No.")` + `LibraryJob.PostJobJournal`; prodejní JLE vznikne fakturací
