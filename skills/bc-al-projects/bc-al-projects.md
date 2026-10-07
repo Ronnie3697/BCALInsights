@@ -110,8 +110,11 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
 - **Položky projektu: standard váže JLE na řádek plánování jen přes `Job Usage Link`** (Entry No. ↔ Job No./Task/Line No.); EPEBS
   navíc stampuje `Job Ledger Entry."Job Planning Line No. EPEBS"` z `Job Journal Line."Job Planning Line No."` (subscriber
   `Job Jnl.-Post Line.OnBeforeJobLedgEntryInsert`), takže součet nákladů per řádek = `SetRange(Job No., Job Task No., "Job Planning
-  Line No. EPEBS", Entry Type = Usage)` + `CalcSums("Total Cost (LCY)")` bez joinu. V testu `LibraryJob.UseJobPlanningLine(JPL,
-  UsageLineTypeBlank(), 1, JobJnlLine)` + explicitní `Validate("Job Planning Line No.")` + `LibraryJob.PostJobJournal`.
+  Line No. EPEBS")` + `CalcSums` bez joinu. Znaménka: Usage `Total Cost (LCY)` kladné, Sale `Line Amount (LCY)` u faktury záporné,
+  u dobropisu kladné → součet = náklady − výnosy; Soitron ho u řádků Billable / Both otáčí (zisk kladně), u Budget nechává náklady
+  kladné (`JPL Doc. Amounts SOI.CalcJobLedgerEntryAmountLCY`). V testu `LibraryJob.UseJobPlanningLine(JPL, UsageLineTypeBlank(),
+  1, JobJnlLine)` + explicitní `Validate("Job Planning Line No.")` + `LibraryJob.PostJobJournal`; prodejní JLE vznikne fakturací
+  IMEBS objednávky a nese `Job Planning Line No. EPEBS` z `Job Post-Line`.
 - **Prodej: `Job Contract Entry No.`** na `Sales Line`, `Sales Shipment Line`, `Sales Invoice Line`, `Sales Cr.Memo Line` = `Job
   Planning Line."Job Contract Entry No."` billable řádku. ⚠️ Každý prodejní řádek bez projektu má 0 → před `SetRange` guard
   `if "Job Contract Entry No." = 0 then exit(0)`, jinak sečteš celou firmu.
