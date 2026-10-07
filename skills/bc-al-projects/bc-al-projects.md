@@ -123,7 +123,14 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   plánování do EP Project Base přes `Job Transfer Line.OnAfterFromPlanningSalesLineToJnlLine(var JobJnlLine, JobPlanningLine, …)`
   (řádek plánování tam je k dispozici; standardní `JobJnlLine."Job Planning Line No."` u Sale neovlivní usage link — ten se aplikuje
   jen pro Entry Type Usage — ale raději vlastní pole, ať se nesahá do `PostItem` větve s `ApplyToJobContractEntryNo`).
-  Rozhodnutí Soitron: prodej i spotřeba přes `Job Planning Line No. EPEBS`, EP ho má doplnit na prodejní položky; stará data nevadí. Znaménka: Usage `Total Cost (LCY)` kladné, Sale `Line Amount (LCY)` u faktury záporné,
+  Rozhodnutí Soitron: prodej i spotřeba přes `Job Planning Line No. EPEBS`, EP ho doplňuje na prodejní položky; stará data nevadí.
+  **Implementováno v EP (prod-ep-projectBase-bc, větev `features/salesQuotes`, 2026-10-07):** subscriber `Job Transfer Line.
+  OnAfterFromPlanningSalesLineToJnlLine` → `JobJnlLine."Job Planning Line No." := JobPlanningLine."Line No."` (standard ho na
+  prodejní cestě nenastaví, na nákupní ano — `FromPurchaseLineToJnlLine`; `Job Jnl.-Post Line` ho čte jen ve větvi Usage, Sale
+  jen vloží JLE), existující `OnBeforeJobLedgEntryInsert` pak kopíruje do EPEBS pole. Test `Event Subscribers Test EPEBS`:
+  prodejní faktura s `Sales Line."Job Contract Entry No."` přiřazeným přímo (bez `Job Planning Line Invoice`, jako přes Získat
+  řádky dodávky) → `LibrarySales.PostSalesDocument` → JLE Sale nese task i číslo řádku. Kompilace EP appky s AppSource range:
+  AppSourceCop místo PTE cop (7.1 v `bc-al-tools.md`). Znaménka: Usage `Total Cost (LCY)` kladné, Sale `Line Amount (LCY)` u faktury záporné,
   u dobropisu kladné → součet = náklady − výnosy; Soitron ho u řádků Billable / Both otáčí (zisk kladně), u Budget nechává náklady
   kladné (`JPL Doc. Amounts SOI.CalcJobLedgerEntryAmountLCY`). V testu `LibraryJob.UseJobPlanningLine(JPL, UsageLineTypeBlank(),
   1, JobJnlLine)` + explicitní `Validate("Job Planning Line No.")` + `LibraryJob.PostJobJournal`; prodejní JLE vznikne fakturací
