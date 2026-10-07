@@ -19,7 +19,8 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
 | `bc-al-ui.md` | UI patterny stránek — RunModal/RoleCenter, ConfirmManagement, factbox, CaptionClass, Visible, MultiLine/RichContent (sekce 4) |
 | `bc-al-data.md` | database operace, event subscribery (sekce 2, 3.1–3.4, 3.7–3.9) |
 | `bc-al-posting.md` | propagace vlastních polí do účtovaných dokladů, archivu a kopií — stejné field ID, částečné účtování, Blob + CalcFields, `Validate("No.")` → `Init()` (sekce 3.5–3.6f) |
-| `bc-al-objects.md` | specifické objekty/API — No. Series, Item Tracking, Attached to Line No., Requisition Line… (sekce 5) |
+| `bc-al-objects.md` | specifické objekty/API — No. Series, Attached to Line No., Requisition Line, Job Queue… (sekce 5) |
+| `bc-al-tracking.md` | Item Tracking — šarže / SN: Item Tracking Lines (6510) a její eventy, předvyplnění šarže, Reservation Entry vs Tracking Specification, source pole VZ, tracking na nabídce a na fakturačním řádku z dodávky (sekce 5.x, 5.x2, 5.x2b, 5.x15) |
 | `bc-al-projects.md` | projekty — Job Planning Line: účto skupina a dimenze do deníku projektů, Location Code, vazba budget ↔ billable, návazné doklady projektu, guardy `OnDelete` (sekce 5.x17–5.x20) |
 | `bc-al-integrations.md` | Shopify Connector, HttpClient na SaaS, SecretText/Isolated Storage, Business Events / Power Automate, vlastní API page pro zápis, Dataverse/CDS sync (5.y2, sekce 11) |
 | `bc-al-workflow.md` | lokalizace/XLIFF, dokumentace vč. uživatelské příručky, verifikace (sekce 6, 8, 9, 12) |
@@ -50,6 +51,7 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
   Doménové recepty testů → `bc-al-autotests-domains.md` (2026-10-01, `bc-al-autotests.md` přesáhl 1000 řádků).
   5.x10 + 5.x12 (Configurator) → `ess-configurator-notes.md` C13/C14 (2026-10-01, `bc-al-objects.md` by přesáhl 1000 řádků).
   5.x17–5.x20 (projekty) → `bc-al-projects.md` (2026-10-05, `bc-al-objects.md` přesáhl 1000 řádků).
+  5.x, 5.x2, 5.x2b, 5.x15 (Item Tracking) → `bc-al-tracking.md` (2026-10-07, `bc-al-objects.md` by znovu přesáhl 1000 řádků).
 - Každý nový poznatek = commit s krátkou zprávou, co a odkud (repo, PR, datum).
 
 Klon může ležet kdekoli — od 2026-09-22 se notes odkazují relativně k adresáři skillu (dřív
@@ -304,7 +306,8 @@ stabilních pravidel. **Notes soubory zůstávají zdrojem pravdy.**
 | `bc-al-ui` | `bc-al-ui.md` | chování page/pageextension, RoleCenter, factbox, Visible, MultiLine |
 | `bc-al-data` | `bc-al-data.md` | DB operace, event subscribery |
 | `bc-al-posting` | `bc-al-posting.md` | vlastní pole na dokladech → archiv, účtované doklady, kopie |
-| `bc-al-objects` | `bc-al-objects.md` | No. Series, Item Tracking, Attached to Line No., Requisition Line… |
+| `bc-al-objects` | `bc-al-objects.md` | No. Series, Attached to Line No., Requisition Line, Job Queue… |
+| `bc-al-tracking` | `bc-al-tracking.md` | Item Tracking Lines (6510) a eventy, šarže = projekt, Reservation Entry, Prospect vs Surplus |
 | `bc-al-projects` | `bc-al-projects.md` | Job Planning Line, deník projektů, návazné doklady projektu, mazání plánovacích řádků |
 | `bc-al-integrations` | `bc-al-integrations.md` | Shopify Connector, HttpClient/SecretText na SaaS, Power Automate, Dataverse sync |
 | `bc-al-workflow` | `bc-al-workflow.md` | XLIFF, dokumentace + uživatelská příručka, analyzery, ruleset |

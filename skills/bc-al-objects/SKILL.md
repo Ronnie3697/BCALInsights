@@ -2,15 +2,14 @@
 name: bc-al-objects
 description: >-
   BC/AL specifické objekty a API (sekce 5): All Profile, Upgrade Tag, No. Series GetNextNo vs PeekNextNo,
-  kontrola Document No., Unix timestamp/UTC, Item Tracking (Lot No., Prod. Order Line, Sales Quote → Order),
-  NMEBS vazba SO↔VZ, al-mcp ByReference past, atributy zboží, DateFormula limity, CaptionClass + Translation
+  kontrola Document No., Unix timestamp/UTC, NMEBS vazba SO↔VZ, al-mcp ByReference past, atributy zboží, DateFormula limity, CaptionClass + Translation
   Helper, CZ↔EN terminologie, CZZ zálohy, Attached to Line No. parent↔child (xRec, Validate(No.) Init,
   CurrFieldNo), Requisition Line (GetDirectCost, Make Order, Order Planning, Carry Out, Calculate Plan bez dotazu
   přes manual bind), IsPriceUpdateNeeded (cena po odpojení HNO), VerifyOnInventory,
   Item Jnl. Line UoM qty-per, Auto Format částek, Item Charge Assignment, Job Queue z účtování / recurring / na popředí,
-  Data Exchange / camt.053 (merge sloupců, Regex Match, 274). Načti u číselných řad, trackingu, výroby,
+  Data Exchange / camt.053 (merge sloupců, Regex Match, 274). Načti u číselných řad, výroby,
   plánování, Job Queue, bankovního importu. (Shopify, HttpClient → bc-al-integrations; Job Planning Line /
-  projekty → bc-al-projects.)
+  projekty → bc-al-projects; Item Tracking / šarže / SN → bc-al-tracking.)
 user-invocable: true
 ---
 
@@ -31,7 +30,8 @@ cesty) a příklady jsou v souboru.
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
 3. Sousední témata: Shopify Connector, HttpClient/SecretText na SaaS, Power
-   Automate → `bc-al-integrations` (5.y2, 11); projekty / Job Planning Line → `bc-al-projects` (5.x17–5.x20); subscribery a propagace polí →
+   Automate → `bc-al-integrations` (5.y2, 11); projekty / Job Planning Line → `bc-al-projects` (5.x17–5.x20); Item Tracking
+   (šarže, SN, Item Tracking Lines, Reservation Entry) → `bc-al-tracking` (5.x, 5.x2, 5.x2b, 5.x15); subscribery a propagace polí →
    `bc-al-data`; Cloud target patterny obecně → `bc-al-style` (10); ověření
    signatur z .app → `bc-al-tools` (7.2, 7.6).
 
@@ -53,14 +53,7 @@ cesty) a příklady jsou v souboru.
   drž souvisle v pořadí účtování, jinak post spadne.
 - **5.5** Unix timestamp = `CurrentDateTime() - Evaluate('1970-01-01T00:00:00Z', 9)`;
   ne přes `.Date()/.Time()` (timezone posun).
-- **5.x / 5.x2** Item Tracking: nerozšiřovat `Item Tracking Summary` (page 6500
-  nad `Entry Summary` 338, která nemá Item No.; event hlášen bez `var` — přeověř,
-  viz 5.y) → vlastní výběrová page z akce na `Item Tracking Lines` (6510) +
-  temp buffer + `CurrPage.Update(true)`. Prod. Order Line link
-  přes `"Source Prod. Order Line"`, ne `Source Ref. No.` (= 0).
-- **5.x2b** Item Tracking na **Sales Quote** je standard (`Reservation Entry`
-  Source Type 37, Subtype 0), Make Order ho přenese na SO → žádné vlastní pole,
-  čti 337/336.
+- **5.x / 5.x2 / 5.x2b / 5.x15** Item Tracking → skill `bc-al-tracking` (vyčleněno 2026-10-07).
 - **5.x3** NMEBS: vazba SO řádek ↔ VZ řádek jen přes `Sales Production Ref. NMEBS`.
 - **5.y** al-mcp `ByReference` u event parametrů **nevěřit** → ověř zdroják
   z `.app` (`unzip`).
