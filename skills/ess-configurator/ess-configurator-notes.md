@@ -456,6 +456,10 @@ filtr nesedne a nesloučí se nic — proto „jednou ano, jednou ne". NMEBS / k
 `OnAfterSetFilterFromProdBOMLine` / `OnAfterProdOrderCompFilter` / `OnBeforeProdOrderCompModify` nemá nikdo. Diagnostika: page inspector
 `Length` na řádku kusovníku vs. na komponentě + `SystemModifiedAt` MJ. (2026-10-07, Alumistr BC-TEST: MJ M přepnutá m → mm 30. 9.,
 kusovník 0106 z rána 30. 9. má Length 3 500, 0107/0116 mají 4 → VZ 25-0000538 nesloučená, 544/548 sloučené na 5.)
+Alumistr (větev `ProdOrderCompMergeNoteColor`): `Event Subscribers ALU` na `OnAfterSetFilterFromProdBOMLine` přidá `SetRange` na
+`Note ALU` a **efektivní** `Color ALU` (barva kusovníku, jinak řádku VZ — stejná `GetComponentColor` jako při vzniku komponenty);
+řádek VZ čte přes `GetRangeMin` filtrů Status / Prod. Order No. / Prod. Order Line No., které base nastaví před voláním. Holý filtr
+na barvu kusovníku by shodné řádky bez barvy na barevné VZ nikdy nesloučil. Sčítání kusů při sloučení opravuje EM Cutting Plan.
 
 ## C9. MJ z akčního řádku přepíše Pricing Matrix přes Parametr A/B (Alumistr)
 
