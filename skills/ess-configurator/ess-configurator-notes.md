@@ -444,6 +444,19 @@ Nulu nevaliduj (smazala by `Quantity per` místo výchozí 1). Dependency minimu
 v PCS bez typu délky, takže starý kód spolehlivě chytí). Zdroj: cust-alumistr-bc, větev `ConfiguratorFormulaCancel`
 (2026-09-22); úprava vznikla 2026-09-16 při analýze na BC-TEST2, kde běžel lokální build Cutting Planu (C6).
 
+⚠️ **„Někdy se komponenty VZ sloučí, někdy ne" = `Length` z CUEBS ve filtru slučování.** Base `Calculate Prod. Order.TransferBOMProcessItem`
+hledá existující komponentu přes `Prod. Order Component.SetFilterFromProdBOMLine` (Item, Variant, Routing Link, Position 1–3,
+**Length**, Width, Weight, Depth, MJ, Calc. Formula) a při shodě jen `Validate("Quantity per", stará + BOMLine."Quantity per")`.
+Cutting Plan ale vložené komponentě přepíše `Length := Qty. per Piece × c`, `Quantity per := Qty. of Pcs.` (kusy), zatímco řádek
+kusovníku s MJ qty-per 1 má `Length = Qty. per Piece × Qty. of Pcs. × c` a `Quantity per` v metrech (`c` = `GetLengthTypeConstant`:
+`Unit of Measure."Length Type CUEBS"` × `Manufacturing Setup."Optimaliz. Length Type CUEBS"`). Sloučí se tedy jen řádek s 1 ks a stejnou
+délkou jako první — a **špatně**: 1 ks + 4 (m) = `Quantity per` 5 „kusů", `Qty. of Pcs.` zůstane 1, `Note/Color ALU` z druhého řádku se
+ztratí (subscribery jen v Insert větvi). Kusovník vzniklý s jiným `c` než VZ (změna typu délky MJ mezi tím) má Length v jiných jednotkách,
+filtr nesedne a nesloučí se nic — proto „jednou ano, jednou ne". NMEBS / konfigurátor / COALU nic neslučují, subscriber na
+`OnAfterSetFilterFromProdBOMLine` / `OnAfterProdOrderCompFilter` / `OnBeforeProdOrderCompModify` nemá nikdo. Diagnostika: page inspector
+`Length` na řádku kusovníku vs. na komponentě + `SystemModifiedAt` MJ. (2026-10-07, Alumistr BC-TEST: MJ M přepnutá m → mm 30. 9.,
+kusovník 0106 z rána 30. 9. má Length 3 500, 0107/0116 mají 4 → VZ 25-0000538 nesloučená, 544/548 sloučené na 5.)
+
 ## C9. MJ z akčního řádku přepíše Pricing Matrix přes Parametr A/B (Alumistr)
 
 Base `InitNewSalesLineFromAction` MJ z `SL Action Line."Unit of Measure Code"` validuje správně (`ApplyItemSpecificFields`,

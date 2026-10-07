@@ -835,7 +835,7 @@ Pořadí validací v subscriberu má vliv: `Validate("Qty. of Pcs.")` jako prvn�
 i `Length` se počítají dvakrát.
 
 (2026-09-16, cust-alumistr-bc — analýza kusovníků variant 103200-COEBS0209/0210, definice konfigurace 0052;
-zdroje prod-em-cuttingPlan-bc master, prod-ess-configurator-bc master.)
+zdroje prod-em-cuttingPlan-bc master, prod-ess-configurator-bc master.) Slučování komponent VZ přes `Length` → C8 v `ess-configurator-notes.md`.
 
 **Na komponentě VZ (`Prod. Order Component CUEBS`) je to jinak než na kusovníku — bez větvení podle MJ.** Refresh zakázky
 (`Calculate Prod. Order.OnTransferBOMProcessItemOnBeforeGetPlanningParameters`) zkopíruje `Qty. of Pcs.` z řádku kusovníku
