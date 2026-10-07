@@ -107,6 +107,34 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   Purchase/Rcpt/Inv Line) a plní ho z `modify("Job Planning Line No.") OnAfterValidate` — EPEBS flowfieldy `Purchase Receipt/Invoice
   Exists EPEBS` filtrují přes EPEBS pole, `Purchase Order/Cr. Memo Exists EPEBS` přes standardní; pro vlastní součty ber standardní
   pole (zdroj pravdy, EPEBS je kopie).
+- **Položky projektu: standard váže JLE na řádek plánování jen přes `Job Usage Link`** (Entry No. ↔ Job No./Task/Line No.); EPEBS
+  navíc stampuje `Job Ledger Entry."Job Planning Line No. EPEBS"` z `Job Journal Line."Job Planning Line No."` (subscriber
+  `Job Jnl.-Post Line.OnBeforeJobLedgEntryInsert`), takže součet nákladů per řádek = `SetRange(Job No., Job Task No., "Job Planning
+  Line No. EPEBS")` + `CalcSums` bez joinu. ⚠️ **Platí jen pro Usage** — prodejní JLE z fakturace (`Job Post-Line.PostInvoiceContractLine`
+  → `PostJobOnSalesLine`) vzniká z deníkového řádku **bez `Job Planning Line No.`**, EPEBS pole je tam prázdné (ověřeno na datech
+  Soitron 2026-10-07). Vazbu prodejní položky drží standard v **`Job Planning Line Invoice`** (PK Job No./Task/Line No./Document
+  Type/Document No./Line No.): po zaúčtování `Document Type` = Posted Invoice / Posted Credit Memo a **`Job Ledger Entry No.`**
+  (`UpdateJobLedgerEntryNoOnJobPlanLineInvoice`) → `Get` JLE a seč `Line Amount (LCY)` (faktura záporně, dobropis kladně).
+  `Invoiced Amount (LCY)` v téže tabulce je přepočet z ceny plánovacího řádku, ne z dokladu — pro „fakturováno" ber JLE.
+  ⚠️ Ani `Job Planning Line Invoice` nepokryje všechno: zakládá ji jen faktura z řádků plánování (Job Create-Invoice, IMEBS
+  objednávka); faktura přes **Získat řádky dodávky** ji nemá (`Sales-Get Shipment` ji netvoří, `Job Post-Line` ji jen `if Get`),
+  položka projektu přesto vznikne → per řádek chybí (Soitron 2026-10-07: drill-down 4 položky vs. „Fakturováno" úlohy 7).
+  Jediná vazba, která přežije všechny cesty, je `Sales Line."Job Contract Entry No."`; chceš-li ji na JLE, patří propis řádku
+  plánování do EP Project Base přes `Job Transfer Line.OnAfterFromPlanningSalesLineToJnlLine(var JobJnlLine, JobPlanningLine, …)`
+  (řádek plánování tam je k dispozici; standardní `JobJnlLine."Job Planning Line No."` u Sale neovlivní usage link — ten se aplikuje
+  jen pro Entry Type Usage — ale raději vlastní pole, ať se nesahá do `PostItem` větve s `ApplyToJobContractEntryNo`).
+  Rozhodnutí Soitron: prodej i spotřeba přes `Job Planning Line No. EPEBS`, EP ho doplňuje na prodejní položky; stará data nevadí.
+  **Implementováno v EP (prod-ep-projectBase-bc, větev `features/salesQuotes`, 2026-10-07):** subscriber `Job Transfer Line.
+  OnAfterFromPlanningSalesLineToJnlLine` → `JobJnlLine."Job Planning Line No." := JobPlanningLine."Line No."` (standard ho na
+  prodejní cestě nenastaví, na nákupní ano — `FromPurchaseLineToJnlLine`; `Job Jnl.-Post Line` ho čte jen ve větvi Usage, Sale
+  jen vloží JLE), existující `OnBeforeJobLedgEntryInsert` pak kopíruje do EPEBS pole. Test `Event Subscribers Test EPEBS`:
+  prodejní faktura s `Sales Line."Job Contract Entry No."` přiřazeným přímo (bez `Job Planning Line Invoice`, jako přes Získat
+  řádky dodávky) → `LibrarySales.PostSalesDocument` → JLE Sale nese task i číslo řádku. Kompilace EP appky s AppSource range:
+  AppSourceCop místo PTE cop (7.1 v `bc-al-tools.md`). Znaménka: Usage `Total Cost (LCY)` kladné, Sale `Line Amount (LCY)` u faktury záporné,
+  u dobropisu kladné → součet = náklady − výnosy; Soitron ho u řádků Billable / Both otáčí (zisk kladně), u Budget nechává náklady
+  kladné (`JPL Doc. Amounts SOI.CalcJobLedgerEntryAmountLCY`). V testu `LibraryJob.UseJobPlanningLine(JPL, UsageLineTypeBlank(),
+  1, JobJnlLine)` + explicitní `Validate("Job Planning Line No.")` + `LibraryJob.PostJobJournal`; prodejní JLE vznikne fakturací
+  IMEBS objednávky a nese `Job Planning Line No. EPEBS` z `Job Post-Line`.
 - **Prodej: `Job Contract Entry No.`** na `Sales Line`, `Sales Shipment Line`, `Sales Invoice Line`, `Sales Cr.Memo Line` = `Job
   Planning Line."Job Contract Entry No."` billable řádku. ⚠️ Každý prodejní řádek bez projektu má 0 → před `SetRange` guard
   `if "Job Contract Entry No." = 0 then exit(0)`, jinak sečteš celou firmu.
