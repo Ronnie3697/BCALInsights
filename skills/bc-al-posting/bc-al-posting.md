@@ -252,6 +252,9 @@ Cesty, které jsou OK bez subscriberu: Quote → Order, Blanket → Order, Get S
 Reverse, Undo Shipment (přiřazení recordu / `TransferFields` z posted). Sdílený helper `Reapply<Fields>(var SalesLine; …)`
 pro všechny tři subscribery. Pole odvozená z Item UoM se reverse-fillem „obnoví" sama, ale pole typu kód/varianta ne.
 (2026-08-31, prod-epb-pricingMatrix-bc plán 65842 — archive restore ztrácel `Sales Price Var. Code PMEBS`.)
+**Hlavička přes Quote → Invoice taky projde bez subscriberu:** `Sales-Quote to Invoice` dělá `SalesInvoiceHeader := Rec`,
+`Sales-Quote to Order` `SalesOrderHeader := SalesHeader` (w1-28) — vlastní pole hlavičky (ne Blob, 3.6c) přejdou sama.
+(2026-10-08, cust-zlomek-bc PBI 65145, Montážník / Datum montáže.)
 
 **`RecreateSalesLines` (změna Sell-to / Bill-to / Currency…) nejdřív udělá `Modify()` hlavičky** (BC 28
 `SalesHeader.Table.al`, hned po potvrzení `RecreateSalesLinesMsg`) a teprve pak řádky znovu vytvoří přes

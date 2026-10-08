@@ -316,7 +316,9 @@ skriptem (python v Bash toolu chybí): `JSON.parse(fs.readFileSync(f,'utf8').rep
 `Properties` Caption/RunObject/Visible), u tabulky `Methods[]` s `Attributes` (IntegrationEvent). Takhle 2026-10-01
 (cust-soitron-bc) vyšlo: Job Card `"Create Job &Sales Invoice"` + `SalesInvoicesCreditMemos`, Job Planning Lines
 `"Create &Sales Invoice"` / `"Create Sales &Credit Memo"` / `"Sales &Invoices/Credit Memos"`, Job Task Lines (Subform)
-`"Create &Sales Invoice"`, Job Planning Lines Part má jen `"Sales &Invoices/Credit Memos"`. Těla triggerů tam nejsou — na
+`"Create &Sales Invoice"`, Job Planning Lines Part má jen `"Sales &Invoices/Credit Memos"`. **Stejná akce má na sesterských
+stránkách jiný název** — Sales Order Subform `ItemTrackingLines`, Sales Quote Subform `"Item &Tracking Lines"` (28.4) →
+`modify(<akce>)` mezi pageextensions nekopíruj naslepo, ověř per stránka (2026-10-08, cust-zlomek-bc 65152). Těla triggerů tam nejsou — na
 ně dál GitHub (7.3); `.alpackages` často drží víc řad MS symbolů (27.5, 28.0, 28.4…) → `ls … | head -1` vezme nejstarší,
 vybírej jmenovitě podle `application` v `app.json`.
 
