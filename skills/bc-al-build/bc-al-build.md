@@ -15,7 +15,7 @@
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
 Obsahuje:
-- **7.** Nástroje a workflow — část **7.11–7.23** (dependencies, CI build, deploy, lokální testovací kontejner)
+- **7.** Nástroje a workflow — část **7.11–7.25** (dependencies, CI build, deploy, lokální testovací kontejner, ruční nasazení do sandboxu / sdíleného kontejneru)
 
 ## 7. Nástroje a workflow — dependencies, build & deploy (7.11–7.19)
 ### 7.11 NuGet „earliest match" — nízké minimum dependency = symbol bez novějších polí
@@ -754,3 +754,30 @@ Configurator Ext 28.0.50.
 - **PTE smí záviset na DEV appce** (MS Learn *Extension types and scope*) — PMALU / Configurator Ext jako PTE nad dev buildem
   Alumistr SE Extension prošly. Pozor: přesun / upgrade sandboxu odinstaluje DEV appky i PTE, které na nich závisí, a nový publish
   DEV buildu z VS Code může závislé PTE odinstalovat (tak na TEST2 zmizely PTE Alumistr appky z 26. 8.).
+
+### 7.25 Závislosti do sdíleného kontejneru `containers.essencebs.com` jako Dev appky (dev endpoint, UserPassword)
+
+Ověřeno 2026-10-08: kontejner kolegy `bc28cu2-dev`, tenant `mnec-ef`, BC 28.2 cz; Essence Distribution Base 28.0.2,
+ED Item Sales Disponibility 28.0.0, Essence Shopify Connector 28.0.6 (závislosti cust-sonnentor-bc).
+
+- **URL podle Traefiku (BcContainerHelper):** `launch.json` `serverInstance: "<kontejner>dev"` → dev endpoint
+  `https://containers.essencebs.com/<kontejner>dev/dev/…`, API (automation v2.0, OData) `…/<kontejner>rest/api/…`, web client
+  `…/<kontejner>/?tenant=<tenant>`. Multitenant → všude `?tenant=<tenant>`. `GET …/<kontejner>dev/dev/metadata` jde bez auth
+  (runtime, `webEndpoint`) — rychlý test, že kontejner žije.
+- **Auth = Basic (NavUserPassword, `"authentication": "UserPassword"`).** Heslo si nenech psát do chatu: Windows PowerShell 5.1
+  `$Host.UI.PromptForCredential(...)` otevře uživateli nativní okno, `Export-Clixml` uloží credential (DPAPI) do scratchpadu,
+  další skripty `Import-Clixml`. Z Git Bash nejdřív `$env:PSModulePath` jen na cesty 5.1 (7.23). Login ověří
+  `GET …rest/api/microsoft/automation/v2.0/companies?tenant=…` (401 = špatné údaje).
+- **Co tam je:** `…/companies(<id>)/extensions` → `displayName`, `versionMajor…Revision`, `isInstalled`, `publishedAs`
+  (`Global` = z artifactu, `" Dev"` s mezerou na začátku = dev publish). Microsoft deps (CZ packy, Intrastat Core, Shopify
+  Connector) jsou v kontejneru z artifactu jako Global a nainstalované — nenahrávají se.
+- **Nejnovější verze z feedu:** `query2?q=<guid>` na BCNugetPackages vrátí i historická package ID se stejným GUIDem (staré
+  jméno / publisher: `EssenceInternationalsro.EDItemSalesDisponibility` končí 26.0.1, `EssenceBusinessSolutions.EDPDistribution`
+  25.1.4) → ber ID, které má řadu `<major>.x`, verze z `flat2/<id>/index.json`. `.nupkg`: redirect URL s auth
+  (`curl -w '%{redirect_url}'`), blob stáhni **bez** auth (7.11). Před publikem zkontroluj v `NavxManifest.xml`
+  `Application` / `Platform` ≤ verze kontejneru a závislosti v `.nuspec` (Distribution Base → Microsoft `Intrastat Core`).
+- **Publish = `POST …/<kontejner>dev/dev/apps?SchemaUpdateMode=synchronize&tenant=<tenant>`**, multipart s jedním souborem
+  (`ContentDisposition` `form-data`, `Name` i `FileName` = název `.app`), Basic auth — totéž, co VS Code F5 nebo
+  `Publish-BcContainerApp -useDevEndpoint`. V PS 5.1 `System.Net.Http.HttpClient` + `MultipartFormDataContent`,
+  `Timeout = InfiniteTimeSpan`. `200 OK` s prázdným tělem = publikováno, synchronizováno i nainstalováno (1–5 s na appku).
+  Pořadí podle závislostí. Dev build v prostředí pak blokuje PTE téže appky (AVS0109, 7.24).
