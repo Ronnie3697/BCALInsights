@@ -33,6 +33,7 @@
 - [C10. Kopie konfigurace — eventy pro zákaznická data řádků akcí](#c10-kopie-konfigurace--eventy-pro-zákaznická-data-řádků-akcí)
 - [C11. API konfigurace varianty (task 66387) — ověření na Alumistr BC-TEST2](#c11-api-konfigurace-varianty-task-66387--ověření-na-alumistr-bc-test2)
 - [C12. Strom podmínek parametru — zastaralé `Root Condition No.` (Zlomek)](#c12-strom-podmínek-parametru--zastaralé-root-condition-no-zlomek)
+- [C15. Strom podmínek ze struktury (66845) a nerecyklovaná čísla parametrů (66711)](#c15-strom-podmínek-ze-struktury-66845-a-nerecyklovaná-čísla-parametrů-66711)
 
 ---
 
@@ -546,6 +547,8 @@ master, nasazeno COALU 28.0.20.3 / PMEBS 28.0.5.0 / COEBS 28.0.22.2.)
   hlavní i vnořený parametr) po smazání drží osiřelý odkaz, který se **tiše chytí nového parametru**. Kopie celé konfigurace
   ho zahodí sama (mapa parametrů ho nezná), kopie SL akce v rámci konfigurace ho zkopíruje. Úklid patří do subscriberu
   `OnAfterDeleteEvent` na `Configuration Parameter COEBS` (obě strany odkazu). (Code review 2026-09-29, cust-zlomek-bc.)
+  → **Řešeno v tasku 66711** jinak než úklidem: `Line No.` se nerecykluje (čítač) a použitý parametr nejde smazat, rozšíření
+  hlásí své odkazy eventem `OnCollectParameterReferences` — detail C15.
 
 (2026-09-24, analýza plánu 65364 nad prod-ess-configurator-bc master 79fc306.)
 
@@ -650,7 +653,7 @@ service page), takže recyklovaná podmínka zdědí povolené hodnoty smazané.
 
 **Oprava patří do COEBS:** (1) při připojení potomka (OnValidate/OnLookup child polí, ideálně centrálně v tabulce) přepsat root celého
 připojeného podstromu na root rodiče; (2) evaluátor ať kořen odvozuje ze struktury (uzel, na který nikdo neukazuje), ne z pole;
-(3) upgrade / akce „přepočítat kořeny" pro existující data.
+(3) upgrade / akce „přepočítat kořeny" pro existující data. → **Implementováno v tasku 66845** (2026-10-08, zatím nevydáno), detail C15.
 
 ## C13. `Effective Hidden` na `Variant Configuration COEBS` JE persistovaný
 
@@ -744,3 +747,45 @@ v **invariantním formátu** (`Format(x, 0, 9)`, tečka) — při zpětném pars
 (2026-09-17, cust-zlomek-bc 65364 — přebírání hodnot parametrů z hlavní konfigurace do vnořené;
 zdroje prod-ess-configurator-bc master, COEBS 28.0.22.0.)
 
+## C15. Strom podmínek ze struktury (66845) a nerecyklovaná čísla parametrů (66711)
+
+> Stav 2026-10-08: obě větve v `prod-ess-configurator-bc` **nevydané** — `66845_ConditionTreeFromStructure` (lokální commit
+> 9aaa017) a nad ní `66711_ParamLineNoReuse` (necommitnuto); COZLK část 66711 ve `cust-zlomek-bc` větev `66711_ParamLineNoReuse`.
+> Testy jen zkompilované. Dokumentace: `docs/66845 - …md`, `docs/66711 - …md`, CONFIGURATOR-DOCUMENTATION 5.8 / 18.4 / 20.4.
+
+**66845 — vyhodnocení podmínek parametru od skutečného kořene:**
+- `Config. Condition Mgt. COEBS` načte podmínky parametru jedním `FindSet`, zkontroluje strom
+  (`Condition Tree Mgt.CheckParameterConditionTree` — víc rodičů, cyklus, vlastní potomek, neexistující potomek = **Error**
+  s konfigurací, parametrem a číslem podmínky) a projde od kořenů (podmínka, na kterou nikdo neodkazuje) splněnou cestu.
+  `Root Condition No.` engine nečte; pole udržuje `UpdateParameterConditionTree` / `UpdateParamTemplateTree` a na stránkách je jen
+  pro čtení. ⚠️ Neplatný strom teď **shodí dialog, API i vnořenou konfiguraci COZLK** (dřív tiše rozšířená nabídka) — po nasazení
+  pustit report 63140 a neopravitelné stromy opravit ručně.
+- Vazby True/False Child validuje `OnValidate` všech pěti tabulek podmínek (`CheckChildLink`: sám sebe, předek, už připojená
+  podmínka, druhá větev — druhou větev bere **z paměti**, na kartě jdou změnit obě před uložením); šipka nenabízí předky (nový
+  overload `Condition Page Helper.CollectExcludedChildLineNos` s mapou vazeb; starý overload a 5parametrový `ComputeTreeOrder`
+  zůstaly kvůli COALU CNC). OnLookup vrací hodnotu přes `Text` + `exit(true)`, ať jde přes validaci.
+- `OnDelete` podmínky odpojí rodiče (`ModifyAll` na rodičích, **s vyloučením sebe sama**) a u podmínky parametru smaže
+  `Condition Result Value`. ⚠️ Hromadné mazání s triggerem (`DeleteAll(true)` z parametru, definice, „Delete All Records“
+  service stránek) nejdřív vazby v rozsahu vynuluje `ModifyAll(..., 0, false)` — jinak by `OnDelete` jednoho řádku měnil
+  sourozence, které `DeleteAll` vzápětí maže se zastaralou verzí. Podstrom se maže **pre-order** (rodič dřív než potomci).
+- Místo upgrade codeunitu report **63140 `Config. Data Repair COEBS`** (bez UsageCategory, `?report=63140`, výchozí „Pouze
+  zkontrolovat“, logika v codeunitu 63158): přepočet rootů, vazby na neexistující podmínky → 0, osiřelé výsledné hodnoty pryč,
+  neopravitelné stromy do Error Messages. Pouští se v každé společnosti zvlášť.
+
+**66711 — `Line No.` smazaného parametru se nepoužije znovu:**
+- Čítač v **samostatné tabulce 63164 `Config. Param. Counter COEBS`**, ne v poli definice: `Configuration Parameter.OnInsert` běží
+  pod otevřenou kartou definice (part Parametry, akce Nový) a `Modify` definice z triggeru řádku by kartě nechal zastaralý `Rec`
+  (3.9 v `bc-al-data.md`). Čítač chybí (stará / nová / kopírovaná konfigurace) → dopočet z nejvyššího použitého čísla
+  (`Param. Reference Mgt.GetHighestUsedParamLineNo`: parametry, všechny odkazy, vlastníci, zbylá data parametru); při smazání
+  parametru se číslo rezervuje (`ReserveParameterLineNo`), jinak by smazání posledního parametru staré konfigurace číslo uvolnilo.
+- Odkazy na parametr sbírá jeden codeunit **63159 `Param. Reference Mgt. COEBS`** do temp tabulky 63165 a rozšíření přidávají své
+  přes **`OnCollectParameterReferences(ConfigNo; ParamLineNo; IncludeVariantValues; var TempParamReference)`**
+  (`TempParamReference.AddReference(...)`); stejná data slouží čítači, kontrole mazání i výpisu v reportu 63140. COZLK
+  přidává převzaté parametry (hlavní i vnořená strana; zastaralá vazba — zboží řádku akce se změnilo — neblokuje).
+  ⚠️ **COALU CNC** (`CNC Action Condition."Source Parameter Line No."`, `CNC Action Line."Profile From Parameter"`) subscriber zatím
+  nemá → follow-up v cust-alumistr-bc.
+- Použitý parametr nejde smazat (Error s výčtem až 10 použití); vlastní podmínky a vzorce parametru neblokují, uložené hodnoty variant
+  taky ne. Výběr více parametrů a „Delete All Records“ jdou přes `DeleteParameters` (odkazy mezi mazanými parametry neblokují).
+  Smazání definice kontrolu přeskočí (`SetSkipReferenceCheck` na instanci, globální proměnná tabulky).
+- `Variant Configuration COEBS` neměla klíč na `Configuration No.` → každé filtrování podle konfigurace = scan celé tabulky; přidán
+  klíč `ConfigParamLineKey (Configuration No., Parameter Line No.)`.
