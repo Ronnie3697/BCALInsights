@@ -2,13 +2,14 @@
 
 > Část rozděleného `bc-al-notes.md` (rozsekáno 2026-06-23; archiv: `bc-al-notes.archived-2026-06-23.md`).
 > Shopify Connector (5.y2) a SaaS/Cloud gotchas (sekce 11) vyčleněny 2026-09-08 do `bc-al-integrations.md`.
-> Načítej, když řešíš: No. Series, Upgrade Tag, All Profile, Item Tracking/Lot (i Sales Quote), Reservation Entry u VZ, NMEBS vazba SO↔VZ,
+> Načítej, když řešíš: No. Series, Upgrade Tag, All Profile, NMEBS vazba SO↔VZ,
 > Unix timestamp, atributy zboží, DateFormula, CaptionClass/Translation Helper, CZ↔EN terminologie, CZZ zálohy, Attached to Line No. /
 > parent↔child řádky, Requisition Line / Req. Wksh.-Make Order / Calculate Plan bez dotazů, VerifyOnInventory, Auto Format / částky v textu,
 > přepočet ceny z Množství bez ceníku (IsPriceUpdateNeeded, 5.x21; ruční Line Discount % změnu Množství/Varianty nepřežije).
 >
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
-> **Essence Configurator** má od 2026-09-21 vlastní soubor `ess-configurator-notes.md` (parametry, vzorce, systémové parametry, varianty) — sekce 5.x10 a 5.x12 tam přesunuty 2026-10-01 jako C13 / C14; 5.x2b (Item Tracking na Sales Quote) a 5.x8 (Item Charge Assignment) jsou obecné BC a zůstávají tady.
+> **Essence Configurator** má od 2026-09-21 vlastní soubor `ess-configurator-notes.md` (parametry, vzorce, systémové parametry, varianty) — sekce 5.x10 a 5.x12 tam přesunuty 2026-10-01 jako C13 / C14; 5.x8 (Item Charge Assignment) je obecné BC a zůstává tady.
+> **Item Tracking** (5.x, 5.x2, 5.x2b, 5.x15) má od 2026-10-07 vlastní soubor `bc-al-tracking.md` (skill `bc-al-tracking`).
 
 Obsahuje:
 - **5.** Specifické objekty a API (bez 5.y2 Shopify → `bc-al-integrations.md`)
@@ -258,107 +259,10 @@ padá **nedeterministicky** (podle ms složky času běhu), lokálně třeba nik
 obě hodnoty (`StrSubstNo(Label, ...)` — plain string v `StrSubstNo` = AA0217). (2026-09-22, cust-sonnentor-bc build 28397,
 `ScheduleFollowUpWaitsForNextAttempt`.)
 
-### 5.x Item Tracking — filtrování/obohacení výběru šarže (Lot No.)
+### 5.x, 5.x2, 5.x2b → vyčleněno do `bc-al-tracking.md`
 
-Když potřebuješ **omezit nebo obohatit výběr šarže** při zadávání item trackingu
-(typicky consumption na Prod. Order Component — výběr Lot No. dle vlastního kritéria,
-zobrazení vlastních polí z Lot No. Information), **nepokoušej se rozšiřovat nativní
-výběrový dialog** `Item Tracking Summary` (page 6500 nad tabulkou `Entry Summary` 338).
-Dva tvrdé blokátory:
-
-- **`Entry Summary` (338) nemá `Item No.`** (jen Lot/Serial/Package No. + qty + Source
-  Subtype + Table ID). Lot No. Information (klíč Item No.+Variant+Lot No.) odtud
-  spolehlivě nedohledáš.
-- **`Item Tracking Data Collection` (6501) event `OnAfterRetrieveLookupData(TrackingSpecification;
-  FullDataSet; TempGlobalReservEntry; TempGlobalEntrySummary)` nepředává entry summary
-  buffer `var`** — subscriber ho neumí filtrovat ani plnit. (Ověřeno přes al-mcp
-  `al_search_object_members` — všechny parametry ByReference=false.)
-
-**Funkční pattern (Sonnentor 64042 — výběr šarže dle kvality):** vlastní výběrová stránka
-otevřená **akcí z `Item Tracking Lines` (page 6510, source `Tracking Specification` 336)**.
-Řádek 6510 (`Rec`) **má `Item No.`, `Variant Code`, `Location Code` i Source pole**, takže:
-
-- Komponentu VZ dohledáš ze Source: `Source Type = Database::"Prod. Order Component"`,
-  `Source Subtype`→Status (Option→Integer→`"Production Order Status".FromInteger`),
-  `Source ID`→Prod. Order No., `Source Prod. Order Line`→Prod. Order Line No.,
-  `Source Ref. No.`→Line No.
-- Kandidátní šarže naplníš do **temp buffer tabulky** (`TableType = Temporary` → žádný
-  permission/tabledata) z `Lot No. Information` (+ vlastní pole), zůstatek lotu vezmi
-  z **FlowField `Inventory`** (`CalcFields(Inventory)` s `SetRange("Location Filter", …)`)
-  — nemusíš sám sumarizovat Item Ledger Entry.
-- Výběrová `page` (List, `SourceTableTemporary`, lookup mode) si buffer plní v `OnOpenPage`;
-  „rozpustit filtr" = akce, která přenaplní buffer bez filtru (ne mazání řádků).
-- Po `RunModal = LookupOK` vrať Lot No. na řádek 6510 a v `OnAction` zavolej
-  `CurrPage.Update(true)` — tím proběhne standardní tracking validace, neobcházíš ji.
-
-Business logiku (resolve required code, build buffer) dej do codeunitu s **public**
-procedurami → testovatelné z test appky bez TestPage (UI tracking přes TestPage je fragile).
-
-### 5.x2 Item Tracking — mapování Source polí u řádku VZ (Prod. Order Line)
-
-`Reservation Entry` (337) i `Tracking Specification` (336) plní source pole pro
-**Prod. Order Line** takto (base app `Prod. Order Line-Reserve.InitFromProdOrderLine`):
-
-```al
-SetSource(Database::"Prod. Order Line", Status.AsInteger(), "Prod. Order No.", 0, '', "Line No.");
-//        Source Type                   Source Subtype      Source ID          ^Source Ref. No. = 0
-//                                                                             Source Prod. Order Line = "Line No."
-```
-
-**`Source Ref. No.` je 0** — číslo řádku VZ žije v **`Source Prod. Order Line`**!
-(U komponent 5407 je to jinak: `Source Prod. Order Line` = řádek VZ,
-`Source Ref. No.` = Line No. komponenty.) Důsledek: SubPageLink / filtr factboxu
-nad tracking daty pro Prod. Order Line **musí** linkovat
-`"Source Prod. Order Line" = field("Line No.")` — link přes `Source Ref. No.`
-nikdy nematchne a part je věčně prázdný (chyba ze Zlomek 64189; u Sales Line je
-naopak správně `Source Ref. No.`). Ověřeno extrakcí z BC 27.5 base app.
-
-### 5.x2b Item Tracking na Sales Quote — standard ho umí, přenáší se do Order
-
-**Prodejní nabídka má standardní item tracking.** Na `Sales Quote Subform` (95)
-je akce **„Item Tracking Lines"** (`Rec.OpenItemTrackingLines()`, jen pro
-`Type = Item`, ne pro ATO řádky) a tracking se ukládá do `Reservation Entry`
-(337) se `Source Type = 37`, **`Source Subtype = 0`** (Quote), `Source ID` =
-číslo nabídky, `Source Ref. No.` = Line No. Při **Make Order** (`Sales-Quote to
-Order`, 86) se rezervační položky přenesou na objednávkový řádek přes
-`SalesLineReserve.TransferSaleLineToSalesLine(SalesQuoteLine, SalesOrderLine,
-"Outstanding Qty. (Base)")` — SN/šarže zadané na nabídce tedy na SO nezmizí.
-Totéž platí pro Blanket Order → Order (87). Neplést s **rezervací** skladu:
-`Reserve` na nabídce nedělá nic užitečného, ale tracking (jednostranné entries
-s SN) na ní žije. Ověřeno w1-28 (2026-09-02, nacenění Zlomek 62661).
-
-⚠️ **Tracking na nabídce má `Reservation Status = Prospect`, ne Surplus.**
-`Item Tracking Lines` (6510) `SetSourceSpec` dává `Surplus` jen „order network
-entitám" a `Item Tracking Management.IsOrderNetworkEntity` bere u `Sales Line`
-**jen Subtype 1 (Order) a 5 (Return Order)** — nabídka (0) a rámcová objednávka
-(4) padnou do `else` větve = `Prospect`. Na Surplus to překlopí až
-`TransferSaleLineToSalesLine` během Make Order. Důsledky:
-
-- Vlastní kód, který jednostranný tracking hledá `SetRange("Reservation
-  Status", …::Surplus)`, na nabídkách **tiše nedělá nic** (žádná chyba, žádný
-  záznam) → filtruj `'%1|%2'` Surplus + Prospect. Párované (`Reservation` /
-  `Tracking`) nech být — `CreateReservEntry.CreateEntry` pro ně zakládá dvě
-  řádky a protistrana drží starou hodnotu.
-- `Sales-Quote to Order` volá na **každé** položce
-  `ReservEntry.TestItemFields(SalesLine."No.", "Variant Code", "Location Code")`
-  → jakýkoliv nesoulad varianty mezi řádkem a jeho rezervačními položkami
-  vybouchne až tady (*„Kód varianty musí být rovno…"*), ne při samotné změně.
-  Konfigurátorové scénáře, které mění `Variant Code` řádku se sledováním, proto
-  musí variantu na entries srovnat samy — a `CreateReservEntry.TransferReservEntry`
-  ji s sebou nese přes `TransferFields(OldReservEntry, false)`, takže po přesunu
-  položky na jiný řádek zůstává stará.
-
-(2026-09-17, prod-ess-configurator-bc WI 66066 — rozdělení řádku nabídky
-s konfigurací; `Sales Line Split Mgt. COEBS.AlignTransferredTrackingVariant`
-srovnával jen Surplus, na nabídce tedy nic, a Make Order padal. Zdroje Base
-Application 28.3.52162.53506, extrakce z .app.)
-
-**Praktický dopad:** report/factbox „rozpad SN z řádků nabídky" se čte z 337
-(+ 336 pro handled) s filtrem `Source Subtype = 0`, žádné vlastní pole na
-řádku není potřeba. U Zlomku to sbírá hotová codeunit `Item Tracking Mgt. ZLK`
-(`CollectForDocument(Database::"Sales Line", DocType, DocNo, TempBuffer)`,
-viz doc 64189 v `cust-zlomek-bc`) — při dalších reportech nad SN nabídky ji
-znovu použij, nepiš nový sběr.
+Item Tracking (výběr šarže vlastní stránkou z Item Tracking Lines, source pole u Prod. Order Line, tracking na Sales Quote
+Prospect vs Surplus) žije od 2026-10-07 ve skillu `bc-al-tracking` (soubor `bc-al-tracking.md`). Číslování zůstalo.
 
 ### 5.x3 EM Net Make to Order — `Sales Production Ref. NMEBS` (64120) = vazba SO řádek ↔ VZ řádek
 
@@ -918,29 +822,10 @@ Zdroj w1-28 `Modules/System/JobQueue/JobQueueEntry.Table.al` + `JobQueueEnqueue.
   Hold — neassertovat). Zdroj Base App 28.5 `JobQueueEnqueue.Codeunit.al`. (2026-10-06, cust-soitron-bc
   `QB Buffer Automation Mgt. SOI.StartScheduledAutomation` — start QB automatizace z API page bufferu.)
 
-### 5.x15 Item Tracking na fakturačním řádku z Get Shipment Lines — smí být JEN `Prospect` z dodávky; subscriber na `Validate(Quantity)` tam nesmí sahat
+### 5.x15 → vyčleněno do `bc-al-tracking.md`
 
-`Sales Shipment Line.InsertInvLineFromShptLine` (BC 28) staví fakturační řádek jako `SalesLine := SalesOrderLine` → `Line No.` /
-`Document Type` / **`Shipment No.` + `Shipment Line No.`** → `ClearSalesLineValues` → **`SalesLine.Validate(Quantity, …)`** (ještě před
-`Insert`) → … → `Insert` → `ItemTrackingMgt.CopyHandledItemTrkgToInvLine` (Prospect entries s `Item Ledger Entry No.` z Item Entry
-Relation dodávky). Při účtování jde řádek s `Shipment No. <> ''` přes `Sales Line-Reserve.RetrieveInvoiceSpecification2`, který projde
-**všechny** rezervační položky řádku a na každé udělá `TestField("Reservation Status", Prospect)` + `TestField("Item Ledger Entry No.")`.
-Jakýkoli vlastní subscriber na `Sales Line OnAfterValidateEvent Quantity/No./…`, který zakládá tracking (`CreateReservEntry.CreateEntry(…,
-Surplus)`), se na fakturačním řádku chytne už při tom `Validate(Quantity)` (Line No. je nenulové, řádek vypadá „čistý", protože
-`ClearSalesLineValues` vynulovalo Qty. Shipped) → na řádku je tracking dvojmo (Item Tracking Lines ukáže množství 2× vyšší než řádek)
-a účtování padne „Stav rezervace musí být rovno 'Výhled' v Položka rezervace … Současná hodnota je 'Přebytek'". Obrana v subscriberu:
-`"Shipment No." <> ''` / `"Return Receipt No." <> ''` → exit (obojí je přiřazené před Validate); a obecně status podle
-`Item Tracking Management.IsOrderNetworkEntity` — Surplus jen pro Order/Return Order, Invoice/Credit Memo/Quote/Blanket dostávají Prospect
-(viz 5.x2b), filtry na vlastní tracking pak `Surplus|Prospect`. Úklid rozbitého dokladu: smazat řádek faktury a Get Shipment Lines znovu
-(rezervační položky řádku se smažou s ním). (2026-09-24, cust-soitron-bc `Job Lot Tracking Mgt. SOI` — šarže = číslo projektu, faktura z
-částečné dodávky.)
-Oprava v cust-soitron-bc 2026-09-24 (`Job Lot Tracking Mgt. SOI`, testy `Job Lot Tracking Test SOI`): guard `Shipment No.` /
-`Return Receipt No.` (sales) a `Receipt No.` / `Return Shipment No.` (purchase) v `IsRelevant*Line` + status z
-`ItemTrackingMgt.IsOrderNetworkEntity(SourceType, SourceSubtype)` (public) místo pevného Surplus; všechny filtry/mazání
-vlastního trackingu berou ten samý status. V testu částečnou dodávku šaržového řádku uděláš tak, že na jediné Surplus položce
-řádku nastavíš `"Qty. to Handle (Base)"` / `"Qty. to Invoice (Base)"` na dodávané množství (`Modify(false)`), jinak Sales-Post
-hlásí nesoulad Qty. to Handle vs. Qty. to Ship. `Sales Line."Job No."` (45) je v BC 28 `Editable = false` bez OnValidate —
-`OnAfterValidateEvent` na něj přesto z kódu funguje.
+Tracking na fakturačním řádku z Get Shipment Lines (jen Prospect z dodávky) a předvyplnění šarže na Item Tracking Lines
+(5.x15b) žijí od 2026-10-07 ve skillu `bc-al-tracking`. Číslování zůstalo.
 
 ### 5.x16 Data Exchange Framework (import bankovních výpisů camt.053) — pasti definice a mapování
 

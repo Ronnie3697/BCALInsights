@@ -109,7 +109,10 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   (`powershell -File x.ps1`), soubor s diakritikou **ulož s UTF-8 BOM** (PS 5.1 bez BOM čte ANSI) a zapisuj přes
   `[IO.File]::WriteAllText(path, text, UTF8Encoding($false))`, ať zůstane LF bez BOM jako původní `.xlf`.
   Log alc 17 z Bash redirectu (`> log 2>&1`) byl tentokrát čistý ASCII, ne UTF-16 (viz níže) — dekóduj podle BOM,
-  nehádej. (2026-09-22, cust-soitron-bc)
+  nehádej. (2026-09-22, cust-soitron-bc) Totéž platí pro údržbu notes (`check-skills.py` bez pythonu → port do PS):
+  **názvy proměnných v PowerShellu jsou case-insensitive** — `$Obj` (cesta) a `$obj` (obsah) je jedna proměnná, obsah
+  přepíše cestu a `WriteAllText` spadne na „Illegal characters in path"; pojmenuj `$ObjPath` / `$objText`. BOM na skript
+  z Bash: `printf '\xEF\xBB\xBF' | cat - x.ps1 > x_bom.ps1`. (2026-10-07, split `bc-al-tracking.md`)
 - **Trans-unit ID do ručních překladů:** po CLI kompilaci (s feature
   `TranslationFile`) se přegeneruje `Translations/*.g.xlf` — ID nových
   trans-unitů opiš odtud, není nutné počítat FNV-1a hash ručně (viz 6.2).

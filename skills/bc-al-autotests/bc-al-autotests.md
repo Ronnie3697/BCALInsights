@@ -212,6 +212,14 @@ Assert.ExpectedErrorCode('Dialog');
   se testuje přes `asserterror` + `[PageHandler]` na `TestPage "Error Messages"` (`First()` + `.Description.Value()` do globální
   proměnné, pak `Close()`), `Commit()` po GIVEN; `ExpectedError` nepoužívat (hláška je prázdná). (2026-10-01, cust-soitron-bc
   `Job Cancel Test SOI`, 66504 — kompilace čistá, CI běh po PR.)
+- **`LibraryJob.UseJobPlanningLine(JPL, UsageLineType, Fraction, var JobJnlLine)` řádek deníku projektu rovnou ÚČTUJE**
+  (`CreateJobJournalLineForPlan` + `PostJobJournal` = codeunit `Job Jnl.-Post` s Confirm „Do you want to post the journal
+  lines?") → bez `[ConfirmHandler]` „Unhandled UI: Confirm", a navazující `Validate`/`Modify` na vráceném řádku sáhne na už
+  smazaný řádek. Když potřebuješ řádek před účtováním upravit nebo si přečíst `Total Cost (LCY)`, postav ho sám:
+  `LibraryJob.GetJobJournalTemplate` + `CreateJobJournalBatch` + `Job Transfer Line.FromPlanningLineToJnlLine(JPL, WorkDate(),
+  Template, Batch, JobJnlLine)` + `Get` (vloží s `Job Planning Line No.` jen při usage linku → `Validate` explicitně, doplň
+  `Document No.`) a zaúčtuj `Job Jnl.-Post Line.RunWithCheck(JobJnlLine)` — bez dialogu, přesně to, co dávka dělá per řádek.
+  (2026-10-07, cust-soitron-bc `JPL Doc. Amounts Test SOI`, běh v lokálním kontejneru.)
 - **`Library - Setup Storage`: pohodlné wrappery `SaveSalesSetup()` / `SavePurchasesSetup()` / `SaveGeneralLedgerSetup()` …
   mají scope OnPrem** → v test appce s `"target": "Cloud"` `error AL0296 ... has scope 'OnPrem'`. Použij generické
   `LibrarySetupStorage.Save(Database::"Sales & Receivables Setup")` + `Restore()` v `Initialize()` (Restore hned po
