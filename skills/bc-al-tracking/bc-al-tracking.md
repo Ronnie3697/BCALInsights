@@ -115,7 +115,18 @@ Application 28.3.52162.53506, extrakce z .app.)
 řádku není potřeba. U Zlomku to sbírá hotová codeunit `Item Tracking Mgt. ZLK`
 (`CollectForDocument(Database::"Sales Line", DocType, DocNo, TempBuffer)`,
 viz doc 64189 v `cust-zlomek-bc`) — při dalších reportech nad SN nabídky ji
-znovu použij, nepiš nový sběr.
+znovu použij, nepiš nový sběr. Pro jeden řádek (sloupce Výčet SN / Počet SN na subformu, PBI 65152)
+má `CollectForSalesLine` / `GetSalesLineSerialNos` — bere 337 ve **všech** stavech (Surplus, Prospect,
+Reservation, Tracking), filtr na stav by nezrychlil nic (klíč `Source ID, Source Ref. No., Source Type,
+Source Subtype, …` = seek) a schoval by SN rezervovaná ze skladu.
+
+⚠️ **Test knihovna stav nabídky NEsimuluje:** `Library - Item Tracking.CreateSalesOrderItemTracking` →
+`InsertItemTracking` dává `Prospect` jen řádkům deníku zboží, plánovaným/simulovaným VZ a sešitu požadavků;
+**každý `Sales Line` (i nabídka) dostane `Surplus`** (BCApps `LibraryItemTracking.Codeunit.al`). Test, který
+má hlídat chování na nabídce (Prospect), musí stav po založení přepnout sám (`"Reservation Status" :=
+Prospect` + `Modify(false)`), jinak kód filtrující jen Surplus projde zeleně. Stejně levně jde zafixovat
+„všechny stavy“ (přepnout jednu položku na Reservation / Tracking — sběr čte jen stranu řádku).
+(2026-10-08, cust-zlomek-bc 65152 code review, `Sales Line SN Tests ZLK`.)
 
 ### 5.x15 Item Tracking na fakturačním řádku z Get Shipment Lines — smí být JEN `Prospect` z dodávky; subscriber na `Validate(Quantity)` tam nesmí sahat
 
