@@ -90,7 +90,11 @@ příklady jsou v souboru.
 - **12.4** Essence build bere **první `*Ruleset*.json` (case-insensitive)
   rekurzivně ve složce s `app.json`**; `ruleSetPath` v `app.json` = AL0124; `.vscode` je
   gitignored, `.code-workspace` řídí jen editor. `failOn = 'warning'`.
-- **12.5** Word layout psaný skriptem: namespace vazeb = název reportu bez teček,
-  mezery → `_` (ověř v `customXml` po kompilaci), zip položky s lomítky, jeden štítek
-  na stránku přes řádek tabulky s `hRule="exact"`. GS1-128 přes System App nejde
-  (bez FNC1) → vlastní Code 128 encoder pro font `IDAutomationC128*`.
+- **12.5** Word layout psaný skriptem: namespace vazeb = název reportu, každá skupina
+  ne-alfanumerických znaků → jedno `_`, **ID a token ber z `.al` skriptem** (přečíslovaný
+  report = prázdný tisk bez chyby; ověř, že `alc` nechal tvůj `customXml/item1.xml`).
+  Struktura jako MS layouty: hlavní dataitem bez repeateru (`WordMergeDataItem`), repeater
+  jen pro vnořený, aliasy `#Nav: /<dataitem>/<sloupec>`. Zip položky s lomítky, jeden
+  štítek na stránku přes řádek tabulky s `hRule="exact"`. GS1-128 přes System App nejde
+  (bez FNC1) → vlastní Code 128 encoder pro font `IDAutomationC128*`; kontrolní číslici
+  EAN font dopočítá → validuj GS1 mod 10 před tiskem.

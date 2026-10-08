@@ -835,12 +835,23 @@ permission set coverage netřeba pro test codeunity).
 Štítky 100×100 / 100×50 mm s EAN a GS1-128 pro Sonnentor (PBI 65662, 2026-10-02) — Word layout
 psaný skriptem (node generuje `document.xml` + customXml, PowerShell zipuje), bez Wordu. Co platí:
 
-- **Namespace vazeb:** `urn:microsoft-dynamics-nav/reports/<Název>/<ID>/`, kde `<Název>` = název
-  reportu s mezerami → `_` a **tečky vypuštěné** (`"Prod.Order Transport Label SON"` →
-  `Prod_Order_Transport_Label_SON`). Ověř po první kompilaci: `alc` do `.docx` přegeneruje
-  `customXml/item*.xml` (UTF-16) s datasetem — otevři ho a porovnej s `prefixMappings` v
-  `document.xml`. Element dataitemu = **jméno dataitemu** (`ProductionOrder`, ne tabulka), vnořený
-  dataitem = vnořený element (`/ns0:ProductionOrder[1]/ns0:LabelCopy`).
+- **Namespace vazeb:** `urn:microsoft-dynamics-nav/reports/<Token>/<ID>/`, kde `<Token>` = název
+  reportu, v němž **každá skupina ne-alfanumerických znaků = jedno `_`** (`"Prod.Order Commercial Lbl. SON"`
+  → `Prod_Order_Commercial_Lbl_SON`; `". "` je jedno `_`, ne dvě). **Token i ID ber z `.al` souboru
+  skriptem**, ne z hlavy — report přečíslovaný kolegou (54804 → 54807) = kompilátor part nahradí vlastním
+  `item2.xml` a štítek se vytiskne **prázdný bez chyby** (2026-10-08). Kontrola po kompilaci: když `alc`
+  nechal tvůj `customXml/item1.xml` + `itemProps1.xml`, vazby sedí; když tam je jen jeho `item2.xml`
+  (UTF-16), nesedí namespace. Element dataitemu = **jméno dataitemu** (`ProductionOrder`, ne tabulka),
+  vnořený dataitem = vnořený element (`/ns0:ProductionOrder[1]/ns0:LabelCopy`).
+- **Struktura jako MS layouty** (ověřeno proti `Standard Sales - Invoice` a `Item GTIN Label` z Base App
+  `.app`, složka `layout/…/*.docx`; původní verze s repeaterem i pro hlavní dataitem a aliasy = názvy sloupců
+  se vykreslila prázdná): hlavní dataitem s `WordMergeDataItem` se **neobaluje** repeating section — renderer
+  dělá dokument per záznam sám; repeater (`w15:dataBinding` + `w15:repeatingSection`, alias
+  `#Nav: /ProductionOrder/LabelCopy`) jen pro vnořený dataitem; **každý** content control má alias
+  `#Nav: /<cesta dataitemů>/<sloupec>`, tag `#Nav: <Token>/<ID>` a `w:dataBinding` s absolutním xpath
+  `/ns0:NavWordReportXmlPart[1]/ns0:ProductionOrder[1]/ns0:LabelCopy[1]/ns0:ItemNo[1]`. Obrázek =
+  `w:picture` control se stejným aliasem (`…/CompanyPicture`). Soubor vazeb v `.rels` piš absolutně
+  (`/customXml/item1.xml`), relativní `../customXml/item1.xml` vedlo k nahrazení partu.
 - **Zip musí mít v názvech položek lomítka.** PS 5.1 `[IO.Compression.ZipFile]::CreateFromDirectory`
   píše `customXml\item1.xml` (backslash) → Word/alc balíček nemusí přijmout. Zipuj přes `ZipArchive`
   + `CreateEntry(rel.Replace('\','/'))`, `[Content_Types].xml` první.
@@ -864,6 +875,13 @@ psaný skriptem (node generuje `document.xml` + customXml, PowerShell zipuje), b
   95–106 → chr(v+100) (FNC1 = Ê 202, Start C = Í 205, Stop = Î 206). GS1: FNC1 za startem a za každým
   prvkem proměnné délky (AI 10, 30), AI 02 = GTIN-14 (EAN zleva nulami), AI 15 = `<Year,2><Month,2><Day,2>`.
   Ručně ověřitelné vektory do testu: `FNC1 0201` → check 8, `FNC1 10AB` → check 5.
+- **Kontrolní číslici EAN font dopočítá sám** — `IDAutomationUPCEAN*` vytiskl `…22561`, zatímco Item Reference
+  držel `…22560`; čárový kód a tištěný text se rozešly bez chyby. Před tiskem ověř GS1 mod 10 (váhy 3,1,3,1…
+  zprava, `(10 − Σ mod 10) mod 10`) a špatný EAN zastav chybou s očekávanou číslicí (`ValidateEANCheckDigit`).
+  Testovací EANy musí mít platnou kontrolní číslici (`8591234567893`, `18591234567890`, `12345670`).
+- **Rozměry na štítku 100×50 mm:** EAN-13 ve fontu M při 13 pt ≈ 40 mm → ve sloupci 31 mm se zalomí (zbytek
+  čar na dalším řádku) a vytlačí zbytek obsahu za `hRule="exact"` výšku (GS1 řádek zmizí). EAN 10 pt + sloupec
+  ≥ 37 mm, GS1 XS 11 pt (~80 mm), Arial 7–11 pt.
 - **Název objektu max 30 znaků** (`Prod. Order Transport Label SON` = 31 → `Prod.Order …`), AA0215 pak
   chce soubor podle zkráceného názvu (`ProdOrderCommercialLbl.Report.al`).
 - `Library - Item Tracking.CreateProdOrderItemTracking` je od 27.0 deprecated (AL0432) → stejná signatura
