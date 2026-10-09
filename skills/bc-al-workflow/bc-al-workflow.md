@@ -864,8 +864,10 @@ psaný skriptem (node generuje `document.xml` + customXml, PowerShell zipuje), b
   (`column(CompanyPicture; CompanyInformation.Picture)` po `CalcFields`) + placeholder PNG v
   `word/media` a `r:embed`; vzor `DisposalProtocol.Report.docx` (header).
 - **Barcode fonty BC online** (MS Learn `devenv-report-barcode-fonts`, IDAutomation): Code 128 =
-  `IDAutomationC128XS/S/M/L/XL` (XS při 12 pt ≈ X 0,19 mm → ~420 modulů GS1 kódu ≈ 80 mm), UPC/EAN =
-  `IDAutomationUPCEAN*` (M). Text pro font: `Barcode Font Provider` (`Enum::"Barcode Font
+  `IDAutomationC128XS/S/M/L/XL/XXL`, UPC/EAN = `IDAutomationUPCEANXXS/XS/S/M/L`. **Přípona = výška čar,
+  šířku kódu řídí jen velikost písma** (XS není „úzký“ — ověřeno 2026-10-09: GS1-128 s 38 symboly při 11 pt
+  ≈ 103 mm, tj. X ≈ 0,25 mm; při 8 pt ≈ 75 mm). Chceš-li úzký a zároveň vysoký kód, dej malé písmo a vyšší
+  variantu (`C128M` 8 pt). Text pro font: `Barcode Font Provider` (`Enum::"Barcode Font
   Provider"::IDAutomation1D`, `ValidateInput` + `EncodeFont(Text, Enum::"Barcode Symbology"::"EAN-13")`).
 - **GS1-128 přes System App NEJDE:** `IDA 1D Code128 Encoder` volá DotNet `FontEncoder.Code128(Text)`
   bez `ApplyTilde` → FNC1 (`~202`) ani závorková metoda IDAutomation se neuplatní. Vlastní encoder
@@ -881,7 +883,11 @@ psaný skriptem (node generuje `document.xml` + customXml, PowerShell zipuje), b
   Testovací EANy musí mít platnou kontrolní číslici (`8591234567893`, `18591234567890`, `12345670`).
 - **Rozměry na štítku 100×50 mm:** EAN-13 ve fontu M při 13 pt ≈ 40 mm → ve sloupci 31 mm se zalomí (zbytek
   čar na dalším řádku) a vytlačí zbytek obsahu za `hRule="exact"` výšku (GS1 řádek zmizí). EAN 10 pt + sloupec
-  ≥ 37 mm, GS1 XS 11 pt (~80 mm), Arial 7–11 pt.
+  ≥ 37 mm, GS1-128 `C128S`/`C128M` 8 pt (~75 mm pro 38 symbolů), Arial 7–11 pt. Přetečený čárový kód poznáš
+  podle „zbytku čar“ na dalším řádku pod kódem.
+- **Prázdný prvek GS1 je neplatný** — AI (10) bez šarže vytiskne `(10)(30)…`, což čtečka odmítne. Prvky bez
+  hodnoty vynechej (lot, množství 0, datum 0D) a FNC1 oddělovač dávej jen za prvek proměnné délky, po kterém
+  ještě něco následuje.
 - **Název objektu max 30 znaků** (`Prod. Order Transport Label SON` = 31 → `Prod.Order …`), AA0215 pak
   chce soubor podle zkráceného názvu (`ProdOrderCommercialLbl.Report.al`).
 - `Library - Item Tracking.CreateProdOrderItemTracking` je od 27.0 deprecated (AL0432) → stejná signatura
