@@ -6,13 +6,13 @@ description: >-
   existující přeskočí, userErrors tiché, produkt bez options, OnAfterCreateTempShopifyProduct, Add
   z karty mimo 30106, BCShopifyConnectorDocs, Internal vrstva → vlastní HttpClient + custom app,
   fronta místo HTTP v postingu; BC29: expirující tokeny 2027-01-01, GQL → .graphql,
-  HttpClientHandler), HttpClient na SaaS (Allow HttpClient Requests silent fail, Windows auth
+  HttpClientHandler), HttpClient na SaaS (Allow HttpClient Requests, Windows auth
   OnPrem-only), Isolated Storage scope, SecretText (Unwrap AL0296, HMAC,
-  SecretStrSubstNo), Power Automate (Business Events preview vs fronta + API page); vlastní
-  API page pro zápis (POST validace, temporary OnFindRecord, $filter před limitem, stale relace);
-  Dataverse/CDS sync (Integration Table Filter jen Dataverse→BC, Enum→Choice = Option Picklist +
-  OptionOrdinalValues, testy přes @@test@@ + Integration Record Synch.). Načti u Shopify,
-  HTTP, API, Dataverse.
+  SecretStrSubstNo), Power Automate (Business Events preview vs API page); API page
+  pro zápis (POST validace, temporary OnFindRecord, $filter před limitem, stale relace);
+  Dataverse/CDS (Integration Table Filter jen Dataverse→BC, Enum→Choice = Option Picklist +
+  OptionOrdinalValues, testy přes @@test@@); Dotykačka (stockQuantityStatus, display,
+  priceWithVat). Načti u Shopify, HTTP, API, Dataverse.
 user-invocable: true
 ---
 

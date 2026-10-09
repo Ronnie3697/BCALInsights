@@ -11,7 +11,7 @@
 
 Obsahuje:
 - **5.y2** Shopify Connector (BC28) — variant sync (část sekce 5)
-- **11.** SaaS gotchas — HttpClient, SecretText, Isolated Storage, Business Events / Power Automate
+- **11.** SaaS gotchas — HttpClient, SecretText, Isolated Storage, Business Events / Power Automate, API page, Dataverse, Jira, Dotykačka (11.10)
 
 ## 5. Specifické objekty a API — integrace (jen 5.y2; zbytek sekce 5 v `bc-al-objects.md`)
 
@@ -383,3 +383,26 @@ musí končit `/user/search`) a říct zákazníkovi, ať hodnotu přepíše.
 - Account Id je pro Jira i Tempo povinný identifikátor (payloady `leadAccountId` / `assignee.id`, Tempo worklog `author.accountId`
   bez e-mailu; Atlassian GDPR migrace 2019; `GET /user/email` je jen pro Connect/OAuth appky, ne Basic auth) — ukládat ho na zdroj
   jako cache má smysl i při viditelných e-mailech.
+
+### 11.10 Dotykačka (Dotypos API v2) — stav skladu je `stockQuantityStatus`, blokace = `display: false`, ceny s DPH do `priceWithVat`
+
+Z prod-ess-dotykackaConnector-bc, PBI 63075 (test Pavla Fily 2026-10-08, oprava 2026-10-09; zdroj
+`docs.api.dotypos.com/entity/warehouse/` a `/entity/product/`, `api.dotykacka.cz/...` WebFetch vrací 403):
+
+- **`GET warehouses/{id}/products` nese množství v poli `stockQuantityStatus`, ne `quantity`.** Delta sync (stav Dotykačky
+  vs. `Item.Inventory`) četl neexistující `quantity` → null-safe getter vrátil 0 → každý běh naskladnil (stockup) celou
+  BC zásobu znovu („synchronizace zásob přičítá"). Obecně: **u delta syncu proti cizímu stavu chybějící pole = chyba
+  čtení, ne nula** (`JsonObject.Contains` před getterem; null hodnota = 0 je OK). První běh po opravě sám srovná
+  nafouknutý stav jedním `sales` pohybem.
+- Stockup / sale (`POST warehouses/{id}/stockups|sales`) bere **max. 100 položek** → posílat po dávkách;
+  `purchasePrice` / `sellPrice` u stockupu volitelné.
+- **Produkt nejde zablokovat** — prodej se zastaví skrytím `display: false` (PATCH, If-Match ETag z GET entity, jinak 428).
+  `display` jde filtrovat (`filter=id|in|1,2;display|eq|true`, bez shody HTTP 404) → skrývej jen ještě zobrazené,
+  ustálený stav pak stojí jeden GET na dávku. Odblokování = další plný PUT s `display: true`.
+- **Ceny:** minimální body je `priceWithoutVat` + `vat` (multiplikátor 1.21); `priceWithVat` je volitelné a Dotykačka ho
+  jinak dopočte. B2C ceník v BC je s DPH → posílat `priceWithVat` = cena a `priceWithoutVat` = cena / `vat` s jemnou
+  přesností (0,00001), jinak se cena s DPH zapíše jako cena bez DPH a pokladna přičte DPH podruhé. Hladiny
+  `priceWithVatB–E` jsou s DPH a platí **pro celý cloud** (pole produktu) → mapování hladina → ceník bez lokace v klíči.
+  Výběr řádku `Price List Line` pro export: `Status` Active, `Amount Type` Price|Any, `Minimum Quantity` 0, LCY,
+  `Unit of Measure Code` prázdná|základní, `Starting Date ..WorkDate`, `Ending Date` `%1|>=%2` (0D, WorkDate), varianta →
+  fallback řádek zboží, převod přes `"Price Includes VAT"` řádku.
