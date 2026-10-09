@@ -599,6 +599,20 @@ objednávky → **řádek bez vazby s cenou HNO/HPO**. „Rekontrolu navázanéh
 už v uložené verzi (`Get` + porovnat Blanket Order No./Line No.), ne na vazbu, která právě vzniká. (2026-10-06, cust-sonnentor-bc
 PBI 64046, code review větve `BlanketOrders_64046_Feedback`; zdroj w1-28 `SalesLine.Table.al` / `PurchaseLine.Table.al`.)
 
+⚠️ **Změnu `Variant Code` (ani `Location Code`) navázaného řádku standard nehlídá.** Vazba zůstane, cena taky
+(`UpdateDirectUnitCostByField` / `UpdateUnitPriceByField` → `BlanketOrderIsRelated` → cena řádku HNO/HPO) a `Purch.-Post` /
+`Sales-Post.UpdateBlanketOrderLine` testuje jen `Type`, `No.` a dodavatele / zákazníka → účtování čerpá řádek hromadné objednávky
+**jiné varianty**. Hlídání = subscriber `OnAfterValidateEvent("Variant Code")` s podmínkou „vazba + varianta ≠ varianta řádku
+HNO/HPO": vznikající vazba ji nikdy nesplní, standardní validace `Blanket Order Line No.` volá `Validate("Variant Code", <varianta
+HNO>)` jako první krok (u Drop Shipment / Special Order jen `TestField`). Pak `Validate("Blanket Order No.", '')` + standardní cena
+přes temp kopii (výš) + hledání HNO/HPO pro novou variantu. Odpojit jde jen nepřijatý / nedodaný řádek (`TestField("Quantity
+Received" / "Quantity Shipped", 0)`) a standardní validace varianty navíc chce `Qty. Rcd. Not Invoiced` / `Qty. Shipped Not
+Invoiced` = 0 a prázdné `Receipt No.` / `Shipment No.` → vlastní chyba „řádek už je přijatý" nastane jen u přijatého **a
+vyfakturovaného** řádku a test ho musí zaúčtovat `PostPurchaseDocument(…, true, true)` (CRONUS CZ prošlo bez dalšího nastavení).
+`Variant Code` je na `Purchase/Sales Order Subform` ve standardu `Visible = false` → testuj přes `Rec.Validate` a kontrolu proto
+neomezuj na `CurrFieldNo <> 0`. (2026-10-09, cust-sonnentor-bc Task 66586; zdroj Base App 28.5 `PurchaseLine/SalesLine.Table.al`,
+`PurchPost/SalesPost.Codeunit.al`.)
+
 ### 5.x6 „Nemáte dostatečné množství zboží … na skladě" u spotřeby/transferu — `VerifyOnInventory` ignoruje Prevent Negative Inventory
 
 - `Item Ledger Entry.VerifyOnInventory` volá `Item Jnl.-Post Line.InsertItemLedgEntry` **jen když je nová
