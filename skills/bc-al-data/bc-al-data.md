@@ -255,6 +255,12 @@ enum `Field Type` (PK) zůstal ' ' → kopie „proběhla", ale řádky skončil
 klíče; dvě skupiny formulí by se srazily na `Line No.` 10000. Při review copy kódu porovnej **každé** přiřazení po
 `TransferFields(…, false)` s PK — enum/option PK pole se přehlédnou nejsnáz.
 
+Recidiva 2026-10-09 (prod-ess-dotykackaConnector-bc, `Sync Log.LogRun` — temp buffer detailů → reálná tabulka s
+**`AutoIncrement`** `Entry No.`): `Init()` + `TransferFields(Temp, false)` + `Insert` ve smyčce na jedné proměnné → první
+řádek dostal číslo z AutoIncrementu, druhý si ho po `Init()` nesl dál a spadl na *„The record … already exists. Entry No.='1'"*.
+AutoIncrement přiděluje číslo **jen při 0** — před `Insert` vždy `"Entry No." := 0`. Test s jedním řádkem bufferu to neodhalí,
+až dva řádky (lokální kontejner, 2 z 97 testů).
+
 ### 2.6a Remap helper s „chybí v mapě → vynuluj" — projdi VŠECHNY volající a jejich mapy
 
 Když sdílený remap helper (`TryRemapParamLineNo(var Field, Mapping)`) přepneš z „není v mapě → nech" na „není v mapě
