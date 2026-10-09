@@ -7,8 +7,9 @@ description: >-
   CurrFieldNo), Requisition Line (GetDirectCost, Make Order, Order Planning, Carry Out, Calculate Plan bez dotazu
   přes manual bind), IsPriceUpdateNeeded (cena po odpojení HNO), VerifyOnInventory,
   Item Jnl. Line UoM qty-per, Auto Format částek, Item Charge Assignment, Job Queue z účtování / recurring / na popředí,
-  Data Exchange / camt.053 (merge sloupců, Regex Match, 274). Načti u číselných řad, výroby,
-  plánování, Job Queue, bankovního importu. (Shopify, HttpClient → bc-al-integrations; Job Planning Line /
+  Data Exchange / camt.053 (merge sloupců, Regex Match, 274), Bin Code na řádcích SO/PO (GetDefaultBin,
+  OnAfterGetDefaultBin, Shipment Bin override, Whse. Receipt/Shipment Line bin z lokace vs. řádku, Validate Bin Code
+  = Message). Načti u číselných řad, výroby, plánování, Job Queue, bankovního importu, přihrádek na dokladech. (Shopify, HttpClient → bc-al-integrations; Job Planning Line /
   projekty → bc-al-projects; Item Tracking / šarže / SN → bc-al-tracking.)
 user-invocable: true
 ---
