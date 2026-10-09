@@ -791,6 +791,17 @@ zdroje prod-ess-configurator-bc master, COEBS 28.0.22.0.)
   přes **`OnCollectParameterReferences(ConfigNo; ParamLineNo; IncludeVariantValues; var TempParamReference)`**
   (`TempParamReference.AddReference(...)`); stejná data slouží čítači, kontrole mazání i výpisu v reportu 63140. COZLK
   přidává převzaté parametry (hlavní i vnořená strana; zastaralá vazba — zboží řádku akce se změnilo — neblokuje).
+  **`BlocksDeletion` rozšíření = přesně pravidlo runtime**, ne „záznam existuje“: COZLK blokuje jen propojení, které by
+  za běhu předalo hodnotu (`IsNestedItemLine` + `GetLinkedNestedConfigNo` + **oba** parametry propojení existují).
+  Propojení na smazaný parametr druhé strany (data před 66711) se v okně Převzít parametry vůbec neukáže — kdyby
+  blokovalo, chyba by jmenovala něco, co uživatel nenajde (review 2026-10-09). **`Source Record ID` ukazuj na záznam
+  se stránkou:** tabulka bez `LookupPageId` (COZLK `SL Act. Taken Param`) nemá v *Chybových zprávách* co otevřít →
+  COZLK dává řádek SL akce (`LookupPageId` = `SL Action Lines Svc COEBS`), bez něj hlavní definici. Popis odkazu piš ve
+  tvaru COEBS (`line %1 of sales line action condition %2 (…)`) — v chybě se řadí vedle sebe.
+  ⚠️ **COEBS od PR 9695 (master 8d50acc, 2026-10-08) má `publisher` `Essence Business Solutions`** (dřív `Essence
+  International s.r.o.`; app, appCZ, test, testCZ). Konzument se starým vydavatelem v dependency dostane `info AL1076`,
+  kompilace projde (párování podle GUID). Při bumpu minima srovnej `publisher` a ověř ID balíčku nové verze na feedu
+  (`<Publisher><Name>.<guid>`, `query2?q=<guid>`, 7.11 v `bc-al-build.md`).
   ⚠️ **COALU CNC** (`CNC Action Condition."Source Parameter Line No."`, `CNC Action Line."Profile From Parameter"`) subscriber zatím
   nemá → follow-up v cust-alumistr-bc.
 - Použitý parametr nejde smazat (Error s výčtem až 10 použití); vlastní podmínky a vzorce parametru neblokují, uložené hodnoty variant

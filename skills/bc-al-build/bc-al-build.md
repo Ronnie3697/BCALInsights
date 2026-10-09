@@ -731,6 +731,16 @@ not run)`. Kontrola i u starší kopie: počet testů proti předchozímu běhu 
   CI ji vypisuje v kroku *Compile AL Apps* (`Artifact Description: bcartifacts/onprem/<ver>/cz/…`), lokální je v
   `bc-test-container\settings.json` (`version`). Rozdílné chování ověř přes historii souboru na StefanMaron
   (`commits?sha=w1-28&path=<soubor>` → commity per minor, raw URL se SHA, 7.3 v `bc-al-tools.md`).
+- **Konzument proti NEVYDANÉ větvi produktové appky** (zákaznická větev volá event / tabulku, které jsou jen ve feature větvi
+  COEBS): `Test-Repo.ps1` bere závislosti vždy z feedu, ale appku, jejíž `id` je mezi `app.json` repa, kompiluje ze zdrojáků
+  (`$repoIds`). Postav **kombinované repo ve scratchpadu**: `git archive HEAD | tar -x -C <combo>\<repo>` (přesně pushnutý
+  stav) + kopie `app/` produktové větve jako další složka (`<combo>\<repo>\coebs-66845\app`) s **verzí v kopii `app.json`
+  zvednutou nad minimum konzumenta** (28.0.99.0; alc páruje podle vnitřní verze, 7.11) a `-RepoPath <combo>\<repo>`. Skript
+  seřadí base → COEBS → COZLK, testy pustí jen testovacím appkám v repu (produktová `test/` se nekopíruje). Na začátku smaže
+  všechny verze ID produktové appky, které v kontejneru visí jako publikovaná závislost jiného repa — další běh toho repa ji
+  z cache publikuje znovu. Ověřeno 2026-10-09, cust-zlomek-bc 66711 proti COEBS `66845_ConditionTreeFromStructure`:
+  173 testů, 0 failů, 7 min (kompilace COEBS ~1,5 min navíc). Kompilační check před push stejně tak přes alc a temp cache
+  (COEBS proti své MS 28.5 řadě, konzument proti `.alpackages` repa **bez** starých verzí COEBS + čerstvý build, 7.1 v `bc-al-tools.md`).
 - Alternativa bez kontejneru: pipeline jde pustit ručně na feature větvi (Run pipeline → branch), testy pak proběhnou před merge.
 - **Zákaznické repo nad NEVYDANOU verzí produktové appky** (eventy / public procedury z feature větve, která ještě není na feedu):
   `Test-Repo.ps1` bere závislost z feedu → kompilace v kontejneru spadne. Postup bez zásahu do nástroje: produktovou appku
