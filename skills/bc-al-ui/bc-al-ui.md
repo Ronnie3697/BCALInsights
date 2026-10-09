@@ -477,3 +477,46 @@ změna uloženého řádku se zeptá znovu.
 platilo jen v testech; odvozeno z kódu a `DelayedInsert` v base subformech w1-28, v klientu neověřeno.)
 
 ---
+
+### 4.17 `CurrPage.Update(false)` v `OnValidate` pole stránky **zahodí právě zadanou hodnotu**
+
+`CurrPage.Update(false)` = obnov stránku **bez uložení**: řádek se znovu načte z databáze a hodnota, kterou uživatel
+právě zadal (a která prošla tabulkovým `OnValidate`), zmizí. Na kartě to vypadá jako „pole se nechce uložit"; zachytí to
+TestPage (`SetValue(40000)` a hned `Value()` vrátí `0`, bez chyby a bez validační chyby). Totéž platí pro hodnotu
+vrácenou z `OnLookup` přes `Text := …; exit(true)` – platforma ji validuje jako napsanou a skončí ve stejném `OnValidate`.
+
+```al
+trigger OnValidate()
+begin
+    // Save first - Update(false) alone re-reads the row and drops the entered value
+    if Rec."Line No." <> 0 then
+        CurrPage.SaveRecord();
+    CurrPage.Update(false);
+end;
+```
+
+Kdo po uložení něco přepočítává nad DB (strom, součty), dělá `SaveRecord()` → přepočet → `Rec.Find('=')` →
+`Update(false)` (přepočet mohl změnit i aktuální řádek). `Update(false)` bez předchozího uložení patří jen tam, kde se
+nic neměnilo nebo se uložilo v kódu (`Rec.Modify` před ním). (2026-10-09, prod-ess-configurator-bc 66845: vazba potomka
+na kartách a v dialozích podmínek SL akcí / kusovníku / postupu se z UI neukládala nikdy – chyba z masteru, odhalil ji
+až TestPage test.)
+
+---
+
+### 4.18 `ListPart` spuštěný přes `Page.RunModal` pod TestPage **není v lookup módu** – ani s `LookupMode(true)`
+
+Strom/seznam typu `ListPart` (často zároveň part na kartě) otevřený jako výběr `Page.RunModal(Page::X, Rec) = Action::LookupOK`
+(nebo přes proměnnou stránky s `LookupMode(true)` + `GetRecord`) se v testu chová jako **ne-lookup** modální stránka:
+`OK().Invoke()` v `ModalPageHandler` vrátí `Action::OK` (výběr se nevrátí), `Cancel()` hlásí *„The built-in action = Cancel
+is not found on the page"* a `Close()` v modálním handleru *„The RunModal procedure could not close the page … as it has
+already been closed"*. V klientu výběr funguje (data zákazníka), TestPage ho nasimulovat neumí.
+
+- Test výběru šipkou tedy **nestav na OK z handleru**: handler ověří nabídku (`GoToKey` true/false) a zavře `OK()`, hodnotu
+  test zadá po lookupu `SetValue` – ověří se aspoň filtr nabídky a uložení po tom, co seznam při otevření řádek přepočítal.
+  Výběr samotný proklikej ručně.
+- `PageType` partu kvůli testu neměň – stránka je vložená jako `part` na kartách.
+
+(2026-10-09, prod-ess-configurator-bc 66845, `Cond. Tree UI Tests COEBS`, BC 28.4 kontejner; v kontejneru navíc TestPage
+na `Error Messages` nenašel control `Source` z pageextension 705 Base App – handler čte jen `Description`.)
+
+---
