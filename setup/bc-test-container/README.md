@@ -4,9 +4,13 @@
 i stažený BcContainerHelper (`Modules\`), heslo kontejneru (`credential.xml`) a `settings.json`. **Do tohohle repa
 nic z toho nepatří.** Po `git pull`, který změní skripty tady, je zkopíruj znovu (`*.ps1`, `README.md`).
 
-Jeden sdílený Docker kontejner (`bctest28`, BC 28.4 OnPrem cz + test toolkit) pro autotesty všech repo
-(`cust-*`, `prod-*`). Repo se do něj nahraje, otestuje a appky se zase odinstalují — zákaznické appky sdílí PTE
-rozsah ID, vedle sebe by se popraly. AI agent ho pouští **po každém vyžádaném push** (nejdřív push, pak testy; 7.7b v `bc-al-tools.md`), detail
+Sdílené Docker kontejnery (BC 28.4 OnPrem cz + test toolkit) pro autotesty všech repo (`cust-*`, `prod-*`): jeden
+(`bctest28`), nebo pool dvou (`bctest28`, `bctest28b`), když testy pouští víc seancí najednou. Repo se do kontejneru
+nahraje, otestuje a appky se zase odinstalují — zákaznické appky sdílí PTE rozsah ID, vedle sebe by se popraly.
+**V jednom kontejneru vždy jen jeden běh:** `Test-Repo.ps1` si vezme první volný kontejner z poolu a drží jeho zámek
+(`test-run.lock` = soubor otevřený bez sdílení, s pádem procesu se uvolní sám), když jsou všechny obsazené, čeká
+(*All test containers are busy … (bctest28: cust-zlomek-bc (PID …, since …))*). Dva běhy v jednom kontejneru se
+rozbijí navzájem — jeden odpublikuje appky, jejichž testy druhý právě pouští. AI agent je pouští **po každém vyžádaném push** (nejdřív push, pak testy; 7.7b v `bc-al-tools.md`), detail
 a pasti 7.23 v `bc-al-build.md`.
 
 ## Předpoklady (jednorázově, admin)
@@ -18,8 +22,9 @@ a pasti 7.23 v `bc-al-build.md`.
   (skupina). Ve skupině je, v tokenu ne → stačí odhlásit / restart. Není ani ve skupině → v PowerShellu **jako správce**
   `Add-LocalGroupMember -Group docker-users -Member "<DOMÉNA>\<uživatel>"` (celé jméno vypíše `whoami`), pak
   **odhlásit / restart**. Bez toho Docker Desktop hlásí *„checking group membership: user is not a member of the group"*.
-- RAM: běžící kontejner ~7–8,5 GB (limit `memoryLimit` 8 GB) → v počítači ≥ 16 GB; zastavený (`docker stop bctest28`)
-  nebere nic a `Test-Repo.ps1` si ho nastartuje. Disk ~20–25 GB (image BC ~11 GB, artefakty 28.4 ~3,6 GB, kontejner
+- RAM: běžící kontejner ~7–8,5 GB (limit `memoryLimit` 8 GB) → v počítači ≥ 16 GB na jeden, ≥ 24–32 GB na pool dvou;
+  zastavený (`docker stop bctest28b`) nebere nic a `Test-Repo.ps1` si ho nastartuje. Druhý kontejner sdílí image
+  i artefakty, navíc jen databáze a servisní vrstva (jednotky GB). Disk ~20–25 GB (image BC ~11 GB, artefakty 28.4 ~3,6 GB, kontejner
   s databází jednotky GB, pracovní složka ~1 GB) → ~30 GB volného.
 
 ## Instalace (bez admina)
@@ -28,6 +33,8 @@ a pasti 7.23 v `bc-al-build.md`.
 cd <PRACOVNÍ-REPA>\bc-test-container
 powershell -ExecutionPolicy Bypass -File Install-Helper.ps1      # BcContainerHelper do .\Modules
 powershell -ExecutionPolicy Bypass -File New-TestContainer.ps1   # ~25 min poprvé (artefakty + generic image)
+# volitelně druhý kontejner do poolu (image a artefakty už jsou stažené, ~12 min) + "containerNames" v settings.json
+powershell -ExecutionPolicy Bypass -File New-TestContainer.ps1 -ContainerName bctest28b
 ```
 
 `settings.json` (volitelný, chybějící klíč = výchozí hodnota):
@@ -35,6 +42,7 @@ powershell -ExecutionPolicy Bypass -File New-TestContainer.ps1   # ~25 min poprv
 ```json
 {
   "containerName": "bctest28",
+  "containerNames": ["bctest28", "bctest28b"],
   "version": "28.4",
   "country": "cz",
   "memoryLimit": "8G",
@@ -42,7 +50,8 @@ powershell -ExecutionPolicy Bypass -File New-TestContainer.ps1   # ~25 min poprv
 }
 ```
 
-`patFile` = read-only PAT z `SETUP.md` krok 8b — stačí na NuGet feed `BCNugetPackages` se závislostmi
+`containerNames` = pool, ze kterého si běh bere volný kontejner (v pořadí); chybí = jen `containerName`. Do poolu
+přidej kontejner až po jeho vytvoření — neexistující kontejner běh shodí. `patFile` = read-only PAT z `SETUP.md` krok 8b — stačí na NuGet feed `BCNugetPackages` se závislostmi
 (výchozí hodnota: `..\MCP_PAT\DevOpsPAT.txt` vedle složky nástroje).
 
 ## Test repa
@@ -51,6 +60,7 @@ powershell -ExecutionPolicy Bypass -File New-TestContainer.ps1   # ~25 min poprv
 powershell -ExecutionPolicy Bypass -File Test-Repo.ps1 -RepoPath <PRACOVNÍ-REPA>\prod-ess-configurator-bc
 powershell -ExecutionPolicy Bypass -File Test-Repo.ps1 -RepoPath <repo> -TestCodeunit 63173     # jen jeden codeunit
 powershell -ExecutionPolicy Bypass -File Test-Repo.ps1 -RepoPath <repo> -KeepApps               # appky nechá nainstalované
+powershell -ExecutionPolicy Bypass -File Test-Repo.ps1 -RepoPath <repo> -ContainerName bctest28b  # konkrétní kontejner (čeká, je-li obsazený)
 ```
 
 Co dělá (stejně jako Essence pipeline):
@@ -64,7 +74,9 @@ Co dělá (stejně jako Essence pipeline):
   stará se odpublikuje). Nenainstalované nespouští kód při testech jiného repa,
 - chybějící Microsoft appky (např. AI Test Toolkit) doinstaluje z artefaktu v kontejneru,
 - appky zkopíruje do sdílené složky kontejneru (repo zůstane netknuté), zkompiluje a nainstaluje,
-- pustí testy testovacích appek, vypíše `SUMMARY: <n> tests, <n> failed, …` + seznam failů, uloží `TestResults.xml` (JUnit),
+- pustí testy testovacích appek, vypíše `SUMMARY: <n> tests, <n> failed, …` + seznam failů, uloží `TestResults.xml` (JUnit);
+  `ERROR DIALOG` během testů (test codeunit, který vůbec nešel spustit — ve výsledcích pak chybí, místo aby padl) běh
+  shodí a vypíše se jako `BROKEN (tests not run): …`,
 - na konci odinstaluje všechno, co nainstaloval (data i schéma pryč, Microsoft appky zůstanou), appky repa
   unpublishne, závislosti nechá publikované; smaže zdrojáky a symboly běhu. Exit code 0 = vše prošlo.
 - kroky uvnitř kontejneru jedou ve 4 relacích (`ContainerSide.ps1`): úklid zbytků, závislosti, appky repa, úklid —

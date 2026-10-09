@@ -1,8 +1,12 @@
-# Publishes the apps of an AL repo into the shared test container, runs the tests of its test apps and removes the
+# Publishes the apps of an AL repo into a shared test container, runs the tests of its test apps and removes the
 # apps again - the way the Essence pipeline does it: dependencies from BCNugetPackages (latest in the MajorMinor range of
 # the declared minimum, transitive ones from the .nuspec), apps compiled and installed in dependency order, test apps =
 # apps with "Test" in the name. Starts Docker Desktop and the container when they are stopped. A repo without a test app
 # ends right away.
+#
+# One run per container: the run takes the first free container of the pool (settings.json containerNames, or
+# -ContainerName) and holds its lock until the end; when all are busy it waits. Two runs in one container break each
+# other (one unpublishes apps or codeunits the other one is just running).
 #
 # The dependencies stay PUBLISHED (not installed) for the next run: each run checks the version on the feed, installs the
 # published one when it is the latest and publishes a newer one otherwise. Not installed, they run no code during the
@@ -17,6 +21,7 @@
 Param(
     [Parameter(Mandatory = $true)]
     [string] $RepoPath,
+    # A specific container instead of the first free one of the pool (waits while it is busy)
     [string] $ContainerName = '',
     # Test codeunit ID or name filter (Run-TestsInBcContainer -testCodeunit), e.g. 63173 or 'Var. Config*'
     [string] $TestCodeunit = '*',
@@ -25,7 +30,7 @@ Param(
     [switch] $KeepApps
 )
 . (Join-Path $PSScriptRoot 'Import-Helper.ps1')
-if (-not $ContainerName) { $ContainerName = $TestContainerSettings.containerName }
+$containerPool = if ($ContainerName) { @($ContainerName) } else { @($TestContainerSettings.containerNames) }
 
 $RepoPath = (Resolve-Path $RepoPath).Path.TrimEnd('\')
 
@@ -57,6 +62,10 @@ if (-not ($apps | Where-Object { $_.IsTest })) {
 $repoIds = @($apps | ForEach-Object { $_.Id })
 
 $repoName = Split-Path $RepoPath -Leaf
+# Held until the end of the script; released with its process even when the run breaks
+$containerLock = Lock-TestContainer -ContainerNames $containerPool -RunName $repoName
+$ContainerName = $containerLock.ContainerName
+Write-Host "Test container: $ContainerName"
 $runName = '{0}-{1}' -f $repoName, (Get-Date -Format 'yyyyMMdd-HHmmss')
 $runFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$ContainerName\test-runs\$runName"
 $srcFolder = Join-Path $runFolder 'src'
@@ -217,14 +226,25 @@ try {
     # --- Tests --------------------------------------------------------------------------------------------------------
     $allPassed = $true
     $append = $false
+    # ERROR DIALOG = a test codeunit that could not run at all (e.g. removed under the run) - it is missing in the results
+    # instead of failing there, so the summary alone would look green
+    $errorDialogs = New-Object System.Collections.Generic.List[string]
     foreach ($testApp in @($apps | Where-Object { $_.IsTest })) {
         Write-Host "Running tests of $($testApp.Name) (codeunit $TestCodeunit, function $TestFunction)"
-        $passed = Run-TestsInBcContainer -containerName $ContainerName -credential $credential -extensionId $testApp.Id `
+        $passed = $true
+        # The host output (stream 6) is relayed line by line to catch the ERROR DIALOG lines; the result comes as a bool
+        Run-TestsInBcContainer -containerName $ContainerName -credential $credential -extensionId $testApp.Id `
             -testCodeunit $TestCodeunit -testFunction $TestFunction -detailed -returnTrueIfAllPassed `
-            -JUnitResultFileName $junitFile -AppendToJUnitResultFile:$append
+            -JUnitResultFileName $junitFile -AppendToJUnitResultFile:$append 6>&1 | ForEach-Object {
+            if ($_ -is [bool]) { $passed = $_; return }
+            $line = "$_"
+            Write-Host $line
+            if ($line -like 'ERROR DIALOG*') { $errorDialogs.Add($line) }
+        }
         $append = $true
         if (-not $passed) { $allPassed = $false }
     }
+    if ($errorDialogs.Count -gt 0) { $allPassed = $false }
     $phaseSeconds['tests'] += $phaseTimer.Elapsed.TotalSeconds
 
     # --- Summary --------------------------------------------------------------------------------------------------
@@ -240,6 +260,7 @@ try {
             Write-Host ('  FAILED {0} / {1}: {2}' -f $case.classname, $case.name, $node.message)
         }
     }
+    foreach ($errorDialog in $errorDialogs) { Write-Host "  BROKEN (tests not run): $errorDialog" }
 }
 finally {
     $phaseTimer.Restart()
@@ -262,5 +283,6 @@ finally {
     Write-Host ('TIMING: {0}, total {1:mm\:ss}' -f (($phaseSeconds.GetEnumerator() | ForEach-Object { '{0} {1:N0} s' -f $_.Key, $_.Value }) -join ', '), $totalTimer.Elapsed)
     Write-Host "Run folder: $runFolder"
     Stop-Transcript | Out-Null
+    Unlock-TestContainer $containerLock
 }
 if (-not $allPassed) { exit 1 }

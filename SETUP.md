@@ -155,6 +155,8 @@ chce. **K otázce rovnou řekni, co to stojí:**
 
 - **RAM:** běžící kontejner si vezme ~7–8,5 GB (limit `memoryLimit` 8 GB) → v počítači doporučeno **≥ 16 GB**. Když se
   netestuje, jde zastavit (`docker stop bctest28`, RAM se uvolní) — `Test-Repo.ps1` si ho před testy nastartuje sám.
+  Kdo pouští testy z víc seancí najednou a má ≥ 24–32 GB, může mít **pool dvou** (`bctest28b`, viz README nástroje) —
+  jinak běhy čekají ve frontě na jeden kontejner.
 - **Disk:** ~20–25 GB — Docker image BC ~11 GB, artefakty BC 28.4 ~3,6 GB, kontejner s databází jednotky GB, pracovní
   složka kontejneru ~1 GB. Počítej s **~30 GB volného** na `C:`.
 - **Čas:** první stavba ~25 min (běží na pozadí); jeden běh testů repa 4–6 min (Zlomek 144 testů 3:45, konfigurátor
@@ -191,8 +193,8 @@ Rozmyslí si to později → průvodce pusť znovu, krok 9 větu přepíše.
 4. **Docker v Linux módu** → `& "$env:ProgramFiles\Docker\Docker\DockerCli.exe" -SwitchWindowsEngine`.
 5. **Nástroj:** zkopíruj `<KLON>\setup\bc-test-container\*` do `<PRACOVNÍ-REPA>\bc-test-container\` (existuje a liší
    se → ukaž rozdíl a zeptej se). Zapiš tam `settings.json` s `"patFile"` = `<MCP_PAT>\DevOpsPAT.txt` z kroku 8b
-   (ostatní klíče — `containerName` `bctest28`, `version` `28.4`, `country` `cz`, `memoryLimit` `8G` — jen když chce
-   jiné). Soubor piš nástrojem pro zápis souborů, ne Bash heredocem — ten sráží `\\` v JSON cestě na `\`.
+   (ostatní klíče — `containerName` `bctest28`, `containerNames` (pool), `version` `28.4`, `country` `cz`, `memoryLimit`
+   `8G` — jen když chce jiné). Soubor piš nástrojem pro zápis souborů, ne Bash heredocem — ten sráží `\\` v JSON cestě na `\`.
 6. `powershell -NoProfile -ExecutionPolicy Bypass -File "<PRACOVNÍ-REPA>\bc-test-container\Install-Helper.ps1"` —
    BcContainerHelper do `.\Modules` (bez admina; `Install-Module -Scope CurrentUser` do `Documents` umí selhat).
 7. `New-TestContainer.ps1` stejně, **na pozadí** — první stavba ~25 min (artefakty + generic image). Mezitím pokračuj

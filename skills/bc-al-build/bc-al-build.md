@@ -667,6 +667,14 @@ Docker Desktopu je kontejner zase `running` (restart policy), ale BC služba uvn
 minut) → první `docker exec` padá na `No such exec instance` / `ServerInstance 'MicrosoftDynamicsNavServer$BC' is not running`.
 Opraveno v šabloně: cesta ke `ContainerSide.ps1` se zjišťuje až po startu a `Start-TestContainer` čeká na health `healthy`
 (max 10 min) — kdo má kopii starší, zkopíruj `Test-Repo.ps1` a `Import-Helper.ps1` znovu.
+⚠️ **Dva běhy v jednom kontejneru se rozbijí navzájem** (2026-10-09: tři seance — konfigurátor, cust-sonnentor-bc,
+dotykackaConnector — pustily `Test-Repo` do `bctest28` současně): cizí publish/unpublish uprostřed testů → `ERROR DIALOG: You
+tried to invoke the CodeUnit object with the ID 63190 … does not exist`, zbylých 14 test codeunitů neběželo a skript přesto
+hlásil `SUMMARY: 622 tests, 0 failed` (místo 1046) + exit 0. Od téhle verze šablony: **pool kontejnerů** (`settings.json`
+`"containerNames": ["bctest28", "bctest28b"]`, druhý `New-TestContainer.ps1 -ContainerName bctest28b`, ~8,5 GB RAM navíc,
+image i artefakty sdílí) a **zámek na kontejner** (`test-run.lock` otevřený bez sdílení — s pádem procesu se uvolní sám,
+`test-run.owner` = kdo ho drží); běh si vezme první volný, jinak čeká. `ERROR DIALOG` během testů = exit 1 + `BROKEN (tests
+not run)`. Kontrola i u starší kopie: počet testů proti předchozímu běhu a `grep 'ERROR DIALOG'` v logu.
 
 **Předpoklady a pasti (Windows 11, uživatel bez admina):**
 

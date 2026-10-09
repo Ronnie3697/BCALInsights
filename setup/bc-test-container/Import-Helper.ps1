@@ -12,6 +12,8 @@ $env:PSModulePath = @(
 # Defaults, overridden by settings.json next to the scripts (written by SETUP.md, step 9)
 $TestContainerSettings = [ordered]@{
     containerName  = 'bctest28'
+    # The pool Test-Repo.ps1 takes a free container from; empty = containerName only
+    containerNames = @()
     version        = '28.4'
     country        = 'cz'
     memoryLimit    = '8G'
@@ -22,9 +24,12 @@ $settingsFile = Join-Path $PSScriptRoot 'settings.json'
 if (Test-Path $settingsFile) {
     $settings = [System.IO.File]::ReadAllText($settingsFile) | ConvertFrom-Json
     foreach ($property in $settings.PSObject.Properties) {
-        if ($TestContainerSettings.Contains($property.Name)) { $TestContainerSettings[$property.Name] = "$($property.Value)" }
+        if (-not $TestContainerSettings.Contains($property.Name)) { continue }
+        if ($property.Value -is [array]) { $TestContainerSettings[$property.Name] = @($property.Value | ForEach-Object { "$_" }) }
+        else { $TestContainerSettings[$property.Name] = "$($property.Value)" }
     }
 }
+if (@($TestContainerSettings.containerNames).Count -eq 0) { $TestContainerSettings.containerNames = @($TestContainerSettings.containerName) }
 
 $helperManifest = Get-ChildItem (Join-Path $PSScriptRoot 'Modules\BcContainerHelper') -Directory -ErrorAction SilentlyContinue |
     Sort-Object { [version]$_.Name } -Descending | Select-Object -First 1 |
@@ -46,6 +51,44 @@ function Get-TestContainerCredential {
         $credential | Export-Clixml -Path $CredentialFile
     }
     Import-Clixml -Path $CredentialFile
+}
+
+function Lock-TestContainer([string[]] $ContainerNames, [string] $RunName, [int] $PollSeconds = 15) {
+    # Takes the run lock of the first free container of the pool and returns it ({ ContainerName, Stream }); waits while
+    # all of them are busy. The lock is a file kept open without sharing - a run that dies (crash, closed window) releases
+    # it with its process, no stale lock. Release it with Unlock-TestContainer. Next to it test-run.owner says who holds
+    # it, for the message of a waiting run.
+    $announced = $false
+    while ($true) {
+        foreach ($name in $ContainerNames) {
+            $folder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$name"
+            New-Item -ItemType Directory -Path $folder -Force | Out-Null
+            try {
+                $stream = [System.IO.File]::Open((Join-Path $folder 'test-run.lock'), [System.IO.FileMode]::OpenOrCreate,
+                    [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+            }
+            catch {
+                # Held by another run (sharing violation) - try the next container; any other error is a real one
+                if (($_.Exception -is [System.IO.IOException]) -or ($_.Exception.InnerException -is [System.IO.IOException])) { continue }
+                throw
+            }
+            Set-Content -Path (Join-Path $folder 'test-run.owner') -Value ('{0} (PID {1}, since {2:HH:mm:ss})' -f $RunName, $PID, (Get-Date))
+            return [pscustomobject]@{ ContainerName = $name; Stream = $stream }
+        }
+        if (-not $announced) {
+            $owners = foreach ($name in $ContainerNames) {
+                $ownerFile = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$name\test-run.owner"
+                '{0}: {1}' -f $name, $(if (Test-Path $ownerFile) { (Get-Content -Path $ownerFile -Raw).Trim() } else { '?' })
+            }
+            Write-Host ('All test containers are busy - waiting for a free one ({0})' -f ($owners -join '; '))
+            $announced = $true
+        }
+        Start-Sleep -Seconds $PollSeconds
+    }
+}
+
+function Unlock-TestContainer($Lock) {
+    if ($Lock -and $Lock.Stream) { $Lock.Stream.Dispose() }
 }
 
 function Invoke-Docker {
