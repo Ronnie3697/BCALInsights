@@ -731,27 +731,28 @@ not run)`. Kontrola i u starší kopie: počet testů proti předchozímu běhu 
   CI ji vypisuje v kroku *Compile AL Apps* (`Artifact Description: bcartifacts/onprem/<ver>/cz/…`), lokální je v
   `bc-test-container\settings.json` (`version`). Rozdílné chování ověř přes historii souboru na StefanMaron
   (`commits?sha=w1-28&path=<soubor>` → commity per minor, raw URL se SHA, 7.3 v `bc-al-tools.md`).
-- **Konzument proti NEVYDANÉ větvi produktové appky** (zákaznická větev volá event / tabulku, které jsou jen ve feature větvi
-  COEBS): `Test-Repo.ps1` bere závislosti vždy z feedu, ale appku, jejíž `id` je mezi `app.json` repa, kompiluje ze zdrojáků
-  (`$repoIds`). Postav **kombinované repo ve scratchpadu**: `git archive HEAD | tar -x -C <combo>\<repo>` (přesně pushnutý
-  stav) + kopie `app/` produktové větve jako další složka (`<combo>\<repo>\coebs-66845\app`) s **verzí v kopii `app.json`
-  zvednutou nad minimum konzumenta** (28.0.99.0; alc páruje podle vnitřní verze, 7.11) a `-RepoPath <combo>\<repo>`. Skript
-  seřadí base → COEBS → COZLK, testy pustí jen testovacím appkám v repu (produktová `test/` se nekopíruje). Na začátku smaže
-  všechny verze ID produktové appky, které v kontejneru visí jako publikovaná závislost jiného repa — další běh toho repa ji
-  z cache publikuje znovu. Ověřeno 2026-10-09, cust-zlomek-bc 66711 proti COEBS `66845_ConditionTreeFromStructure`:
-  173 testů, 0 failů, 7 min (kompilace COEBS ~1,5 min navíc). Kompilační check před push stejně tak přes alc a temp cache
-  (COEBS proti své MS 28.5 řadě, konzument proti `.alpackages` repa **bez** starých verzí COEBS + čerstvý build, 7.1 v `bc-al-tools.md`).
 - Alternativa bez kontejneru: pipeline jde pustit ručně na feature větvi (Run pipeline → branch), testy pak proběhnou před merge.
 - **Zákaznické repo nad NEVYDANOU verzí produktové appky** (eventy / public procedury z feature větve, která ještě není na feedu):
-  `Test-Repo.ps1` bere závislost z feedu → kompilace v kontejneru spadne. Postup bez zásahu do nástroje: produktovou appku
-  přelož z větve do scratchpadu s verzí přepsanou jen v kopii `app.json` (např. `28.0.99.0`, nad minimem konzumenta) a pusť
+  `Test-Repo.ps1` bere závislost z feedu → kompilace v kontejneru spadne. V obou variantách níž má produktová appka **verzi
+  přepsanou jen v kopii `app.json`** nad minimum konzumenta (např. `28.0.99.0`; alc páruje podle vnitřní verze, 7.11), skript
+  na začátku i na konci smaže všechny verze jejího ID (feedovou publikovanou závislost jiného repa další běh toho repa
+  publikuje z cache znovu) a výsledek platí jen pro tu větev — po vydání minimum zvednout a běh zopakovat z feedu.
+  **(a) Kombinované repo, beze změny skriptu:** appku, jejíž `id` je mezi `app.json` repa, skript kompiluje ze zdrojáků
+  (`$repoIds`). Ve scratchpadu `git archive HEAD | tar -x -C <combo>\<repo>` (přesně pushnutý stav) + kopie `app/` produktové
+  větve jako další složka (`<combo>\<repo>\coebs-66845\app`) a `-RepoPath <combo>\<repo>`. Seřadí base → COEBS → COZLK, testy
+  jen testovacím appkám repa (produktová `test/` se nekopíruje). Ověřeno 2026-10-09, cust-zlomek-bc 66711 proti COEBS
+  `66845_ConditionTreeFromStructure`: 173 testů, 0 failů, 7 min (kompilace COEBS ~1,5 min navíc). Kompilační check před push
+  stejně přes alc a temp cache (COEBS proti své MS řadě, konzument proti `.alpackages` repa **bez** starých verzí COEBS +
+  čerstvý build, 7.1 v `bc-al-tools.md`).
+  **(b) Kopie skriptu s override hotového `.app`:** produktovou appku přelož z větve do scratchpadu a pusť
   **kopii** `Test-Repo.ps1` ve scratchpadu (dot-source `Import-Helper.ps1` a `ContainerSide.ps1` z pevné cesty
   `<PRACOVNÍ-REPA>\bc-test-container`, ne z `$PSScriptRoot`) s parametry `-OverrideAppId` / `-OverrideAppFile`: po rozřešení
   závislostí z feedu nahradí soubor té appky v `$dependencyFiles` (a smaže feedový ze symbols složky) a její ID přidá k ID repa
   pro úklid před a po běhu (všechny verze pryč, další běh si z feedu publikuje vydanou). Generátor kopie (python, `sub()`
   s kontrolou počtu výskytů) drž ve scratchpadu, ať se kopie dá přegenerovat po změně šablony. Ověřeno 2026-10-09:
   cust-alumistr-bc 66845 nad COEBS větví `66845_ConditionTreeFromStructure`, 218 testů, 7:49, v kontejneru po běhu nezůstal
-  build 28.0.99.0. Výsledek platí pro tu větev produktové appky — po jejím vydání minimum zvednout a běh zopakovat z feedu.
+  build 28.0.99.0. Varianta (a) je jednodušší (žádná kopie skriptu k udržování), (b) se hodí, když produktová appka
+  v kontejneru nejde přeložit ze zdrojáků nebo chceš testovat přesně konkrétní hotový `.app`.
 
 ### 7.24 Ruční nasazení PTE z NuGetu do SaaS sandboxu (Automation API) — dev build stejné appky, AVS0109
 
