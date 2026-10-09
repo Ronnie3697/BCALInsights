@@ -27,7 +27,8 @@ Vyčleněno z `bc-al-objects.md` 2026-10-05, číslování 5.x je původní.
    `bc-al`).
 3. Sousední témata: Job Queue, Requisition Line a ostatní objekty → `bc-al-objects`; Job No. na dodávce vs.
    faktuře a propagace polí do dokladů → `bc-al-posting` (3.6f); subscribery, xRec v modify triggerech →
-   `bc-al-data` (3.9); testy projektů (Confirm při změně zákazníka / default dimenze, Usage Link) → `bc-al-autotests`.
+   `bc-al-data` (3.9); testy projektů (Confirm při změně zákazníka / default dimenze, Usage Link) → `bc-al-autotests-domains`
+   (spolu s `bc-al-autotests`).
 
 ## TL;DR — nejtvrdší pravidla (čísla = sekce v souboru)
 

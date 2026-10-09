@@ -26,9 +26,10 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
 | `bc-al-workflow.md` | lokalizace/XLIFF, dokumentace vč. uživatelské příručky, verifikace (sekce 6, 8, 9, 12) |
 | `bc-al-tools.md` | nástroje (alc, al-mcp, BC source), nová appka, git/PR, Azure DevOps (sekce 7.1–7.10) |
 | `bc-al-build.md` | NuGet dependencies, test symboly, kolize ID, major bump, Essence CI build & deploy gotchas, lokální testovací kontejner, ruční nasazení PTE do sandboxu, Dev publish závislostí do sdíleného kontejneru (sekce 7.11–7.25) |
-| `bc-al-autotests.md` | automatizované testy — codeunits, libraries, runner, povinnost |
+| `bc-al-autotests.md` | automatizované testy — povinnost, kanonický vzor, libraries, handlery, TestPage, `asserterror`, obecné gotchas |
 | `bc-al-autotests-saas-fallback.md` | příloha autotestů — vlastní Assert/Library pro SaaS-only test appku bez `Tests-TestLibraries` (reference) |
-| `bc-al-autotests-domains.md` | autotesty — doménové recepty: plánování / Carry Out, CZZ zálohy s platbou, párování CZB (vyčleněno 2026-10-01) |
+| `bc-al-autotests-infra.md` | autotesty — test appka jako projekt: `app.json`, `internalsVisibleTo`, ruleset, symboly, lokální kompilace, spouštění z CLI / Dockeru, čtení CI failů (vyčleněno 2026-10-09) |
+| `bc-al-autotests-domains.md` | autotesty — doménové recepty a pasti: plánování / Carry Out, CZZ zálohy s platbou, párování CZB (2026-10-01); projekty, doklady, Job Queue, výroba, cust-soitron-bc (2026-10-09) |
 | `ess-configurator-notes.md` | Essence Configurator — parametry, systémové parametry, vzorce, varianty, akce (sekce C1–C6) |
 | `skills/bc-al/bc-al-mcp-server.md` | **draft** — oficiální BC MCP server (konfigurace v BC, auth / device login, Claude Code `--mcp-config` + `headersHelper`); bez skill-wrapperu, v Routeru jen jako řádek |
 | `SETUP.md` (kořen) | **průvodce prvotním nastavením pro AI agenta** — ptá se na cesty, nástroje, PAT a krok za krokem nastaví junctiony, always-on soubory a MCP; **není notes** |
@@ -52,6 +53,9 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
   5.x10 + 5.x12 (Configurator) → `ess-configurator-notes.md` C13/C14 (2026-10-01, `bc-al-objects.md` by přesáhl 1000 řádků).
   5.x17–5.x20 (projekty) → `bc-al-projects.md` (2026-10-05, `bc-al-objects.md` přesáhl 1000 řádků).
   5.x, 5.x2, 5.x2b, 5.x15 (Item Tracking) → `bc-al-tracking.md` (2026-10-07, `bc-al-objects.md` by znovu přesáhl 1000 řádků).
+  Test appka jako projekt (app.json, ruleset, symboly, kompilace, běh, CI) → `bc-al-autotests-infra.md` a doménové
+  gotchas (projekty, doklady, Job Queue, výroba) → `bc-al-autotests-domains.md` (2026-10-09, `bc-al-autotests.md`
+  znovu přesáhl 1000 řádků / 77 KB).
 - Každý nový poznatek = commit s krátkou zprávou, co a odkud (repo, PR, datum).
 
 Klon může ležet kdekoli — od 2026-09-22 se notes odkazují relativně k adresáři skillu (dřív
@@ -315,6 +319,8 @@ stabilních pravidel. **Notes soubory zůstávají zdrojem pravdy.**
 | `bc-al-tools` | `bc-al-tools.md` | alc, symboly, nová appka, git/PR, ADO |
 | `bc-al-build` | `bc-al-build.md` | NuGet, test symboly, kolize ID, major bump, CI build/deploy |
 | `bc-al-autotests` | `bc-al-autotests.md` | testy + netriviální funkčnost |
+| `bc-al-autotests-infra` | `bc-al-autotests-infra.md` | test appka: app.json, ruleset, symboly, kompilace, běh, CI faily |
+| `bc-al-autotests-domains` | `bc-al-autotests-domains.md` | testy projektů, dokladů, Job Queue, výroby, plánování, CZZ, CZB |
 | `ess-configurator` | `ess-configurator-notes.md` | konfigurátor — parametry, vzorce, varianty |
 
 Všechny skilly mají `user-invocable: true` — jdou spustit i ručně (`/bc-al-tools`…);

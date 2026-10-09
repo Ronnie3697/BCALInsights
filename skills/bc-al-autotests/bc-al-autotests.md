@@ -2,6 +2,13 @@
 
 Sběrnice znalostí o psaní automatizovaných testů v AL pro Business Central. Roste s tím, jak budeme testy psát a narážet na věci.
 
+> **Rozděleno 2026-10-09** (soubor měl 1009 řádků / 77 KB): sestavení test appky (`app.json`, závislosti,
+> `internalsVisibleTo`, permissionset, struktura, ruleset), symboly, lokální kompilace, spouštění z CLI /
+> kontejneru a čtení CI failů → `bc-al-autotests-infra.md` (skill `bc-al-autotests-infra`); pasti konkrétních
+> oblastí BC (projekty, prodejní a nákupní doklady, Job Queue, výroba, konvence cust-soitron-bc) →
+> `bc-al-autotests-domains.md` (skill `bc-al-autotests-domains`, kde už jsou plánování, CZZ a CZB). Tady zůstává
+> povinnost, kanonický vzor, mechanika testů (handlery, TestPage, `asserterror`, `Library - *`) a obecné gotchas.
+
 ## ⚠️ Povinnost autotestů — kdy testy psát
 
 **Autotesty jsou povinná součást implementace každé netriviální funkčnosti** —
@@ -203,23 +210,9 @@ Assert.ExpectedErrorCode('Dialog');
 
 ## Gotchas
 
-- **`Job.Validate(Status, …)` má v base dialogy na obě strany (w1-28 `Job.Table.al`):** přechod **na Completed** →
-  `Validate(Complete, true)` → `ChangeJobCompletionStatus` → `Message(EndingDateChangedMsg)` (→ `[MessageHandler]`);
-  přechod **z Completed** → `ConfirmManagement.GetResponseOrDefault(StatusChangeQst, true)` („This will delete any unposted
-  WIP entries…") a po něm `Message(ReverseCompletionEntriesMsg)` (→ `[ConfirmHandler]` Reply true **+** `[MessageHandler]`).
-  Bez ConfirmHandleru reopen spadne na „Unhandled UI: Confirm", s handlerem `Reply := false` se stav tiše vrátí na Completed.
-  Vlastní kontrola s `[ErrorBehavior(ErrorBehavior::Collect)]` + `Show Errors SOI` (Page.Run `Error Messages` + `Error('')`)
-  se testuje přes `asserterror` + `[PageHandler]` na `TestPage "Error Messages"` (`First()` + `.Description.Value()` do globální
-  proměnné, pak `Close()`), `Commit()` po GIVEN; `ExpectedError` nepoužívat (hláška je prázdná). (2026-10-01, cust-soitron-bc
-  `Job Cancel Test SOI`, 66504 — kompilace čistá, CI běh po PR.)
-- **`LibraryJob.UseJobPlanningLine(JPL, UsageLineType, Fraction, var JobJnlLine)` řádek deníku projektu rovnou ÚČTUJE**
-  (`CreateJobJournalLineForPlan` + `PostJobJournal` = codeunit `Job Jnl.-Post` s Confirm „Do you want to post the journal
-  lines?") → bez `[ConfirmHandler]` „Unhandled UI: Confirm", a navazující `Validate`/`Modify` na vráceném řádku sáhne na už
-  smazaný řádek. Když potřebuješ řádek před účtováním upravit nebo si přečíst `Total Cost (LCY)`, postav ho sám:
-  `LibraryJob.GetJobJournalTemplate` + `CreateJobJournalBatch` + `Job Transfer Line.FromPlanningLineToJnlLine(JPL, WorkDate(),
-  Template, Batch, JobJnlLine)` + `Get` (vloží s `Job Planning Line No.` jen při usage linku → `Validate` explicitně, doplň
-  `Document No.`) a zaúčtuj `Job Jnl.-Post Line.RunWithCheck(JobJnlLine)` — bez dialogu, přesně to, co dávka dělá per řádek.
-  (2026-10-07, cust-soitron-bc `JPL Doc. Amounts Test SOI`, běh v lokálním kontejneru.)
+> Doménové gotchas (projekty / Job, doklady, Job Queue, výroba, cust-soitron-bc) → `bc-al-autotests-domains.md`;
+> kompilace test appky a čtení CI → `bc-al-autotests-infra.md`.
+
 - **`Library - Setup Storage`: pohodlné wrappery `SaveSalesSetup()` / `SavePurchasesSetup()` / `SaveGeneralLedgerSetup()` …
   mají scope OnPrem** → v test appce s `"target": "Cloud"` `error AL0296 ... has scope 'OnPrem'`. Použij generické
   `LibrarySetupStorage.Save(Database::"Sales & Receivables Setup")` + `Restore()` v `Initialize()` (Restore hned po
@@ -228,90 +221,6 @@ Assert.ExpectedErrorCode('Dialog');
   ⚠️ **`Save` assertuje přesně jeden záznam** („Setup table with only one entry is allowed. Expected:<1> Actual:<0>") —
   vlastní setup tabulka v CI DB **neexistuje** (nic ji nezaložilo), takže před `Save(Database::"<Setup> XXX")` zavolej
   `Setup.GetSetup()` (= Get-or-Insert). Lokálně to neuvidíš, dev DB setup má. (2026-09-30, cust-soitron-bc build 28552, 4 testy.)
-- **Copy Document maže vazbu na projekt, Get Shipment Lines ji drží.** `Copy Document Mgt.CopySalesDocLine` → `UpdateSalesLine`
-  → `SetDefaultValuesToSalesLine` → `InitJobFieldsForSalesLine` nuluje `Job No.`, `Job Task No.` i `Job Contract Entry No.`
-  (bez i s Recalculate Lines; kopíruje je jen `CopyJobData` = opravné dobropisy). `Sales Shipment Line.InsertInvLineFromShptLine`
-  naopak dělá `SalesLine := SalesOrderLine` → řádek faktury z Get Shipment Lines nese `Job Contract Entry No.` i vlastní pole
-  řádku objednávky. Test logiky „dohledej projekt z řádku" musí u Copy Document dát projekt do hlavičky (`Job No. EPEBS`),
-  jinak se fallback přes řádek nikdy nespustí; u Get Shipment Lines se naopak testuje cesta přes contract entry.
-  (2026-10-01, cust-soitron-bc `Sales Aggregation Test SOI`, zdroj Base App w1-28 `CopyDocumentMgt.Codeunit.al` 1818/7761.)
-- **`Job.Validate("Sell-to Customer No." | "Bill-to Customer No.")` na existujícím projektu = Confirm „Do you want to change…?"
-  (default No).** `SellToCustomerNoUpdated` / `BillToCustomerNoUpdated` se ptají, jakmile `xRec` zákazníka má a `GuiAllowed()`
-  (v test runneru true) — bez handleru „Unhandled UI: Confirm", s handlerem `Reply := false` se změna tiše vrátí a navazující
-  logika (vlastní dotaz, propagace) se vůbec nespustí. Sell-to navíc kaskáduje do Bill-to = druhý dotaz. Řešení v testu:
-  `Job.SetHideValidationDialog(true)` před Validate (skryje jen standardní dotazy, vlastní `ConfirmManagement` dotaz appky
-  zůstane testovatelný), nebo zákazníka dát rovnou `LibraryJob.CreateJob(Job, CustomerNo)` místo pozdějšího přepisu
-  (`LibraryJob.CreateJob(Job)` si zákazníka založí sám a nastaví Sell-to i Bill-to). (2026-10-01, cust-soitron-bc
-  `Job Segment Test SOI` / `QB Buffer Test SOI`; zdroj Base App w1-28 `Job.Table.al`.)
-- **Účtování nákupního dokladu s řádkem projektu bez plánovací řádky a s prázdným `Job Line Type` = Confirm „There are
-  purchase lines without a Job Planning Line No. and with a Job Line Type of blank. Do you want to continue posting?"**
-  (`Purch.-Post`, ještě před `OnBeforePostPurchaseDoc`). Test, který dává `Purchase Line."Job No."` jen přiřazením, nastaví
-  i `"Job Line Type" := Budget` (nebo přidá ConfirmHandler), jinak „Unhandled UI: Confirm" dřív, než se dostane ke slovu
-  vlastní kontrola. Prodejní řádky tenhle dotaz nemají. (2026-10-01, cust-soitron-bc build 28579, `Job Close Test SOI`.)
-- **Default Dimension projektu, který už má úkoly (Job Task) → Confirm „You have changed a dimension. Do you want to update
-  the lines?"** — `DimensionManagement.UpdateJobTaskDim` (volané z `DefaultDimOnInsert/OnModify/OnDelete`) se ptá přes
-  `Confirm Management`, jakmile `Job Task` projektu není prázdný. Test, který `LibraryDimension.CreateDefaultDimension` /
-  `Validate("Dimension Value Code") + Modify(true)` / `Delete(true)` na projektu s úkoly dělá, potřebuje `[HandlerFunctions('ConfirmHandler')]`;
-  bez úkolů (default dim založená před `CreateJobTask`) dialog nevyskočí a registrovaný handler by naopak shodil test
-  jako nevyužitý. (2026-10-01, cust-soitron-bc build 28562, `Job Type Posting Test SOI`.)
-- **Částečné zaúčtování (jen příjem / dodávka) doklad VYDÁ** — `Purch.-Post` / `Sales-Post` volají release, takže
-  následná změna řádku (`TestPage.Quantity.SetValue`, `Validate`) spadne na `TestStatusOpen` („Status must be equal to
-  'Open'") dřív, než se dostane ke slovu testovaná logika v `OnAfterValidateEvent`. Po `PostPurchaseDocument(…, true, false)`
-  / `PostSalesDocument(…, true, false)` dej `Get` hlavičky + `LibraryPurchase.ReopenPurchaseDocument` /
-  `LibrarySales.ReopenSalesDocument` (tak to dělá i uživatel). (2026-10-06, cust-sonnentor-bc 64046,
-  `Purch/SalesPartly…LinkedLineQtyBeyondRemainingFails`, zelené v kontejneru.)
-- **Negativní test `TestStatusOpen` po `ReleaseSalesDocument` — validuj na NOVÉ instanci recordu.** `Sales Line`
-  si hlavičku cachuje v globální proměnné instance (`GetSalesHeader` znovu nečte, když sedí Document Type + No.);
-  `SalesLine` proměnná, kterou prošel `LibrarySales.CreateSalesLine`, tak drží hlavičku se Status Open i po
-  release a `asserterror SalesLine.Validate(pole)` nespadne. Fix: `ReleasedSalesLine.Get(SalesLine."Document Type",
-  "Document No.", "Line No.")` a Validate na ní; chybu ověř `Assert.ExpectedTestFieldError(SalesHeader.FieldCaption(Status),
-  Format(SalesHeader.Status::Open))` (MS Assert 130000, BC 24+). Undo dodávky v testu bez dialogu: `SalesShipmentLine.SetRecFilter()`
-  + `UndoSalesShipmentLine.SetHideDialog(true)` + `.Run(SalesShipmentLine)` (bez `SetRecFilter` projde `Code()` celou
-  tabulku); `LibrarySales.UndoSalesShipmentLine` existuje, ale tělo (dialog) z MCP nevidíš. Kompilace test appky: temp
-  cache = MS 28.3 symboly + `Test Runner`, `Tests-TestLibraries`, `System Application Test Library`, `Application Test
-  Library`, `Permissions Mock` (z dotykacka `.alpackages`) + build hlavní appky — tranzitivní `Any` / `Library Assert` /
-  `Library Variable Storage` / `Business Foundation Test Libraries` v cache být NEMUSÍ, alc 17.0 projde.
-  ⚠️ Platí jen pro **tranzitivní** závislosti: když je test `app.json` deklaruje **explicitně** (prod-ef-bank-bc/Test má
-  `Library Assert`, `Library Variable Storage`, `Any`), alc je chce v cache (`AL1022 … could not be found`). Hotové 28.3
-  `.app` bez stahování: `find /c/Users/<user>/AppData/Local/Temp/claude /c/WorkTasks /c/WorkingFolder/AL -maxdepth 6
-  -iname "Microsoft_Tests-TestLibraries*"` — scratchpady dřívějších seancí (2026-09: alumistr `testsym/` = Test Runner,
-  Tests-TestLibraries, SysApp Test Lib, App Test Lib, Permissions Mock, Library Assert 28.3; soitron `cache/` = Any,
-  Library Variable Storage 28.3). Do vlastního `testcache/` zkopíruj, ať kompilace nezávisí na cizím temp adresáři.
-  (2026-09-25, prod-ef-bank-bc/Test, `ParseSymbolsFromText` testy.)
-- **Komponenta upravená po založení výrobku s kusovníkem → „The changes to the Item record cannot be saved because some
-  information on the page is not up-to-date"** (Identification `No.` = komponenta). Při `Manufacturing Setup."Dynamic Low-Level
-  Code" = true` (CI kontejner ho má) spustí `Item.Validate("Production BOM No.")` výrobku codeunit `Calculate Low-Level Code`
-  a ten přes `SetRecursiveLevelsOnBOM` → `SetRecursiveLevelsOnItem` udělá `CompItem.Modify()` (Low-Level Code) na **každé komponentě**
-  certifikovaného kusovníku. Proměnná komponenty z GIVEN (`CreateItem` + `Modify`) je pak zastaralá a pozdější `Modify` v testu spadne;
-  lokálně s vypnutým Dynamic LLC projde. Před úpravou komponenty ji načti znovu (`ComponentItem.Get(ComponentItem."No.")`). Výrobek sám
-  problém nemá (codeunit dělá `Rec.Copy(Item2)`). (2026-09-29, cust-alumistr-bc PR 9604 build 28526,
-  `CreditMemoCopiedFromPostedInvoiceKeepsInvoicedPrice`; zdroj Base App 28.5 `CalculateLowLevelCode.Codeunit.al`, `MfgItem.TableExt.al`.)
-- **Zákaznická appka, která při Quote → Order dá objednávce ČÍSLO NABÍDKY (`OnBeforeInsertSalesOrderHeader`:
-  `SalesOrderHeader."No." := SalesQuoteHeader."No."`), shodí `LibrarySales.QuoteMakeOrder` na *„The record in table Sales
-  Header already exists. Document Type='Order', No.='1001'"*.** V CI firmě (CRONUS CZ) začínají řady nabídek i objednávek
-  na 1001 a objednávku 1001 už založil dřívější test téhož codeunitu (AutoCommit). Lokálně ani jednotlivě to nespadne.
-  Nabídku pro převod zakládej s unikátním číslem mimo řadu (`Init` + `"No." := <GUID kód>` + `Insert(true)`, v Zlomku
-  `Library - Zlomek ZLK.CreateSalesHeader`). (2026-09-29, cust-zlomek-bc master build 28530,
-  `Sales Comment Tests ZLK.MakingOrderFromQuoteCarriesComments`.)
-- **Undo dodávky označí `Correction = true` i na PŮVODNÍM řádku dodávky** (`Undo Sales Shipment Line.Code`: původní řádek
-  dostane `Quantity Invoiced := Quantity`, `Correction := true`, `Modify`; teprve pak `InsertNewShipmentLine` vloží korekční
-  řádek se záporným množstvím, taky `Correction = true`). `SetRange(Correction, true) + FindFirst` tedy vrátí původní řádek
-  (+4) → `Expected -4, Actual 4`. Korekční řádek filtruj `SetFilter(Quantity, '<0')` (nebo `Line No.` > původní).
-  (2026-09-15, cust-alumistr-bc build 28247, `UndoShipmentNegatesSKEndCustomerTotalOnCorrectionLine`.)
-- **`LibrarySales.CreateCustomer` si založí firemní kontakt + Contact Business Relation sám** (Marketing Setup v CRONUS má
-  `Bus. Rel. Code for Customers`). Když v testu založíš k tomu zákazníkovi DALŠÍ kontakt přes `LibraryMarketing.CreateCompanyContact`
-  + `CreateBusinessRelationBetweenContactAndCustomer` a použiješ ho jako Sell-to Contact dokladu, `Sales Header` OnInsert →
-  `Bill-to Contact No.` OnValidate → `CheckContactRelatedToCustomerCompany` spadne *„Contact X is related to a different company
-  than customer Y"* (`ContBusRel.FindByRelation(Customer, CustNo)` najde první relaci = auto-kontakt). Správně vezmi existující
-  kontakt: `ContactBusinessRelation.FindByRelation(ContactBusinessRelation."Link to Table"::Customer, Customer."No.")` →
-  `Contact.Get(ContactBusinessRelation."Contact No.")` (fallback na CreateCompanyContact jen když relace není).
-  (2026-09-15, cust-alumistr-bc build 28247, `QuoteFromOpportunityIsBilledToOpportunityBillToCustomer`.)
-- **Chybové hlášky spadlých testů z CI:** MCP `testplan_show_test_results_from_build_id` vrací jen id/outcome a build log
-  „Run Tests in container" jen jména testů. Text chyby + stack: REST
-  `https://dev.azure.com/essencebs/Projects/_apis/test/Runs/<runId>/results?outcomes=Failed&api-version=7.1` — s MCP PAT
-  vrací HTML (chybí scope Test), ale otevřený v přihlášeném Chromu (Claude in Chrome tab) vrátí JSON
-  (`errorMessage`, `stackTrace`). `runId` je v logu kroku Publish Test Results. (2026-09-15)
-  (2026-09-07, cust-alumistr-bc 65916, 2. kolo review)
 - **Editace řádků prodejního dokladu přes `TestPage "Sales Order".SalesLines`** (`"No."`/`Quantity`/`"Variant Code"`
   `.SetValue`) — před tím `LibrarySales.SetStockoutWarning(false)` + `LibrarySales.SetCreditWarningsToNoWarnings()`,
   jinak base hlásí dostupnost/kreditní limit (notifikace/dialogy) a test padá na neobslouženém UI. Confirm/Message
@@ -360,11 +269,6 @@ Assert.ExpectedErrorCode('Dialog');
   `CreateSalesHeader`. Zdrojáky MS test knihoven (`.app` je nemají): **microsoft/BCApps `src/Layers/W1/Tests/ApplicationTestLibrary/`**
   (raw.githubusercontent, `main`; najdeš přes `gh api "search/code?q=<procedura>+filename:<Soubor>.Codeunit.al"`).
   (2026-09-29, prod-ess-configurator-bc review větve ParametersForPrint.)
-- **Čtení CI logu: stejné `Document No.` v chybách několika testů za sebou = každý z nich spadl a odroloval se**
-  (číselná řada se vrátila); prošlý test commitne a číslo posune. Runner úspěšné testy nevypisuje, ale z čísel dokladů
-  v hláškách jde poznat, které testy mezi faily prošly (build 28149: „1003" u testů 3–5, „1005" od testu 9 = testy 6 a 8
-  prošly). Logika ověřená jen na TestPage cestě a ne z kódu (`Rec.Validate + Modify(true)`) = typický kandidát na
-  `xRec = Rec` past (3.9 v `bc-al-data.md`).
 - **`MinValue`/`MaxValue`/`NotBlank` na poli programový `Rec.Validate()` NEvynucuje** —
   jsou to UI-entry kontroly (TestPage `SetValue` je chytí, record Validate ne).
   `asserterror VATMap.Validate("Rate", -5)` nad polem jen s MinValue spadne na
@@ -399,22 +303,6 @@ Assert.ExpectedErrorCode('Dialog');
   (všechny testy kromě prvního červené). Manual-instance codeunity (`Library - Job Queue`, vlastní test codeunit s
   override subscriberem) bindovat **přes lokální proměnnou** testu / helperu — odváže se na konci procedury sama.
   (2026-10-06, cust-soitron-bc build 28703, `QB Buffer Job Queue Test SOI`.)
-- **Účtování / plánování v testu zakládá skutečný scheduled task** (`Job Queue Entry.ScheduleJobQueueEntryForLater`,
-  `Codeunit.Run("Job Queue - Enqueue")`) → před ním `BindSubscription(LibraryJobQueue)` (`Library - Job Queue`, Manual) —
-  jeho subscriber `OnBeforeJobQueueScheduleTask` nastaví `DoNotScheduleTask`, entry zůstane On Hold a dá se assertovat.
-  Setup záznamy sdílené napříč testy codeunitu (např. `Shpfy Shop` s vlastním enable flagem) **vypni v `Initialize()`
-  před `if IsInitialized then exit`** (`ModifyAll(Flag, false, false)`), jinak „počet řádků per povolený shop" počítá
-  i shopy z předchozích testů (AutoCommit). (2026-09-22, cust-sonnentor-bc `Test Voucher Discounts SON`.)
-- **`TaskScheduler.CanCreateTask()` je v Essence build kontejneru `false`** (`CreateBCContainer2.ps1` nevolá
-  `New-BcContainer -enableTaskScheduler`; BcContainerHelper pak `EnableTaskScheduler` do konfigurace vůbec nezapíše).
-  Vlastní pre-check před `ScheduleJobQueueEntryForLater` („zrcadlo `CheckRequiredPermissions`", 5.x14 v bc-al-objects)
-  tak v CI **tiše přeskočí založení entry** a `Assert.RecordCount(JobQueueEntry, 1)` spadne s `Actual: 0`, zatímco přímé
-  `Codeunit.Run("Job Queue - Enqueue")` s bindnutou `Library - Job Queue` projde (base `CanCreateTask` nekontroluje, jen
-  publikuje `OnBeforeJobQueueScheduleTask`). Řešení: pre-check obal do `local procedure CanCreateTask()` s
-  `[IntegrationEvent] OnBeforeCheckCanCreateTask(var CanCreateTask; var IsHandled)`; test codeunit dostane
-  `EventSubscriberInstance = Manual`, subscriber nastaví `true` + `IsHandled` a test ho bindne přes proměnnou vlastního
-  typu (`TestX: Codeunit "Test X"; BindSubscription(TestX)`) hned za `BindSubscription(LibraryJobQueue)`. Na dev
-  prostředí se zapnutým task schedulerem to lokálně neuvidíš. (2026-09-22, cust-sonnentor-bc build 28396, 2 testy.)
 - **Platformový `Random()` v app kódu dostává v testech seed od `Library - Random`** (`SetSeed` = `Randomize(Seed)` na
   společném generátoru, před každým testem stejný — viz bullet o PK výše). Generátor typu „náhodný kód + kontrola
   unikátnosti + max 20 pokusů" (`GenerateActivationCode` u voucherů) proto v každém testu se stejnou preambulí navrhuje
@@ -433,16 +321,6 @@ Assert.ExpectedErrorCode('Dialog');
   appce s `"target": "Cloud"` mock HTTP volání nenapíšeš. Odchozí HTTP (Jira `PUT /rest/api/3/issue/{id}`) testuj po vrstvách:
   stav fronty + payload builder v testu, samotný request ručně v sandboxu; blokátor řekni uživateli, žádný placeholder test.
   (2026-10-02, cust-soitron-bc `Jira JPL Change Test SOI`.)
-- **Odmítnutý Confirm v table triggeru: cust-soitron-bc má konvenci explicitní `Error(<Label>)` místo tichého `Error('')`**
-  (komentář v `Replication Mgt. SOI`: tichý error TestPage i `asserterror` spolknou a odmítnutá změna vypadá jako provedená).
-  Test pak jde přímočaře: `asserterror Page.Field.SetValue(...)` + `Assert.ExpectedError('... cancelled.')`, `Commit()` po GIVEN,
-  `Page.Close()` až po assertu. `Rec.Delete(true)` z kódu má v runneru `GuiAllowed() = true` → Confirm v `OnBeforeDelete` vyskočí
-  i bez stránky, test potřebuje `[ConfirmHandler]` (Reply z globální proměnné, otázku si ulož na assert). (2026-10-02)
-- **cust-soitron-bc: `LibraryPurchase.CreateVendor` / `CreateVendorNo` padá na „Vendors can only be created from a customer using
-  the Create Vendor action."** — `Cust. Vendor Mgt. SOI` (SingleInstance) blokuje přímý `Vendor.Insert` při `GuiAllowed()` (v runneru
-  true); `Allow Manual Cust./Vend. SOI` v setupu na to nemá vliv (řídí jen zákazníky). Dodavatele v testu zakládej přes one-shot
-  bypass: `CustVendorMgt.SetAllowVendorInsert(true); LibraryPurchase.CreateVendor(Vendor); SetAllowVendorInsert(false)` (vzor
-  `BusinessUnitAssignTest`). Lokální kompilace to nechytí, až CI. (2026-10-05, build 28636, `QB Buffer Test SOI`.)
 - **Změna textu Labelu = projdi `Assert.ExpectedError` v testech** — ExpectedError hledá podřetězec, přepsaná hláška shodí test
   až v CI (build 28636: `its check did not pass` → `its check ended with the status`). Po úpravě labelu grepni test appku na
   jeho klíčová slova.
@@ -450,49 +328,6 @@ Assert.ExpectedErrorCode('Dialog');
   does not use the queried record") — oba warning → s `failOn warning` CI fail. Existenci záznamu assertuj `Rec.SetRecFilter()` +
   `Assert.RecordIsNotEmpty(Rec)` / `RecordIsEmpty(Rec)` (funguje i po `Delete`, PK v proměnné zůstává), refresh hodnot přes
   `Get(PK)`. (2026-10-02, cust-soitron-bc)
-- **Kompilace kopie test appky ve scratchpadu:** `test/app.json` mívá `"logo": "..\\app\\essence.png"` → vedle kopie `test/`
-  musí ležet složka **`app/`** s logem (jinak `AL1001 Source file '..\app\essence.png' could not be found`). A test `app.json`
-  musí deklarovat **explicitní dependency na každou appku, jejíž tabulku test čte** — `Record "External Time Sheet Line TSEBS"`
-  bez `Essence Project TimeSheets` v deps = `AL0185 Table ... is missing`, i když hlavní appka na ní závisí. (2026-10-02)
-
-## Spouštění z CLI / CI
-
-- `BcContainerHelper`: `Run-TestsInBcContainer` – PowerShell
-- **Lokální Docker běh celé sady jako CI (`Run-AlPipeline`, ověřeno 2026-10-05, cust-soitron-bc, BC 28.2 cz):**
-  repo template skripty (`scripts/Local-DevEnv.ps1`) jsou zastaralé (artifact 18.3, Key Vault) → vlastní skript:
-  `Run-AlPipeline -containerName bc28 -imageName '' -reUseContainer -keepContainer -useDevEndpoint
-  -installTestRunner -installTestFramework -installTestLibraries -licenseFile C:\WorkingFolder\Essence.28.0.Latest.bclicense`
-  + `-installApps` Essence závislostí (plné `.app` z `.alpackages` jdou publikovat — mají src, layouty, překlady).
-  Pasti: (a) **BcContainerHelper < 6.1.18 + AL extension 18** → `altool.exe … bin\win32 not found` už při
-  `Get-AppJsonFromAppFile` (řazení deps) — `Install-Module BcContainerHelper -RequiredVersion 6.1.18 -Scope CurrentUser`
-  (vyžaduje .NET 10 + ASP.NET Core 10, viz 7.20 v `bc-al-build.md`); (b) **bez `-imageName ''` staví Run-AlPipeline
-  cache image** (dočasný kontejner s náhodným jménem + commit, +7–14 GB) — na malém disku vypnout; (c)
-  `-testResultsFile` musí ležet **uvnitř `-baseFolder`**; (d) kompiluj **kopii repa** (robocopy do scratchpadu), alc
-  přepisuje `.docx` layouty; (e) Essence partner licence má expiraci — při startu testů warning „license expires in N days".
-  Jeden sdílený kontejner na BC verzi pro víc projektů = před publikací odpublikovat ne-Microsoft appky cizích projektů
-  (`Get-BcContainerAppInfo -sort DependenciesLast` + `Unpublish-BcContainerApp -unInstall -doNotSaveData -doNotSaveSchema`),
-  PTE ID rozsahy zákazníků kolidují. Image `ltsc2025` (~10,8 GB) + artifact jsou sdílené napříč kontejnery. Celkem ~26 min
-  při prvním běhu (testy 5 min, 204 testů), opakovaný běh ~11 min.
-  ⚠️ **Verze Essence závislostí ber stejné, jaké bere CI** (NuGet `LatestMatching` = nejnovější 28.0.x, 7.11 v `bc-al-build.md`),
-  ne „co leží v `.alpackages`": s Item Management 28.0.7.0 padaly 2 testy Get Shipment Lines (*Project No. must be equal to … in
-  Sales Shipment Line … Current value is ''*), s 28.0.16.0 (= CI) prošlo všech 204 — falešný fail prostředí, ne kódu. Upgrade
-  v běžícím kontejneru: `Publish-BcContainerApp -skipVerification -sync -install -upgrade` (závislé appky zůstanou), pak
-  `Unpublish-BcContainerApp` staré verze. Hotový `.app` z DevOps: MCP `pipelines_artifact download` vrátil 0B ZIP → buď `.app`
-  od kolegy / z feedu, nebo kompilace ze zdrojáků na `sourceVersion` buildu s verzí přepsanou v `app.json`.
-- AL-Go for GitHub: má built-in test step
-- Lokálně: VS Code task nebo `bc-test-runner` extension
-- **Lokální testovací kontejner pro všechna repa** (Docker + BcContainerHelper bez admina, závislosti z NuGetu, nahrát → testy →
-  odinstalovat; reprodukuje CI) → **7.23 v `bc-al-build.md`**, nástroj `<PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1`;
-  pouští se **po každém vyžádaném push** (7.7b v `bc-al-tools.md`), jen kdo kontejner v setupu přijal.
-- **VS Code extension AL Test Runner** (James Pearson, `jamespearson.al-test-runner`; dřív tu chybně „luc-vandyck")
-  — codelens "Run Test" / "Debug Test", Testing pane, zvýraznění padající řádky, code coverage. **Kontejner nevyrábí**:
-  appku publikuje přes `launch.json` (nebo PowerShell) a testy pouští přes BcContainerHelper `Run-TestsInBcContainer`
-  v Docker kontejneru — lokálním, nebo na vzdáleném hostu přes PS remoting (`.altestrunner/config.json`: `containerName`,
-  `dockerHost`, `remoteContainerName`, `launchConfigName`); varianta `runTestsViaUrl` volá vlastní appku *Test Runner Service*
-  (doinstaluje si ji, `testRunnerServiceUrl`), přes ni jde i debug testu. Test toolkit musí v cílovém BC být → na SaaS sandbox
-  s `Tests-TestLibraries` nepoužitelné. Pro denní vývoj jeď AL Test Runner, pro release ověření Test Tool page (130401).
-  (Ověřeno z readme/changelogu 10.16.8 a `package.json`, 2026-10-05.)
-
 ## `TestPermissions` — kdy co
 
 > ⚠️ **Default je `Restrictive`, NE `Disabled`!** Když property vynecháš, test
@@ -515,75 +350,10 @@ Assert.ExpectedErrorCode('Dialog');
 
 `Restrictive` zapínej až ve chvíli, kdy řešíš permission bug nebo certifikaci.
 
-### Main appka s `Access = Internal` → `internalsVisibleTo` v app.json NEMAZAT
-
-Když má main appka objekty `Access = Internal` (standard u Essence prod modulů)
-a test appka je referencuje napřímo (`Codeunit "Xxx" ...`), je
-`"internalsVisibleTo": [{ id/name/publisher test appky }]` v **app.json main
-appky** povinné — bez něj test appka nezkompiluje („cannot access internal…").
-Že to jiná (zákaznická) repa nemají, znamená jen, že jejich appky nejsou
-Internal-everything. Vedlejší efekt: PerTenantExtensionCop hlásí **PTE0012**
-(warning) na app.json — s Essence CI `failOn warning` to shodí build → schovat
-v repo rulesetu (`"id": "PTE0012", "action": "Hidden"` + justification), **ne**
-mazat internalsVisibleTo ani zveřejňovat objekty (viz 1.10 v bc-al-style).
-(2026-08-05, prod-ess-dotykackaConnector-bc, build 27684.)
-
-⚠️ **`PTE0012` přiletí i do appky, která žádný `Access = Internal` objekt nemá** —
-pravidlo hlídá **existenci** `internalsVisibleTo`, ne jeho využití. Fix je stejný
-(Hidden v rulesetu); smazat nepoužívané `internalsVisibleTo` je taky validní, ale
-u prod modulu, který k Internal kontraktu směřuje, se to jen vrátí. Jak takový fail
-vypadá v CI (krok „Compile AL Apps" doběhne bez `##[error]`, pozná se až podle
-`SucceededNode() → False` u dalších kroků) → **7.21 v `bc-al-build.md`**.
-(2026-09-22, prod-ef-advanceCZ-bc, build 28371.)
-
-⚠️ **`internalsVisibleTo` musí nést PŘESNĚ `id` z `test/app.json`.** Když GUID nesedí (test appka založená s jiným
-GUIDem, než se zapsalo do hlavní appky), test appka nezkompiluje s *`error AL0161: 'Procedura(…)' is inaccessible due
-to its protection level`* na každém volání `internal` procedury — hláška o GUIDu nic neříká, tak porovnej `id` v obou
-`app.json` (`grep -n internalsVisibleTo -A4 app/app.json; grep '"id"' test/app.json`). Oprav GUID v hlavní appce
-(identita test appky už žije v CI / `.alpackages`). (2026-10-01, cust-soitron-bc CZ/CDS.CZ: `Soitron CDS CZ Tests`
-30a70d4b vs d8b7ff02.)
-
-### Test app nepotřebuje vlastní permissionset
-
-**Do test appky NEpiš permissionset** (execute permissiony na test codeunity).
-Je to mrtvý objekt — testy u nás běží **lokálně na serveru v dočasně
-vytvořeném OnPrem BC prostředí (kontejner/CI) pod `SUPER`**, a všechny test
-codeunity mají `TestPermissions = Disabled` (= taky `SUPER`). Permissionset
-by se uplatnil jen u `Restrictive` testů, které stejně nepíšeme (viz výše).
-Žádný `*.PermissionSet.al` v `test/src/` → jeden objekt míň, žádný affix/ID
-k řešení. (Zachyceno: prod-ess-dotykackaConnector-bc, červen 2026.)
+`internalsVisibleTo` v hlavní appce (PTE0012, AL0161 při nesedícím GUIDu) a proč test appka nemá permissionset
+→ `bc-al-autotests-infra.md`.
 
 ## Poznámky z praxe (Zlomek Extension – první testy)
-
-### Test framework symboly nejsou v `.alpackages`
-
-`Tests-TestLibraries` a `System Application Test Library` nejsou v běžných `.alpackages` zákaznického repa. Pro lokální editaci/intellisense:
-
-1. Spustit `scripts/Local-DevEnv.ps1` (vytvoří BC kontejner s `installTestLibraries:true`)
-2. Ve VS Code z `test/` složky: `AL: Download Symbols`
-
-V CI to řeší `Run-AlPipeline -installTestLibraries:$true` z `BcContainerHelper`. **Bez stažených symbolů test app vůbec nezkompiluje** (chybí `Library - Sales`, `Library - Inventory`, `Library Assert`, …).
-
-**Lokální kompilace test appky bez kontejneru (ověřeno 2026-09-01, prod-epb-pricingMatrix-bc):**
-`Tests-TestLibraries`, `Test Runner` a `System Application Test Library` `.app` bývají v `.alpackages` některého
-sibling repa — najít přes `ls /c/WorkTasks/*/.alpackages/*Tests-TestLibraries*` (2026-09: `prod-ess-dotykackaConnector-bc`;
-pozor, `ls … | grep -i test` matchne i složku `kalas-TEST-DNEM` jako hlavičku, soubory tam nejsou).
-`Tests-TestLibraries` má **tranzitivní závislosti** (Application Test Library, Permissions Mock, Any, Library Assert,
-Library Variable Storage, Business Foundation Test Libraries), takže alc potřebuje **celou tu `.alpackages` složku**,
-ne jen tři soubory: `/packagecachepath:"C:\…\sibling\.alpackages,C:\…uild-dir-s-hlavní-appkou"` (čárkou oddělený
-seznam, viz 7.1 v `bc-al-tools.md`; jiná minor verze Base App v sibling cache pro compile-check nevadí). MS test `.app`
-**neobsahují zdrojáky** (0 `.al` v ZIPu) → signatury `Library - *` procedur přes al-mcp (`al_packages load` na sibling
-repo, pak `al_search_object_members`); `al_packages load` index **nahrazuje**, po dohledání znovu load na vlastní repo.
-`AA0215` (název souboru bez affixu) v test appce vyřeší `test/AppSourceCop.json` s `mandatoryAffixes` — potvrzeno
-lokálně (alc + CodeCop). Compile main → test: test appka bere hlavní appku z build diru, takže po každé změně hlavní
-appky přeložit nejdřív ji.
-**Dependency, která lokálně nikde není (`AI Test Toolkit` v prod-ess-configurator-bc/test):** pro compile-check
-nekopíruj `test/app.json` ručně — zkopíruj celou `test/` (src, app.json, AppSourceCop.json, logo) do scratchpadu,
-v kopii `app.json` závislost python skriptem vyhoď (zdrojáky testů ji nepoužívají) a kompiluj kopii proti vlastní
-cache (MS 28.3 symboly z vlastní `.alpackages` **bez** staré verze hlavní appky + čerstvý build hlavní appky +
-Tests-TestLibraries/Test Runner/SysApp Test Lib/App Test Lib/Permissions Mock z dotykacka `.alpackages`).
-Dvě verze téže appky v jedné cache (stará `.alpackages` + nový build) = nejasné, kterou alc vezme → do cache jen jednu.
-(2026-09-08, prod-ess-configurator-bc, typ řádku Parameter Value Name)
 
 ### Spuštění reportu bez request page
 
@@ -610,15 +380,6 @@ Assert.ExpectedError('must have status Released');
 ```
 
 Pokud je `CheckSalesHeaderReleased` (nebo podobná validační procedura) `local`, nemůžeš ji volat přímo z testu. **Trade-off:** buď refactor na `internal/public`, nebo testovat přes `TestPage` (fragile, závislé na exact action names z extension).
-
-### Cyklický Production BOM v testech
-
-`ProdBOMHeader.Validate(Status, ProdBOMHeader.Status::Certified)` má vestavěnou cycle detection a vrátí error. Pro test cyklického BOM:
-
-1. Vyrob BOM přímými `Insert(false)` (header + lines obě tabulky)
-2. Status nastav přímo `ProdBOMHeader.Status := ProdBOMHeader.Status::Certified; Modify(false);`
-
-Tím obejdeš certify routine a můžeš testovat `VisitedItems` cycle guard v aplikační logice.
 
 ### ⚠️ `LibraryInventory.CreateItem` — base UoM = PRVNÍ Unit of Measure v abecedě (data-dependent kolize!)
 
@@ -663,20 +424,6 @@ Vytvoř vlastní `Library - <Extension> ZLK` codeunit:
 - Wrappuje MS `Library - *` helpery + přidává `Create*` procedury pro vlastní tabulky
 - Vrací `Code[20]` / `Code[10]` jako return value, plný record přes `var` parametr (umožňuje `:=` chaining)
 - Pro custom Code generation: `LibraryUtility.GenerateRandomCode(FieldNo, Database::TableName)` + `CopyStr(..., 1, MaxStrLen)` (kompiler hlaše varování bez `CopyStr`)
-
-### `Library - Manufacturing` není vždycky dostupné
-
-Pokud chybí v `Tests-TestLibraries` build pro tvůj region (u některých CZ buildů chybělo; `prod-ess-configurator-bc/test` ho normálně používá — ověř v symbolech / na MSSymbols feedu, viz 7.12 v `bc-al-build.md`), Production BOM Header / Routing helper si musíš napsat sám:
-
-```al
-procedure CreateCertifiedProdBOMHeaderForItem(var ProdBOMHeader: Record "Production BOM Header"; ParentItem: Record Item)
-begin
-    ProdBOMHeader.Init();
-    ProdBOMHeader."No." := CopyStr(LibraryUtility.GenerateRandomCode(...), 1, MaxStrLen(...));
-    ProdBOMHeader."Unit of Measure Code" := ParentItem."Base Unit of Measure";
-    ProdBOMHeader.Insert(true);
-end;
-```
 
 ### `TestPermissions = Disabled` na začátek
 
@@ -758,22 +505,6 @@ GIVEN (s komentářem), nebo každý negativní případ do vlastního testu. Za
 2026-08-27, cust-alumistr-bc build 27980 (`FilterValueCodesRejectsNonNumeric…`,
 `CheckNumericFilterValue` s `SourceParam.Get` → exit) — stejný test i
 v prod-ess-configurator-bc PR 9375.
-
-### Doklad jen se záporným řádkem = „Celková částka faktury musí být 0 nebo větší" PŘED vlastní kontrolou
-
-Test, který účtuje doklad obsahující **jen záporný řádek** (uplatnění poukazu, sleva, oprava),
-spadne na standardní kontrole `The total amount for the invoice must be 0 or greater.` —
-a to **dřív, než se dostane ke slovu vlastní kontrola** v `OnBeforeIsApprovedForPosting`
-nebo jinde v posting flow. Negativní test pak selže na „Expected: <moje hláška>. Actual:
-The total amount for the invoice must be 0 or greater." a vypadá to, jako že vlastní kontrola
-nefunguje, přitom se jen nespustila.
-
-**Fix:** dej do dokladu **kladný řádek běžného zboží** (`LibrarySales.CreateSalesLineWithUnitPrice(SalesLine,
-SalesHeader, ItemNo, 1200, 1)`), ať je celková částka ≥ 0 — a to i u dobropisu, který vydává
-nový poukaz. Reálný doklad tak taky vypadá (zákazník něco kupuje/vrací a poukazem platí část).
-Prodejní (kladná) strana téhož scénáře projde bez zboží, takže „prodej funguje, uplatnění ne"
-je typický příznak právě tohohle. (2026-09-15, cust-sonnentor-bc build 28270, `RedemptionWithWrongUnitPrice-
-CannotBePosted` + `FullVoucherCycleWithReplacementKeepsValueAndExpiration`.)
 
 ### `Assert.ExpectedError` na `TestField` hlášce: caption pole může projít `CaptionClass`
 
@@ -873,111 +604,6 @@ Do `test/` složky patří i vlastní `AppSourceCop.json` s `mandatoryAffixes`.
 
 > ⚠️ **FALLBACK, ne default.** Vlastní `Assert ZLK`, vlastní `Library` helpery bez `Library - *` a co nezvládnou bez setupu → `bc-al-autotests-saas-fallback.md` ve stejném adresáři. Platí jen pro čistý SaaS-only deploy test appky bez OnPrem CI; **pro Essence prod moduly to NEpoužívej** (viz kanonická sekce nahoře).
 
-### Re-analýza VS Code po změně `app.json`
-
-Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS Code AL extension **necachuje** změnu okamžitě. Diagnostiky stále hlásí "Codeunit 'Library Assert' is missing" pro již refaktorované kódy. Řešení:
-
-1. `Ctrl+Shift+P` → `AL: Download Symbols`
-2. Pokud nepomohlo → `Developer: Reload Window`
-
-### Explicitní dependencies v `app.json` (ne transitivní)
-
-Test app s `"target": "Cloud"` musí v `app.json` deklarovat **každou** závislost, jejíž typy přímo používá:
-
-- `Record "Sales Adv. Letter Header CZZ"` → `Advance Payments Localization for Czech`
-- `Record "Alternative Prod. BOM ATEBS"` → `EM Alternative BOM and Routing`
-
-Spoléhat na transitive dep přes hlavní extension je sice občas funkční, ale linter / AL kompilátor to nezaručuje a v Cloud targetu to padá.
-
-### File naming test codeunit — affix v názvu souboru NENÍ nutný, když je `AppSourceCop.json` s `mandatoryAffixes`
-
-Když má test app `AppSourceCop.json` s `mandatoryAffixes`, LinterCop ten
-registrovaný affix zohlední a **název souboru affix obsahovat nemusí** — affix
-se z očekávaného názvu souboru odečte (bere se „base" jméno objektu bez affixu).
-Žádný warning.
-
-```
-// objekt: codeunit "Sales Advance Tests AOEBS"
-// + AppSourceCop.json s mandatoryAffixes: ["AOEBS"]
-SalesAdvanceTests.Codeunit.al        ✅  (affix v názvu souboru netřeba)
-SalesAdvanceTestsAOEBS.Codeunit.al   ✅  (projde taky, ale je to redundantní)
-```
-
-Affix v **názvu objektu** (`... AOEBS`) zůstává povinný — to hlídá AppSourceCop
-přes `mandatoryAffixes`. Jen do **názvu souboru** ho už tahat nemusíš.
-
-> **Oprava dřívější poznámky:** dřív tu stálo, že soubor *musí* mít affix v
-> názvu. To platí jen tam, kde `AppSourceCop.json` s `mandatoryAffixes` chybí.
-> S přítomným `AppSourceCop.json` je naopak správně název souboru bez affixu.
-> (Zachyceno: prod-ef-advanceCZ-bc, červen 2026.)
-
-### Struktura složek test appky — vždy `src/`, bez podsložek po typu
-
-V každé AL appce v repu musí existovat složka `src/` a v ní všechny objekty. Pro **test appku** stačí placatá `src/` se všemi codeunity vedle sebe — nedělej `src/Codeunits/`, `src/Tests/` apod., testů typicky není tolik aby to mělo cenu rozdělovat.
-
-```
-base/test/
-├── app.json
-└── src/
-    ├── AssertZLK.Codeunit.al
-    ├── LibraryZlomek.Codeunit.al
-    ├── MasterDataTestsZLK.Codeunit.al
-    └── …
-```
-
-Base produkční app naopak většinou má v `src/` ještě podsložky po typu (`Tables/`, `Pages/`, `Codeunits/`, `TableExtensions/`, …) protože objektů je víc — to je v pořádku, jen v testech to není potřeba.
-
-### Test projekt = vlastní ruleset, co dědí hlavní + skrývá LC0015
-
-Test appka má mít **vlastní `*.ruleset.json`**, který **dědí hlavní app ruleset**
-přes `includedRuleSets` a navíc skryje `LC0015` (permission set coverage) — ten pro
-test codeunity nedává smysl.
-
-```json
-// test/ef-advanceCZ-test.ruleset.json
-{
-    "name": "EF Advance CZ Tests Ruleset",
-    "includedRuleSets": [
-        { "action": "Default", "path": "..\\app\\ef-advanceCZ.ruleset.json" }
-    ],
-    "rules": [
-        { "id": "LC0015", "action": "Hidden",
-          "justification": "Test projects - permission set coverage not required for test codeunits" }
-    ]
-}
-```
-
-- **Dědit hlavní ruleset** (`includedRuleSets` na `..\app\<main>.ruleset.json`) — tím
-  test projekt zdědí všechna projektová pravidla (vč. hidden LC0010 apod.) a jen navíc
-  schová LC0015 / AC0010. Takhle to dělá Zlomek (`cust-zlomek-bc-test.ruleset.json`)
-  i configurator (`ess-configurator-test.ruleset.json`, doplněno 2026-09-18 — předtím
-  nedědil a přicházel tím o hlavní i remote pravidla; detail dopadu v 12.1b
-  v `bc-al-workflow.md`). Pravidla, která hlavní ruleset už skrývá (`LC0090`, `PC0037`),
-  do test rulesetu **nekopíruj** — zdědí se a ruční kopie se při příští změně rozejde.
-- Hlavní ruleset typicky dědí remote `essence-default.ruleset.json` z blob storage →
-  test settings potřebují `"al.enableExternalRulesets": true`.
-
-**Past na aktivaci (důležité):** `al.ruleSetPath` se v AL extensionu resolvuje
-**relativně k folderu AL projektu**, ne k workspace souboru. Workspace-level
-`al.ruleSetPath` bývá `..\app\<main>.ruleset.json` — a ta cesta se **z test složky
-resolvuje zpátky na hlavní ruleset** (`test\..\app\...` = `app\...`), takže dedikovaný
-test ruleset zůstane **fakticky neaktivní** (přesně případ Zlomka i configuratoru — soubor
-existuje, ale VS Code jede hlavní ruleset). Aby byl test ruleset reálně aktivní, dej
-**folder-level** override do `test/.vscode/settings.json`:
-
-```json
-{
-  "CRS.ObjectNameSuffix": "AOEBS",
-  "CRS.RemoveSuffixFromFilename": true,
-  "al.enableExternalRulesets": true,
-  "al.ruleSetPath": "ef-advanceCZ-test.ruleset.json"
-}
-```
-
-Folder settings přebijí workspace per-klíč (ostatní klíče z workspace se dědí dál).
-Ovlivní jen lokální VS Code analýzu — **CI ruleset řeší přes build template/parametr**,
-ne přes `.vscode/settings.json`, takže tahle změna build neovlivní.
-
 ### `Codeunit.Run` s návratovou hodnotou v testu po zápisech = „An error occurred and the transaction is stopped"
 
 `PostingSucceeded := Codeunit.Run(Codeunit::"Gen. Jnl.-Post Batch", GenJournalLine)` nebo `if Codeunit.Run(Codeunit::"Match Bank
@@ -987,20 +613,6 @@ assistance."** — i když volaný kód sám žádnou chybu nehodí (ověřeno 2
 proběhlo bez chyby). Skutečný text případné vnitřní chyby se tím ztratí. V testech proto **Codeunit.Run volej jako statement**
 (chyba doběhne do runneru s textem a stackem), negativní scénář řeš `asserterror`. Pattern `Run + Assert.IsTrue(ok, GetLastErrorText())`
 nepoužívat.
-
-### MS test knihovny v temp cache drž v JEDNÉ minor řadě; testy za `#IF TESTS` ověř kopií projektu
-
-- **Smíchané minor verze MS test knihoven** (Tests-TestLibraries / Test Runner / Library Assert 28.3 + `Library Variable
-  Storage` 28.4) v jedné package cache = `error AL1022: A package with publisher 'Microsoft', name 'Library Assert', and a
-  version compatible with '28.4.0.0' could not be found` — 28.4 knihovna si tranzitivně chce 28.4 Assert, i když test
-  `app.json` deklaruje jen `28.0.0.0`. Zákeřné: dvě kompilace se stejnou cache prošly a třetí spadla (rozlišení závislostí
-  není stabilní). Ber celou sadu z jednoho místa — hotová **28.4.53241.53504** sada (Test Runner, Tests-TestLibraries, SysApp
-  Test Lib, App Test Lib, Permissions Mock, Library Assert, Library Variable Storage) leží v soitron scratchpadu `cache_soi/`
-  (`find /c/Users/<user>/AppData/Local/Temp/claude -iname "Microsoft_Library Variable Storage_28.4*"`), `Any` 28.3 k ní nevadí.
-- **Test appka s testy za `#IF TESTS` a `"preprocessorSymbols": ["TESTS_Skip"]`** (prod-ef-replications-bc, commit „test skip"
-  2026-05) se v CI přeloží na prázdno — nové testy piš pod stejný guard (konzistence s rozhodnutím repa) a lokálně je ověř
-  kopií `test/` ve scratchpadu se symbolem přepnutým na `TESTS` (`sed` na `app.json` kopie); jinak se chyby v testech neukážou.
-  (2026-09-29, prod-ef-replications-bc, Send With Parent Record.)
 
 ## Odkazy
 

@@ -5,16 +5,16 @@ description: >-
   funkčnost), vzor Essence (MS Assert + Library - *, vlastní library jen pro
   custom tabulky, target Cloud + Test Runner/Tests-TestLibraries/SysApp Test
   Library), [Test]/[HandlerFunctions]/[TransactionModel], TestPage,
-  TestPermissions Disabled, internalsVisibleTo, PTE0012, test app bez
-  permissionsetu, RunModal bez request page, OnBeforeActionEvent jen přes
-  TestPage, CreateItem base UoM past, asserterror rollbackne GIVEN → Commit,
-  carry-out vlastní batch, bez placeholder testů, test ruleset dědí hlavní,
-  SaaS-only helpery, Setup Storage Save/Restore (AL0296), negativní test nová
-  instance, TestPage Sales Order řádky (stockout/credit, Type vs
+  TestPermissions Disabled, RunModal bez request page, OnBeforeActionEvent jen
+  přes TestPage, CreateItem base UoM past, asserterror rollbackne GIVEN →
+  Commit, bez placeholder testů, SaaS-only helpery, Setup Storage Save/Restore
+  (AL0296), TestPage Sales Order řádky (stockout/credit, Type vs
   FilteredTypeField u nového řádku), ConfirmHandler Reply false + asserterror,
-  undo dodávky bez dialogu, kompilace ze sibling .alpackages, Library - Random
-  seed → PK FindLast + 1, čtení CI logu (Document No. = rollback). Načti při
-  psaní/opravě testů, test appce, netriviální funkčnosti a rozboru CI failů.
+  modální Worksheet bez Cancel, Library - Random seed → PK FindLast + 1,
+  BindSubscription na globální proměnnou, HttpClientHandler OnPrem-only,
+  ExpectedError a CaptionClass. Načti při psaní/opravě testů a u netriviální
+  funkčnosti; kompilace, běh a CI test appky → bc-al-autotests-infra, pasti
+  projektů, dokladů, Job Queue, výroby a plánování → bc-al-autotests-domains.
 user-invocable: true
 ---
 
@@ -34,8 +34,14 @@ v souboru.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
-3. Doménové recepty (plánování / Carry Out, CZZ zálohy, párování CZB) jsou od 2026-10-01 ve skillu
-   `bc-al-autotests-domains` (soubor `bc-al-autotests-domains.md`) — načti ho u testů těchto domén.
+3. Sesterské skilly (vyčleněno 2026-10-01 a 2026-10-09, soubor přesáhl 1000 řádků):
+   - `bc-al-autotests-infra` (soubor `bc-al-autotests-infra.md`) — `app.json` test appky,
+     `internalsVisibleTo`, permissionset, struktura, test ruleset, symboly, lokální kompilace,
+     spouštění z CLI / kontejneru, čtení CI failů. Načti při zakládání test appky, kompilaci,
+     běhu testů a rozboru CI failu.
+   - `bc-al-autotests-domains` (soubor `bc-al-autotests-domains.md`) — pasti projektů (Job), prodejních
+     a nákupních dokladů, Job Queue, výroby, cust-soitron-bc + recepty plánování / Carry Out, CZZ záloh
+     a párování CZB. Načti u testů těchto oblastí.
 4. Sousední témata: symboly test frameworku z MSSymbols feedu a sandbox
    package cache → `bc-al-build` (7.12); Confirm / `CurrFieldNo` chování
    Sales Line → `bc-al-objects` (5.x4); ID test objektů od konce range
@@ -75,9 +81,7 @@ v souboru.
 - **Setup v testu:** `Library - Setup Storage` wrappery (`SaveSalesSetup()`…)
   mají scope OnPrem (AL0296 v Cloud test appce) → generické
   `Save(Database::"Sales & Receivables Setup")` + `Restore()` v `Initialize()`.
-- **Negativní test po release / s Confirm:** validuj na **nové instanci**
-  recordu (`Sales Line` si hlavičku cachuje, stará instance chybu nehodí).
-  Confirm z table triggeru s `CurrFieldNo` guardem vyvolá jen
+- **Negativní test s Confirm:** Confirm z table triggeru s `CurrFieldNo` guardem vyvolá jen
   `TestPage.SetValue` (z `Rec.Validate` je `CurrFieldNo = 0`) → odmítnutí =
   `[ConfirmHandler]` `Reply := false` (otázku si ulož), **bez `asserterror`**
   (TestPage tichý `Error('')` spolkne), `Commit()` po GIVEN, assertuj DB stav
@@ -85,7 +89,7 @@ v souboru.
   Order".SalesLines` → napřed `LibrarySales.SetStockoutWarning(false)` +
   `SetCreditWarningsToNoWarnings()`; nový řádek (`New()`) nemá zaručený
   `Type` → nastav ho (`Type` / `FilteredTypeField` podle `Visible()`).
-  Undo dodávky bez dialogu: `SetRecFilter()` + `SetHideDialog(true)` + `Run`.
+  Release / undo dodávky / projekty → TL;DR skillu `bc-al-autotests-domains`.
 - Testuj **obě cesty** — TestPage i `Rec.Validate + Modify(true)`; logika
   na `xRec` v modify triggeru z kódu nefunguje (3.9 v `bc-al-data`).
 - `MinValue`/`MaxValue`/`NotBlank` programový `Validate` **nevynucuje** →
@@ -93,18 +97,10 @@ v souboru.
   `Evaluate(DT, '…Z', 9)`, ne `CreateDateTime` (DST).
 - **`LibraryInventory.CreateItem` dá base UoM = abecedně první Unit of
   Measure** → data-dependent faily; testové jednotky přes `GenerateRandomCode`.
-- **Carry Out Action Message bere celý list** → každý carry-out test vlastní
-  batch (`CreateRequisitionWkshName`).
+- **Data mezi testy téhož codeunitu zůstávají** (AutoCommit + TestIsolation Codeunit) a `Library - Random`
+  má před každým testem stejný seed → PK vlastních záznamů `FindLast` + 1, jména na lookup přes
+  `CreateGuid()`, ne `RandInt` / `GenerateGUID`. Manual-instance codeunity bindni přes **lokální** proměnnou.
 - `OnBeforeActionEvent` subscribery jen přes `TestPage.Action.Invoke()`;
   report bez request page: `Report.RunModal(ID, false, false, Rec)` + `SetRecFilter`.
-- Main appka s `Access = Internal` → `internalsVisibleTo` v jejím `app.json`
-  **nemazat**; PTE0012 schovat v rulesetu. Test app **bez permissionsetu**.
-- Struktura: flat `test/src/`, affix v názvu souboru netřeba (AppSourceCop ho
-  odečte). Test ruleset **dědí hlavní** (`includedRuleSets`) + `LC0015` Hidden;
-  aby byl aktivní, `al.ruleSetPath` do `test/.vscode/settings.json`
-  (folder-level), workspace-level se resolvuje na hlavní.
-- Symboly `Tests-TestLibraries` nejsou v `.alpackages` → Local-DevEnv
-  s `installTestLibraries` / `AL: Download Symbols` / MSSymbols feed (7.12
-  v `bc-al-build`). Lokální kompilace bez kontejneru: **celá** `.alpackages`
-  sibling repa (tranzitivní deps) v `/packagecachepath` + build dir hlavní
-  appky; MS test `.app` nemají zdrojáky → signatury přes al-mcp.
+- Test appka jako projekt (`internalsVisibleTo`, bez permissionsetu, struktura, ruleset, symboly,
+  lokální kompilace, CI) → TL;DR skillu `bc-al-autotests-infra`.

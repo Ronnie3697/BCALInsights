@@ -609,7 +609,7 @@ analyzerové palety může build reálně shodit hlavně **PTE\*** — a nejčas
 
 **Fix `PTE0012` = `"id": "PTE0012", "action": "Hidden"` + justification v rulesetu appky**
 (`app/<repo>.ruleset.json`, CI si ho najde konvencí 12.4). **Nemazat `internalsVisibleTo`** ani
-zveřejňovat objekty (detail a kontext v `bc-al-autotests.md`, sekce „Main appka s Access = Internal").
+zveřejňovat objekty (detail a kontext v `bc-al-autotests-infra.md`, sekce „Main appka s Access = Internal").
 ⚠️ Warning visí na **existenci** `internalsVisibleTo`, ne na jeho využití — přiletí i do appky, která
 **žádný `Access = Internal` objekt nemá** (test appka referencuje jen public objekty). Takové
 `internalsVisibleTo` je sice fakticky no-op a smazat ho je taky validní fix, ale u Essence prod modulů

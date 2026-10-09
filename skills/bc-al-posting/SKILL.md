@@ -30,7 +30,7 @@ Vyčleněno z `bc-al-data.md` 2026-09-29, číslování 3.x je původní.
    `bc-al`).
 3. Sousední témata: obecné subscriber patterny (IsTemporary, SkipOnMissing…, identifier syntax, xRec
    v modify triggerech) → `bc-al-data` (3.1–3.4, 3.7–3.9); rich text editor na stránce → `bc-al-ui`
-   (4.10); testy účtování a undo → `bc-al-autotests`.
+   (4.10); testy účtování a undo → `bc-al-autotests-domains` (spolu s `bc-al-autotests`).
 
 ## TL;DR — nejtvrdší pravidla (čísla = sekce v souboru)
 

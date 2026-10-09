@@ -495,7 +495,7 @@ DC0004/DC0007 XML docs) — ty jde nechat. Rozpad warningů a co s nimi:
 | `PC0034` počet placeholderů ≠ argumentů | 1 | **reálný bug** — `Error(MoreLotErr)` u labelu s `%1 %2`; ALCops tyhle chyby najde spolehlivě |
 | `PC0022` možný overflow | 1 | `CopyStr(Rec.GetFilter(pole), 1, MaxStrLen(cíl))` |
 | `LC0095` nepoužitý parametr | 1 | pragma, když je parametr součástí publikovaného podpisu |
-| `AC0010` objekt bez permission setu | 6 | v **test** rulesetu Hidden (test appka permissionset záměrně nemá, viz bc-al-autotests) |
+| `AC0010` objekt bez permission setu | 6 | v **test** rulesetu Hidden (test appka permissionset záměrně nemá, viz bc-al-autotests-infra) |
 
 ⚠️ **Starý `lintercop.json` ALCops NEČTOU — konfigurace v něm je mrtvá.** Repa, která ještě vozí
 `lintercop.json` po samostatném LinterCopu (camelCase klíče `cognitiveComplexityThreshold`,
@@ -542,7 +542,7 @@ nevypínej globálně — hodí se tam, kde `Validate` opravdu chybí.
 - **test appka** → `PC0037` rovnou `Hidden` v test rulesetu; testy staví data přímo záměrně
   a `Validate` by rozjel business logiku, kterou test izoluje.
 
-**Test ruleset** (doplnění k 12.4 a k bc-al-autotests): `base/test/<repo>-test.ruleset.json`
+**Test ruleset** (doplnění k 12.4 a k bc-al-autotests-infra): `base/test/<repo>-test.ruleset.json`
 dědí hlavní ruleset přes `includedRuleSets` a skrývá `AC0010` + `LC0015` (permission set coverage),
 `PC0037`, `DC0004` + `DC0007` (XML docs na testech). **CI si ho najde sám** (konvence výše),
 ale **VS Code ne** — workspace `al.ruleSetPath` (`..\..\<repo>.ruleset.json`) se z test folderu

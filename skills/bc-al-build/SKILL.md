@@ -36,8 +36,8 @@ build logů jsou v souboru. Vyčleněno z `bc-al-tools.md` 2026-09-01, číslov�
    `bc-al`).
 3. Sousední témata: alc, al-mcp, BC source, git/PR, verzování app.json (7.8),
    Azure DevOps MCP → `bc-al-tools` (7.1–7.10); analyzery a ruleset →
-   `bc-al-workflow` (12); test appka, `Tests-TestLibraries`, canonical vzor →
-   `bc-al-autotests`.
+   `bc-al-workflow` (12); test appka, `Tests-TestLibraries`, lokální kompilace a běh testů →
+   `bc-al-autotests-infra`; canonical vzor → `bc-al-autotests`.
 
 ## TL;DR — nejtvrdší pravidla (čísla = sekce v souboru)
 

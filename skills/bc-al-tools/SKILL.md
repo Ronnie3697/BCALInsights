@@ -36,7 +36,7 @@ build/deploy) žijí od 2026-09-01 v `bc-al-build.md` → skill `bc-al-build`.
    `bc-al`).
 3. Sousední témata: dependencies, CI build, deploy → `bc-al-build` (7.11–7.19);
    analyzery a ruleset → `bc-al-workflow` (12); test appka a její symboly →
-   `bc-al-autotests`; přidělování object ID → `bc-al-style` (1.12); affixy a
+   `bc-al-autotests-infra`; přidělování object ID → `bc-al-style` (1.12); affixy a
    permission sety nové appky jsou tady (7.5).
 
 ## TL;DR — nejtvrdší pravidla (čísla = sekce v souboru)
