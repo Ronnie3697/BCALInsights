@@ -754,33 +754,39 @@ notes repo má vlastní režim (7.7).
 
 - `commitni` → nejdřív **commit práce** (aby merge neblokovaly necommitnuté soubory), pak fetch + merge `origin/master`,
   vyřešit konflikty, znovu zkompilovat dotčené appky, teprve pak ohlásit hotovo. Výsledek = commit práce + případný merge commit.
-- `pushni` → fetch + merge `origin/master` + konflikty + kompilace + **autotesty v lokálním kontejneru** (níže), pak
-  `git push -u origin <větev>` (jméno větve vždy explicitně, viz past s cizím upstreamem výše).
-- `oboje` → commit práce → merge masteru → autotesty → push.
+- `pushni` → fetch + merge `origin/master` + konflikty + kompilace, pak `git push -u origin <větev>` (jméno větve vždy
+  explicitně, viz past s cizím upstreamem výše) a **až po pushi autotesty v lokálním kontejneru** (níže).
+- `oboje` → commit práce → merge masteru → push → autotesty.
 
-**Autotesty před push** (pokyn uživatele 2026-10-05: *„Pokud napíšu push nebo něco, co ti řekne push, tak zapni kontejner a
+**Autotesty po push** (pokyn uživatele 2026-10-05: *„Pokud napíšu push nebo něco, co ti řekne push, tak zapni kontejner a
 pusť autotesty. Ať pushujeme větev, která pak nespadne na testech po PR, a zároveň ať se nezdržujeme čekáním na testy po
-každé malé změně."*). Platí pro každý pokyn, který vede k push (`pushni`, `oboje`, „commitni a pushni", „pošli to na
-server"…). PR buildy testy nespouští (7.15 v `bc-al-build.md`), bez toho by nový test poprvé běžel až na masteru.
+každé malé změně."*; pořadí upraveno 2026-10-09: *„Když napíšu push, tak pushni a pak pusť autotesty. Kdyby náhodou vyhořel
+noťas, tak ať je ta větev aspoň online a aktuální."*). Platí pro každý pokyn, který vede k push (`pushni`, `oboje`,
+„commitni a pushni", „pošli to na server"…). PR buildy testy nespouští (7.15 v `bc-al-build.md`), bez toho by nový test
+poprvé běžel až na masteru. Starší znění always-on věty („autotesty před každým push“) se čte stejně — pořadí určuje tahle
+sekce.
 
 **Jen pro uživatele s lokálním testovacím kontejnerem** (rozhodnutí v `SETUP.md` krok 9, pokyn uživatele 2026-10-05):
 always-on soubor uživatele má větu `Lokální testovací kontejner: ano …`, nebo — bez té věty — existuje
-`<PRACOVNÍ-REPA>\bc-test-container\settings.json`. Věta `Lokální testovací kontejner: ne …` (kontejner v setupu odmítl)
-= autotesty před push **nepouštěj nikdy**, neptej se na ně a neříkej, že chybí — pushni podle zbytku 7.7b.
+`<PRACOVNÍ-REPA>\bc-test-container\settings.json`. Věta `Lokální testovací kontejner: ne …` (kontejner v setupu odmítl,
+na znění za pomlčkou nezáleží) = autotesty **nepouštěj nikdy**, neptej se na ně, nenabízej je a neříkej, že chybí —
+pushni podle zbytku 7.7b a skonči.
 
-1. Po merge masteru a kompilaci pusť **celé** testy repa v lokálním kontejneru (7.23 v `bc-al-build.md`), na pozadí:
+1. Po merge masteru, kompilaci a **pushi** pusť **celé** testy repa v lokálním kontejneru (7.23 v `bc-al-build.md`), na pozadí:
    `powershell -NoProfile -ExecutionPolicy Bypass -File "<PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1" -RepoPath <kořen repa>`.
    Skript sám nastartuje Docker Desktop i kontejner; výsledek = řádek `SUMMARY: <n> tests, <n> failed` + exit code
    (konfigurátor ~6 min). `<PRACOVNÍ-REPA>` je v always-on souboru uživatele. Skripty jsou kopie šablony
    `<KLON>\setup\bc-test-container\` — liší-li se (po `git pull` notes), nejdřív zkopíruj `*.ps1` + `README.md`.
-2. **0 failů → push.** Fail → **nepushuj**: ukaž faily (test + hláška) a oprav je, je-li to tvoje změna, jinak se zeptej.
-   Fail, který padá i na masteru (ne regrese větve), řekni a rozhodnutí nech na uživateli.
-3. Repo bez testovací appky (`nothing to run`) → push, jen to zmiň. Kontejner uživatel má, ale teď nenaběhne (Docker
-   nestartuje, kontejner smazaný) → řekni to a zeptej se, jestli pushnout bez testů.
-4. **Jen před push** — ne po každé změně, ne u samotného `commitni`, ne po kompilaci. **Ani nově napsané nebo upravené
-   testy se předem „pro jistotu“ nespouští** — stačí je zkompilovat, případné chyby v nich se opraví až v běhu před push
-   (pokyn uživatele 2026-10-06: *„až před pushem prosím. Chyby v testech se prostě opraví až na konci.“*). `-TestCodeunit <id>`
-   jen při opravě testu, který spadl v běhu před push; před samotným push pak vždy celé repo.
+2. **0 failů → hotovo**, ohlas výsledek (`SUMMARY`). Fail → push se **nevrací**: ukaž faily (test + hláška) a oprav je
+   dalším commitem + push (je-li to tvoje změna, jinak se zeptej); PR k merge neposílej, dokud není zeleno. Fail, který
+   padá i na masteru (ne regrese větve), řekni a rozhodnutí nech na uživateli.
+3. Repo bez testovací appky (`nothing to run`) → jen to zmiň. Kontejner uživatel má, ale teď nenaběhne (Docker
+   nestartuje, kontejner smazaný) → push už je venku, řekni to a nabídni běh později.
+4. **Jen v rámci push** — ne po každé změně, ne u samotného `commitni`, ne po kompilaci a ne „pro ověření“ po dokončení
+   implementace (pokyn uživatele 2026-10-09: *„Proč rovnou pouštíš autotesty? To máš dělat, až napíšu push.“*). **Ani nově
+   napsané nebo upravené testy se předem „pro jistotu“ nespouští** — stačí je zkompilovat, případné chyby v nich se opraví
+   až po běhu u push (pokyn uživatele 2026-10-06: *„Chyby v testech se prostě opraví až na konci.“*). `-TestCodeunit <id>`
+   jen při opravě testu, který v tom běhu spadl; po pushi opravy pak znovu celé repo.
 
 Nikdy `rebase` místo merge bez pokynu (přepisuje historii větve, kterou může mít kolega stažen) a nikdy `--force`.
 Case-only kolize složek po merge zkontroluj `git ls-tree -r HEAD --name-only | sort -f | uniq -di` (7.10).

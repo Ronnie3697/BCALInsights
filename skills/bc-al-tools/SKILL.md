@@ -71,11 +71,11 @@ build/deploy) žijí od 2026-09-01 v `bc-al-build.md` → skill `bc-al-build`.
 - **7.6** Source závislé appky: sibling repo `C:\WorkTasks\prod-*` →
   extrakce `.app` (40B hlavička + ZIP) → al-mcp fallback.
 - **7.7 ⛔** `git commit` / `push` / PR / merge do master **nikdy bez
-  výslovného pokynu** (výjimka: notes repo BCALInsights). **Před každým
-  vyžádaným push** merge masteru + kompilace + **autotesty celého repa
+  výslovného pokynu** (výjimka: notes repo BCALInsights). **Vyžádaný push**
+  = merge masteru + kompilace → **push** → teprve pak **autotesty celého repa
   v lokálním kontejneru** (`<PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1`,
-  7.7b); fail = nepushovat. Jen před push, ne po každé změně, a jen kdo
-  kontejner má (always-on `Lokální testovací kontejner: ano`; `ne` = nikdy). Nová větev z cizí
+  7.7b); fail = opravit dalším commitem + push. Jen v rámci push, ne po každé změně,
+  a jen kdo kontejner má (always-on `Lokální testovací kontejner: ano`; `ne` = nikdy). Nová větev z cizí
   upstream → `git branch --unset-upstream` nebo vždy `git push -u origin
   <větev>`. Dev nemá ForcePush → cizí větev zpět nevrátíš.
 - **7.8** `version` v `app.json` neměnit sám; do PR `XX.0.0.0`.

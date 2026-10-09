@@ -6,7 +6,7 @@ nic z toho nepatří.** Po `git pull`, který změní skripty tady, je zkopíruj
 
 Jeden sdílený Docker kontejner (`bctest28`, BC 28.4 OnPrem cz + test toolkit) pro autotesty všech repo
 (`cust-*`, `prod-*`). Repo se do něj nahraje, otestuje a appky se zase odinstalují — zákaznické appky sdílí PTE
-rozsah ID, vedle sebe by se popraly. AI agent ho pouští **před každým push** (7.7b v `bc-al-tools.md`), detail
+rozsah ID, vedle sebe by se popraly. AI agent ho pouští **po každém vyžádaném push** (nejdřív push, pak testy; 7.7b v `bc-al-tools.md`), detail
 a pasti 7.23 v `bc-al-build.md`.
 
 ## Předpoklady (jednorázově, admin)

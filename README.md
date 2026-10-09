@@ -141,8 +141,9 @@ read-only záměrně (401 na zápis neobcházet). <TEST-KONTEJNER> Jazyk kódu a
 ji používá na sibling repa, sdílenou `.alpackages` a zdroje závislých appek.
 
 `<TEST-KONTEJNER>` = věta z `SETUP.md` krok 9: `Lokální testovací kontejner: ano — <PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1,
-autotesty před každým push (7.7b).`, nebo `Lokální testovací kontejner: ne — autotesty před push nepouštěj (SETUP.md krok 9).`
-Bez kontejneru agent autotesty nepouští nikdy (7.7b v `bc-al-tools.md`).
+autotesty po každém push (7.7b).`, nebo `Lokální testovací kontejner: ne — autotesty nepouštěj (SETUP.md krok 9).`
+Bez kontejneru agent autotesty nepouští ani nenabízí nikdy (7.7b v `bc-al-tools.md`); starší znění vět (`… před každým push`,
+`… před push nepouštěj`) platí dál stejně.
 
 ### Claude Code
 

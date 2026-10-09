@@ -658,8 +658,8 @@ a opravená větev prošla (2026-10-05, BC 28.4 cz, BcContainerHelper 6.1.18).
 Nástroj: šablona v notes repu **`setup/bc-test-container/`** (vlastní README), `SETUP.md` krok 9 ji zkopíruje do
 `<PRACOVNÍ-REPA>\bc-test-container\` (tam i `Modules\`, `credential.xml`, `settings.json`) — `Install-Helper.ps1`,
 `New-TestContainer.ps1` (kontejner `bctest28`), `Test-Repo.ps1 -RepoPath <repo> [-TestCodeunit <id>] [-KeepApps]`
-(nastartuje Docker Desktop i kontejner; repo bez testovací appky hned skončí). **Agent ho pouští před každým push** (7.7b
-v `bc-al-tools.md`).
+(nastartuje Docker Desktop i kontejner; repo bez testovací appky hned skončí). **Agent ho pouští po každém vyžádaném push**
+— nejdřív push, pak testy (7.7b v `bc-al-tools.md`); kdo kontejner v setupu odmítl, tomu se nepouští ani nenabízí.
 ⚠️ Verze šablony do 2026-10-06 volala `Get-BcContainerPath` **před** `Start-TestContainer` → s vypnutým Dockerem běh spadl
 na `failed to connect to the docker API at npipe:////./pipe/dockerDesktopWindowsEngine` + `Get-BcContainerSharedFolders :
 The property 'HostConfig' cannot be found` (exit 1, testy neběžely) místo toho, aby Docker nastartoval. A hned po startu

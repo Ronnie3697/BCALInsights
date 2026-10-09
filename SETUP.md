@@ -149,8 +149,8 @@ Token tak není v žádném konfigu a všechny nástroje sdílí jeden soubor.
 
 ## Krok 9 — „Chceš lokální kontejner na autotesty?" (`<PRACOVNÍ-REPA>\bc-test-container`)
 
-Agent pouští autotesty repa v lokálním Docker kontejneru **před každým push** (7.7b v `bc-al-tools.md`) — PR
-buildy testy nespouští a nový test by poprvé běžel až na masteru po merge. Vysvětli to a zeptej se, jestli kontejner
+Agent pouští autotesty repa v lokálním Docker kontejneru **po každém vyžádaném push** (nejdřív push, pak testy; 7.7b
+v `bc-al-tools.md`) — PR buildy testy nespouští a nový test by poprvé běžel až na masteru po merge. Vysvětli to a zeptej se, jestli kontejner
 chce. **K otázce rovnou řekni, co to stojí:**
 
 - **RAM:** běžící kontejner si vezme ~7–8,5 GB (limit `memoryLimit` 8 GB) → v počítači doporučeno **≥ 16 GB**. Když se
@@ -158,13 +158,13 @@ chce. **K otázce rovnou řekni, co to stojí:**
 - **Disk:** ~20–25 GB — Docker image BC ~11 GB, artefakty BC 28.4 ~3,6 GB, kontejner s databází jednotky GB, pracovní
   složka kontejneru ~1 GB. Počítej s **~30 GB volného** na `C:`.
 - **Čas:** první stavba ~25 min (běží na pozadí); jeden běh testů repa 4–6 min (Zlomek 144 testů 3:45, konfigurátor
-  ~900 testů ~5,5 min), jen před push.
+  ~900 testů ~5,5 min), jen po push.
 - Instalace Docker Desktopu a členství v `docker-users` chtějí jednou admina.
 
 **Odmítne → celý krok ⏭️** a do always-on souborů z kroku 6 připiš větu
-`Lokální testovací kontejner: ne — autotesty před push nepouštěj (SETUP.md krok 9).` Agent pak autotesty **nepouští
-nikdy** a ani se na ně před push neptá (7.7b). **Přijme →** body 1–8 a nakonec do stejných souborů
-`Lokální testovací kontejner: ano — <PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1, autotesty před každým push (7.7b).`
+`Lokální testovací kontejner: ne — autotesty nepouštěj (SETUP.md krok 9).` Agent pak autotesty **nepouští
+nikdy**, nenabízí je a ani se na ně u push neptá (7.7b). **Přijme →** body 1–8 a nakonec do stejných souborů
+`Lokální testovací kontejner: ano — <PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1, autotesty po každém push (7.7b).`
 Rozmyslí si to později → průvodce pusť znovu, krok 9 větu přepíše.
 
 Šablona nástroje a jeho README: `<KLON>\setup\bc-test-container\`, detail a pasti 7.23 v `bc-al-build.md`.
