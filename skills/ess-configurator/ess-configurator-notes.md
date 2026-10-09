@@ -768,6 +768,10 @@ zdroje prod-ess-configurator-bc master, COEBS 28.0.22.0.)
   `Condition Result Value`. ⚠️ Hromadné mazání s triggerem (`DeleteAll(true)` z parametru, definice, „Delete All Records“
   service stránek) nejdřív vazby v rozsahu vynuluje `ModifyAll(..., 0, false)` — jinak by `OnDelete` jednoho řádku měnil
   sourozence, které `DeleteAll` vzápětí maže se zastaralou verzí. Podstrom se maže **pre-order** (rodič dřív než potomci).
+  ⚠️ **Test toho předčištění potřebuje rodiče s vyšším `Line No.` než potomka** (vzor COEBS `CreateLinkedSLConditions`:
+  C → True: A → False: B, kořen C založený poslední). `DeleteAll(true)` maže v pořadí PK; strom A → B → C v pořadí založení
+  smaže rodiče dřív, než `OnDelete` potomka hledá rodiče, takže test projde i bez `ModifyAll(..., 0, false)` a regresi
+  nehlídá. (Code review 2026-10-09, cust-alumistr-bc `CNC Data Repair Tests COALU.DefinitionWithLinkedCNCTreeIsDeleted`.)
 - Místo upgrade codeunitu report **63140 `Config. Data Repair COEBS`** (bez UsageCategory, `?report=63140`, výchozí „Pouze
   zkontrolovat“, logika v codeunitu 63158): přepočet rootů, vazby na neexistující podmínky → 0, osiřelé výsledné hodnoty pryč,
   neopravitelné stromy do Error Messages. Pouští se v každé společnosti zvlášť.
