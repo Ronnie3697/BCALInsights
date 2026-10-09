@@ -4,12 +4,12 @@ description: >-
   BC/AL specifické objekty a API (sekce 5): All Profile, Upgrade Tag, No. Series GetNextNo vs PeekNextNo,
   kontrola Document No., Unix timestamp/UTC, NMEBS vazba SO↔VZ, al-mcp ByReference past, atributy zboží, DateFormula limity, CaptionClass + Translation
   Helper, CZ↔EN terminologie, CZZ zálohy, Attached to Line No. parent↔child (xRec, Validate(No.) Init,
-  CurrFieldNo), Requisition Line (GetDirectCost, Make Order, Order Planning, Carry Out, Calculate Plan bez dotazu
-  přes manual bind), IsPriceUpdateNeeded (cena po odpojení HNO), VerifyOnInventory,
-  Item Jnl. Line UoM qty-per, Auto Format částek, Item Charge Assignment, Job Queue z účtování / recurring / na popředí,
-  Data Exchange / camt.053 (merge sloupců, Regex Match, 274), Bin Code na řádcích SO/PO (GetDefaultBin,
-  OnAfterGetDefaultBin, Shipment Bin override, Whse. Receipt/Shipment Line bin z lokace vs. řádku, Validate Bin Code
-  = Message). Načti u číselných řad, výroby, plánování, Job Queue, bankovního importu, přihrádek na dokladech. (Shopify, HttpClient → bc-al-integrations; Job Planning Line /
+  CurrFieldNo), Requisition Line (GetDirectCost, Make Order, Order Planning, Carry Out, Calculate Plan bez dotazu),
+  IsPriceUpdateNeeded (cena po odpojení HNO), VerifyOnInventory,
+  Item Jnl. Line UoM qty-per, Auto Format částek, Item Charge Assignment, Job Queue z účtování / recurring,
+  Data Exchange / camt.053 (merge sloupců, Regex Match), Bin Code na řádcích SO/PO → Whse. Receipt/Shipment Line
+  (OnAfterGetDefaultBin, Validate Bin Code = Message). Načti u číselných řad, výroby, plánování, Job Queue,
+  bankovního importu, přihrádek. (Shopify, HttpClient → bc-al-integrations; Job Planning Line /
   projekty → bc-al-projects; Item Tracking / šarže / SN → bc-al-tracking.)
 user-invocable: true
 ---
