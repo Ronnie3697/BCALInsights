@@ -771,6 +771,11 @@ zdroje prod-ess-configurator-bc master, COEBS 28.0.22.0.)
 - Místo upgrade codeunitu report **63140 `Config. Data Repair COEBS`** (bez UsageCategory, `?report=63140`, výchozí „Pouze
   zkontrolovat“, logika v codeunitu 63158): přepočet rootů, vazby na neexistující podmínky → 0, osiřelé výsledné hodnoty pryč,
   neopravitelné stromy do Error Messages. Pouští se v každé společnosti zvlášť.
+- **Rozšíření s vlastním stromem podmínek** (COALU `CNC Action Condition`, vlastní kopie stromové logiky) se do reportu napojí
+  eventem **`OnAfterRepairConfiguration(ConfigNo; CheckOnly; var TempErrorMessage; var Counters)`** (63158, na konci
+  `RepairConfiguration`, po datech COEBS; větev 66845, 2026-10-09): respektovat `CheckOnly`, počty přes public `AddToCounter`
+  do stávajících počitadel, vady `LogMessage` s kontextem na zprávě, bez `Commit`. Společná logika je public: `RemoveDanglingLinks`
+  (63158) a `Condition Tree Mgt.` `ComputeTreeOrder` s `RootOf`, `FindTreeDefect`, `CheckChildLink`, `GetAncestorLineNos`.
 
 **66711 — `Line No.` smazaného parametru se nepoužije znovu:**
 - Čítač v **samostatné tabulce 63164 `Config. Param. Counter COEBS`**, ne v poli definice: `Configuration Parameter.OnInsert` běží
