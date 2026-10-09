@@ -732,6 +732,16 @@ not run)`. Kontrola i u starší kopie: počet testů proti předchozímu běhu 
   `bc-test-container\settings.json` (`version`). Rozdílné chování ověř přes historii souboru na StefanMaron
   (`commits?sha=w1-28&path=<soubor>` → commity per minor, raw URL se SHA, 7.3 v `bc-al-tools.md`).
 - Alternativa bez kontejneru: pipeline jde pustit ručně na feature větvi (Run pipeline → branch), testy pak proběhnou před merge.
+- **Zákaznické repo nad NEVYDANOU verzí produktové appky** (eventy / public procedury z feature větve, která ještě není na feedu):
+  `Test-Repo.ps1` bere závislost z feedu → kompilace v kontejneru spadne. Postup bez zásahu do nástroje: produktovou appku
+  přelož z větve do scratchpadu s verzí přepsanou jen v kopii `app.json` (např. `28.0.99.0`, nad minimem konzumenta) a pusť
+  **kopii** `Test-Repo.ps1` ve scratchpadu (dot-source `Import-Helper.ps1` a `ContainerSide.ps1` z pevné cesty
+  `<PRACOVNÍ-REPA>\bc-test-container`, ne z `$PSScriptRoot`) s parametry `-OverrideAppId` / `-OverrideAppFile`: po rozřešení
+  závislostí z feedu nahradí soubor té appky v `$dependencyFiles` (a smaže feedový ze symbols složky) a její ID přidá k ID repa
+  pro úklid před a po běhu (všechny verze pryč, další běh si z feedu publikuje vydanou). Generátor kopie (python, `sub()`
+  s kontrolou počtu výskytů) drž ve scratchpadu, ať se kopie dá přegenerovat po změně šablony. Ověřeno 2026-10-09:
+  cust-alumistr-bc 66845 nad COEBS větví `66845_ConditionTreeFromStructure`, 218 testů, 7:49, v kontejneru po běhu nezůstal
+  build 28.0.99.0. Výsledek platí pro tu větev produktové appky — po jejím vydání minimum zvednout a běh zopakovat z feedu.
 
 ### 7.24 Ruční nasazení PTE z NuGetu do SaaS sandboxu (Automation API) — dev build stejné appky, AVS0109
 

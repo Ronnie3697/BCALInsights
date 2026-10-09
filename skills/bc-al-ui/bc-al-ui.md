@@ -500,6 +500,11 @@ Kdo po uložení něco přepočítává nad DB (strom, součty), dělá `SaveRec
 nic neměnilo nebo se uložilo v kódu (`Rec.Modify` před ním). (2026-10-09, prod-ess-configurator-bc 66845: vazba potomka
 na kartách a v dialozích podmínek SL akcí / kusovníku / postupu se z UI neukládala nikdy – chyba z masteru, odhalil ji
 až TestPage test.)
+⚠️ **Opravu vzoru v produktové appce dotáhni i do zákaznických kopií té stránky.** COALU `CNC Action Cond. Card` (Alumistr,
+kopie karty podmínky z COEBS) měla tentýž `OnValidate` jen s `Update(false)` a `OnLookup` s přímým přiřazením do `Rec`;
+po opravě v COEBS zůstala rozbitá, dokud ji nechytil code review. Navíc stromový seznam otevřený šipkou při `OnOpenPage`
+přepočítá strom (i otevřený řádek) → po `RunModal` seznamu `Rec.Find('=')`, jinak `SaveRecord` uloží zastaralou verzi.
+Grep zákaznických rep na název base stránky / komentář „Mirrors …“. (2026-10-09, cust-alumistr-bc 66845, commit 0b39935.)
 
 ---
 
