@@ -807,5 +807,9 @@ zdroje prod-ess-configurator-bc master, COEBS 28.0.22.0.)
 - Použitý parametr nejde smazat (Error s výčtem až 10 použití); vlastní podmínky a vzorce parametru neblokují, uložené hodnoty variant
   taky ne. Výběr více parametrů a „Delete All Records“ jdou přes `DeleteParameters` (odkazy mezi mazanými parametry neblokují).
   Smazání definice kontrolu přeskočí (`SetSkipReferenceCheck` na instanci, globální proměnná tabulky).
+  COZLK ale **smazání vnořené definice zastaví**, když do ní jiná konfigurace předává hodnoty platným propojením (stejné
+  pravidlo `TakenParamApplies` jako u parametru; subscriber `OnBeforeDeleteEvent` definice, jen `RunTrigger` – běží před
+  `OnDelete`, který parametry smaže). Neplatná propojení odejdou s definicí v `OnAfterDeleteRelatedRecords`. (Rozhodnutí
+  uživatele 2026-10-09, dřív tichý úklid; cust-zlomek-bc `66711_ParamLineNoReuse`.)
 - `Variant Configuration COEBS` neměla klíč na `Configuration No.` → každé filtrování podle konfigurace = scan celé tabulky; přidán
   klíč `ConfigParamLineKey (Configuration No., Parameter Line No.)`.
