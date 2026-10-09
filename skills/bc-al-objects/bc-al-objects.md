@@ -903,3 +903,43 @@ vždy vyžádej export (Definice výměny dat → Export definice výměny dat),
 Projekty (Job, Job Task, Job Planning Line, deník projektů): účto skupina a dimenze řádku plánování do Job Journal Line,
 Location Code z Job / Job Task, vazba budget ↔ billable (`Purch. Job Cont.Entry No.IMEBS`), návazné doklady projektu
 a guardy `Job Planning Line.OnDelete` žijí od 2026-10-05 ve skillu `bc-al-projects` (soubor `bc-al-projects.md`). Číslování zůstalo.
+
+### 5.x22 Přihrádka (Bin Code) na řádcích prodejní / nákupní objednávky a její cesta do skladové dodávky / příjemky (BC 28)
+
+Ověřeno ve zdrojích w1-28 při PBI 65239 (cust-sonnentor-bc, 2026-10-09 — výchozí přihrádka zákazníka / dodavatele
+na hlavičce → řádky → skladový doklad):
+
+- **Kde standard přihrádku řádku dokladu počítá:** `Sales Line.GetDefaultBin()` (public) / `Purchase Line.GetDefaultBin()`
+  (local) — volá se z validace `No.`, `Location Code` a `Variant Code` řádku zboží. Vynuluje `Bin Code`, u Drop Shipment
+  skončí, jinak při `Location."Bin Mandatory" and not "Directed Put-away and Pick"` vezme **výchozí Obsah přihrádky**
+  (`WMS Management.GetDefaultBin` = Bin Content s `Default = true`). **Prodejní řádek ji navíc vůbec nenastaví, když má
+  lokace `Require Shipment` a existující `Shipment Bin Code`** (`IsShipmentBinOverridesDefaultBin`) — proto bývá na
+  prodejních řádcích přihrádka prázdná, zatímco na nákupních je vyplněná. Hook pro vlastní default = **`OnAfterGetDefaultBin(var
+  SalesLine)` / `(var PurchaseLine)`** na konci procedury (běží i ve větvi, kde base nic nenastavil; pro ne-Item řádky se
+  nevolá). Přiřazení do `Rec` je jen v paměti, stejně jako base — žádný `Modify`, žádná `IsTemporary` výjimka.
+- **Řádek skladové příjemky / dodávky z objednávky:** `Purchases Warehouse Mgt.PurchLine2ReceiptLine` / `Sales Warehouse
+  Mgt.FromSalesLine2ShptLine` dají `Bin Code` z **hlavičky skladového dokladu** (= `Location."Receipt Bin Code"` /
+  `"Shipment Bin Code"`, když lokace sedí) a přihrádku řádku objednávky jen jako fallback při prázdné; pak ještě
+  `Whse.-Create Source Document.UpdateReceiptLine/UpdateShipmentLine` hlavičkovou přihrádku znovu `Validate`. Přihrádka
+  z řádku objednávky se tedy do skladového dokladu **standardně nedostane**, když lokace má příjmovou / expediční
+  přihrádku. Poslední místo před `Insert` = **`OnBeforeWhseReceiptLineInsert(var WarehouseReceiptLine)` /
+  `OnBeforeWhseShptLineInsert(var WarehouseShipmentLine)`** (codeunit 5750) — zdrojový řádek tam není parametrem, dohledej
+  `Purchase Line.Get(Order, "Source No.", "Source Line No.")`. Alternativa s řádkem v parametru:
+  `OnAfterCreateRcptLineFromPurchLine` / `OnAfterCreateShptLineFromSalesLine` (po `Insert`, nutný `Modify(false)`).
+- **`Validate("Bin Code")` na řádku objednávky z kódu / testu = `Message`**: `Bin Code.OnValidate` volá `CheckWarehouse(true)`
+  a u typu Objednávka v lokaci s `Require Receive` (nákup) / `Require Shipment` (prodej) bez existujícího řádku skladového
+  dokladu skončí `Message(WhseRequirementMsg)` → test potřebuje `[MessageHandler]`; s existujícím řádkem skladového dokladu
+  je to `Error`. Prodejní řádek má navíc `TableRelation` na **Bin Content** (Order s `Quantity >= 0`) a `CheckBinCodeRelation`
+  → přihrádka bez obsahu pro dané zboží se na prodejní řádek z kódu nedá zadat (`LibraryWarehouse.CreateBinContent` před
+  `Validate`). Přímé přiřazení (`"Bin Code" := …` + `Modify`) žádnou z kontrol nespouští. `Validate(Quantity)` z kódu
+  dialog nedává (`CheckWarehouseForQtyToShip` / `CheckLocationRequireReceive` jen při `CurrFieldNo <> 0`).
+- **Hlavička → řádky:** `UpdatePurchLinesByFieldNo` / `UpdateSalesLinesByFieldNo` nejdřív udělají `Modify()` hlavičky a pak
+  validují řádky; subscriber na `OnAfterValidateEvent("Location Code")` hlavičky běží **až po** nich, takže hodnota, kterou
+  v něm na hlavičku dosadíš, se na řádcích při téže validaci ještě neprojeví — dorovnej řádky v tom subscriberu sám.
+- **Sales Order Subform má sloupec `Bin Code` `Visible = false`** (Purchase Order Subform `true`) → bez `modify("Bin Code")
+  { Visible = true; }` uživatel přihrádku na prodejním řádku nezmění ani nevidí. `TestPage` ji pak také nevidí (bc-al-autotests).
+- Testovací setup: `LibraryWarehouse.CreateLocationWMS(Location, BinMandatory, PutAway, Pick, Receive, Shipment)` +
+  `CreateBin(Bin, Loc, Code, '', '')` + `Location.Validate("Receipt Bin Code" / "Shipment Bin Code")` +
+  `CreateWarehouseEmployee(WhseEmployee, Loc, false)`; skladový doklad `CreateWhseReceiptFromPO(PurchaseHeader)` /
+  `CreateWhseShipmentFromSO(SalesHeader)` po `Release…Document` (bez dialogu). `LibraryUtility.GenerateRandomCode` vrací
+  `Code[10]`.
