@@ -458,3 +458,22 @@ a v `OnPageBackgroundTaskCompleted` `CalcTaskId := 0` + `CurrPage.Update()`. Re�
 (2026-10-06, cust-soitron-bc `Project Manager Cue SOI` — kostky Unprocessed buffers / Unapproved projects držely staré počty.)
 
 ---
+
+### 4.16 Nový řádek na subformu s `DelayedInsert` má ve validacích prázdné `SystemId` — cache „per řádek" ho mine
+
+Dokladové subformy (`Purchase Order Subform`, `Sales Order Subform`, `Req. Worksheet`…) mají `AutoSplitKey` + `DelayedInsert = true`:
+řádek se vloží až při opuštění řádku, takže **všechny validace při jeho pořízení (`No.`, `Quantity`, `Variant Code`) běží nad
+záznamem s `IsNullGuid(SystemId) = true`** (a `Line No. = 0` u stránek, kde ho dopočítá až `AutoSplitKey`). Odpovědi / stav
+uložené pod klíčem `SystemId` (SingleInstance cache „uživatel už souhlasil") se pro takový řádek **neuloží vůbec** — první pozdější
+změna uloženého řádku se zeptá znovu.
+
+- Testy přes `LibraryXxx.CreateXxxLine` + `Rec.Validate` pracují s **už vloženým** řádkem (`SystemId` existuje) → cache funguje
+  a test projde, i když na stránce se otázka zopakuje. Scénář „bez dalšího dotazu" proto testuj i z cesty, kde se odpověď
+  neuložila (řádek pořízený přes UI, řádek vzniklý z jiného flow — Carry Out, Make Order z hromadné objednávky, ruční standardní
+  vazba), nebo souhlas odvoď z dat (řádek už *je* navázaný na X → X je odsouhlasená) místo z cache.
+- Když na `SystemId` klíčuješ, rozhodni explicitně, co platí pro `''` (neukládat / in-memory slovník instance codeunitu).
+
+(2026-10-09, cust-sonnentor-bc code review větve BlanketOrders_66586 — převázání na řádek téže HNO po změně varianty „bez dotazu"
+platilo jen v testech; odvozeno z kódu a `DelayedInsert` v base subformech w1-28, v klientu neověřeno.)
+
+---
