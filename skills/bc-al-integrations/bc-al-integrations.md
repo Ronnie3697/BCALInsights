@@ -362,25 +362,24 @@ IntegrationRecordSynch.Codeunit.al`, `IntegrationTableMapping.Table.al`, `Integr
   `IntegrationTableMapping.CreateRecord(..., Database::"CRM Account", ...)` bez jediného čtení záznamu („Table connection for table
   type CRM must be registered using RegisterTableConnection" — cust-soitron-bc build 28646, `Tax Reg. No. Sync Test CCSOI`, 2026-10-05).
 
-### 11.9 Jira Cloud `user/search?query=<e-mail>` je FUZZY — kandidáta se skrytým e-mailem nebrat jako shodu
+### 11.9 Jira Cloud user lookup podle e-mailu — `/rest/api/3/user/search?query=<e-mail>`, NE `/rest/api/3/users`
 
-Z cust-soitron-bc (Jira synchronizace zdrojů, 2026-10-09): dotaz `GET /rest/api/3/user/search?query=ext_sarapatkovaj@soitron.com`
-vrátil `[Věra Fládrová (emailAddress skrytý), Jaroslav Samudovský (jaroslav.samudovsky@soitron.com), …]` — hledaná osoba v Jira
-vůbec neexistovala. Jira dotaz tokenizuje (`ext`, `soitron`, `com`…) a matchuje prefixy displayName i (skrytého) e-mailu, takže
-**vrací výsledky i pro neexistující adresu** a pro skryté e-maily nejde ze serveru poznat, který z kandidátů je ten pravý.
-Kód „vezmi prvního kandidáta bez `emailAddress`, Jira přece matchovala server-side" přiřadil cizí Account Id → cizí worklogy
-na zdroj, špatný `leadAccountId`.
+Z cust-soitron-bc (Jira synchronizace zdrojů, 2026-10-09): zdroje dostávaly cizí Account Id. Příčina: v setupu zůstal z první
+verze (četla celý adresář a párovala e-maily v kódu) endpoint **`/rest/api/3/users`** = „Get all users" — parametr `query`
+**ignoruje** a vrátí prvních 50 uživatelů adresáře; kód pak vzal prvního kandidáta se skrytým e-mailem (jiná osoba).
+`InitValue` pole se změnou kódu existující setup nezmění → po změně významu setup pole hlídat validací (`OnValidate`:
+musí končit `/user/search`) a říct zákazníkovi, ať hodnotu přepíše.
 
-- **Pravidlo:** kandidáta přijmi jen když (a) má **viditelný `emailAddress` identický** s hledaným (bez ohledu na velikost
-  písmen), nebo (b) e-mail je skrytý **a `displayName` odpovídá jménu zdroje** — porovnání jako množiny slov bez diakritiky
-  a case (`ConvertStr` s mapou `áäčď…` → `aacd…`, split na mezery/čárky/tečky), kratší jméno obsažené v delším a aspoň 2
-  společná slova (titul „Ing." na jedné straně nevadí, samotné křestní jméno nestačí). Viditelný, ale jiný e-mail = jiný
-  uživatel, přeskočit. Jediný výsledek se skrytým e-mailem **není** důkaz shody.
-- Výběr kandidáta drž v čisté proceduře nad textem odpovědi (`FindResourceAccountIdInUsers(ResponseText, Resource, var
-  AccountId)`), ať jde testovat bez HTTP (`[HttpClientHandler]` je OnPrem-only, viz bc-al-autotests) — testy
-  `FindJiraUser_*` v `Jira JPL Change Test SOI`.
-- Hláška při neúspěchu má uživateli říct všechny tři cesty: zkontrolovat e-mail, nastavit v profilu Jira viditelnost
-  e-mailu na „Anyone", nebo zadat Account Id ručně. Ruční pole proto nechat editovatelné; hodnotu s `@` (omylem zadaný
-  e-mail) ber jako nenavázanou (`SetFilter(Pole, '%1|%2', '', '*@*')`), ať ji příští dohledání přepíše.
+- **Správný dotaz:** `GET /rest/api/3/user/search?query=<celý e-mail>` (URL-encoded, `@` = `%40`). Jira matchuje celou
+  adresu jako prefix e-mailu **i skrytého** (profile privacy), takže výsledek je typicky jeden uživatel; `emailAddress`
+  v odpovědi chybí, když ho má uživatel skrytý. Single-user čtení: `GET /rest/api/3/user?accountId=…`.
+- **Výběr kandidáta:** viditelný `emailAddress` identický (bez case) = ten uživatel; viditelný jiný = jiná osoba, přeskočit;
+  skrytý e-mail = přijmout jen když je takový kandidát **jediný** (víc skrytých = nejednoznačné, nepřiřazovat — přesně to vrací
+  `/users`). Porovnávání displayName se jménem zdroje nedělat (jména v Jira a BC se běžně liší, zákazník to nechce hlídat).
+- Výběr drž v čisté proceduře nad textem odpovědi (`FindResourceAccountIdInUsers(ResponseText, Resource, var AccountId)`),
+  ať jde testovat bez HTTP (`[HttpClientHandler]` je OnPrem-only) — testy `FindJiraUser_*` v `Jira JPL Change Test SOI`.
+- Hodnotu s `@` v poli Account Id (ručně zadaný e-mail) ber jako nenavázanou (`SetFilter(Pole, '%1|%2', '', '*@*')`), ať ji
+  příští dohledání přepíše; akce „Synchronize Jira Users" s volbou přepsat i existující ID opraví data po takové chybě.
 - Account Id je pro Jira i Tempo povinný identifikátor (payloady `leadAccountId` / `assignee.id`, Tempo worklog `author.accountId`
-  bez e-mailu; Atlassian GDPR migrace 2019) — ukládat ho na zdroj jako cache má smysl i při viditelných e-mailech.
+  bez e-mailu; Atlassian GDPR migrace 2019; `GET /user/email` je jen pro Connect/OAuth appky, ne Basic auth) — ukládat ho na zdroj
+  jako cache má smysl i při viditelných e-mailech.
