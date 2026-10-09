@@ -612,6 +612,13 @@ vyfakturovaného** řádku a test ho musí zaúčtovat `PostPurchaseDocument(…
 `Variant Code` je na `Purchase/Sales Order Subform` ve standardu `Visible = false` → testuj přes `Rec.Validate` a kontrolu proto
 neomezuj na `CurrFieldNo <> 0`. (2026-10-09, cust-sonnentor-bc Task 66586; zdroj Base App 28.5 `PurchaseLine/SalesLine.Table.al`,
 `PurchPost/SalesPost.Codeunit.al`.)
+⚠️ **„Uživatel už to odsouhlasil" neber z cache odpovědí klíčované `SystemId` řádku.** `Purchase/Sales Order Subform` mají
+`DelayedInsert = true` → řádek pořízený na stránce při validaci množství **ještě nemá SystemId**, klíč vyjde prázdný a odpověď
+se neuloží; řádek z `Req. Wksh.-Make Order` má odpověď pod klíčem řádku sešitu, z Vytvořit objednávku z HNO/HPO nebo z ruční
+vazby žádnou. Testy, které zakládají řádek přes `Library - Purchase/Sales` (`Insert` dřív než validace) a navazují kódem, cache
+mají **vždy** → „převázání bez dotazu" prošlo v testech a v UAT by se ptalo. Odsouhlasení ber z dat (původní `Blanket Order No.`
+uložené před odpojením, předané do rozhodování jako „accepted"), cache neplň (u klíče dokladu by pustila i další řádky) a přidej
+test s vazbou standardní validací **bez ConfirmHandleru**. (2026-10-09, code review cust-sonnentor-bc Task 66586.)
 
 ### 5.x6 „Nemáte dostatečné množství zboží … na skladě" u spotřeby/transferu — `VerifyOnInventory` ignoruje Prevent Negative Inventory
 
