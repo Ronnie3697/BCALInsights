@@ -384,6 +384,29 @@ musí končit `/user/search`) a říct zákazníkovi, ať hodnotu přepíše.
   bez e-mailu; Atlassian GDPR migrace 2019; `GET /user/email` je jen pro Connect/OAuth appky, ne Basic auth) — ukládat ho na zdroj
   jako cache má smysl i při viditelných e-mailech.
 
+### 11.9b Tempo v4 worklog nese u issue jen `id` + `self` (žádný `key`) → parent / projekt dočíst z Jira issue
+
+Z cust-soitron-bc (import výkazů Tempo → External Time Sheet Line, 2026-10-12): `GET https://api.eu.tempo.io/4/worklogs/{id}`
+vrací `"issue": { "self": "https://<site>.atlassian.net/rest/api/2/issue/10098", "id": 10098 }` — **klíč issue tam není**.
+Kód, který bral `issue.key` (a z něj prefix = Jira project key → projekt v BC), tak dostal prázdný text a fallback na
+projekt nikdy nezabral. Uživatelé navíc vykazují na **podúkoly / child issue**, které BC nezakládal → podle `issue.id` se
+řádek plánování nenajde.
+
+- **Řešení:** nenajde-li se řádek podle `issue.id`, načíst issue z Jiry `GET {Jira Base Url}/rest/api/3/issue/{id}?fields=parent,project`
+  (Basic auth Jira, ne Tempo bearer) → `key`, `fields.parent.{id,key}`, `fields.project.key`; lézt po `parent` nahoru
+  (sub-task → story → epic, limit proti cyklu), nejbližší předek s řádkem plánování vyhrává; jinak projekt podle
+  `fields.project.key`; teprve pak skip. `self` z Tempa **nevolat přímo** — URL přichází z cizí odpovědi a nesla by Jira
+  credentials na libovolný host; skládat z nakonfigurované Base Url + id.
+- **Selhání Jiry (≠ 404) = chyba worklogu, ne skip** — skip u inbound syncu s `updatedFrom` posune časovou značku a worklog
+  se už nikdy nenačte. 404 (issue smazané / bez práv) = „nevím nic" → pokračovat fallbackem. Odpovědi cachovat per běh
+  (Dictionary v instanci codeunitu, i 404 jako prázdný text) — worklogů na jednom podúkolu bývá hodně.
+- **Test bez HTTP na Cloud targetu:** `[IntegrationEvent] OnBeforeFetchIssue(IdOrKey; var ResponseText; var HttpStatusCode;
+  var IsHandled)` v API codeunitu (před HTTP, status kód zpracuje společný kód) + test codeunit s `EventSubscriberInstance =
+  Manual`, který si mock data drží v globálních proměnných **vlastní instance** (`JiraIssueMock: Codeunit "<tentýž test>";
+  JiraIssueMock.AddMockedJiraIssue(...); BindSubscription(JiraIssueMock)` v lokální proměnné testu). Neregistrovaná issue
+  = 404. Existující testy, které dřív končily fallbackem bez HTTP, musí mock bindnout taky (jinak jdou na síť).
+  Kompilace čistá (alc 17), CI běh zatím ne.
+
 ### 11.10 Dotykačka (Dotypos API v2) — stav skladu je `stockQuantityStatus`, blokace = `display: false`, ceny s DPH do `priceWithVat`
 
 Z prod-ess-dotykackaConnector-bc, PBI 63075 (test Pavla Fily 2026-10-08, oprava 2026-10-09; zdroj
