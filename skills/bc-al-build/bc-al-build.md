@@ -667,6 +667,12 @@ Docker Desktopu je kontejner zase `running` (restart policy), ale BC služba uvn
 minut) → první `docker exec` padá na `No such exec instance` / `ServerInstance 'MicrosoftDynamicsNavServer$BC' is not running`.
 Opraveno v šabloně: cesta ke `ContainerSide.ps1` se zjišťuje až po startu a `Start-TestContainer` čeká na health `healthy`
 (max 10 min) — kdo má kopii starší, zkopíruj `Test-Repo.ps1` a `Import-Helper.ps1` znovu.
+⚠️ Ani health `healthy` nestačí (2026-10-12, dotykackaConnector): hned po startu Docker Desktopu hlásil kontejner healthy, ale
+služba `MicrosoftDynamicsNavServer$BC` byla `Stopped` → `StartPending` a první skript v kontejneru (NuGet závislosti) spadl na
+`ServerInstance 'MicrosoftDynamicsNavServer$BC' is not running` (exit 1, testy neběžely). `Start-TestContainer` teď čeká i na
+`docker exec <kontejner> powershell (Get-Service 'MicrosoftDynamicsNavServer$BC').Status` = `Running`. Ruční obejití: počkat
+pár minut a pustit `Test-Repo` znovu. A z Git Bash cestu `-RepoPath` dávat v **jednoduchých uvozovkách** — bez nich Bash
+sežere zpětná lomítka (`C:WorkTasksprod-…` → `Resolve-Path` cannot find path).
 ⚠️ **Dva běhy v jednom kontejneru se rozbijí navzájem** (2026-10-09: tři seance — konfigurátor, cust-sonnentor-bc,
 dotykackaConnector — pustily `Test-Repo` do `bctest28` současně): cizí publish/unpublish uprostřed testů → `ERROR DIALOG: You
 tried to invoke the CodeUnit object with the ID 63190 … does not exist`, zbylých 14 test codeunitů neběželo a skript přesto

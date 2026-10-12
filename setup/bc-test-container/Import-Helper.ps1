@@ -126,10 +126,16 @@ function Start-TestContainer([string] $ContainerName) {
     }
     # Right after a Docker Desktop start the container is "running" again (restart policy), but the BC service inside is
     # still starting - the first docker exec then fails ("No such exec instance"). Wait for the health check.
+    # The health status alone is not enough: right after a Docker Desktop start it can report healthy while the BC service
+    # is still Stopped / StartPending, and the first script in the container throws "ServerInstance ... is not running".
     $deadline = (Get-Date).AddMinutes(10)
     do {
         $health = (Invoke-Docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' $ContainerName).Output.Trim()
-        if (($health -eq 'healthy') -or ($health -eq 'none')) { return }
+        if (($health -eq 'healthy') -or ($health -eq 'none')) {
+            $service = (Invoke-Docker exec $ContainerName powershell -NoProfile -Command '(Get-Service -Name ''MicrosoftDynamicsNavServer$BC'').Status').Output.Trim()
+            if ($service -eq 'Running') { return }
+            $health = "$health, BC service $service"
+        }
         Write-Host "Waiting for container $ContainerName ($health)"
         Start-Sleep -Seconds 10
     } until ((Get-Date) -gt $deadline)
