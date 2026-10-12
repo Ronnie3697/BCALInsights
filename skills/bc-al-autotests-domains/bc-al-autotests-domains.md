@@ -197,6 +197,8 @@ NEmodifikuje). Směr částky: odchozí platba dodavateli z výpisu má na řád
   `Contact.Get(ContactBusinessRelation."Contact No.")` (fallback na CreateCompanyContact jen když relace není).
   (2026-09-15, cust-alumistr-bc build 28247, `QuoteFromOpportunityIsBilledToOpportunityBillToCustomer`.)
 
+- **CI firma (CRONUS CZ) má zapnuté `Location Mandatory`** → nákupní/prodejní řádek typu Zboží bez lokace padá na „Location Code must have a value in Purchase Line … It cannot be zero or empty“ (standardní kontrola, žádný vlastní kód). Test, který generuje objednávku z řádku plánování (EPEBS `Job Trans.Purch.Orders`), proto zakládá řádek typu **G/L Account** (`LibraryJob.CreateJobPlanningLine(JobTask, Schedule, GLAccountType, LibraryERM.CreateGLAccountWithPurchSetup(), Qty, JPL)` — overload s číslem a množstvím má Job Task jako PRVNÍ parametr) nebo dá řádku Zboží lokaci; lokálně bez Location Mandatory projde i Item. (2026-10-12, cust-soitron-bc build 28813, `Logistic Officer Test SOI`.)
+
 ### Doklad jen se záporným řádkem = „Celková částka faktury musí být 0 nebo větší" PŘED vlastní kontrolou
 
 Test, který účtuje doklad obsahující **jen záporný řádek** (uplatnění poukazu, sleva, oprava),
