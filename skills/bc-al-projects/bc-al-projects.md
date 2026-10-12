@@ -152,7 +152,7 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   Sales Order* (IMEBS `Job Create Sales Order IMEBS` → `Project Item Management IMEBS.CreateSalesOrder`, public) zakládají
   hlavičku stejně: `Insert(true)` → `Validate("Purchaser Code" / "Salesperson Code", Job."Person Responsible")` →
   **`Validate("Job No. EPEBS", JobNo)` → `Modify(true)`**. Žádný IntegrationEvent na hlavičce není → vlastní pole hlavičky
-  (Soitron `Technical Lead SOI`) plň v tableextension přes **`modify("Job No. EPEBS") { trigger OnAfterValidate() }`**
+  (Soitron `Logistic Officer SOI`, dřív `Technical Lead SOI` — přejmenováno 2026-10-12, Technical Lead zůstal jen na projektu) plň v tableextension přes **`modify("Job No. EPEBS") { trigger OnAfterValidate() }`**
   (modify pole cizí tableextension funguje, appka má přímou dependency na EP Project Base) — pokryje obě akce i ruční zadání
   projektu na dokladu; hodnotu jen přiřaď (ne `Validate`, ať smazaný prodejce z karty projektu neshodí založení dokladu).
 - Test nákupní cesty bez UI: `JobTransPurchOrders.SetTableView(JPL s SetRecFilter)` + `SetCreateNewPurchaseOrder(true)` +
@@ -160,7 +160,7 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   (eligibility = flag + bez objednávky + `Remaining Qty. <> 0`); `OnPostReport` otevře kartu objednávky (`[PageHandler]` na
   `Purchase Order`) a dá `Message` (`[MessageHandler]`). Prodejní cesta = přímé volání `CreateSalesOrder(JobNo, Bill-to, …)`.
   `Library - ERM.SetJournalTemplateNameMandatory` v W1 knihovně není (AL0132) — testy účtování v cust-soitron-bc ho
-  nepotřebují. (2026-10-09, cust-soitron-bc `Technical Lead Test SOI`, kompilace čistá, běh v kontejneru až při push.)
+  nepotřebují. (2026-10-09, cust-soitron-bc `Logistic Officer Test SOI`, kompilace čistá, běh v kontejneru až při push.)
 - **Prodejce / nákupčí na dokladech projektu (PBI 64804 bod 1, 2026-10-12):** `Job.GetDocumentSalespersonCodeEPEBS()` (EP Project Base)
   = `User Setup."Salespers./Purch. Code"` uživatele v `Job."Project Manager"` (standardní pole, relace User Setup), fallback
   `Person Responsible` (číslo zdroje — musí existovat i jako Salesperson, jinak `Validate("Purchaser Code")` spadne; testy
