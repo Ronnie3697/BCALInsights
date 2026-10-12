@@ -13,6 +13,7 @@ Obsahuje:
 - **5.x15** tracking na fakturačním řádku z Get Shipment Lines
 - **5.x15b** předvyplnění šarže na Item Tracking Lines (hooky stránky 6510), SN zboží bez automatického řádku
 - **5.x16** automatické přiřazení šarže z kódu (FEFO) — prošlé šarže při Strict Expiration Posting přeskoč
+- **5.x17** `Reservation Entry."Entry No."` je AutoIncrement — `"Entry No." := 0` před Insert, nikdy FindLast + 1
 
 ## 5. Specifické objekty a API — Item Tracking
 
