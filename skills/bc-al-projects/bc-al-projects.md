@@ -161,3 +161,12 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   `Purchase Order`) a dá `Message` (`[MessageHandler]`). Prodejní cesta = přímé volání `CreateSalesOrder(JobNo, Bill-to, …)`.
   `Library - ERM.SetJournalTemplateNameMandatory` v W1 knihovně není (AL0132) — testy účtování v cust-soitron-bc ho
   nepotřebují. (2026-10-09, cust-soitron-bc `Technical Lead Test SOI`, kompilace čistá, běh v kontejneru až při push.)
+- **Prodejce / nákupčí na dokladech projektu (PBI 64804 bod 1, 2026-10-12):** `Job.GetDocumentSalespersonCodeEPEBS()` (EP Project Base)
+  = `User Setup."Salespers./Purch. Code"` uživatele v `Job."Project Manager"` (standardní pole, relace User Setup), fallback
+  `Person Responsible` (číslo zdroje — musí existovat i jako Salesperson, jinak `Validate("Purchaser Code")` spadne; testy
+  zakládají Salesperson se stejným kódem jako Resource). Volá se ze všech generátorů (EPEBS `CreatePurchaseOrder`, tendr
+  poptávka/objednávka, IMEBS `CreateSalesOrder`) **a** z `OnValidate` pole `Job No. EPEBS` na Purchase/Sales Header EPEBS
+  (`UpdatePurchaserCodeFromJobEPEBS` / `UpdateSalespersonCodeFromJobEPEBS`, prázdný kód hlavičku nemění) → ruční zadání projektu
+  přepíše prodejce. Tendr `Job No. EPEBS` na poptávku nenastavuje, proto helper i v `Tender Management`. Kompilace: EPEBS má
+  AppSource range (AppSourceCop), IMEBS PTE range (PTE cop); test IMEBS chce EPEBS ≥ 28.0.24.0 → v temp cache přepsat verzi
+  čerstvého EPEBS buildu v kopii `app.json`. `User Setup` v testu: `Init` + `"User ID" := GenerateGUID` + `Insert(true)`.
