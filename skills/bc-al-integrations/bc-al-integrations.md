@@ -406,3 +406,13 @@ Z prod-ess-dotykackaConnector-bc, PBI 63075 (test Pavla Fily 2026-10-08, oprava 
   Výběr řádku `Price List Line` pro export: `Status` Active, `Amount Type` Price|Any, `Minimum Quantity` 0, LCY,
   `Unit of Measure Code` prázdná|základní, `Starting Date ..WorkDate`, `Ending Date` `%1|>=%2` (0D, WorkDate), varianta →
   fallback řádek zboží, převod přes `"Price Includes VAT"` řádku.
+- **Účtenky (orders) — ověřeno na živém API 2026-10 (PBI 63075, AC 3):** platební metoda money logu je
+  **`paymentTypeId`** (pevná ID: 900000001 hotovost, 900000002 karta, 900000011 dárkový poukaz, …), ne `_paymentMethodId`
+  z některých příkladů; částka `amount`, `transactionType` `SALE` / `REFUND`. **Hotovostní zaokrouhlení** = order item
+  s `_productId` 0 a bitem `flags` 16 (`vat` 1); `_productId` 0 bez bitu = rychlý prodej bez produktu. **`_taxId` na order
+  itemu neexistuje** — DPH jen multiplikátor `vat`. Storno = nový order se zápornými množstvími, odkaz `_sourceOrderId`
+  (starší `_relatedOrderId` se pořád plní). `documentType` `CASH_IN` / `CASH_OUT` / `EXTERNAL_INVOICE_PAYMENT` nejsou
+  prodej → přeskočit. Import stavěj atomicky (sestavení dokladu v codeunitu s `TableNo` přes `Codeunit.Run` po `Commit`,
+  účtování a platby jako další samostatné kroky) a platby kontroluj na mapování **před** založením dokladu, jinak vznikne
+  zaúčtovaná nezaplacená faktura. Zúčtovací datum účtenky hlídej proti subscriberům, co účtují k WorkDate
+  (`bc-al-posting.md` 3.6j).

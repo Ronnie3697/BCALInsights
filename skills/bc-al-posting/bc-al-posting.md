@@ -13,6 +13,7 @@ Obsahuje:
 - **3.5** Propagace vlastního pole přes Sales posting + Warehouse Shipment
 - **3.6** Vlastní pole na Sales/Purchase Header/Line — kompletní rozšíření (+ 3.6b–3.6h)
 - **3.6i** Report dokladu pro tělo emailu z vlastního kódu archivuje podruhé (`Mail Management` bind)
+- **3.6j** Programové účtování staršího dokladu: subscriber přepíše zúčtovací datum na WorkDate (Essence Distribution) — nastav WorkDate
 
 ## 3. Event Subscribery — propagace polí (3.5–3.6f)
 
@@ -532,3 +533,26 @@ ship jen část řádků → `PostSalesDocument(SalesHeader, false, true)` musí
 - Diagnostika v BC: Archivy prodejních nabídek = page **9348** (9346 = nákupní poptávky), sloupce Datum/Čas archivace — dvojice
   verzí 2–4 s po sobě = dvojí běh reportu. (2026-10-05, Sonnentor BC-TEST: Výběr sestav Nabídka = 1304 s tělem i přílohou, `Archive
   Quotes` = Question; zdroje cz-28.0.46665.48549.)
+
+### 3.6j Programové účtování staršího dokladu — cizí subscriber na `Sales-Post.OnBeforePostSalesDoc` přepíše zúčtovací datum na WorkDate
+
+- **Essence Distribution Base** (prod-essence-distribution-bc, `PostingEventSubscribersAAEBS`) má v *Essence Distrib. Setup*
+  volby **`Sales Header Posting Workdate`** / `Purch. Header Posting Workdate` (+ varianta pro dodávku ze skladu): subscriber na
+  `Sales-Post.OnBeforePostSalesDoc` udělá `SalesHeader.Validate("Posting Date", WorkDate())` + `Shipment Date` hlavičky i řádků.
+  Ruční účtování „dnes" to chce, ale **import dokladů s vlastním datem** (účtenky z pokladny, EDI, migrace) tím tiše
+  přeúčtuje do aktuálního období (DPH!). Symptom: hláška „Změnili jste Zúčtovací datum na prodejní objednávce, což může
+  ovlivnit ceny…" (`PriceMessageIfSalesLinesExist`) během účtování dokladu, který datum měl správně.
+- ⚠️ **Přepsané datum přežije i SPADLÉ účtování:** `Sales-Post` po přidělení čísel (`Posting No.` z řady) dělá `Modify` +
+  `Commit` (pokud není `SuppressCommit`) — změna z `OnBeforePostSalesDoc` je v tu chvíli už v hlavičce, takže doklad po chybě
+  (např. šarže) zůstane s novým datem a další pokus už účtuje na něj.
+- **Oprava v kódu, který účtuje:** kolem `Codeunit.Run(Codeunit::"Sales-Post", SalesHeader)` nastav
+  `WorkDate(SalesHeader."Posting Date")` a **po návratu ho vrať i při chybě** (WorkDate je session stav, rollback ho nevrátí;
+  `Codeunit.Run` s návratovou hodnotou chybu chytí, takže restore za ním proběhne vždy). Cizí subscriber pak nic nemění
+  (datum = WorkDate). Ruční *Účtovat* z karty jde mimo tvůj kód — to zdokumentuj.
+- Test bez té appky: manuální subscriber (`EventSubscriberInstance = Manual`) na `OnBeforePostSalesDoc`, který dá
+  `"Posting Date" := WorkDate()` + `Modify` (bez `Validate` — ta by vyhodila Message bez handleru), bind přes **lokální**
+  proměnnou testu (unbind sám na konci procedury i po pádu), doklad s datem `WorkDate() - 5` → assert zúčtovací datum
+  a `WorkDate()` beze změny.
+- Najít, kdo datum mění: `search_code` přes ADO MCP na `"Posting Date" OnBeforePostSalesDoc WorkDate` (výsledek je obří →
+  uložený soubor, parsovat jako víc JSON objektů za sebou přes `raw_decode`). (2026-10-12, prod-ess-dotykackaConnector-bc
+  PBI 63075, Sonnentor BC-DEV: účtenka z 28. 8. účtovaná 12. 10.)

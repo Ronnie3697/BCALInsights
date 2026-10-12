@@ -12,6 +12,7 @@ Obsahuje:
 - **5.x2b** tracking na Sales Quote — Prospect vs Surplus
 - **5.x15** tracking na fakturačním řádku z Get Shipment Lines
 - **5.x15b** předvyplnění šarže na Item Tracking Lines (hooky stránky 6510), SN zboží bez automatického řádku
+- **5.x16** automatické přiřazení šarže z kódu (FEFO) — prošlé šarže při Strict Expiration Posting přeskoč
 
 ## 5. Specifické objekty a API — Item Tracking
 
@@ -196,3 +197,21 @@ cust-soitron-bc (`Job Lot Tracking Mgt. SOI`, 2026-10-07): u SN zboží auto-ř�
   `LibraryUtility.CreateNoSeries(NoSeries, true, true, false)` + `CreateNoSeriesLine` pro `Serial Nos.`. Assert DB po zavření
   (`Reservation Entry` per SN + `Lot No.`), ne hodnotu na TestPage (kdy proběhne insert řádku, TestPage nezaručuje).
   Testy `Job Lot Tracking Test SOI` — lokálně jen kompilace, běh až v CI.
+
+### 5.x16 Automatické přiřazení šarže z kódu (FEFO) — prošlé šarže při *Strict Expiration Posting* přeskoč
+
+- Vlastní FEFO (open positive ILE per lot, řazení podle `Expiration Date`, zápis přes `Create Reserv. Entry`) vezme jako
+  „first expired" klidně **už prošlou** šarži. Když má `Item Tracking Code` **`Strict Expiration Posting`** („Přísné účtování
+  expirace"), `Item Jnl.-Post Line` výdej odmítne: „Datum expirace je před zúčtovacím datem. v Položka zboží Číslo
+  položky='244'" — kontext chyby je ILE šarže, ne řádek dokladu. Doklad se přitom vytvořil v pořádku, padá až účtování.
+- Pravidlo: při sestavování kandidátů vyřaď šarži s `Expiration Date <> 0D` a `< Posting Date` dokladu (ne WorkDate —
+  importovaný doklad má datum z cizího systému), **jen když** je `Strict Expiration Posting` zapnuté (bez něj BC prošlou
+  šarži prodat dovolí). Když po vyřazení nic nezbude, vyhoď vlastní chybu, která řekne, že šarže byly prošlé a kód
+  sledování vyžaduje přísné účtování — „chybí N kusů" bez důvodu uživatele zmate (zásoba na kartě je vidět).
+- Test: `Library - Item Tracking`.`CreateItemTrackingCode(Code, false, true)` + `Validate("Use Expiration Dates", true)` +
+  `Validate("Strict Expiration Posting", true)`; naskladnění šarže přes `CreateItemJournalLineInItemTemplate` +
+  `CreateItemJournalLineItemTracking(ResEntry, Line, '', LotNo, Qty)` + `ResEntry.Validate("Expiration Date", …)`, zúčtovací
+  datum naskladnění **před** expirací (`WorkDate() - 30`), ať příjem nenarazí na stejnou kontrolu.
+- Pozn. k datům v BC-DEV: lookup šarže na 6510 ukáže i prošlou šarži (expirace je vidět ve sloupci *Datum expirace*
+  řádku sledování) — rychlá diagnostika, proč účtování padá. (2026-10-12, prod-ess-dotykackaConnector-bc PBI 63075,
+  `Dotykacka Lot Assign DCEBS`, Sonnentor kód LOTEXP.)

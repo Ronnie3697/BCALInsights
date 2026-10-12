@@ -287,6 +287,15 @@ hned za proceduru, ze které se volají.
 **Proč:** Přehlednost — subscriberi se hledají a čtou jako samostatná sekce
 na konci souboru. Zamíchané mezi běžné lokální procedury se špatně hledají.
 
+**Access modifier publisheru omezuje jen VYVOLÁNÍ eventu, ne odběr.** `local` /
+`internal` publisher (`[IntegrationEvent] internal procedure OnBefore…`) může
+subscribovat kterákoli jiná appka — stejně jako na `local` publishery Base App.
+Public publisher by naopak mohla volat cizí appka a každá změna parametrů je
+breaking change; ALCops **AC0024** proto public publisher hlásí. Codeunit
+s eventy pro rozšíření tedy může být `Access = Public` s `internal` publishery.
+(2026-10-12, prod-ess-dotykackaConnector-bc `Dotykacka Events DCEBS` — málem
+„opraveno" na public kvůli mylné domněnce, že internal nejde odebírat.)
+
 ### 1.7 `actionref` — vždy na konec `actions {}`
 
 Když v pageextension přidáváš promoted `actionref`, dávej ho **až za všechny

@@ -1,16 +1,17 @@
 ---
 name: bc-al-posting
 description: >-
-  BC/AL propagace vlastních polí do účtovaných dokladů, archivu a kopií (Business Central, sekce 3.5–3.6f):
+  BC/AL propagace vlastních polí do účtovaných dokladů, archivu a kopií (BC, sekce 3.5–3.6j):
   Sales Line → Item Jnl. Line → ILE / Whse. Shipment Line, vlastní pole Sales/Purchase Header/Line se stejným
   field ID na archive + posted tabulkách (TransferFields), total řádku při částečném účtování
   (OnAfterInitFromSalesLine, undo dodávky), AutoFormatExpression GetCurrencyCode, Validate("No.") Init() past
-  (archive restore, Copy Document s Recalculate, RecreateSalesLines), OnAfterGetUnitCost, Blob pole hlavičky =
-  CalcFields + subscriber na každém přenosu (Sales-Post 4× OnBefore…TransferFields, archiv + obnova,
-  Quote → Order, Copy Document OnAfterCopySalesHeaderDone), délky Text polí (LC0044, PC0020), guard
+  (archive restore, Copy Document, RecreateSalesLines), OnAfterGetUnitCost, Blob pole hlavičky =
+  CalcFields + subscriber na přenosu (Sales-Post 4× OnBefore…TransferFields, archiv + obnova,
+  Quote → Order, Copy Document OnAfterCopySalesHeaderDone), délky Text (LC0044, PC0020), guard
   OnModifyRecord jako invarianty, kontrola dokladu OnAfterCheckSalesDoc vs OnBeforeIsApprovedForPosting, Job No.
-  dodávka vs faktura, dvojí archivace při emailu (bind Mail Management). Načti u vlastních polí na
-  dokladech, postingu, archivace, kopie dokladu, emailu dokladu a rich text poznámek.
+  dodávka vs faktura, dvojí archivace při emailu (bind Mail Management), zúčtovací datum přepsané na WorkDate
+  při účtování z kódu (Essence Distribution). Načti u vlastních polí na dokladech, postingu, archivace,
+  kopie a emailu dokladu.
 user-invocable: true
 ---
 
