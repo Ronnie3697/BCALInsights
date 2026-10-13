@@ -361,6 +361,15 @@ IntegrationRecordSynch.Codeunit.al`, `IntegrationTableMapping.Table.al`, `Integr
   Test připojení registruj v `Initialize()` **každého** testu, který se CRM proxy tabulky jen dotkne — padá už
   `IntegrationTableMapping.CreateRecord(..., Database::"CRM Account", ...)` bez jediného čtení záznamu („Table connection for table
   type CRM must be registered using RegisterTableConnection" — cust-soitron-bc build 28646, `Tax Reg. No. Sync Test CCSOI`, 2026-10-05).
+  ⚠️ **`CRM Integration Management` je SingleInstance a `IsCRMIntegrationEnabled()` si výsledek cachuje na celou session**
+  (`CRMIntegrationEnabledState`, w1-28 `Integration/Dataverse/CRMIntegrationManagement.Codeunit.al`). Test, který zapíná
+  `CRM Connection Setup."Is Enabled"` přes `Insert(false)` / `Modify(false)` (triggery `ClearState` nevolají), proto po
+  **každém** zapnutí zavolá `CRMIntegrationManagement.ClearState()`. Bez toho: jakmile dřívější test téhož běhu (i v jiném
+  codeunitu — runner jede po ID) otevře Customer / Vendor / Item / Job Card s `IsIntegrationEnabled()` v `OnOpenPage`,
+  cache drží „Not Enabled" a vlastní validace padá *„The Dataverse integration is not enabled…"*, ačkoli setup už enabled je.
+  Lokálně ani na masteru to nevyskočí — projeví se až přidáním testu s TestPage karty do codeunitu s nižším ID
+  (cust-soitron-bc build 28826, 11 testů `CRM Business Unit Test SOI` + `Business Unit Assign. Test SOI` po přidání
+  `CustomerCardShowsCreatedVendorNo` do 54430, 2026-10-13). `IsCDSIntegrationEnabled()` se necachuje.
 
 ### 11.9 Jira Cloud user lookup podle e-mailu — `/rest/api/3/user/search?query=<e-mail>`, NE `/rest/api/3/users`
 
