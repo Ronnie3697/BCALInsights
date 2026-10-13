@@ -121,6 +121,12 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
 - **Trans-unit ID do ručních překladů:** po CLI kompilaci (s feature
   `TranslationFile`) se přegeneruje `Translations/*.g.xlf` — ID nových
   trans-unitů opiš odtud, není nutné počítat FNV-1a hash ručně (viz 6.2).
+- **Symboly test frameworku (Test Runner, Tests-TestLibraries, SysApp Test Library, Library Assert, Permissions Mock…)
+  bývají už stažené ve scratchpadech dřívějších seancí Claude Code** — `find "$LOCALAPPDATA/Temp/claude" -iname
+  "*Tests-TestLibraries*28.*.app"` (složky `…/<session>/scratchpad/testcache|cache`) je rychlejší než feed (7.12 v
+  `bc-al-build.md`); zkopíruj **celou řadu** (Tests-TestLibraries 28.4 chce Library Assert ≥ 28.4 → `AL1022`, i když
+  `.alpackages` má 28.2). Do dočasné cache z `.alpackages` nekopíruj staré buildy vlastní appky (`Soitron Base W1_*`),
+  jinak alc může vzít ten místo čerstvého `/out`. (2026-10-13, cust-soitron-bc 67015.)
 - **Claude Code Bash tool (Windows) sráží `\\` na `\` i v quoted heredocu (`<<'EOF'`).** Python skript v heredocu s `'\\'` dostane `'\'` (SyntaxError), a `"C:\\WorkTasks\\…"` se v ne-raw stringu změní na řídicí znaky (`\b`, `\a` → backspace/bell v zapsaném souboru). Backslash v heredocu skládej přes `chr(92)` (nebo skript ulož Write toolem a spusť ze souboru); raw stringy s JEDNÍM backslashem projdou beze změny. Zachyceno 2026-09-02 (cust-sonnentor-bc, oprava `logo` v app.json).
 - **`/analyzer:` na `Microsoft.Dynamics.Nav.Analyzers.Common.dll` NEpředávat.** alc 17.0 pak u každého
   spuštění hlásí `warning AL1003: An instance of analyzer ... cannot be created ... Could not load file or
