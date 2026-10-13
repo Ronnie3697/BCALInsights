@@ -106,6 +106,12 @@ def alhash(name: str) -> int:
 - ID se skládá z `<Typ> <hash(jméno)>` po cestě od objektu k labelu:
   `Table X - Field Y - Property Z`. Source text se nehashuje — změna
   ToolTip textu ID nemění, **rename pole/objektu ano** (starý unit osiří).
+  **Totéž refaktor:** lokální Label je `Codeunit X - Method <hash(procedura)> - NamedType <hash(label)>`,
+  takže **přesun labelu do jiné procedury** (vytažení těla do helperu) nebo do globálních `var` objektu
+  (`Codeunit X - NamedType Y`, bez Method) změní ID → v `.cs-CZ.xlf` osiří starý unit a LC0091 hlásí
+  *Missing translation*, i když se text nezměnil. Oprava bez nového překladu: po kompilaci porovnej `.g.xlf`
+  s `.cs-CZ.xlf` (MISSING × ORPHAN se shodným `NamedType` hashem) a v osiřelém unitu přepiš `id` + poznámku
+  `Xliff Generator`, `<target>` nech. (2026-10-13, cust-alumistr-bc 63339 — `PrintCNCSentence` → `AppendCNCSentence`.)
 - Use case: přidáváš pole a chceš rovnou doplnit překlad do `.cs-CZ.xlf`
   bez čekání na build + NAB Refresh — spočítej hash jména pole a napiš
   trans-unit ručně se správným ID. Refresh ho pak už jen potvrdí.
