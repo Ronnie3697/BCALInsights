@@ -38,7 +38,12 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
 
 - **Cesty musí být absolutní.** S `/project:.` kompilátor uvidí jen `app.json`
   (hlásí "containing 1 file") a nenačte `.al` zdroje. S plnou cestou správně
-  sesbírá celý adresář.
+  sesbírá celý adresář. **A ve Windows tvaru i u `/out:`** — POSIX cesta `/c/Users/…/x.app` (typicky z `$S`
+  proměnné Bash toolu, když je `MSYS2_ARG_CONV_EXCL="*"`) alc nepřeloží, kompilace hlásí EXIT 0 a „Compilation
+  ended", ale `.app` tiše přistane v `C:\c\Users\…` (ne v scratchpadu) — a test appka pak nemá čerstvý build hlavní
+  appky v cache. `C:\c` navíc `rm -rf` z Bash toolu odmítne (safety check „critical directory"), smaže ho jen
+  uživatel. Všechny tři cesty (`/project`, `/packagecachepath`, `/out`) skládej jako `C:/…`.
+  (2026-10-13, cust-soitron-bc, agregační description.)
 - **`/packagecachepath`** ukazuje na složku `.alpackages` (obsahuje závislosti
   jako `Microsoft_Base Application_*.app`). Většinou je o úroveň výš než
   `app/`.
