@@ -786,6 +786,11 @@ Configurator Ext 28.0.50.
   (data zůstanou; nejdřív závislé, např. Configurator CZ, pak Configurator), odpublikovat netřeba — PTE pak projde a převezme data.
   Odpublikovaný / přepsaný dev build už nevrátíš (nemáš jeho zdroják) → předem se zeptej. `GET …/extensions?$filter=id eq <guid>`
   ukáže všechny publikované verze se `publishedAs` (Dev / PTE) a `isInstalled`.
+- **Opačný směr projde bez úklidu: dev publish (`altool publishapp`, dev endpoint, Synchronize) nad nainstalovaným PTE téže
+  appky s VYŠŠÍ verzí PTE nahradí** — appka je pak `appType: dev`, data zůstala, závislé PTE (PMALU, Configurator CZ…) se
+  neodinstalovaly. Verze dev buildu musí být > nainstalované PTE (jen v kopii `app.json`, 7.8). Další release PTE z pipeline do
+  téhož prostředí pak narazí na AVS0109 výš → dev build nejdřív odinstalovat. (2026-10-13, Alumistr BC-TEST2 po čerstvé kopii
+  z TEST: Alumistr Configurator Extension PTE 28.0.55.0 → dev 28.0.55.1.)
 - **PTE smí záviset na DEV appce** (MS Learn *Extension types and scope*) — PMALU / Configurator Ext jako PTE nad dev buildem
   Alumistr SE Extension prošly. Pozor: přesun / upgrade sandboxu odinstaluje DEV appky i PTE, které na nich závisí, a nový publish
   DEV buildu z VS Code může závislé PTE odinstalovat (tak na TEST2 zmizely PTE Alumistr appky z 26. 8.).
