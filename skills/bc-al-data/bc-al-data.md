@@ -460,6 +460,16 @@ pre-Insert sekvenci. Když subscriber dělá `Modify`, `LookupNo` nebo cross-tab
 updaty, dostaneš se do nekonečné rekurze nebo "Record does not exist" errorů.
 Pojistka na začátku subscriberu = dvě řádky kódu, které ušetří hodiny debugu.
 
+**Konkrétní pachatel: Essence Replications (`RecordSerialization ACEBS.InsertRecord`) dělá `RecRef.Init()` →
+`FldRef.Validate(hodnota)` pro každé pole s *Validate Trigger* → teprve `RecRef.Insert`.** Subscriber na
+`OnAfterValidateEvent`, který v DB záznam `Modify`-uje (EUDR: `Item."Tariff No."` → `Item.Modify(false)`), tak
+v cílové firmě spadne na každém **novém** záznamu („The Item does not exist…"), zatímco Modify existujícího
+projde a v UI (karta se insertne před změnou pole) to nikdo nevidí. Stejně se chovají šablony, RapidStart a
+API (validace před Insertem). Vzor: pole nastav do paměti vždy, ale `Modify` + navazující úpravy souvisejících
+záznamů jen když záznam v DB existuje (`Existing.SetLoadFields(PK); Existing.Get(Rec.PK)` — spolehlivější než
+`IsNullGuid(SystemId)`); nový záznam uloží `Insert` volajícího a související záznamy ještě nemá.
+(2026-10-12, cust-jiri-bc EUDR 28.0.16.0, replikace karet zboží CZ → SK/HU.)
+
 ### 3.4 `SkipOnMissingLicense` / `SkipOnMissingPermission` — default `false, false`
 
 Atribut `[EventSubscriber(ObjectType, ObjectID, EventName, ElementName, SkipOnMissingLicense, SkipOnMissingPermission)]`

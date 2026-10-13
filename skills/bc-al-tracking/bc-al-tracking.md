@@ -13,6 +13,7 @@ Obsahuje:
 - **5.x15** tracking na fakturačním řádku z Get Shipment Lines
 - **5.x15b** předvyplnění šarže na Item Tracking Lines (hooky stránky 6510), SN zboží bez automatického řádku
 - **5.x16** automatické přiřazení šarže z kódu (FEFO) — prošlé šarže při Strict Expiration Posting přeskoč
+- **5.x17** `Reservation Entry."Entry No."` je AutoIncrement — `"Entry No." := 0` před Insert, nikdy FindLast + 1
 
 ## 5. Specifické objekty a API — Item Tracking
 
@@ -215,3 +216,20 @@ cust-soitron-bc (`Job Lot Tracking Mgt. SOI`, 2026-10-07): u SN zboží auto-ř�
 - Pozn. k datům v BC-DEV: lookup šarže na 6510 ukáže i prošlou šarži (expirace je vidět ve sloupci *Datum expirace*
   řádku sledování) — rychlá diagnostika, proč účtování padá. (2026-10-12, prod-ess-dotykackaConnector-bc PBI 63075,
   `Dotykacka Lot Assign DCEBS`, Sonnentor kód LOTEXP.)
+
+### 5.x17 `Reservation Entry."Entry No."` je `AutoIncrement` — nikdy `FindLast + 1`, žádný zámek to nezachrání
+
+- Pole 1 tabulky 337 má `AutoIncrement = 1`. Base (`Create Reserv. Entry.CreateEntry`) nastaví `"Entry No." := 0`,
+  číslo přidělí SQL identity při `Insert` a druhou položku páru (`Positive` false/true) vloží pod číslem převzatým
+  z první **po** jejím Insertu.
+- Vlastní `GetNextEntryNo` přes `FindLast + 1` (s `LockTable` i s `ReadIsolation::UpdLock`) proti tomu **závodí**:
+  souběžný base insert poslední řádek nečte, takže ho zámek nezablokuje → naše explicitní číslo už existuje → „The record
+  already exists". Projeví se náhodně pod zátěží (účtování, sklad). UpdLock na posledním řádku navíc drží zámek do
+  konce transakce a brzdí další vlastní sessiony.
+- Správně: `"Entry No." := 0` před `Insert` (po `TransferFields` z jiné položky nulu nastavit znovu — kopíruje PK),
+  po Insertu je přidělené číslo v recordu. Pár položek = druhá s číslem první. Temporary record AutoIncrement
+  nemá (tam dál ručně). Historická explicitně vložená čísla nevadí, SQL identity se po nich posune na maximum.
+- Ověření, jestli tabulka AutoIncrement má: al-mcp `al_get_object_definition` (`summaryMode: false`) ukáže property
+  u pole; zdroj base viz `microsoft/BCApps` `src/Layers/W1/BaseApp/Inventory/Tracking/CreateReservEntry.Codeunit.al`
+  (raw.githubusercontent, bez `gh`: `curl -sfL`). (2026-10-12, cust-jiri-bc EUDR — šest vlastních insertů
+  rezervací přešlo z `GetNextReservationEntryNo` na nulu.)
