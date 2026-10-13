@@ -282,6 +282,16 @@ neplatí. Autoritativní mapování drží tabulka **`Sales Production Ref. NMEB
 - Vzor použití: `UpdatePromisedDelDate.Report.al` a `ItemTrackingMgt.Codeunit.al`
   v cust-zlomek-bc (factbox 64189 — serial čísla z prodejních řádků zobrazená
   na navázaných řádcích Vydané VZ). (2026-07-08, pokyn DNEM.)
+- **Kde vazba vzniká a mizí** (zdroj `ManufacturingSubscribersNMEBS`, master 2026-10-13): Carry Out ze sešitu
+  (`Mfg. Carry Out Action.OnInsertProdOrderLineOnAfterProdOrderLineInsert` přepíše req. trojici na řádek VZ),
+  Sales Order Planning (`Create Prod. Order from Sale`) i Refresh VZ se zdrojem Sales Header (`Create Prod. Order
+  Lines.OnCopyFromSalesOrderOnAfterProdOrderLineModify`) — tedy **i VZ ze `Source Type` = Item** vazbu má. Změna
+  stavu VZ vazbu přepíše na nové číslo/stav (`OnAfterTransProdOrder`), smazání VZ / řádku VZ ji smaže — **kromě
+  Refreshe** (guard `RefreshProdOrder_GetIsActiveFor`), který ale u zdroje Sales Header založí vazby znovu. Po
+  opakovaném Refreshi tak řádek VZ může mít **duplicitní vazby** a po přečíslování řádků (změněná objednávka) i
+  **zastaralou vazbu na jiný prodejní řádek**. Kdo čte vazby podle řádku VZ: prodejní řádky deduplikuj a vazbu
+  filtruj i na `Item No.` / `Variant Code` řádku VZ. (Odvozeno ze zdroje, v BC neověřeno; cust-alumistr-bc 63339,
+  code review tisku CNC za celou VZ.)
 
 ### 5.y al-mcp `al_search_object_members` — `ByReference` u event parametrů NEVĚŘIT
 
