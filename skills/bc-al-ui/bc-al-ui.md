@@ -525,3 +525,30 @@ already been closed"*. V klientu výběr funguje (data zákazníka), TestPage ho
 na `Error Messages` nenašel control `Source` z pageextension 705 Base App – handler čte jen `Description`.)
 
 ---
+
+### 4.19 Vlastní štítek zboží místo standardního `Item GTIN Label` — skrytí akce `PrintLabel`
+
+Standardní report `Item GTIN Label` (6625, Base App) je nad dataitemem `Item`, jeden štítek na zboží, kóduje **jen pole GTIN**
+(Code39 + QR, prázdný GTIN = prázdný štítek). Na `Item Card` (30) i `Item List` (31) ho spouští akce **`PrintLabel`**
+v `area(reporting)` (caption *Print Label*, **nepromovaná**, na listu s `CurrPage.SetSelectionFilter(Item)`), takže
+`modify(PrintLabel) { Visible = false; }` ji schová bez actionrefu. Vlastní štítek s jiným zdrojem kódu (Item Reference,
+číslo zboží) a kopiemi per řádek dokladu je jednodušší jako **vlastní report nad temp bufferem** (vzor cust-alumistr-bc
+`Item GTIN Label ALU` 51900 + `Barcode Label Silent Mgt. ALU`) než reportextension 6625: ten by potřeboval nový Word layout
+aktivovaný per prostředí v Report Layouts a kopie per řádek stejně neumí → dva layouty téhož štítku. Akce zboží bez
+pole „počet kopií" tiskne jeden štítek na vybrané zboží — globální počet kopií nedává smysl, když každé zboží chce jiný.
+(2026-10-14, cust-alumistr-bc; názvy akcí ověřeny ze zdroje w1-28 `ItemCard.Page.al` / `ItemList.Page.al`, al-mcp akce nevrací.)
+---
+
+### 4.20 `Lookup` a `AssistEdit` na jednom poli — jde to, ale tlačítko „…" dostane AssistEdit
+
+Obě property (i oba triggery `OnLookup` / `OnAssistEdit`) na jednom page fieldu koexistují — MS to potvrzuje nepřímo
+v [keyboard shortcuts](https://learn.microsoft.com/en-us/dynamics365/business-central/keyboard-shortcuts): **Alt+→** = AssistEdit
+„když Alt+↓ (dropdown / lookup) v témže poli slouží jinému účelu". Vzor v Base App: `Currency Code` na Sales Order
+(`TableRelation = Currency` + `OnAssistEdit` → Change Exchange Rate). Ve web klientu otevře viditelné „…" **AssistEdit**,
+lookup zůstane na napovídání při psaní / Alt+↓. Důsledek pro pole nad **Text proměnnou s vlastním `OnLookup`** (žádný
+TableRelation, žádné type-ahead): po přidání `AssistEdit = true` se k lookupu uživatel dostane jen klávesnicí — zmiň to
+v ToolTipu („Choose the AssistEdit button to …"). `OnAssistEdit` se nevolá v režimu prohlížení, `OnLookup` chce `Editable`
+(4.3). Když AssistEdit otevře seznam, který mění hlavičkový záznam (tabulka s `OnInsert/OnDelete` → Modify mastera),
+po `Page.RunModal` dej `CurrPage.Update(false)` (re-read), ne `Update(true)` (uložil by zastaralý Rec).
+(2026-10-14, cust-soitron-bc — `CRM Business Unit SOI` na Customer/Vendor/Item/Job Card: „…" otevře
+`<Entity> CRM Business Units SOI` filtrovaný na záznam; chování v klientu zatím neověřeno, jen docs + kompilace.)
