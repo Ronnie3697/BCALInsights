@@ -4,14 +4,15 @@ description: >-
   BC/AL integrace, SaaS gotchas (5.y2–5.y4, 11): Shopify Connector BC28+ (Available For Sales
   jen v BC, export varianty nemaže, nové varianty jen sync (Can Update Shopify Products), Add Item
   skip, userErrors tiché, produkt bez options, OnAfterCreateTempShopifyProduct, Add z karty mimo
-  30106, BCShopifyConnectorDocs, Internal vrstva → vlastní HttpClient, fronta místo HTTP;
+  30106, zásoba OnAfterCalculationStock (nulování), BCShopifyConnectorDocs,
+  Internal vrstva → vlastní HttpClient + fronta;
   BC29: tokeny expirují 2027-01-01, GQL → .graphql, HttpClientHandler),
-  HttpClient na SaaS (Allow HttpClient Requests, Windows auth OnPrem), Isolated Storage, SecretText
-  (Unwrap AL0296, HMAC, SecretStrSubstNo), Power Automate (Business Events vs API page); API page
-  pro zápis (POST validace, temp OnFindRecord, $filter); Dataverse/CDS (Integration Table Filter jen
-  Dataverse→BC, Enum→Choice = Option + OptionOrdinalValues, testy @@test@@, reset mapování = recreate,
+  HttpClient SaaS (Allow HttpClient Requests, Windows auth OnPrem), Isolated Storage, SecretText
+  (Unwrap AL0296, HMAC, SecretStrSubstNo), Power Automate (Business Events / API page); API page
+  zápis (POST validace, temp OnFindRecord, $filter); Dataverse/CDS (Integration Table Filter
+  Dataverse→BC, Enum→Choice přes OptionOrdinalValues, testy @@test@@, reset mapování recreate,
   Man. Integration Table Mapping); Dotykačka (stockQuantityStatus, display, priceWithVat); Jira/Tempo
-  (user search, worklog → parent). Načti u Shopify, HTTP, API, Dataverse, Jira.
+  (user search, worklog→parent). Načti u Shopify, HTTP, API, Dataverse, Jira.
 user-invocable: true
 ---
 

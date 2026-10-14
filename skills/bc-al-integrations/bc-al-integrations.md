@@ -97,6 +97,18 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
   i ruční akce **Map Variant** na stránce Shopify Variants nebo `Try Find Product Mapping` (SKU dle SKU Mapping).
 - **Kde spouštět sync nových variant:** `Shpfy Sync Products` (30108) filtruje jen shop; jediný report s filtrem na zboží
   je `Add Item to Shopify` (30106), který existující produkt přeskočí — typická záměna u uživatelů.
+- **Zásobu do Shopify posílá jen sync zásob, úprava = `Shpfy Inventory Events.OnAfterCalculationStock`.** Jediná cesta
+  je `Shpfy Sync Inventory` (report 30102 `Shpfy Sync Stock to Shopify` i background sync přes `Codeunit.Run`) → `Shpfy Inventory
+  API.GetStock` per řádek `Shpfy Shop Inventory` (produkt × varianta × lokace); sync **zboží nijak nefiltruje** (ani Blocked,
+  ani filtr produktového syncu). Po výpočtu (libovolný `Stock Calculation` lokace, i vlastní enumextension) a přepočtu MJ volá
+  `OnAfterCalculationStock(Item, ShopifyShop, LocationFilter, var StockResult)` (codeunit 30196, `internal` + IntegrationEvent,
+  z PTE jde odebírat) — `StockResult := 0` pak pošle `inventorySetQuantities` s nulou, pokud Shopify drží jinou hodnotu (porovnává
+  se `Shopify Stock` načtenou na začátku téhož běhu). Produktový sync zásobu **neposílá**: nový produkt / varianta se zakládá vždy
+  s `availableQuantity: 0` (`Shpfy Variant API.GetInventoryQuantities`), skutečné číslo doplní až sync zásob. Zboží vyřazené
+  z produktového syncu (filtr na `OnAfterProductsToSynchronizeFiltersSet`) si tak v Shopify drží poslední odeslanou zásobu —
+  „schovat z webu" = nulovat zásobu tímhle eventem (a zásobová politika varianty *Deny*). Testovat jde jen procedura
+  subscriberu volaná napřímo (event i `GetStock` jsou internal). (cust-sonnentor-bc PBI 63036 *Blokováno pro web*, 2026-10-14,
+  konektor 28.5.)
 - **Co export produktu z BC do Shopify reálně pošle u metapolí a značek** (BC 28.4, `Shpfy Product Export` / `Shpfy Metafield API`):
   metapole jen při `Shop."Product Metafields To Shopify"` (pole 130; zákazník 131, společnost 132) přes
   `SyncMetafieldsToShopify` → `CollectMetafieldsInBC` bere jen `Type <> string & <> integer` (legacy typy se **nikdy** nepošlou),
