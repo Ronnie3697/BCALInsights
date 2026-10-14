@@ -170,3 +170,30 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   přepíše prodejce. Tendr `Job No. EPEBS` na poptávku nenastavuje, proto helper i v `Tender Management`. Kompilace: EPEBS má
   AppSource range (AppSourceCop), IMEBS PTE range (PTE cop); test IMEBS chce EPEBS ≥ 28.0.24.0 → v temp cache přepsat verzi
   čerstvého EPEBS buildu v kopii `app.json`. `User Setup` v testu: `Init` + `"User ID" := GenerateGUID` + `Insert(true)`.
+
+### 5.x23 Undo nákupní příjemky s projektem: standard předpokládá zaúčtovanou spotřebu projektu — „Skip Purchase Consumption" (IMEBS) ho shodí
+
+- **Standard (w1-28 `Undo Purchase Receipt Line.PostItemJnlLine` + `Undo Posting Management`)** u řádku příjemky s `Job No.` nedělá
+  prostou korekci (`Correction` + `Applies-to Entry` jen při prázdném Job No.), ale: položku zboží pošle s `Job Purchase = true`
+  bez `Applies-to Entry` (v `PostItemJnlLineAppliedToList` je u Job No. <> '' `Applies-to Entry := 0`), `UndoPostingMgt.PostItemJnlLine`
+  k ní přidá **druhou položku Negative Adjmt. s projektem** (reverz spotřeby, `PostItemJnlLineForJob`), pak `UndoValuePostingWithJob`
+  a `ReapplyJobConsumption(ItemRcptEntryNo)` → `FindItemReceiptApplication`: `Item Application Entry` s `Inbound Item Entry No.` =
+  položka příjmu a `Item Ledger Entry No.` <> ona (= vyrovnání příjem ↔ spotřeba projektu) + **`FindFirst()` bez guardu**.
+  Když spotřeba při příjmu nevznikla, spadne to na „Neexistuje žádný Položka vyrovnání zboží ve filtru. Filtry: Číslo položky zboží:
+  <>N, Vyrovnává položku číslo: N". Dvě cesty: bez trackingu (`Item Rcpt. Entry No.` vyplněno) přímo v `PostItemJnlLine`, s trackingem
+  (Soitron šarže = číslo projektu → `Item Rcpt. Entry No. = 0`, Item Entry Relation) přes `CollectItemLedgEntries` →
+  `ReapplyJobConsumptionFromApplyToEntryList` (else větev, kladná položka příjmu).
+- **Kdo spotřebu vypne:** Essence Project Item Management `PurchPost_OnPostItemJnlLineJobConsumptionIMEBS` (`Purch.-Post.
+  OnPostItemJnlLineJobConsumption`, `IsHandled` při `Job."Skip Purchase ConsumptionIMEBS"` a budget řádku navázaném z billable řádku
+  přes `Purch. Job Cont.Entry No.IMEBS`) — zboží zůstane na skladě, spotřeba se účtuje až při dodávce prodejky (`PostConsumption`
+  z položky příjmu). Undo takové příjemky standard neumí; IMEBS zatím hook na undo nemá (testy `PurchConsumptionTest` undo nepokrývají).
+- **Oprava patří do IMEBS** (ne do zákaznické appky): pro řádek příjemky „skip + navázaný" udělat z undo obyčejnou korekci —
+  `Undo Purchase Receipt Line.OnAfterCopyItemJnlLineFromPurchRcpt(var ItemJnlLine, …, PurchRcptLine, …)`: `Job No./Job Task No. := ''`,
+  `Job Purchase := false`, `Correction := true`, `Applies-to Entry := PurchRcptLine."Item Rcpt. Entry No."` (list cesta si Applies-to
+  nastaví sama, když je Job No. prázdné); dále `IsHandled` v `OnPostItemJnlLineOnBeforeUndoValuePostingWithJob` (cesta bez trackingu)
+  a `OnBeforeReapplyJobConsumptionFromApplyToEntryList` (cesta s trackingem) — podmínky čtou `PurchRcptLine."Job No."`, ne ItemJnlLine.
+  ⚠️ `CheckItemLedgEntries` u položek s `Job No.` **netestuje `Remaining Quantity = Quantity`** (jen bez projektu) → když už byla
+  navázaná prodejka dodána (příjem vyrovnán dodávkou, usage z `PostConsumption` existuje), standard undo nezablokuje; vlastní guard
+  `TestField("Remaining Quantity", Quantity)` na položce příjmu (`OnCheckItemLedgEntriesOnBeforeCheckTempItemLedgEntry` nebo před
+  účtováním). Hook `Undo Posting Management.OnBeforeReapplyJobConsumption(ItemRcptEntryNo, var IsHandled)` sám nestačí — zůstala by
+  druhá Negative Adjmt. položka a Applies-to 0. (2026-10-14, cust-soitron-bc: NO 106182 / příjemka 107358, Base App 28.4.)
