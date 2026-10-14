@@ -348,7 +348,7 @@ IntegrationRecordSynch.Codeunit.al`, `IntegrationTableMapping.Table.al`, `Integr
 - **Field mapping jedním směrem uvnitř Bidirectional tabulkového mapování** je normální (`Direction::ToIntegrationTable` na
   řádku, vzor `No. → ebs_bcnumber`). `Integration Field Mapping.CreateRecord` vždy vkládá nový řádek (PK AutoIncrement) —
   duplicity při opakovaném „Default Synchronization Setup" řeší až `Integration Table Mapping.CreateRecord` (`Get → Delete(true)`
-  smaže i field mappingy); vlastní mapování mimo tenhle reset (Ship-to) potřebuje vlastní dedupe.
+  smaže i field mappingy); vlastní mapování zakládej stejně — vždy recreate, viz bullet o ručním mapování níže.
 - **Testy bez Dataverse:** `RegisterTableConnection(TableConnectionType::CRM, 'TEST', '@@test@@')` + `SetDefaultTableConnection`
   (platformové test připojení, používá MS `Library - Mock CRM Connection`) → CRM proxy tabulky jedou z lokální DB, i `FilterPageBuilder`
   nad nimi. Filtr mapování ověř `TempCRMAccount.SetView(IntegrationTableMapping.GetIntegrationTableFilter())` + `SetRange(AccountId)`
@@ -370,6 +370,19 @@ IntegrationRecordSynch.Codeunit.al`, `IntegrationTableMapping.Table.al`, `Integr
   Lokálně ani na masteru to nevyskočí — projeví se až přidáním testu s TestPage karty do codeunitu s nižším ID
   (cust-soitron-bc build 28826, 11 testů `CRM Business Unit Test SOI` + `Business Unit Assign. Test SOI` po přidání
   `CustomerCardShowsCreatedVendorNo` do 54430, 2026-10-13). `IsCDSIntegrationEnabled()` se necachuje.
+- **Vlastní mapování při „Default Synchronization Setup" vždy založ znovu (`Integration Table Mapping.CreateRecord` =
+  `Get → Delete(true)` + Insert), ne „když existuje, přeskoč".** Na stejný event `CDS Setup Defaults.OnAfterResetConfiguration`
+  je subscribnutý i standardní `Manual Int. Mapping Events` (BaseApp `Integration/SynchEngine/ManualIntMappingEvents.Codeunit.al`):
+  pro každý záznam **Man. Integration Table Mapping** (5380, stránka Manual Integration Table Mappings) založí `Integration Table
+  Mapping` téhož jména, **pokud ještě neexistuje**, a přidá jen ruční řádky `Man. Int. Field Mapping`. Pořadí subscriberů není
+  zaručené → když standard běží první, vlastní kód s guardem `if not Get then CreateRecord` mapování přeskočí a v něm zůstane
+  jediné ruční pole (cust-sonnentor-bc TEST: SHIPTOADDRESS jen s Contact ↔ ebs_contacttxt — i po smazání mapování a novém
+  resetu, ruční záznam přežívá, `Integration Table Mapping.OnDelete` ho nemaže; DEV bez ručního záznamu fungoval). Fix: recreate
+  + smazat `Man. Integration Table Mapping` téhož jména (`Delete(true)` uklidí i jeho field mappingy), ať kódem řízené mapování
+  vyhraje v obou pořadích; dedupe řádků polí pak není potřeba. Standard dělá totéž (`CDS Setup Defaults.InsertIntegrationTableMapping`
+  volá `CreateRecord` bez guardu). Test: existující mapování s jedním řádkem + ruční záznam → po resetu plná sada přesně 1× a ruční
+  záznam pryč (`Ship-to Sync Setup Test SON`; ruční záznam v testu `Init` + přímé přiřazení + `Insert(true)`, `CreateRecord` je internal).
+  (2026-10-14, cust-sonnentor-bc, SON CDS Sync.)
 
 ### 11.9 Jira Cloud user lookup podle e-mailu — `/rest/api/3/user/search?query=<e-mail>`, NE `/rest/api/3/users`
 

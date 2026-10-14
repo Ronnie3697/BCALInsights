@@ -159,6 +159,12 @@ NEmodifikuje). Směr částky: odchozí platba dodavateli z výpisu má na řád
   řádku objednávky. Test logiky „dohledej projekt z řádku" musí u Copy Document dát projekt do hlavičky (`Job No. EPEBS`),
   jinak se fallback přes řádek nikdy nespustí; u Get Shipment Lines se naopak testuje cesta přes contract entry.
   (2026-10-01, cust-soitron-bc `Sales Aggregation Test SOI`, zdroj Base App w1-28 `CopyDocumentMgt.Codeunit.al` 1818/7761.)
+- **`LibraryResource.CreateResourceNew` dává KAŽDÉMU zdroji stejnou základní MJ** (`LibraryInventory.FindUnitOfMeasure` =
+  první existující Unit of Measure, stejná past jako `CreateItem` v `bc-al-autotests.md`) — scénáře „řádky více zdrojů se
+  sčítají na jeden cílový zdroj" tak sdílejí základní MJ zadarmo; alternativní jednotku zakládej per zdroj
+  (`LibraryResource.CreateResourceUnitOfMeasure(ResUoM, ResourceNo, UoMCode, QtyPer)`) a na cílový zdroj ji přidej
+  explicitně, jinak kontrola „MJ není nastavena pro sumarizovaný zdroj" správně shodí i pozitivní test. Zdroj knihovny:
+  microsoft/BCApps `LibraryResource.Codeunit.al` (`.app` těla nemá). (2026-10-13, cust-soitron-bc 67015, `QB Buffer Test SOI`.)
 
 ## Prodejní a nákupní doklady
 

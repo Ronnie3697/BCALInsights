@@ -1,14 +1,14 @@
 ---
 name: bc-al-projects
 description: >-
-  BC/AL projekty (Business Central, Job / Job Task / Job Planning Line, sekce 5.x17–5.x20): Gen. Prod. Posting
+  BC/AL projekty (Business Central, Job / Job Task / Job Planning Line, sekce 5.x17–5.x23): Gen. Prod. Posting
   Group řádku plánování jako zdroj pravdy pro deník projektů (Job Transfer Line bez Validate("No.")), změna
   default dimenze projektu (Default Dimension, xRec v OnAfterModifyEvent), Location Code z Job / Job Task jen pro
   nové řádky, vazba budget ↔ billable `Purch. Job Cont.Entry No.IMEBS`, dimenze řádku plánování do Job Journal
   Line (UpdateDimensions až po OnAfterCreateDim, OnAfterUpdateDimensions, SingleInstance mezi eventy, Usage Link,
   TSEBS placeholder resource), návazné doklady projektu (Job Planning Line Invoice, Sales Header Job No. EPEBS,
-  nákupní objednávka / příjemka) a guardy Job Planning Line.OnDelete (mazání, Attached to Line No.). Načti
-  u řádků plánování projektu, deníku projektů, přegenerování / mazání plánovacích řádků a kontroly návazných dokladů.
+  nákupní objednávka / příjemka) a guardy Job Planning Line.OnDelete (mazání, Attached to Line No.), undo nákupní příjemky s projektem (ReapplyJobConsumption, Skip Purchase Consumption IMEBS). Načti
+  u řádků plánování projektu, deníku projektů, přegenerování / mazání plánovacích řádků, návazných dokladů a storna příjemky projektu.
 user-invocable: true
 ---
 

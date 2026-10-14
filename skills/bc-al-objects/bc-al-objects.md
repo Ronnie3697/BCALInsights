@@ -6,7 +6,7 @@
 > Unix timestamp, atributy zboží, DateFormula, CaptionClass/Translation Helper, CZ↔EN terminologie, CZZ zálohy, Attached to Line No. /
 > parent↔child řádky, Requisition Line / Req. Wksh.-Make Order / Calculate Plan bez dotazů, VerifyOnInventory, Auto Format / částky v textu,
 > přepočet ceny z Množství bez ceníku (IsPriceUpdateNeeded, 5.x21; ruční Line Discount % změnu Množství/Varianty nepřežije),
-> Retention Policy pro vlastní logy (5.x23).
+> Retention Policy pro vlastní logy (5.x24).
 >
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 > **Essence Configurator** má od 2026-09-21 vlastní soubor `ess-configurator-notes.md` (parametry, vzorce, systémové parametry, varianty) — sekce 5.x10 a 5.x12 tam přesunuty 2026-10-01 jako C13 / C14; 5.x8 (Item Charge Assignment) je obecné BC a zůstává tady.
@@ -955,7 +955,7 @@ na hlavičce → řádky → skladový doklad):
   `CreateWhseShipmentFromSO(SalesHeader)` po `Release…Document` (bez dialogu). `LibraryUtility.GenerateRandomCode` vrací
   `Code[10]`.
 
-### 5.x23 Retention Policy (Retenční zásady) pro vlastní logy — registrace bez install codeunity, zamčené filtry
+### 5.x24 Retention Policy (Retenční zásady) pro vlastní logy — registrace bez install codeunity, zamčené filtry
 
 - **Registrace stačí přes subscriber** `[EventSubscriber(ObjectType::Codeunit, Codeunit::"Reten. Pol. Allowed Tables",
   OnRefreshAllowedTables, '', false, false)]` → `RetenPolAllowedTables.AddAllowedTable(Database::"Můj Log", FieldNo(<DateTime pole>), …)`.
