@@ -824,6 +824,11 @@ uživatel ručně podle vlastní konvence (kdy se major povyšuje).
 - **Pro PR** musí být verze ve tvaru **`XX.0.0.0`** (jen major, zbytek nuly —
   např. `27.0.0.0`). Mezilehlé tvary (`27.0.5.1`) můžou být přechodné během
   vývoje, ale do PR je uživatel sám sníží na `XX.0.0.0`.
+- **Lokální zvýšení verze (`28.0.0.1`) je jen pro nahrávání do databáze — nikdy ho necommituj.** `app.json` patří do
+  commitu, jen když se mění **závislosti** nebo **`idRanges`** (případně jiné skutečné nastavení); v tom případě stage
+  s verzí `XX.0.0.0`, lokální vývojovou verzi uživateli nech v pracovním stromu. Samotná změna verze = `app.json`
+  necommitovat vůbec. V masteru je vždy major verze, build verzi dává pipeline. (DNEM, 2026-10-14,
+  prod-ess-dotykackaConnector-bc.)
 - Když uživatel **výslovně** řekne „povyš verzi na X" → uděláš.
 - V dokumentačních MD (sekce 8) **nezmiňuj aktuální verzi** extension jako
   součást scope ticketu — verze se mění nezávisle.
