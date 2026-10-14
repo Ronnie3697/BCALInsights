@@ -781,6 +781,18 @@ Configurator Ext 28.0.50.
   - Token: `d365bc-admin get_microsoft_entra_id_token` (aud `api.businesscentral.dynamics.com`), drž ho v souboru ve scratchpadu
     a po skončení smaž.
 - **Detail chyby** API nevrací: BC stránka 2508 *Stav instalace rozšíření* → řádek → 2509 → *Zobrazit podrobnosti*.
+  Rychlejší: když upload skončí `Failed`, ale appka je v `…/extensions` jako `publishedAs: PTE`, `isInstalled: false`
+  (publish prošel, spadla instalace), zavolej `POST …/extensions(<packageId>)/Microsoft.NAV.install` — 400 vrátí
+  **celý text chyby** v `error.message`.
+- **`Could not upgrade the extension … The field 'X' cannot be located. Removing fields is not allowed.` u appky, která
+  v prostředí není nainstalovaná** = v DB zůstalo schéma **starší odinstalované verze** (odinstalace bez smazání dat), a nová
+  verze pole odebrala. Fix (jen se svolením, maže data těch polí): nový `POST extensionUpload` s
+  `{"schedule":"Current Version","schemaSyncMode":"Force"}` (API vrátí `Force_x0020_Sync`) + PATCH obsahu + `upload` — opakovaný
+  upload téže už publikované verze projde. (2026-10-14, Alumistr BC-DEV: EPB Pricing Matrix 28.0.6 vs. zbytky `Width/Height PMEBS`.)
+- **curl `--data-binary @<cesta>` v Git Bash: `error encountered when reading a file`** = buď MSYS cestu `/c/…` za `@`
+  nepřeloží (použij `@"$(cygpath -m "$f")"`), nebo cesta přesáhne **260 znaků** — rozbalená složka `.nupkg` ve scratchpadu
+  (`x_<package-id>.<ver>/<Publisher>_<Name>_<ver>.app`) na to stačí, `ls` ji pak ukáže s prefixem `//?/`. `.app` zkopíruj
+  do krátké složky (`a/1_altbom.app`). PATCH s nenačteným souborem odejde prázdný a `upload` vrátí `Extension content is empty`.
 - **`AVS0109` „cannot be deployed as it has missing dependencies or the dependencies are conflicting with currently installed
   apps"** = v prostředí je **nainstalovaná DEV verze téže appky** (publikovaná z VS Code). Fix: `POST …/extensions(<packageId>)/Microsoft.NAV.uninstall`
   (data zůstanou; nejdřív závislé, např. Configurator CZ, pak Configurator), odpublikovat netřeba — PTE pak projde a převezme data.
