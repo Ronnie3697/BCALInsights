@@ -321,6 +321,11 @@ Assert.ExpectedErrorCode('Dialog');
   appce s `"target": "Cloud"` mock HTTP volání nenapíšeš. Odchozí HTTP (Jira `PUT /rest/api/3/issue/{id}`) testuj po vrstvách:
   stav fronty + payload builder v testu, samotný request ručně v sandboxu; blokátor řekni uživateli, žádný placeholder test.
   (2026-10-02, cust-soitron-bc `Jira JPL Change Test SOI`.)
+- **`Assert.AreEqual` porovnává i TYP — literál `0` / `900000002` (Integer) proti poli BigInteger spadne** s nesmyslnou hláškou
+  *„Expected:<0> (Integer). Actual:<0> (BigInteger)"*, i když hodnoty sedí. Kompilace ani analyzery nic nehlásí. Expected dej do
+  `BigInteger` proměnné **s explicitním přiřazením** (`NoId := 0;` — bez přiřazení CodeCop **AA0205** „Use of unassigned variable",
+  na CI warning = fail), nebo porovnej `Assert.IsTrue(Rec.Id = 0, …)`. Týká se všech externích ID z API (Dotykačka, Shopify) uložených
+  jako BigInteger. (prod-ess-dotykackaConnector-bc 2026-10-12 money log a 2026-10-14 copy testy, lokální kontejner.)
 - **Změna textu Labelu = projdi `Assert.ExpectedError` v testech** — ExpectedError hledá podřetězec, přepsaná hláška shodí test
   až v CI (build 28636: `its check did not pass` → `its check ended with the status`). Po úpravě labelu grepni test appku na
   jeho klíčová slova.
