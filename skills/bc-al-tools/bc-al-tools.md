@@ -878,6 +878,20 @@ v `env` `.claude.json`.)
 
 **⚠️ PAT je read-only ZÁMĚRNĚ — 401 na zápisy NEobcházet:** MCP PAT má jen Read scopes **schválně** — Pull Requesty (a další zápisy do ADO) si uživatel dělá **sám**. Když `repo_create_pull_request` / `wit_link_work_item_to_pull_request` vrátí 401, **není to chyba k opravě** — je to záměrná zábrana. **Nikdy** neobcházet jiným credentialem (token z Git Credential Manageru přes `git credential fill`, az CLI, cokoliv jiného) — přesně to se stalo 2026-07-07 (PR 9096, prod-epb-pricingMatrix-bc) a uživatel to výslovně zakázal. Správný postup: připravit větev (merge, resoluce, push pokud je vyžádán), předat uživateli shrnutí + navrhovaný title/description PR a **nechat založení PR na něm**. Platí i když uživatel řekne „potřebuju udělat PR" — tím myslí, že ho udělá on, ne já.
 
+**Texty do ADO (popis PR, Description / Acceptance Criteria PBI a Tasků, komentáře) posílej VŽDY jako Markdown
+v bloku ` ```markdown `, bez ručního zalamování.** Pokyn uživatele 2026-10-14 (cust-zlomek-bc PR 66711): text zalomený
+na šířku (120 znaků) se po zkopírování z terminálu rozpadne na řádky v půlce věty a vykreslený Markdown v terminálu
+přijde o formátování. Proto:
+
+- celý text do jednoho ` ```markdown ` bloku – terminál ho nevykreslí a zkopíruje se syrový Markdown, který ADO
+  v popisu PR i ve work itemu vykreslí,
+- každý odstavec a každý bod na **jednom řádku**, žádné zalomení uvnitř věty,
+- struktura Markdownem: `###` nadpisy sekcí, `-` body, `**tučně**` jen podstatné (příčina, „do té doby nemergovat“),
+  identifikátory objektů, polí a procedur v backtickách, captiony z UI kurzívou,
+- název PR zvlášť v jednořádkovém bloku, work itemy (`#66711`) pod blokem.
+
+Platí pro všechno, co uživatel do ADO vkládá ručně (PR, PBI, Task, Bug, komentáře work itemů i PR threadů).
+
 - **`search_code` vrací multi-MB blob (5–6 MB i pro 14 hitů)** — výsledek se uloží do souboru a
   Read ho nepřečte. Repo + cestu vytáhni pythonem regexem (`"path":"..."`, `"repository":{"name"`),
   pak soubor stáhni `repo_file get_content`. Hledá jen indexovaná repa — když CUEBS/… objekt

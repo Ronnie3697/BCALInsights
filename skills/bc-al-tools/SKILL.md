@@ -1,19 +1,19 @@
 ---
 name: bc-al-tools
 description: >-
-  BC/AL nástroje, git a Azure DevOps z praxe (Business Central, AL, sekce
-  7.1–7.10): alc.exe kompilace z CLI (absolutní cesty, bez
-  Analyzers.Common.dll (AL1003), Git Bash MSYS2_ARG_CONV_EXCL, více package
-  cache, dočasná cache ze sibling rep, UTF-16 logy (falešné 0 errors), Bash
-  heredoc pasti (backslash, apostrof), volné object ID BOM-aware),
-  al-mcp-server (studený start al_packages load, jen signatury → těla
-  procedur na GitHubu, MCP CONNECT_TIMEOUT fix), Object ID Ninja (ruční ID →
-  backend), BC source StefanMaron/MSDyn365BC.Code.History (w1-/cz-<major>,
-  core.longpaths), AL-Go, nová appka v repu (GUID, idRanges, affix,
-  workspace, permission sety, git worktree), source závislé appky (sibling
-  repo, extrakce z .app), git commit/push/PR nikdy sám + upstream past +
-  ForcePush, verzování app.json, Azure DevOps MCP (org essencebs, PAT
-  read-only záměrně, search_code blob, IPv6 reset), case-only rename složky.
+  BC/AL nástroje, git a Azure DevOps z praxe (BC, AL, sekce 7.1–7.10):
+  alc.exe kompilace z CLI (absolutní cesty, bez Analyzers.Common.dll
+  (AL1003), Git Bash MSYS2_ARG_CONV_EXCL, více package cache, dočasná cache
+  ze sibling rep, UTF-16 logy (falešné 0 errors), Bash heredoc pasti
+  (backslash, apostrof), volné object ID BOM-aware), al-mcp-server (studený
+  start al_packages load, jen signatury → těla na GitHubu, MCP
+  CONNECT_TIMEOUT fix), Object ID Ninja (ruční ID → backend), BC source
+  StefanMaron (w1-/cz-<major>, core.longpaths), AL-Go, nová appka v repu
+  (GUID, idRanges, affix, workspace, permission sety, git worktree), source
+  závislé appky (sibling repo, extrakce z .app), git commit/push/PR nikdy
+  sám + upstream past + ForcePush, verzování app.json, Azure DevOps MCP (org
+  essencebs, PAT read-only záměrně, search_code blob, IPv6 reset), popis PR /
+  PBI jako Markdown blok bez zalamování, case-only rename složky.
   Načti u kompilace z CLI, symbolů, git / PR / ADO, zakládání appky. (NuGet,
   CI, deploy → skill bc-al-build.)
 user-invocable: true
