@@ -802,8 +802,18 @@ zdroje prod-ess-configurator-bc master, COEBS 28.0.22.0.)
   International s.r.o.`; app, appCZ, test, testCZ). Konzument se starým vydavatelem v dependency dostane `info AL1076`,
   kompilace projde (párování podle GUID). Při bumpu minima srovnej `publisher` a ověř ID balíčku nové verze na feedu
   (`<Publisher><Name>.<guid>`, `query2?q=<guid>`, 7.11 v `bc-al-build.md`).
-  ⚠️ **COALU CNC** (`CNC Action Condition."Source Parameter Line No."`, `CNC Action Line."Profile From Parameter"`) subscriber zatím
-  nemá → follow-up v cust-alumistr-bc.
+  **COALU CNC** (`CNC Action Condition."Source Parameter Line No."`, `CNC Action Line."Profile From Parameter"`) má subscriber od
+  větve `66845_CNCConditionTree` (cust-alumistr-bc); operandy CNC vzorců sbírá base sám (`Action Formula Line` bez filtru na typ zdroje).
+- ⚠️ **Kopie konfigurace v rozšíření s vlastními odkazy na parametry = remap jako base `TryRemapParamLineNo`**, ne „není v mapě →
+  nech". Kopie čísluje parametry znovu od 10000 bez mezer, takže odkaz na parametr smazaný před 66711 se v kopii chytí **jiného**
+  parametru (zdroj 10000/30000 + odkaz 20000 → v kopii HEIGHT = 20000) a čítač kopie (vzniká u prvního parametru, data rozšíření se
+  kopírují až v `OnAfterCopyConfiguration`) ho nezvedne → i budoucí parametry. 0 a záporná čísla (systémové parametry) beze změny,
+  mimo mapu → 0. **Kde 0 mění význam, nenuluj:** CNC podmínka bez parametru je vždy splněná (`EvaluateCondition`), ve zdroji je
+  s neexistujícím parametrem nesplněná → COALU kopii **zastaví chybou** se seznamem podmínek (rozhodnutí uživatele 2026-10-14);
+  profil z parametru a operand vzorce se nulují (výsledek tisku stejný: statické číslo profilu, operand 0). Testy
+  `CopyStopsOnCNCConditionWithMissingSourceParameter`, `CopyClearsCNCProfileAndOperandOfMissingParameter` (`CNC Data Repair Tests
+  COALU`). Rekurzivní kopie větve v rámci konfigurace (`CopyCNCAction`) nad starým stromem se sdíleným potomkem / cyklem padala na
+  duplicitním klíči mapy, resp. nekončila → guard „uzel už je v mapě → Error".
 - Použitý parametr nejde smazat (Error s výčtem až 10 použití); vlastní podmínky a vzorce parametru neblokují, uložené hodnoty variant
   taky ne. Výběr více parametrů a „Delete All Records“ jdou přes `DeleteParameters` (odkazy mezi mazanými parametry neblokují).
   Smazání definice kontrolu přeskočí (`SetSkipReferenceCheck` na instanci, globální proměnná tabulky).
