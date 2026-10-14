@@ -14,6 +14,7 @@ Obsahuje:
 - **5.x15b** předvyplnění šarže na Item Tracking Lines (hooky stránky 6510), SN zboží bez automatického řádku
 - **5.x16** automatické přiřazení šarže z kódu (FEFO) — prošlé šarže při Strict Expiration Posting přeskoč
 - **5.x17** `Reservation Entry."Entry No."` je AutoIncrement — `"Entry No." := 0` před Insert, nikdy FindLast + 1
+- **5.x18** dobropis / vratka s `Appl.-from Item Entry` z kódu — SQNR se mění až při účtování, slučování šarží při účtování
 
 ## 5. Specifické objekty a API — Item Tracking
 
@@ -216,6 +217,16 @@ cust-soitron-bc (`Job Lot Tracking Mgt. SOI`, 2026-10-07): u SN zboží auto-ř�
 - Pozn. k datům v BC-DEV: lookup šarže na 6510 ukáže i prošlou šarži (expirace je vidět ve sloupci *Datum expirace*
   řádku sledování) — rychlá diagnostika, proč účtování padá. (2026-10-12, prod-ess-dotykackaConnector-bc PBI 63075,
   `Dotykacka Lot Assign DCEBS`, Sonnentor kód LOTEXP.)
+- **„Prodat zbytek do mínusu na šarži" (Force Sell Negative) NEJDE s `Lot Specific Tracking`.** `Item Jnl.-Post Line`
+  (`InsertItemLedgEntry`, w1-28) hodí *Text018 „Lot No. … cannot be fully applied"*, když by zůstala otevřená záporná
+  položka šarže a `ItemTrackingCode.IsSpecific()` (= SN Specific or Lot Specific) je true. Bez Lot Specific se výdej
+  šarží vůbec nevyrovnává (`ApplyItemLedgEntrySetFilters` šarži nefiltruje) a do mínusu projde (pokud zboží zápornou
+  zásobu dovolí). Vlastní FEFO s režimem „do mínusu" proto u Lot Specific musí skončit vlastní chybou **před** založením
+  dokladu — jinak vznikne doklad, který nikdy nezaúčtuješ. Když žádná šarže nemá volnou zásobu (vyprodaná, nebo ji
+  celou drží nezaúčtovaný doklad), vezmi existující šarži i z **uzavřených** ILE (nejpozdější expirace), jinak režim
+  „do mínusu" v nejčastějším případě nezabere. Víc `Reservation Entry` téže šarže na jednom řádku nevadí (účtování je
+  sečte přes `SumUpItemTracking`), ale je to nepořádek — sbírej alokace do temp bufferu a zapiš jednu na šarži.
+  (2026-10-14, code review prod-ess-dotykackaConnector-bc, `Dotykacka Lot Assign DCEBS`.)
 
 ### 5.x17 `Reservation Entry."Entry No."` je `AutoIncrement` — nikdy `FindLast + 1`, žádný zámek to nezachrání
 
@@ -233,3 +244,20 @@ cust-soitron-bc (`Job Lot Tracking Mgt. SOI`, 2026-10-07): u SN zboží auto-ř�
   u pole; zdroj base viz `microsoft/BCApps` `src/Layers/W1/BaseApp/Inventory/Tracking/CreateReservEntry.Codeunit.al`
   (raw.githubusercontent, bez `gh`: `curl -sfL`). (2026-10-12, cust-jiri-bc EUDR — šest vlastních insertů
   rezervací přešlo z `GetNextReservationEntryNo` na nulu.)
+
+### 5.x18 Dobropis / vratka s `Appl.-from Item Entry` z kódu — odečti, co si z položky vzaly ostatní řádky dokladu
+
+- `Shipped Qty. Not Returned` (SQNR) prodejní ILE se mění **až při účtování**. Kód, který při stavbě dobropisu hledá
+  „první ILE s `Abs(SQNR) >= množství`", tak dá dvěma řádkům téhož zboží **stejnou** položku → účtování spadne až v
+  `Item Jnl.-Post Line.UpdateOutboundItemLedgEntry` („Shipped Qty. Not Returned is too low in Item Ledger Entry").
+  Kontrola na řádku (`Sales Line.CheckApplFromItemLedgEntry`) porovnává jen vlastní řádek proti DB, takže nic nechytí.
+  Volné množství = `Abs(SQNR)` − součet `Quantity (Base)` ostatních řádků dokladu se stejným `Appl.-from Item Entry` −
+  `Reservation Entry` řádků dokladu (`SetSourceFilter(Database::"Sales Line", DocType, DocNo, -1, true)` = všechny řádky)
+  se stejným `Appl.-from Item Entry`. Funguje, když předchozí řádky už jsou vložené i s rezervacemi.
+- **Šarže: účtování slučuje sledování podle šarže a vyrovnání bere z prvního řádku.** `RetrieveItemTracking` →
+  `SumUpItemTracking(…, false, true)` sečte řádky sledování jen podle Lot/Serial (filtr `TrackingSpecification`
+  ignoruje vyrovnání) a celé množství aplikuje na `Appl.-from Item Entry` prvního z nich → dvě `Reservation Entry` téže
+  šarže s různým vyrovnáním na jednom řádku = přečerpání první ILE. Slouč je podle šarže a vyrovnání nech jen tehdy, když
+  ho pokryje jediná ILE, jinak 0 (pozor: při *Exact Cost Reversing Mandatory* pak dobropis nezaúčtuješ — `TestField`
+  v `TransferSalesLineToItemJnlLine`). (2026-10-14, code review prod-ess-dotykackaConnector-bc, storno účtenky se dvěma
+  řádky téhož zboží, ověřeno w1-28.)

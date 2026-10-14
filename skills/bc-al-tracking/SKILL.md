@@ -1,16 +1,16 @@
 ---
 name: bc-al-tracking
 description: >-
-  BC/AL Item Tracking (BC — šarže Lot No., sériová čísla Serial No., Reservation Entry 337, Tracking
-  Specification 336; sekce 5.x–5.x17): stránka Item Tracking Lines (6510) a její eventy pro ruční řádek
+  BC/AL Item Tracking (BC — šarže, sériová čísla, Reservation Entry 337, Tracking
+  Specification 336; sekce 5.x–5.x18): stránka Item Tracking Lines (6510) a její eventy pro ruční řádek
   (OnBeforeOnInsertRecord / OnBeforeOnModifyRecord), Assign Serial No. a Create Customized SN
   (OnAfterAssignNewTrackingNo), předvyplnění šarže (šarže = číslo projektu, zadání SN šarži maže), SN zboží bez
-  automatického řádku, přepis Lot No. při změně projektu, vlastní výběr šarže z akce na 6510, source pole u Prod.
+  automatického řádku, přepis šarže při změně projektu, vlastní výběr šarže z akce na 6510, source pole u Prod.
   Order Line, tracking na Sales Quote (Prospect vs Surplus, IsOrderNetworkEntity), tracking na fakturačním řádku
   z Get Shipment Lines (jen Prospect), PC0013 Get s Integer do enum PK, TestPage handlery Enter Quantity to Create /
-  Enter Customized SN, FEFO z kódu a prošlé šarže (Strict Expiration Posting), Reservation Entry Entry No. =
-  AutoIncrement (nikdy FindLast + 1, vlastní insert s 0). Načti u šarží, sériových čísel, Item Tracking Lines,
-  Reservation Entry a trackingu na dokladech.
+  Customized SN, FEFO z kódu a prošlé šarže (Strict Expiration Posting), Lot Specific vs. prodej šarže do mínusu,
+  Reservation Entry Entry No. AutoIncrement (insert s 0), dobropis / storno s Appl.-from Item Entry z kódu (SQNR,
+  slučování šarží). Načti u šarží, SN, Item Tracking Lines a Reservation Entry.
 user-invocable: true
 ---
 

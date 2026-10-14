@@ -416,7 +416,7 @@ projekt nikdy nezabral. Uživatelé navíc vykazují na **podúkoly / child issu
   = 404. Existující testy, které dřív končily fallbackem bez HTTP, musí mock bindnout taky (jinak jdou na síť).
   Kompilace čistá (alc 17), CI běh zatím ne.
 
-### 11.10 Dotykačka (Dotypos API v2) — stav skladu je `stockQuantityStatus`, blokace = `display: false`, ceny s DPH do `priceWithVat`
+### 11.10 Dotykačka (Dotypos API v2) — stav skladu je `stockQuantityStatus`, blokace = `display: false`, ceny s DPH do `priceWithVat`, okno účtenek `versionDate`
 
 Z prod-ess-dotykackaConnector-bc, PBI 63075 (test Pavla Fily 2026-10-08, oprava 2026-10-09; zdroj
 `docs.api.dotypos.com/entity/warehouse/` a `/entity/product/`, `api.dotykacka.cz/...` WebFetch vrací 403):
@@ -448,3 +448,11 @@ Z prod-ess-dotykackaConnector-bc, PBI 63075 (test Pavla Fily 2026-10-08, oprava 
   účtování a platby jako další samostatné kroky) a platby kontroluj na mapování **před** založením dokladu, jinak vznikne
   zaúčtovaná nezaplacená faktura. Zúčtovací datum účtenky hlídej proti subscriberům, co účtují k WorkDate
   (`bc-al-posting.md` 3.6j).
+- **Inkrementální import orders filtruj přes `versionDate|gteq|`, ne `created|gteq|`** (ověřeno 2026-10-14): `created` =
+  otevření účtenky, `completed` = dokončení, `versionDate` = zápis na serveru (~200 ms po dokončení; BC-DEV účtenka
+  otevřená 7 minut). S `created` a watermarkem se ztratí účtenka otevřená před během a dokončená po něm (zaparkovaný stůl)
+  i účtenka nahraná offline pokladnou později. Podle docs.api.dotypos.com/entity/order jsou `versionDate`, `completed`,
+  `created`, `updated`, `canceledDate` filtrovatelné číselnými operátory a řaditelné. Daň: změněné starší účtenky
+  (originál po stornu) přijdou znovu → deduplikace přes import log a klíč na `Order Id` v hlavičkách dokladů. Watermark
+  posouvej po každém úspěšném čtení API a selhané účtenky opakuj z uloženého JSON — watermark držený „do běhu bez
+  chyb" jedna trvale vadná účtenka zmrazí a každý běh pak stahuje celou historii od ní.

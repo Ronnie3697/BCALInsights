@@ -343,6 +343,19 @@ fakturovanou cenu (`CalcUnitPriceUsingUOMCoef`). `BlanketOrderIsRelated` je `int
 | Nabídka → objednávka | `Sales-Quote to Order.OnBeforeModifySalesOrderHeader(var Order, Quote)` (base tam přiřazuje `Work Description`) | přiřazení |
 | Kopie dokladu | **jeden** `Copy Document Mgt.OnAfterCopySalesHeaderDone(var ToSalesHeader, Old, FromSalesHeader, FromShpt, FromInv, FromRetRcpt, FromCrMemo, FromArchive, FromDocType)` pro všechny zdroje (volá se jen s `IncludeHeader`, za ním `Modify`) | `case FromDocType` → přiřazení ze správného zdroje |
 
+**Opačný případ — integrační ID, které se kopírovat NESMÍ** (ID objednávky z pokladny / e-shopu na Sales Header,
+ID produktu na Item / Item Variant): stejné field ID na celé sadě (3.6) ho do kopie přenese samo — Copy Document dělá
+`TransferFields` hlavičky i z posted faktury / dobropisu, Correct Posted Sales Invoice a Create Corrective Credit Memo
+jedou přes `IncludeHeader = true`. **`OnInsert` tableextension nepomůže:** cílová hlavička existuje dřív, než se do ní
+kopíruje, base pak volá `Modify()`; **Copy Item** dělá `TargetItem.TransferFields(SourceItem)` + `Insert()` **bez
+triggerů** a varianty přes `RecordRef.Duplicate()` + `Insert()` taky bez triggerů. Funkční háčky: `Copy Document
+Mgt.OnAfterCopySalesHeaderDone` → `ToSalesHeader.<ID> := OldSalesHeader.<ID>` (cíl si nechá svoje, base za ním
+`Modify`), `Copy Item.OnCopyItemOnBeforeTargetItemInsert` (vynulovat na `TargetItem`, před insertem, bez Modify) a
+`Copy Item.OnAfterCopyItem` → varianty cílového zboží `SetRange("Item No.")` + `ModifyAll(<ID>, 0, false)` (filtr jen
+na Item No., ne na `<ID> <> 0` — druhý `ModifyAll` by pak nic nenašel). Bez toho kopie zboží při dalším syncu přepíše
+PUTem původní produkt a kopie faktury z pokladny vypadá jako nezaúčtovaný prodej z pokladny. (2026-10-14, code review
+prod-ess-dotykackaConnector-bc, `Dotykacka Subscribers DCEBS`.)
+
 Base u příjemky vratky `Work Description` ani nekalkuluje (w1-28) — vlastní subscriber tam přesto dej. Generické
 kopírování mezi různými tabulkami: `Temp Blob.FromRecord(FromVariant, FieldNo)` (sám udělá `CalcField`) →
 `Temp Blob.ToRecordRef(ToRecRef, FieldNo)` → `ToRecRef.SetTable(ToRec)`. (2026-09-29, cust-zlomek-bc PBI 65651,
@@ -553,6 +566,17 @@ ship jen část řádků → `PostSalesDocument(SalesHeader, false, true)` musí
   `"Posting Date" := WorkDate()` + `Modify` (bez `Validate` — ta by vyhodila Message bez handleru), bind přes **lokální**
   proměnnou testu (unbind sám na konci procedury i po pádu), doklad s datem `WorkDate() - 5` → assert zúčtovací datum
   a `WorkDate()` beze změny.
+- **Totéž platí pro platby / řádky finančního deníku účtované z kódu (`Gen. Jnl.-Post Line`) — kvůli CZ lokalizaci.**
+  W1 `Gen. Jnl.-Check Line` ani `Gen. Jnl.-Post Line` WorkDate nepoužívá, ale CZL `GenJnlCheckLineHandlerCZL`
+  (`OnAfterCheckGenJnlLine`) → `UserSetupAdvManagementCZL.CheckGeneralJournalLine` dělá `TestField("Posting Date",
+  WorkDate())` / `TestField("Document Date", WorkDate())`, když je v GL Setup *User Checks Allowed CZL* a v User Setup
+  *Check Post.Date(work date) CZL* / *Check Doc. Date(work date)*. Faktura starší účtenky tak projde (WorkDate nastavený),
+  platba k ní spadne „Posting Date must be equal to <dnes>". Obal i účtování plateb stejným `WorkDate(datum dokladu)` +
+  návrat. Test bez CZL: manuální subscriber na `Gen. Jnl.-Check Line.OnAfterCheckGenJnlLine(var GenJournalLine)` s
+  `TestField("Posting Date", WorkDate())`. Kontrola číselné řady listu deníku (`No. Series`, `Posting No. Series`,
+  `Force Doc. Balance`) je naopak jen v `Gen. Jnl.-Post Batch` — `Gen. Jnl.-Post Line.RunWithCheck` nad nevloženým
+  řádkem ji nedělá (code review nález „číslo dokladu nesedí s řadou listu" je planý). (2026-10-14, cz-28,
+  prod-ess-dotykackaConnector-bc `PayOnPostingDate`.)
 - Najít, kdo datum mění: `search_code` přes ADO MCP na `"Posting Date" OnBeforePostSalesDoc WorkDate` (výsledek je obří →
   uložený soubor, parsovat jako víc JSON objektů za sebou přes `raw_decode`). (2026-10-12, prod-ess-dotykackaConnector-bc
   PBI 63075, Sonnentor BC-DEV: účtenka z 28. 8. účtovaná 12. 10.)

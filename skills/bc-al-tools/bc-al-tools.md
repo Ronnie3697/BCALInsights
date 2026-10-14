@@ -105,6 +105,11 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   `bc-al-workflow.md`) z výpisu zmizí. (Ověřeno 2026-09-15, cust-zlomek-bc, alc 18.0 — dřívější
   poznámka „žádný CLI přepínač to nepovoluje" byla chybná.)
   **Funguje i na alc 17.0.34**, i když ho `alc.exe /?` nevypisuje (přepínač je skrytý, ne chybějící). (2026-09-22, cust-soitron-bc)
+  ⚠️ **Když blob s rulesetem neprojde TLS** (2026-10-14: `essencefiles.blob.core.windows.net` → `SEC_E_UNTRUSTED_ROOT` z curl
+  i PowerShellu, alc `AL1033 … Could not load the rule set file`), kompilace z CLI s repo rulesetem skončí jen tou chybou —
+  žádný kód se nezkontroluje. Obejdi to lokální kopií: repo ruleset **bez `includedRuleSets`** + pravidla, která
+  essence-default skrývá (k 2026-10-14: `AC0030`, `AC0031`, `LC0010`, `LC0098`, `LC0099`, `PC0030`, `PC0037`, `AS0081`,
+  `AA0247`), a stejnou kopií zkompiluj i výchozí commit, ať porovnáváš warningy jablka s jablky.
 - **Untracked `.al` v rootu appky (kopie base codeunitu k ladění, např. `SalesPost.al` = codeunit 80) shodí CLI build**
   (`AL0297` ID mimo range, `AL0264` už deklarováno, `AL0275` ambiguous) — VS Code ho možná ignoruje přes workspace
   nastavení, alc bere celou složku. Cizí rozdělaný soubor nemaž: **zkompiluj kopii projektu ve scratchpadu**
@@ -589,6 +594,14 @@ máš tím rovnou launch.json, ruleset, lintercop, AppSourceCop, logo a struktur
   takže ve worktree chybí → **junction na sdílenou cache** hlavního klonu:
   `cmd /c mklink /J <worktree>\.alpackages <hlavní-klon>\.alpackages`
   (bez admin práv; symboly stažené z jedné strany vidí obě).
+- **Paralelní agenti Claude Code s `isolation: "worktree"` dostanou worktree z výchozí větve (master), NE z větve,
+  na které stojíš.** Všichni čtyři agenti code review (prod-ess-dotykackaConnector-bc, 2026-10-14) dostali 637996c
+  (master) místo tipu feature větve; soubory feature větve tam vůbec nebyly a museli se sami přepnout
+  (`git switch --detach <větev>` na čistém stromě). Do zadání proto napiš „first `git switch --detach <branch>`" a
+  změny si pak ber `git -C <worktree> add -N . && git -C <worktree> diff --binary <base> > x.patch` →
+  `git apply --check` / `git apply` v hlavním stromě (disjunktní soubory na agenta = patche jdou čistě za sebou; dva
+  agenti v jednom souboru jen v různých procedurách taky prošli). Kompilaci agentů směruj do vlastního `/out` ve
+  scratchpadu a s dočasnou package cache jen s MS symboly (stará `.app` vlastní appky v `.alpackages` by se tloukla).
 - **Prázdný `permissionset` (bez `Permissions`) se zkompiluje** — skeleton
   OBJECT/READ/EDIT (vzor sonnentor base) jde založit hned, plnit až s objekty.
 - **Permission set název ≤ 20 znaků** (viz 1.2 v bc-al-style) — `"Whse.

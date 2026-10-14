@@ -5,7 +5,8 @@
 > Načítej, když řešíš: No. Series, Upgrade Tag, All Profile, NMEBS vazba SO↔VZ,
 > Unix timestamp, atributy zboží, DateFormula, CaptionClass/Translation Helper, CZ↔EN terminologie, CZZ zálohy, Attached to Line No. /
 > parent↔child řádky, Requisition Line / Req. Wksh.-Make Order / Calculate Plan bez dotazů, VerifyOnInventory, Auto Format / částky v textu,
-> přepočet ceny z Množství bez ceníku (IsPriceUpdateNeeded, 5.x21; ruční Line Discount % změnu Množství/Varianty nepřežije).
+> přepočet ceny z Množství bez ceníku (IsPriceUpdateNeeded, 5.x21; ruční Line Discount % změnu Množství/Varianty nepřežije),
+> Retention Policy pro vlastní logy (5.x23).
 >
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 > **Essence Configurator** má od 2026-09-21 vlastní soubor `ess-configurator-notes.md` (parametry, vzorce, systémové parametry, varianty) — sekce 5.x10 a 5.x12 tam přesunuty 2026-10-01 jako C13 / C14; 5.x8 (Item Charge Assignment) je obecné BC a zůstává tady.
@@ -953,3 +954,22 @@ na hlavičce → řádky → skladový doklad):
   `CreateWarehouseEmployee(WhseEmployee, Loc, false)`; skladový doklad `CreateWhseReceiptFromPO(PurchaseHeader)` /
   `CreateWhseShipmentFromSO(SalesHeader)` po `Release…Document` (bez dialogu). `LibraryUtility.GenerateRandomCode` vrací
   `Code[10]`.
+
+### 5.x23 Retention Policy (Retenční zásady) pro vlastní logy — registrace bez install codeunity, zamčené filtry
+
+- **Registrace stačí přes subscriber** `[EventSubscriber(ObjectType::Codeunit, Codeunit::"Reten. Pol. Allowed Tables",
+  OnRefreshAllowedTables, '', false, false)]` → `RetenPolAllowedTables.AddAllowedTable(Database::"Můj Log", FieldNo(<DateTime pole>), …)`.
+  Event je `internal` (volat ho nejde), ale vyvolá ho System App sám: stránka **Retention Policy Setup List** v `OnOpenPage`
+  i akcí *Refresh* a karta zásady (BCApps `RetentionPolicySetupList.Page.al`). Admin tabulku uvidí, jakmile otevře retenční
+  zásady — install/upgrade kód netřeba (hodí se, když appka install/upgrade codeunity v testovací fázi nechce). Vzor v
+  cust-sonnentor-bc `VoucherDiscountMgt.Codeunit.al` a prod-ess-dotykackaConnector-bc `Dotykacka Subscribers DCEBS`.
+- Mazání jde přes `RetenPolDeleteImpl` → `DeleteAll(RecRef, true)` = **s triggery** → kaskáda na detailní tabulku v
+  `OnDelete` hlavičky logu funguje, detail se registrovat nemusí (uživatel / job ale potřebuje D i na detail).
+- **Řádky, které se smazat nesmí** (import log s JSONem nedokončených záznamů): registruj tabulku se **zamčenými řádky
+  filtrů s obdobím „Never Delete"** na nedokončené stavy (`AddTableFilterToJsonArray` s `Locked = true`). Engine (BCApps)
+  v druhém průchodu odznačí všechny záznamy zamčeného „Never Delete" řádku → nesmaže je ani řádek, který si admin přidá,
+  a „Apply to all records" nejde zapnout. Dokončené stavy dej jako **odemčené** řádky s výchozím obdobím (admin si je změní).
+  Opačně (zamčené řádky na dokončené) by admin období neměnil a nedokončené by nic nechránilo.
+- Test: registraci vytáhni do `internal procedure` a assertuj přes public API `Reten. Pol. Allowed Tables.IsAllowedTable`;
+  skutečné mazání jde otestovat během `Apply Retention Policy` nad záznamy s datem 400 dní zpět (engine jde po dnech → pár
+  sekund). (2026-10-14, prod-ess-dotykackaConnector-bc code review — Sync Log + Import Log.)
