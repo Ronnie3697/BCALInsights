@@ -297,3 +297,31 @@ cust-soitron-bc (`Job Lot Tracking Mgt. SOI`, 2026-10-07): u SN zboží auto-ř�
   v testu s `SetHideValidationDialog(true)` (jinak `Message`), Project Order potřebuje zboží s `Replenishment System =
   Prod. Order` (`IsReplSystemProdOrder`). (2026-10-15, cust-sonnentor-bc PBI 65215 `Pallet Tracking Mgt. SON`,
   `Test Pallet Tracking SON`; zdroj Base App 28.5 extrakce z .app.)
+
+### 5.x20 Expirace na řádku sledování zmizí po zadání Package No.; změna stavu VZ vloží řádek dřív, než přenese jeho tracking
+
+- **`Tracking Specification.InitExpirationDate` běží při každé změně `Lot No.` / `Serial No.` / `Package No.`** (OnValidate
+  těch polí, w1-28), vynuluje `Expiration Date` a doplní ji jen z existujících položek zboží (`ExistingExpirationDate`;
+  `HasSameTracking(xRec)` porovnává jen SN + Lot, package změna tedy init spustí). U šarže, která ještě není skladem
+  (očekávaný výstup VZ, předvyplněná expirace z vlastní logiky), **zadání čísla zásilky na stránce 6510 expiraci smaže**
+  — stránka ji pak při `OnModifyRecord` zapíše do rezervačních položek prázdnou (`ModifyFieldsWithinFilter`). Hooky:
+  `OnBeforeInitExpirationDate(var Rec; xRec; var IsHandled)` (zachovat `xRec."Expiration Date"`, když se Lot/SN nezměnily →
+  `IsHandled`) a `OnAfterInitExpirationDate(var Rec)` (dopočítat default, když zůstala 0D; respektuj `"Buffer Status2" =
+  "ExpDate blocked"` = kód sledování bez *Use Expiration Dates*, a `IsReclass()`). Zdroj dokladu z `Source Type/Subtype/ID/
+  Batch/Ref. No./Prod. Order Line` (Prod. Order Line: Subtype = status, ID = VZ; Item Journal Line: ID = šablona **Code[20]
+  → `CopyStr` na Code[10]**, jinak PC0013). Test bez TestPage: `TrackingSpecification.Init()` + source pole + `Item No.` +
+  `Lot No.` + `Expiration Date`, pak `Validate("Package No.", …)` / `Validate("Lot No.", …)` — `xRec` je ve field triggeru
+  spolehlivý i z kódu; pro cestu OnAfter musí mít kód sledování `"Use Expiration Dates" := true`
+  (`Library - Item Tracking.CreateItemTrackingCode` ho nenastaví).
+- **`Prod. Order Status Management.TransProdOrderLine`: `ToProdOrderLine.Insert()` → … → `TransferPOLineToPOLine` → `Modify()`.**
+  Subscriber na `Prod. Order Line.OnAfterInsertEvent`, který řádku zakládá tracking „když žádný nemá" (seed očekávaného
+  výstupu = Surplus položka s šarží), při změně stavu žádný nevidí (položky starého řádku se přenesou až po insertu) → založí
+  nový a po přenosu jsou tam **dvě položky na stejné množství** (uživatel: „po vydání mám druhý řádek sledování s expirací").
+  Fix bez stavu nejde (nové číslo VZ při jiné řadě = podle `Source ID` to nepoznáš): `OnBeforeInsertProdOrderLine(var
+  ToProdOrderLine; FromProdOrderLine)` → klíč řádku do SingleInstance helperu, insert subscriber ho přeskočí,
+  `OnAfterToProdOrderLineModify(var ToProdOrderLine; var FromProdOrderLine; var NewStatus: Option
+  Quote,Planned,"Firm Planned",Released,Finished)` (pozor, **Option**, ne enum) klíč smaže a seed spustí až tam — guard
+  „už má tracking" pak funguje. Stále klíč (status + číslo + řádek) místo bool: po chybě uprostřed změny stavu zůstane
+  v session, ale ovlivní jen tentýž řádek při opakování. (2026-10-15, cust-sonnentor-bc PBI 64043/65215
+  `Prod. Order Lot Mgt. SON`, `Single Instance Helper SON`; zdroj Base App 28.5 `TrackingSpecification.Table.al`,
+  `ProdOrderStatusManagement.Codeunit.al`.)
