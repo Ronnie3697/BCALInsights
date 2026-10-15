@@ -271,17 +271,29 @@ cust-soitron-bc (`Job Lot Tracking Mgt. SOI`, 2026-10-07): u SN zboží auto-ř�
   `Create Prod. Order from Sale.CreateProductionOrder` (Item Order: `BindToTracking` → `ProdOrderLine.Modify()`),
   `Create Prod. Order Lines.CopyFromSalesOrder` (Project Order / Refresh VZ se zdrojem Sales Header: `BindToTracking` →
   `ProdOrderLine.Modify()`), `Mfg. Carry Out Action.InsertProdOrderLine` (sešit: `TransferPlanningLineToPOLine` /
-  `ReserveBindingOrderToProd` → `ProdOrderLine.Modify()`). Hlavička VZ (jiná instance, base ji po vazbě znovu neukládá)
-  přežije → při změně stavu (`Prod. Order Status Management`: `ToProdOrderLine := FromProdOrderLine` → `Insert` →
-  subscriber `OnAfterInsertEvent` řádku nastaví pole na **`var Rec`** → následný `ToProdOrderLine.Modify()` ho zachová)
-  se pole na řádcích „záhadně" objeví až po vydání. Pevně plánovaná z prodejky ho nemá, vydaná ano = tenhle vzor.
+  `ReserveBindingOrderToProd` → `ProdOrderLine.Modify()`). **Hlavičku přepíše taky** — `Create Prod. Order
+  Lines.ProcessProdOrderLines` končí `ProdOrder.AdjustStartEndingDate()` + `ProdOrder.Modify()` z globální kopie hlavičky
+  (platí pro Create from Sale i Refresh). Při změně stavu Project Order (`Source Type = Sales Header`) hlavičku nastaví
+  subscriber `OnAfterInsertEvent` na `var Rec` a řádky (`ToProdOrderLine := FromProdOrderLine` → `Insert` → subscriber
+  řádku na `var Rec` → následný `ToProdOrderLine.Modify()` ho zachová) ji zdědí → pole se na VZ „záhadně" objeví až po
+  vydání. Pevně plánovaná z prodejky ho nemá, vydaná ano = tenhle vzor.
 - `Production Order.OnAfterInsertEvent` s podmínkou na `Source Type/No.` v `Create Prod. Order from Sale` nikdy nechytne:
-  `ProdOrder.Insert(true)` běží **před** nastavením zdroje (Source No. prázdné), zdroj se dopíše `Modify()`.
-- **Fix = nastav pole do `var ProdOrderLine` těsně před base `Modify()`** (všechny tři eventy mají řádek by-ref):
-  `OnCreateProductionOrderOnBeforeProdOrderLineModify(var ProdOrderLine; var SalesLine; var ProdOrder; …)` (99000787),
-  `OnCopyFromSalesOrderOnBeforeProdOrderLineModify(var ProdOrderLine; SalesLine; SalesPlanningLine; var NextProdOrderLineNo)`
-  (99000788), `OnInsertProdOrderLineOnBeforeModifyProdOrderLine(var ProdOrderLine; var RequisitionLine)` (Mfg. Carry Out
-  Action). Nejjednodušeji obecně: načti uloženou verzi řádku (`Stored.Get(ProdOrderLine.RecordId)`) a převezmi z ní pole,
-  které reservation subscriber zapsal — nezávislé na tom, odkud se vazba bere. Test „VZ z prodejky (MTO) má příznak na
-  řádku" musí assertovat **DB po dokončení akce**, ne stav uvnitř subscriberu. (2026-10-15, cust-sonnentor-bc PBI 65215
-  `Pallet Tracking Mgt. SON`; zdroj Base App 28.5 extrakce z .app.)
+  `ProdOrder.Insert(true)` běží **před** nastavením zdroje (Source No. prázdné), zdroj se dopíše `Modify()`. Hlavička se
+  z prodejního řádku nastaví v `OnAfterCreateProdOrderFromSalesLine(var ProdOrder; var SalesLine)` (těsně před tím
+  `Modify()`), řádky pak hodnotu zdědí z hlavičky už při `Insert`.
+- **Přesun vazby = `Modify`, ne `Insert`.** `Create Reserv. Entry.TransferReservEntry` (carry-out sešitu
+  `TransferPlanningLineToPOLine`, změna stavu `TransferPOLineToPOLine`) při plném přenosu páru dělá
+  `NewReservEntry.Modify()` s novým zdrojem — subscriber jen na `OnAfterInsertEvent` tabulky 337 tyto cesty nevidí;
+  dej ho i na `OnAfterModifyEvent` (po guardu na `Binding` / `Source Type` je levný).
+- **Fix proti zastaralé kopii: trigger `OnBeforeModify` v tableextension hlavičky i řádku** — když `Rec` ani `xRec` pole
+  nemají, načti uloženou verzi (`Stored.SetLoadFields(pole); Stored.Get(PK)`) a hodnotu převezmi do `Rec`. Zastaralá kopie
+  z kódu má `xRec = Rec` (3.9 v `bc-al-data.md`), takže se obnoví; ruční zrušení na stránce nese v `xRec` původní *Ano*
+  a projde. Jedna ochrana pro všechny cesty (Create from Sale, Refresh, Carry Out, budoucí) místo honby za každým base
+  `Modify()`; cena = jeden PK `Get` per `Modify(true)` bez pole. Alternativa po cestách: eventy
+  `OnCreateProductionOrderOnBeforeProdOrderLineModify` (99000787), `OnCopyFromSalesOrderOnBeforeProdOrderLineModify` +
+  `OnProcessProdOrderLinesOnBeforeAdjustStartEndingDate(var ProductionOrder)` (99000788),
+  `OnInsertProdOrderLineOnBeforeModifyProdOrderLine` (Mfg. Carry Out Action). Test „VZ z prodejky (MTO) má příznak"
+  assertuj **DB po dokončení akce**, ne stav uvnitř subscriberu; `Create Prod. Order from Sale.CreateProductionOrder`
+  v testu s `SetHideValidationDialog(true)` (jinak `Message`), Project Order potřebuje zboží s `Replenishment System =
+  Prod. Order` (`IsReplSystemProdOrder`). (2026-10-15, cust-sonnentor-bc PBI 65215 `Pallet Tracking Mgt. SON`,
+  `Test Pallet Tracking SON`; zdroj Base App 28.5 extrakce z .app.)
