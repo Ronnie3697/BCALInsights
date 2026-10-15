@@ -261,3 +261,27 @@ cust-soitron-bc (`Job Lot Tracking Mgt. SOI`, 2026-10-07): u SN zboží auto-ř�
   ho pokryje jediná ILE, jinak 0 (pozor: při *Exact Cost Reversing Mandatory* pak dobropis nezaúčtuješ — `TestField`
   v `TransferSalesLineToItemJnlLine`). (2026-10-14, code review prod-ess-dotykackaConnector-bc, storno účtenky se dvěma
   řádky téhož zboží, ověřeno w1-28.)
+
+### 5.x19 Propagace vlastního pole Sales Line → Prod. Order Line přes vazbu Order-to-Order — subscriber na `Reservation Entry.OnAfterInsertEvent` base přepíše svým `Modify()`
+
+- Vazba MTO vzniká **až po `Insert` řádku VZ** (`Sales Line-Reserve.BindToTracking` → `Create Reserv. Entry.CreateEntry` →
+  `ReservEntry.Insert()` + `ReservEntry2.Insert()`; partner existuje až při druhém insertu). Subscriber, který při ní
+  nastaví pole na `Prod. Order Line` **jinou instancí** (`Get` + `Modify(false)`), v DB vyhraje jen na okamžik — base
+  pak uloží **svou** (zastaralou) instanci řádku a pole přepíše zpět:
+  `Create Prod. Order from Sale.CreateProductionOrder` (Item Order: `BindToTracking` → `ProdOrderLine.Modify()`),
+  `Create Prod. Order Lines.CopyFromSalesOrder` (Project Order / Refresh VZ se zdrojem Sales Header: `BindToTracking` →
+  `ProdOrderLine.Modify()`), `Mfg. Carry Out Action.InsertProdOrderLine` (sešit: `TransferPlanningLineToPOLine` /
+  `ReserveBindingOrderToProd` → `ProdOrderLine.Modify()`). Hlavička VZ (jiná instance, base ji po vazbě znovu neukládá)
+  přežije → při změně stavu (`Prod. Order Status Management`: `ToProdOrderLine := FromProdOrderLine` → `Insert` →
+  subscriber `OnAfterInsertEvent` řádku nastaví pole na **`var Rec`** → následný `ToProdOrderLine.Modify()` ho zachová)
+  se pole na řádcích „záhadně" objeví až po vydání. Pevně plánovaná z prodejky ho nemá, vydaná ano = tenhle vzor.
+- `Production Order.OnAfterInsertEvent` s podmínkou na `Source Type/No.` v `Create Prod. Order from Sale` nikdy nechytne:
+  `ProdOrder.Insert(true)` běží **před** nastavením zdroje (Source No. prázdné), zdroj se dopíše `Modify()`.
+- **Fix = nastav pole do `var ProdOrderLine` těsně před base `Modify()`** (všechny tři eventy mají řádek by-ref):
+  `OnCreateProductionOrderOnBeforeProdOrderLineModify(var ProdOrderLine; var SalesLine; var ProdOrder; …)` (99000787),
+  `OnCopyFromSalesOrderOnBeforeProdOrderLineModify(var ProdOrderLine; SalesLine; SalesPlanningLine; var NextProdOrderLineNo)`
+  (99000788), `OnInsertProdOrderLineOnBeforeModifyProdOrderLine(var ProdOrderLine; var RequisitionLine)` (Mfg. Carry Out
+  Action). Nejjednodušeji obecně: načti uloženou verzi řádku (`Stored.Get(ProdOrderLine.RecordId)`) a převezmi z ní pole,
+  které reservation subscriber zapsal — nezávislé na tom, odkud se vazba bere. Test „VZ z prodejky (MTO) má příznak na
+  řádku" musí assertovat **DB po dokončení akce**, ne stav uvnitř subscriberu. (2026-10-15, cust-sonnentor-bc PBI 65215
+  `Pallet Tracking Mgt. SON`; zdroj Base App 28.5 extrakce z .app.)
