@@ -624,6 +624,14 @@ se Internal kontraktem se stejně dřív nebo později vrátí → Hidden v rule
 Zachyceno 2026-09-22, prod-ef-advanceCZ-bc build 28371 (master po merge PR 9166) — hodinu to vypadá
 jako „spadly testy", přitom testy vůbec neběžely.
 
+**Sada analyzerů se liší per repo a test appka bez rulesetu = CodeCop warning shodí build.** `cust-alumistr-bc` (PR build
+28888, 2026-10-15) kompiluje každou appku s **CodeCop + PerTenantExtensionCop + UICop** (řádek `.\alc.exe … /analyzer:…` v logu
+„Compile AL Apps"; seznam ověř tam, ne podle repa výš). Ruleset předá jen projektu, který ho má ve složce (`pricingMatrixExtension/test`
+ano, `configuratorExtension/test` ne) → v test appce bez rulesetu platí výchozí závažnosti CodeCopu. Spadlo to na
+`warning AA0181` u `Rec.Find('=')` v testu (obnovení záznamu bez `Next`) — **lokální alc 18 (AL 18.0.2732683) AA0181 u `Find('=')`
+vůbec nehlásí, CI jede alc 17.0.36 a hlásí** → lokální „0 warnings" je tu falešně čisté. Záznam v testu obnovuj `Get(<PK>)`
+(nebo `GetBySystemId`), ne `Find('=')`; před pushem `grep -rn "Find('=')" */test/src`.
+
 ### 7.22 Release deploy SaaS: `(409) Conflict` „Sorry, we just updated this page" = souběžný deploy do TÉHOŽ prostředí
 
 Classic Release (`Publish-PerTenantExtensionApps`, Automation API) spadne ~15 s po startu, hned po výpisu
