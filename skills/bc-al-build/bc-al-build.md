@@ -108,6 +108,12 @@ krok „Download Dependencies from NuGet" v témže build logu klidně ukazuje
   `essencebusinesssolutions.alumistrseextension.f83a70cc-…`). Verze balíčku
   vypíše flat2 `index.json`; hledání podle GUID funguje přes `query2?q=<guid>`.
   Ověřeno 2026-08-06 (cust-alumistr-bc, lokální ověření merge).
+- **Změna `publisher` produktové appky = NOVÉ package ID na feedu → u konzumentů změň i `publisher` v dependency.**
+  Starší verze zůstanou pod starým ID, nové jdou pod novým (Essence Configurator po PR 9695: `EssenceInternationalsro.…`
+  končí 28.0.34, `EssenceBusinessSolutions.…` od 28.0.35). BcContainerHelper (`Get-BcNuGetPackageId` + `Find-BcNuGetPackage`,
+  tedy i lokální `Test-Repo.ps1`) skládá ID z `publisher` + `name` v dependency a při přesné shodě vezme jen to ID →
+  se starým publisherem a minimem nad poslední verzí starého ID nenajde nic. Bump minima a publishera dej do jednoho
+  commitu. (2026-10-15, cust-alumistr-bc PR 9747, cust-zlomek-bc PR 9746 → Essence Configurator 28.0.36.)
 - **⚠️ K ověřování kompatibility nepoužívej balíčky z lokálních `.alpackages`**
   — bývají to lokální dev buildy aktuálního zdrojáku s podvrženým číslem verze
   (obsahují členy, které v reálném release té verze nejsou). Reálný balíček
