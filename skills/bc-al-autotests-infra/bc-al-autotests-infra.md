@@ -267,3 +267,26 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   v hláškách jde poznat, které testy mezi faily prošly (build 28149: „1003" u testů 3–5, „1005" od testu 9 = testy 6 a 8
   prošly). Logika ověřená jen na TestPage cestě a ne z kódu (`Rec.Validate + Modify(true)`) = typický kandidát na
   `xRec = Rec` past (3.9 v `bc-al-data.md`).
+
+### BC 28: `Assert` a `Library - *` žijí v `Application Test Library` — test `app.json` ji musí deklarovat EXPLICITNĚ
+
+- Od BC 28 jsou `Assert` (130000), `Library - Inventory`, `Library - Purchase`, `Library - Warehouse`, `Library - Item Tracking`,
+  `Library - Test Initialize`, `Library - Utility`… definované v balíčku **`Application Test Library`**
+  (`d852d5d2-a39d-4179-baeb-f99a19e32510`); `Tests-TestLibraries` 28.x na ni jen závisí (zbyly tam OnPrem věci, `Delta Assert`,
+  ERM helpery). Objekty z **tranzitivní** závislosti AL nevidí → test appka s deps jen `Tests-TestLibraries` + `System Application
+  Test Library` (vzor z 27.x) hlásí **`AL0185: Codeunit 'Assert' is missing`** na každé `Library - *` proměnné — **bez `AL1022`**,
+  takže to nevypadá jako chybějící balíček. Fix: do `test/app.json` přidat `Application Test Library` `28.0.0.0` (vedle
+  Tests-TestLibraries a SysApp Test Library; `Library Assert` zvlášť jen když používáš codeunit `Library Assert`). Pozor při upgradu
+  repa na 28: PR „Prevod BC28" u cust-londonPharma-bc z test `app.json` vyhodil Tests-TestLibraries i SysApp Test Library a nechal jen
+  `Library Assert` → test appka od té doby nekompilovala a nikdo si nevšiml (CI `runTests: false`). (2026-10-15)
+- **MSSymbols 28.4 balíčky jsou malé** (Application Test Library 77 KB, Tests-TestLibraries 57 KB, Library Assert 2,5 KB) —
+  je to jen `SymbolReference.json` v zipu, není to pahýl; nehledej „plnou" verzi. Feed vrací **303 redirect** → `curl -sL`
+  (bez `-L` 0 bajtů a `End-of-central-directory signature not found`); PowerShell `Invoke-WebRequest` redirect sleduje sám.
+  Kompletní tranzitivní sada 28.4.53241.53504: Test Runner, Tests-TestLibraries, SysApp Test Library, Application Test Library,
+  Permissions Mock, Library Assert, Library Variable Storage, **Any** (`microsoft.any.symbols.e7320ebb-08b3-4406-b1ec-b4927d3e280b`)
+  a **Business Foundation Test Libraries** (`microsoft.businessfoundationtestlibraries.symbols.bee8cf2f-494a-42f4-aabd-650e87934d39`).
+  Hotovo ve scratchpadu `…/c--WorkingFolder-AL-cust-londonPharma-bc-W1-Base-W1-app/…/scratchpad/testsym/`.
+- **Když VS Code AL 18 extension zmizí** (`~/.vscode/extensions` má jen 17.0), stejný kompilátor, jaký bere CI, leží v
+  `C:\ProgramData\BcContainerHelper\alLanguageExtension\<verze>\extension\bin\alc.exe` (2026-10: `18.0.2819426`, vedle
+  CodeCop / UICop / PTE / AppSourceCop DLL, ALCops ne). alc 17 symboly s `RuntimeVersion 17.0` přečte a appku s `runtime 17.0`
+  zkompiluje taky — pro CI-paritu ale ber ten z BcContainerHelperu.

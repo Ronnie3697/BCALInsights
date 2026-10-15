@@ -342,3 +342,31 @@ cust-soitron-bc (`Job Lot Tracking Mgt. SOI`, 2026-10-07): u SN zboží auto-ř�
   Test, který to chytí: posting přes `LibraryInventory.PostItemJournalBatch` **i** přímé `ItemJnlPostLine.RunWithCheck(Line)`;
   samotná kontrola řádku bez postingu neodhalí nic. (2026-10-15, cust-sonnentor-bc PBI 65215 `Pallet Tracking Mgt. SON`,
   hlášeno z deníku výroby; zdroj Base App 28.5 `ItemJnlPostLine.Codeunit.al`, `ItemTrackingManagement.Codeunit.al`.)
+
+### 5.x22 Převodka: `Item Journal Line."Order No."` nikdy nevyprázdnit ani nepřepsat — jinak „New Expiration Date must be equal to…" a rozbité in-transit párování
+
+- Standard (`TransferOrder-Post Shipment` i `-Post Receipt`, `CreateItemJnlLine`) plní na řádek deníku `Order Type = Transfer` +
+  `Order No. = číslo převodky`; `Source Type` / `Source No.` u převodů **neplní vůbec**.
+- `Item Jnl.-Post Line.CheckExpirationDate` (w1-27.5 ř. ~4084, w1-28 stejně) rozlišuje převodku od deníku přeřazení podmínkou
+  `Order Type = Transfer and Order No. <> ''`: s vyplněným `Order No.` **sám doplní `New Expiration Date`** z existující položky
+  šarže; s prázdným bere řádek jako reclass → `TestField("New Expiration Date", ExistingExpirationDate)` → *„New Expiration Date
+  must be equal to '02/09/28' in Tracking Specification: Entry No.=1. Current value is ''."* — uživatel to z převodky nemá kde
+  vyplnit. Bez expirace (`Man. Expir. Date Entry Reqd.` = false) chyba nevyskočí → projeví se až u sledovaného zboží s expirací.
+- `ApplyItemLedgEntrySetFilters` + `TestFirstApplyItemLedgEntry` na in-transit lokaci párují příjem k dodávce filtrem `Order Type =
+  Transfer` + `Order No.` → hodnota musí být na dodávce i příjmu (vč. odvozené položky z `InsertTransferEntry`) stejná; víc
+  převodek se stejnou hodnotou sdílí filtr (zúží ho jen šarže / lokace).
+- **Subscriber, který `Order No.` / `Source No.` přepisuje vlastní hodnotou (LPC: číslo PO a dodavatel z řádku převodky vzniklé
+  z nákupu), je špatný návrh** — guard na neprázdnou hodnotu jen zalepí ruční převodky. Správně: vlastní pole na `Item Journal
+  Line` + `Item Ledger Entry` (stejné ID), plnit v `OnAfterCreateItemJnlLine` / `OnPostItemJnlLineOnBeforeWriteDownDerivedLines`
+  a propsat v `Item Jnl.-Post Line.OnAfterInitItemLedgEntry` (běží i pro odvozenou in-transit položku — `InsertTransferEntry`
+  volá `InitItemLedgEntry`); standardní pole nechat. Historii dorovnat upgrade codeunitou (Upgrade Tag, 5.2 v `bc-al-objects.md`),
+  reporting (Power BI API page) přepnout na vlastní pole. (2026-09-12 chyba, 2026-10-15 refactor, cust-londonPharma-bc
+  `Transfer Mgt. LPC` / `Purchase Transfer Mgt LPC`.)
+- **Test vzor (Application Test Library 28.4):** `LibraryWarehouse.CreateTransferLocations(From, To, InTransit)`;
+  `LibraryItemTracking.CreateItemTrackingCodeWithExpirationDate(Code, false, true)` + `CreateItemWithItemTrackingCode`; zásoba
+  `LibraryInventory.CreateItemJournalLineInItemTemplate` + `LibraryItemTracking.CreateItemJournalLineItemTracking` +
+  `ReservationEntry.Validate("Expiration Date")` + `PostItemJournalLine`; převodka `CreateTransferHeader(TH, From, To, InTransit)`
+  + `CreateTransferLine` + `CreateTransferOrderItemTracking(ResEntry, TransferLine, '', LotNo, Qty)`; `PostTransferHeader(TH, true,
+  true)` → 4 ILE `Entry Type = Transfer` (−From, +InTransit, −InTransit, +To), na všech ověř `Order No.` = číslo převodky. Enum
+  `Order Type` porovnávej `TestField`, ne `Assert.AreEqual`. Surové ILE pro test upgrade rutiny: `Init` + `"Entry No." :=
+  LibraryUtility.GetNewRecNo(ILE, FieldNo("Entry No."))` + `Insert(false)`.
