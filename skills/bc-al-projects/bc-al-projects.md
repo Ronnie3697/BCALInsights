@@ -22,6 +22,13 @@ Obsahuje:
   `Get`-em uložené verze (`SetLoadFields("Dimension Value Code")`), Insert = `'' → nová`, Delete = `stará → ''`; filtr `Table ID =
   Database::Job` + `Dimension Code` ze setupu + `IsTemporary` exit. Rename (PK) hodnotu nemění → neřešit.
   (2026-09-30, cust-soitron-bc `Job Type Posting Mgt. SOI.UpdateJobPlanningLinesOnJobTypeChange`, testy `Job Type Posting Test SOI`.)
+- **Přemapování účto skupiny existujících řádků = vždy z KARTY (Item / Resource / G/L Account `Gen. Prod. Posting Group`), ne
+  zpětným překladem přes setup.** První verze (alt skupina starého typu → default → alt nového typu) selhávala při řetězení typů
+  (typ bez mapování, dvě default skupiny se stejnou alt, změněný setup nebo karta mezi změnami) a při smazání typu řádky
+  nevracela na default — zákazník to reklamoval (PBI 63758, komentáře 2026-10-15: „stejná karta musí za stejný typ projektu dostat
+  vždy stejnou účtoskupinu, bez ohledu na to kolikátý typ to byl"). Správně: `case Type of Item/Resource/"G/L Account"` → `Get`
+  karty (`SetLoadFields`) → default → `GetMapped(NewType, default)`; prázdná skupina na kartě = řádek nesahat, `Text` řádky
+  přeskočit. Stará hodnota typu je pak jen pro early exit `Old = New`. (2026-10-15, cust-soitron-bc, tamtéž.)
 
 ### 5.x18 `Location Code` na Job / Job Task NEpropisuje do existujících řádků plánování; vazba budget ↔ billable řádku (IMEBS)
 
