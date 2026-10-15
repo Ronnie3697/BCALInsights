@@ -325,3 +325,20 @@ cust-soitron-bc (`Job Lot Tracking Mgt. SOI`, 2026-10-07): u SN zboží auto-ř�
   v session, ale ovlivní jen tentýž řádek při opakování. (2026-10-15, cust-sonnentor-bc PBI 64043/65215
   `Prod. Order Lot Mgt. SON`, `Single Instance Helper SON`; zdroj Base App 28.5 `TrackingSpecification.Table.al`,
   `ProdOrderStatusManagement.Codeunit.al`.)
+
+### 5.x21 Kontrola trackingu v `Item Jnl.-Check Line` běží i PO smazání rezervačních položek řádku — čti tracking z polí rozděleného řádku
+
+- `Item Jnl.-Post Line.RunWithCheck` (w1-28): `ItemTrackingMgt.RetrieveItemTracking` → `RetrieveItemTrackingFromReservEntry`
+  sečte položky řádku do temp `Tracking Specification` a **Prospect položky řádku smaže** (`DeleteAll`; tracking zadaný na
+  řádku deníku přes 6510 je Prospect), pak `PostSplitJnlLine` → `SplitItemJnlLine` rozdělí řádek per tracking
+  (`TempSplitItemJnlLine.CopyTrackingFromSpec` → `Lot No.` / `Serial No.` / `Package No.` **v polích Item Journal Line**, stejné
+  `Line No.`) a `Code()` na každém dílu volá `ItemJnlCheckLine.RunCheck`. Subscriber na `OnAfterCheckItemJnlLine`, který
+  tracking řádku ověřuje přes `Reservation Entry` se source filtrem řádku, tedy při účtování dávky projde v `CheckLines`
+  (položky ještě jsou) a **spadne v `PostLines`** (položky pryč) — i když uživatel tracking zadal; přes
+  `Codeunit.Run("Item Jnl.-Post Line")` (kiosk) rovnou spadne. Správně: nejdřív pole rozděleného řádku
+  (`ItemJnlLine."Package No." <> ''` → OK), teprve pak rezervační položky (pre-check dávky); „žádné položky" je pak
+  správně chyba (buď tracking chybí, nebo díl bez hodnoty). Alternativa s úplným bufferem:
+  `OnRunWithCheckOnAfterRetrieveItemTracking(var ItemJnlLine; var TempTrackingSpecification; var TrackingSpecExists; …)`.
+  Test, který to chytí: posting přes `LibraryInventory.PostItemJournalBatch` **i** přímé `ItemJnlPostLine.RunWithCheck(Line)`;
+  samotná kontrola řádku bez postingu neodhalí nic. (2026-10-15, cust-sonnentor-bc PBI 65215 `Pallet Tracking Mgt. SON`,
+  hlášeno z deníku výroby; zdroj Base App 28.5 `ItemJnlPostLine.Codeunit.al`, `ItemTrackingManagement.Codeunit.al`.)
