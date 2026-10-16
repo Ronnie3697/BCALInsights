@@ -66,8 +66,8 @@ codeunit **63154 `System Parameter Mgt. COEBS`** (`Access = Public`).
   - Přepsání aktuálního řádku bere cenu konfigurovaného zboží (`InjectSalesLineSystemParameters`). Vytvářený řádek bere cenu
     svého zboží (`SetLineItemUnitPrice` v `InitNewSalesLineFromAction`).
   - ⚠️ **Slovník je sdílený** všemi vytvářenými řádky i následným `UpdateVariantDescription`. Hodnotu řádku proto nastav a po
-    `OnBeforeModifyNewSalesLineFromAction` + `Modify` **vrať uloženou hodnotu**. Znovu volat injekci nejde, protože by znovu
-    načetla i `QUANTITY`, které mezitím mohlo změnit přepsání aktuálního řádku (C2).
+    `OnBeforeModifyNewSalesLineFromAction` + `Modify` **vrať uloženou hodnotu**. Znovu volat injekci ne: pro každý řádek by
+    četla zdrojový řádek z DB a sahala i na ostatní systémové parametry (`QUANTITY`; do opravy C2 se mezi řádky měnilo).
   - Takhle přidávej každý systémový parametr závislý na řádku.
   - Názvy systémových parametrů jsou od té doby přeložitelné labely (`MaxLength = 100`, jinak `PC0022` při `exit` do
     `Text[100]`). `{QUANTITY:Name}` tak v české relaci vrací česky.
@@ -123,8 +123,9 @@ jako výchozí hodnotu parametru; ve variantě se uložila 0 a odtud prosákla d
 prodejních řádků. Táž konfigurace používala `QUANTITY` 4× na Množství akce prodejního
 řádku — tam počítá správně.)
 
-⚠️ **Přepsání aktuálního řádku (pole `CL …`) se u nové varianty použije dvakrát.** Code review 2026-10-16 nad masterem
-76ea8d6, potvrzeno čtením kódu, testem zatím ne.
+⚠️ **Přepsání aktuálního řádku (pole `CL …`) se u nové varianty použije dvakrát** (COEBS do 76ea8d6). Code review
+2026-10-16, potvrzeno čtením kódu. **Oprava na větvi `CurrentLineOverrideOnce`** (2026-10-16, zatím nevydáno), detail níže
+v *Oprava*.
 
 - **Proč:** dialog i API (`Variant Config. Engine.ApplyToSalesLine`) volají u nové varianty nejdřív `ExecuteSalesLineActions`
   (vloží `QUANTITY` → `ModifyCurrentLine`) a hned potom `ApplyCurrentLineOverrides`. Ten znovu načte `QUANTITY` z DB, tedy už
@@ -141,9 +142,23 @@ prodejních řádků. Táž konfigurace používala `QUANTITY` 4× na Množství
     `ModifyCurrentLine`.
   - Vzorce aktuálního řádku se po změně množství nepřepočítají (`RecalculateConfigCreatedLines` zdrojový řádek nemění).
   - `ApplyCLPricingOverrides` validuje Množství až po ceně a slevě.
-- **Než budeš psát vzorec aktuálního řádku s `QUANTITY`,** počítej s tím. Oprava patří do samostatného WI. Detail, tabulka po
-  průchodech a ověřovací testy jsou v `prod-ess-configurator-bc/docs/Configurator - Systémový parametr UNIT_PRICE … - plán.md`,
-  sekce *Související nález*.
+- **Oprava (větev `CurrentLineOverrideOnce`):**
+  - Veřejné `ExecuteSalesLineActions` zůstává beze změny. Přepíše aktuální řádek i vytvoří řádky. Na tom stojí testy COZLK
+    (`SLActionParamTests` čeká přepsání Parametr A/B na aktuálním řádku).
+  - Nové interní přetížení `(…; WithCurrentLineOverrides = false)` jen vytvoří řádky. Volá ho dialog, engine a rozdělení řádku.
+    Přepsání pak jednou provede `ApplyCurrentLineOverrides`, po nastavení varianty (validace varianty řádek přecení).
+  - Po přepsání se `QUANTITY` znovu načte.
+  - Pořadí v `ApplyCLPricingOverrides` je Množství → Cena → Sleva.
+  - Rozdělení řádku už na původní řádek akce nepouští. Připojené řádky mu přepočítá trigger `Modify`. Kontrola „připojené řádky
+    jsou dodané nebo fakturované“ je teď na začátku rozdělení (`CheckConfigCreatedLinesNotPosted`, label přesunutý → nové
+    trans-unit ID, 6.2 v `bc-al-workflow.md`).
+  - Testy: `CL Override Tests COEBS` (63253).
+  - Rozhodnutí uživatele: po ruční změně množství se vzorce aktuálního řádku nepřepočítávají a `QUANTITY` v Popisu varianty
+    zůstává povolené.
+  - **Zbývá omezení:** vzorec Množství aktuálního řádku s `QUANTITY` se při každém dalším potvrzení konfigurace na témže řádku
+    použije znovu (2 → 4 → 8).
+- Detail review a tabulka po průchodech: `prod-ess-configurator-bc/docs/Configurator - Systémový parametr UNIT_PRICE … - plán.md`,
+  sekce *Související nález*. Oprava: `docs/Configurator - Přepsání aktuálního řádku se použije jen jednou.md`.
 
 ## C3. Číselné vzorce — `Action Formula Line COEBS`
 
