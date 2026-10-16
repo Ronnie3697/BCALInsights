@@ -62,7 +62,8 @@ codeunit **63154 `System Parameter Mgt. COEBS`** (`Access = Public`).
   zvol si vlastní rozsah odvozený od svého object ID rozsahu.
 - **`UNIT_PRICE` (−2)**: větev `UnitPriceQuantityFixes`, 2026-10-16, zatím nevydáno.
   - Hodnota = `Item."Unit Price"` zboží toho řádku, **pro který se vzorec právě počítá**, v měně dokladu
-    (`Currency Exchange Rate.ExchangeAmtLCYToFCY(SalesHeader.GetUseDate(), …, "Currency Factor")`). Jiný typ řádku má 0.
+    (`Currency Exchange Rate.ExchangeAmtLCYToFCY(SalesHeader.GetUseDate(), …, "Currency Factor")`, zaokrouhlené na
+    `Unit-Amount Rounding Precision` měny jako standardní přepočet ceny). Jiný typ řádku má 0. `SetLineItemUnitPrice` je `internal`.
   - Přepsání aktuálního řádku bere cenu konfigurovaného zboží (`InjectSalesLineSystemParameters`). Vytvářený řádek bere cenu
     svého zboží (`SetLineItemUnitPrice` v `InitNewSalesLineFromAction`).
   - ⚠️ **Slovník je sdílený** všemi vytvářenými řádky i následným `UpdateVariantDescription`. Hodnotu řádku proto nastav a po
@@ -149,7 +150,13 @@ v *Oprava*.
     Přepsání pak jednou provede `ApplyCurrentLineOverrides`, po nastavení varianty (validace varianty řádek přecení).
   - Po přepsání se `QUANTITY` znovu načte.
   - Pořadí v `ApplyCLPricingOverrides` je Množství → Cena → Sleva.
-  - Rozdělení řádku už na původní řádek akce nepouští. Připojené řádky mu přepočítá trigger `Modify`. Kontrola „připojené řádky
+  - Když žádná splněná podmínka Množství nepřepisuje (už ne), je `QUANTITY` skutečné množství a zapamatovaná pole se vynulují.
+  - Rozdělení řádku už na původní řádek akce nepouští. Připojené řádky mu přepočítá trigger `Modify`.
+    ⚠️ Druhé volání akcí ale původnímu řádku vracelo **cenu z přepsání**. `Validate(Quantity)` řádek přecení z ceníku nebo
+    matice (`OnAfterUpdateUnitPrice`), takže ji split teď vrací sám (`RestoreUnitPrice`, stejně jako slevu). Testy bez řádku
+    ceníku to neodhalí: bez ceníku si řádek cenu nechá (`IsPriceUpdateNeeded`, 5.x21). Chytilo to až review.
+    Nová linka splitu dostane přepsání **bez Množství** (`ApplyCurrentLineOverrides(…; WithQuantityOverride = false)`),
+    takže 10 → 6 + 4. Obě linky mají zapamatovaná pole vynulovaná. Kontrola „připojené řádky
     jsou dodané nebo fakturované“ je teď na začátku rozdělení (`CheckConfigCreatedLinesNotPosted`, label přesunutý → nové
     trans-unit ID, 6.2 v `bc-al-workflow.md`).
   - Testy: `CL Override Tests COEBS` (63253).
