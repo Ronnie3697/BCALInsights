@@ -326,6 +326,10 @@ Assert.ExpectedErrorCode('Dialog');
   `BigInteger` proměnné **s explicitním přiřazením** (`NoId := 0;` — bez přiřazení CodeCop **AA0205** „Use of unassigned variable",
   na CI warning = fail), nebo porovnej `Assert.IsTrue(Rec.Id = 0, …)`. Týká se všech externích ID z API (Dotykačka, Shopify) uložených
   jako BigInteger. (prod-ess-dotykackaConnector-bc 2026-10-12 money log a 2026-10-14 copy testy, lokální kontejner.)
+- **`Item Reference.Insert(true)` s prázdnou `Unit of Measure` ji doplní na základní MJ zboží** (BaseApp `ItemReference.Table.al`
+  `OnInsert` → `Validate("Unit of Measure", Item."Base Unit of Measure")`, jen `OnInsertTriggerOnBeforeValidateUoM` IsHandled). Test
+  „odkaz bez MJ“ s `Insert(true)` tak ve skutečnosti testuje odkaz základní MJ; prázdnou MJ (data z importu) vyrobíš jen `Insert(false)`.
+  Při review ji našel agent, testy procházely dál a jen lhaly v GIVEN. (Task 63116, Dotykačka + cust-sonnentor-bc, 2026-10-16.)
 - **Změna textu Labelu = projdi `Assert.ExpectedError` v testech** — ExpectedError hledá podřetězec, přepsaná hláška shodí test
   až v CI (build 28636: `its check did not pass` → `its check ended with the status`). Po úpravě labelu grepni test appku na
   jeho klíčová slova.
