@@ -333,6 +333,22 @@ Assert.ExpectedErrorCode('Dialog');
 - **Změna textu Labelu = projdi `Assert.ExpectedError` v testech** — ExpectedError hledá podřetězec, přepsaná hláška shodí test
   až v CI (build 28636: `its check did not pass` → `its check ended with the status`). Po úpravě labelu grepni test appku na
   jeho klíčová slova.
+- **Přecenění řádku dokladu testuj s řádkem ceníku.** Bez něj si řádek ruční nebo kódem nastavenou `Unit Price` při
+  `Validate(Quantity)` / `Validate("Variant Code")` nechá (`IsPriceUpdateNeeded`, 5.x21 v `bc-al-objects.md`). Test „cena přežije
+  změnu množství“ tak projde, i když ji kód v produkci, kde ceník je, ztratí. Chytilo to až review splitu konfigurátoru.
+  Funkční recept (BC 28.4 cz kontejner):
+  - `LibraryPriceCalculation: Codeunit "Library - Price Calculation"` jako **globální** proměnnou. `EnableExtendedPriceCalculation()`
+    binduje subscriber uvnitř instance knihovny a s lokální proměnnou by vazba skončila s helperem.
+  - `EnableExtendedPriceCalculation()` + `SetupDefaultHandler("Price Calculation Handler"::"Business Central (Version 16.0)")`.
+  - `CreatePriceHeader(PriceListHeader, "Price Type"::Sale, "Price Source Type"::"All Customers", '')` a
+    `CreatePriceListLine(PriceListLine, PriceListHeader, "Price Amount Type"::Price, "Price Asset Type"::Item, ItemNo)`.
+    Knihovna dá náhodnou cenu, takže `Validate("Unit Price", X)` + `Modify(true)`.
+  - Řádek i hlavičku aktivuj **přímým přiřazením** `Status := Active` + `Modify(false)`, ne přes `Validate(Status)`.
+  - Řádek ceníku s prázdnou `Variant Code` platí pro všechny varianty.
+  - Zdrojáky MS knihoven: BCApps `src/Layers/W1/Tests/ApplicationTestLibrary/LibraryPriceCalculation.Codeunit.al`.
+
+  (2026-10-16, prod-ess-configurator-bc `CL Override Tests COEBS.SplitKeepsCurrentLinePriceOfOriginalLineWithPriceList`, prošel
+  v kontejneru. Že by bez opravy spadl, ověřené není.)
 - **CodeCop `AA0181` + `AA0175` na `Find('=')` uvnitř `Assert.IsTrue/IsFalse`** („Find only with Next", „queries the database but
   does not use the queried record") — oba warning → s `failOn warning` CI fail. Existenci záznamu assertuj `Rec.SetRecFilter()` +
   `Assert.RecordIsNotEmpty(Rec)` / `RecordIsEmpty(Rec)` (funguje i po `Delete`, PK v proměnné zůstává), refresh hodnot přes
