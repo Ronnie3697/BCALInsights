@@ -191,6 +191,11 @@ https://dynamicssmb2.pkgs.visualstudio.com/DynamicsBCPublicFeeds/_packaging/MSSy
   balíček nenajdeš očekávanou řadu, projeď `…/MSSymbols/nuget/v3/query2/?q=<název-bez-mezer>`
   — vypíše všechny varianty ID s nejnovější verzí. Zachyceno 2026-09-02 (cust-sonnentor-bc,
   symbol Banking Documents Localization for Czech 28.3 po merge PR 9394 — nová dependency base/app).
+  **Platí i pro W1 appky s lokálními variantami:** **Intrastat Core** (`70912191-3c4c-49fc-a1de-bc6ea1ac9da6`) je na
+  MSSymbols jen per země (`microsoft.intrastatcore.cz.symbols.<guid>`, `.at.` …), `query2?q=intrastatcore` vypíše
+  nejdřív AT. Symbol potřebuješ až při přímém použití jeho polí, protože tranzitivně (Essence Distribution Base) v
+  `.alpackages` chybí. Intrastat Core přidává na *Lot No. Information* pole `4810 "Country/Region Code"` Code[10]
+  (tableextension `Intr. Rep. Lot No. Info`). (2026-10-16, cust-sonnentor-bc 64732.)
 
 **Sandbox workflow** (ověření fixu test appky bez CI round-tripu): do temp složky
 poskládej package cache z (a) MS symbolů z jiného repa / feedu, (b) závislých

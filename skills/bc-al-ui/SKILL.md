@@ -2,16 +2,16 @@
 name: bc-al-ui
 description: >-
   BC/AL UI patterny stránek (sekce 4): RunModal vs Run, výběr na RoleCenter CardPart (SingleInstance
-  + CurrPage.Close), OnDrillDown vs OnLookup, ConfirmManagement default Yes / No u destruktivních,
-  factbox SourceTableTemporary a Rec.Reset maže SubPageLink (filter group 4), CaptionClass cache,
-  expression control bez přejmenování (AL0270, XLIFF ID), modify() na kontrolu cizí pageextension,
-  smyčka aktualizace (žádný zápis ani CurrPage.Update v OnAfterGet(Curr)Record), Visible = Rec.pole
-  v pageextension padá → page proměnná, MultiLine pevné 3 řádky / RichContent (HTML → Blob) / control
-  add-in, page procedura se jménem metody Rec (AL0604), List v LookupMode jen pro čtení (checkbox →
-  SetSelectionFilter / StandardDialog); filtr partu z OnOpenPage hostitele zmizí; DelayedInsert =
-  prázdné SystemId; CurrPage.Update(false) v OnValidate zahodí zadanou hodnotu (SaveRecord); ListPart
-  přes RunModal pod TestPage bez lookup módu. Načti u page, pageextension, factboxů, partů, výběrů,
-  potvrzení, captionů a viditelnosti.
+  + CurrPage.Close), OnDrillDown vs OnLookup, ConfirmManagement default Yes/No, factbox Rec.Reset
+  maže SubPageLink (filter group 4), CaptionClass cache, expression control bez přejmenování (AL0270,
+  XLIFF ID), modify() na kontrolu cizí pageextension, smyčka aktualizace (zápis / CurrPage.Update
+  v OnAfterGet*Record), Visible = Rec.pole v pageextension padá → page proměnná, MultiLine pevné
+  3 řádky / RichContent (HTML → Blob) / control add-in, page procedura se jménem metody Rec (AL0604),
+  List v LookupMode jen pro čtení (→ SetSelectionFilter / StandardDialog); filtr partu z OnOpenPage
+  hostitele zmizí; DelayedInsert = prázdné SystemId; CurrPage.Update(false) v OnValidate zahodí
+  zadanou hodnotu (SaveRecord); ListPart přes RunModal pod TestPage bez lookup módu; stránka bez
+  SourceTable (protected var + výraz v SourceExpr). Načti u page, pageextension, factboxů, partů,
+  výběrů, captionů a viditelnosti.
 user-invocable: true
 ---
 

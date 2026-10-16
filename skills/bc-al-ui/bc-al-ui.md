@@ -552,3 +552,25 @@ v ToolTipu („Choose the AssistEdit button to …"). `OnAssistEdit` se nevolá 
 po `Page.RunModal` dej `CurrPage.Update(false)` (re-read), ne `Update(true)` (uložil by zastaralý Rec).
 (2026-10-14, cust-soitron-bc — `CRM Business Unit SOI` na Customer/Vendor/Item/Job Card: „…" otevře
 `<Entity> CRM Business Units SOI` filtrovaný na záznam; chování v klientu zatím neověřeno, jen docs + kompilace.)
+
+---
+
+### 4.21 Pole za cizí control na stránce **bez SourceTable** (kiosk, dialog) — `protected var` + výraz v `SourceExpr`, bez eventů
+
+Card / dialog bez `SourceTable` (Essence kiosk *Kiosk-Qty. To Operation KIEBS*, výběrové dialogy) drží data v page
+proměnných a mění je ze skenu (`usercontrol` trigger), `OnValidate`, `OnAssistEdit`, `ClearAll`. Odvozenou hodnotu
+(země původu šarže za `"Lot No."`) z pageextension nenaplníš přes `OnAfterGetRecord`, protože bez zdrojové tabulky
+nemáš na co navázat, a přidávat do produktové appky event na každé místo, kde se proměnná mění, je zbytečné:
+
+- Proměnné base stránky musí být **`protected var`**. Pageextension je pak čte přímo (`LotNo`, `ItemNo`, `VariantCode`).
+  Ověř to v symbolu té verze, proti které kompiluješ: `SymbolReference.json` → `Pages[].Variables[].Protected`. U EM Kiosk
+  jsou protected až od 28.0.2, 28.0.1 je měl ještě v běžném `var`. Minimum dependency nastav na první verzi s `protected`.
+- Pole v pageextension napiš jako **výraz s voláním procedury**:
+  `field(LotCountryRegionCodeMKSON; LotOriginMgtMKSON.GetCountryRegionCode(ItemNo, VariantCode, LotNo)) { Editable = false; }`.
+  alc 18 to přeloží bez warningu (CodeCop, UICop, PTE, ALCops). Výraz se vyhodnocuje při každém obnovení stránky, takže
+  by měl reagovat na každou změnu proměnných bez triggeru i bez eventu. **V klientu zatím neověřeno**, ověřená je jen
+  kompilace.
+- `addafter("<control>")` uvnitř skupiny s `Visible = …` vloží pole do téže skupiny, takže se schová spolu s ní.
+- Repeater nad temp tabulkou (part téže stránky) řeš klasicky: proměnná + `OnAfterGetRecord` pageextension.
+
+(2026-10-16, cust-sonnentor-bc PBI 64732, appka `Sonnentor Whse. Mobile and Kiosk Ext.` MKSON.)
