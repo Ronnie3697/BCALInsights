@@ -569,8 +569,52 @@ nemáš na co navázat, a přidávat do produktové appky event na každé míst
   `field(LotCountryRegionCodeMKSON; LotOriginMgtMKSON.GetCountryRegionCode(ItemNo, VariantCode, LotNo)) { Editable = false; }`.
   alc 18 to přeloží bez warningu (CodeCop, UICop, PTE, ALCops). Výraz se vyhodnocuje při každém obnovení stránky, takže
   by měl reagovat na každou změnu proměnných bez triggeru i bez eventu. **V klientu zatím neověřeno**, ověřená je jen
-  kompilace.
+  kompilace. Nepřímý důkaz z kódu, který v produkci funguje: po **každém** triggeru (i `usercontrol` event jako `Scanned`,
+  `OnValidate`, `OnAssistEdit`, akce) server přepočítá všechny controly stránky včetně výrazů z pageextension a pošle je
+  klientovi; `CurrPage.Update` k tomu není potřeba (EWM *Phys. Inv. Journal* nemá jediný `Update` a pole navázané na
+  proměnnou se po skenu ukáže; MS page 1392 *Help And Chart Wrapper* mění `StatusText` v `AddInReady` bez `Update`).
+  Base pole a výraz z pageextension se tak nikdy nerozjedou. Jediná cesta bez AL triggeru je editovatelné pole na
+  proměnné bez `OnValidate` — tam to v klientu jednou ověř.
 - `addafter("<control>")` uvnitř skupiny s `Visible = …` vloží pole do téže skupiny, takže se schová spolu s ní.
 - Repeater nad temp tabulkou (part téže stránky) řeš klasicky: proměnná + `OnAfterGetRecord` pageextension.
 
-(2026-10-16, cust-sonnentor-bc PBI 64732, appka `Sonnentor Whse. Mobile and Kiosk Ext.` MKSON.)
+**Varianta, když base proměnné protected nejsou a base appku smíš upravit: veřejný getter** místo zveřejnění stavu.
+Na stránku přidej `procedure GetCurrentLotNo(var ShownItemNo: Code[20]; var ShownVariantCode: Code[10]; var ShownLotNo:
+Code[50])` (bez `local`/`internal` — závislá appka nemá `internalsVisibleTo`) a pageextension si ji zavolá v lokální
+proceduře použité jako `SourceExpr`. Je to čtení bez zápisu, žádný event, žádná změna chování. Jen `Boolean` pro
+`Visible` dej do `protected var` (vlastnost `Visible` funkci volat neumí).
+- ⚠️ **Parametry getteru nepojmenuj jako globály stránky.** `procedure Get(var ItemNo: Code[20]) begin ItemNo := ItemNo;
+  end;` přeloží bez varování, parametr zastíní globál a přiřadí se sám do sebe → getter tiše vrací prázdno. Vzor
+  `parItemNo` je v repu zvykem, ale ALCops LC0092 ho hlásí; neutrální `ShownItemNo` / `ShownLotNo` je čistší a stejné
+  na všech stránkách.
+- Getter vrací přesně to, co stránka u šarže zobrazuje: když šarži drží jako record `Lot No. Information`, vrať jeho
+  klíč (`Item No.`, `Variant Code`, `Lot No.`), ne zvlášť vedené `ItemVariant.Code` — base může šarži dohledat
+  s filtrem `Variant Code = ''|<varianta>` a pak by `Get` na kartu šarže nenašel nic.
+
+(2026-10-16, cust-sonnentor-bc PBI 64732, appka `Sonnentor Whse. Mobile and Kiosk Ext.` MKSON; getter v
+prod-ew-mobileBase-bc na Move Item / Item Card / Phys. Inv. Journal / Whse Rcpt Tracking / Bin Adjmt. Detail.)
+
+---
+
+### 4.22 Phone klient kreslí listy a ListParty jako **dlaždice** — sloupec z pageextension se na ně často nedostane
+
+Na telefonu (`…/phone?company=…`, čtečky) se `List` i `ListPart` v repeateru standardně kreslí jako dlaždice (přepínač
+*Zobrazit jako seznam*). Obsah dlaždice ([Display Data as Tiles](https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/developer/devenv-lists-as-tiles)):
+
+1. Tabulka má fieldgroup **`Brick`** → pole z Bricku v jeho pořadí, jen ta, která jsou na stránce jako control.
+2. Bez Bricku se bere **`DropDown`** („DropDown is interpreted as Brick").
+3. Bez obou → **prvních pět controlů repeateru** v pořadí na stránce.
+
+Důsledky pro pageextension:
+- **Výrazové pole (bez pole tabulky) do fieldgroup dát nejde** → na dlaždici je jen v režimu 3. Tam ale `addafter` posune
+  ostatní controly a **poslední údaj z dlaždice vypadne** (EWM korekce přihrádky: z dlaždice by zmizelo množství).
+- Režim 1/2 vyžaduje pole tabulky: tableextension s lookup FlowFieldem + `fieldgroups { addlast(Brick; …) }`. Jde **jen
+  `addlast`** (`fieldgroup(Brick…)` i `addfirst` v tableextension = AL0104), pole tedy skončí na konci Bricku.
+  FlowField se na stránce spočítá i nad `TableType = Temporary` / `SourceTableTemporary`.
+- ⚠️ `addlast(Brick; …)` na tabulce **bez** Bricku od BC 23 Brick **vytvoří jen z přidaných polí** → přepne dlaždice
+  z režimu 3/2 na 1 a vyhodí z nich všechno ostatní, na všech stránkách té tabulky.
+- Typické tabulky: *Warehouse Activity Line* má Brick, *Bin Content Buffer* nemá žádnou fieldgroup (režim 3),
+  *Reservation Entry* jen DropDown (režim 2 — EWM sledování příjemky proto na dlaždici neukazuje ani šarži).
+
+Pravidlo: u čteček dávej odvozené údaje do **hlaviček** (pole ve skupinách). Seznamy rozšiřuj jen s vědomím, co se stane
+s dlaždicí, a ověř to v 600×900 (viz `ew-mobile-ui`). (2026-10-16, PBI 64732 — seznamy nakonec vynechány.)
