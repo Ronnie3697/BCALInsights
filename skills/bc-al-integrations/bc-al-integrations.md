@@ -418,6 +418,16 @@ musí končit `/user/search`) a říct zákazníkovi, ať hodnotu přepíše.
   bez e-mailu; Atlassian GDPR migrace 2019; `GET /user/email` je jen pro Connect/OAuth appky, ne Basic auth) — ukládat ho na zdroj
   jako cache má smysl i při viditelných e-mailech.
 
+- **Assignee / reporter issue (2026-10-16, cust-soitron-bc):** když BC pole `assignee` nepošle, Jira dosadí **default assignee
+  projektu**, což je u projektu založeného přes API **Project lead** (`leadAccountId`) — Create project bere `assigneeType`
+  jen `PROJECT_LEAD` / `UNASSIGNED` a default assignee jde přepnout na Unassigned jen při zapnutém *Allow unassigned issues*
+  (System > General configuration; KB „Unable to change the Default assignee field"). Explicitní `"assignee": null` nechá issue
+  nepřiřazenou — opět jen s tím přepínačem, jinak 400. **Reporter** je vždy uživatel API tokenu; přepsat ho (`"reporter":
+  {"accountId": …}`) jde jen s projektovým oprávněním *Modify Reporter* a s polem Reporter na create/edit screenu (KB „User not
+  able to change the reporter on an issue"), jinak 400 „Field 'reporter' cannot be set. It is not on the appropriate screen".
+  Reporter **nesmí být null** (povinné pole) → bez rozpuštěného účtu pole vynechat. Diagnostika: outbound log `Jira Transfer SOI`
+  nese odeslaný payload — nejdřív ověřit, že pole v requestu vůbec je (u Soitronu chybělo, protože zdroj neměl Account Id ani e-mail).
+
 ### 11.9b Tempo v4 worklog nese u issue jen `id` + `self` (žádný `key`) → parent / projekt dočíst z Jira issue
 
 Z cust-soitron-bc (import výkazů Tempo → External Time Sheet Line, 2026-10-12): `GET https://api.eu.tempo.io/4/worklogs/{id}`
