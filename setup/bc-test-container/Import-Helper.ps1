@@ -101,10 +101,12 @@ function Invoke-Docker {
 
 function Start-TestContainer([string] $ContainerName) {
     # Docker Desktop in the Windows containers mode, then the container itself - both may be stopped after a restart
+    $justStarted = $false
     $engine = Invoke-Docker version --format '{{.Server.Os}}'
     if ($engine.ExitCode -ne 0) {
         $dockerDesktop = Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop.exe'
         Write-Host 'Starting Docker Desktop'
+        $justStarted = $true
         Start-Process -FilePath $dockerDesktop
         $deadline = (Get-Date).AddMinutes(4)
         do {
@@ -123,19 +125,34 @@ function Start-TestContainer([string] $ContainerName) {
     if ($state.Output.Trim() -ne 'true') {
         Write-Host "Starting container $ContainerName"
         Start-BcContainer -containerName $ContainerName
+        $justStarted = $true
     }
     # Right after a Docker Desktop start the container is "running" again (restart policy), but the BC service inside is
     # still starting - the first docker exec then fails ("No such exec instance"). Wait for the health check.
     # The health status alone is not enough: right after a Docker Desktop start it can report healthy while the BC service
     # is still Stopped / StartPending, and the first script in the container throws "ServerInstance ... is not running".
+    # Even Running is not enough right after a start: the start script of the container restarts the service once more
+    # (Running, a minute later StartPending again - the compile step then fails). After a start of Docker Desktop or of the
+    # container the service must stay Running for 90 s.
+    $stableSeconds = if ($justStarted) { 90 } else { 0 }
+    $runningSince = $null
     $deadline = (Get-Date).AddMinutes(10)
     do {
         $health = (Invoke-Docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' $ContainerName).Output.Trim()
         if (($health -eq 'healthy') -or ($health -eq 'none')) {
             $service = (Invoke-Docker exec $ContainerName powershell -NoProfile -Command '(Get-Service -Name ''MicrosoftDynamicsNavServer$BC'').Status').Output.Trim()
-            if ($service -eq 'Running') { return }
-            $health = "$health, BC service $service"
+            if ($service -eq 'Running') {
+                if (-not $runningSince) { $runningSince = Get-Date }
+                $runningFor = ((Get-Date) - $runningSince).TotalSeconds
+                if ($runningFor -ge $stableSeconds) { return }
+                $health = '{0}, BC service Running for {1:N0} s' -f $health, $runningFor
+            }
+            else {
+                $runningSince = $null
+                $health = "$health, BC service $service"
+            }
         }
+        else { $runningSince = $null }
         Write-Host "Waiting for container $ContainerName ($health)"
         Start-Sleep -Seconds 10
     } until ((Get-Date) -gt $deadline)

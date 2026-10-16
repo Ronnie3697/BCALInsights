@@ -689,7 +689,10 @@ Opraveno v šabloně: cesta ke `ContainerSide.ps1` se zjišťuje až po startu a
 ⚠️ Ani health `healthy` nestačí (2026-10-12, dotykackaConnector): hned po startu Docker Desktopu hlásil kontejner healthy, ale
 služba `MicrosoftDynamicsNavServer$BC` byla `Stopped` → `StartPending` a první skript v kontejneru (NuGet závislosti) spadl na
 `ServerInstance 'MicrosoftDynamicsNavServer$BC' is not running` (exit 1, testy neběžely). `Start-TestContainer` teď čeká i na
-`docker exec <kontejner> powershell (Get-Service 'MicrosoftDynamicsNavServer$BC').Status` = `Running`. Ruční obejití: počkat
+`docker exec <kontejner> powershell (Get-Service 'MicrosoftDynamicsNavServer$BC').Status` = `Running`. ⚠️ **Ani jedno `Running`
+nestačí** (2026-10-16, dotykackaConnector): po startu Docker Desktopu služba hned hlásila Running, sessions závislostí prošly a
+o minutu později ji startovací skript kontejneru restartoval → `Compile-AppInBcContainer` spadl na *StartPending* / *is not
+running*. Šablona proto po startu Dockeru nebo kontejneru chce **90 s nepřetržitě Running** (teplý běh beze změny). Ruční obejití: počkat
 pár minut a pustit `Test-Repo` znovu. A z Git Bash cestu `-RepoPath` dávat v **jednoduchých uvozovkách** — bez nich Bash
 sežere zpětná lomítka (`C:WorkTasksprod-…` → `Resolve-Path` cannot find path).
 ⚠️ **Dva běhy v jednom kontejneru se rozbijí navzájem** (2026-10-09: tři seance — konfigurátor, cust-sonnentor-bc,
