@@ -58,8 +58,20 @@ codeunit **63154 `System Parameter Mgt. COEBS`** (`Access = Public`).
   `OnGetSystemParameterCode/Name/Type(ParameterLineNo; var …; var IsHandled)`.
   Vzor: `CNC Formula Param COALU` (52011) v `cust-alumistr-bc` registruje
   `X1` / `X` / `Y` / `Z` pod Line No. **−51990…−51993** (Sort Order −20000…−19970).
-  Záporné Line No. musí být **unikátní napříč všemi appkami** — base drží −1,
+  Záporné Line No. musí být **unikátní napříč všemi appkami** — base drží −1 a −2,
   zvol si vlastní rozsah odvozený od svého object ID rozsahu.
+- **`UNIT_PRICE` (−2)**: větev `UnitPriceSystemParam`, 2026-10-16, zatím nevydáno.
+  - Hodnota = `Item."Unit Price"` zboží toho řádku, **pro který se vzorec právě počítá**, v měně dokladu
+    (`Currency Exchange Rate.ExchangeAmtLCYToFCY(SalesHeader.GetUseDate(), …, "Currency Factor")`). Jiný typ řádku má 0.
+  - Přepsání aktuálního řádku bere cenu konfigurovaného zboží (`InjectSalesLineSystemParameters`). Vytvářený řádek bere cenu
+    svého zboží (`SetLineItemUnitPrice` v `InitNewSalesLineFromAction`).
+  - ⚠️ **Slovník je sdílený** všemi vytvářenými řádky i následným `UpdateVariantDescription`. Hodnotu řádku proto nastav a po
+    `OnBeforeModifyNewSalesLineFromAction` + `Modify` **vrať uloženou hodnotu**. Znovu volat injekci nejde, protože by znovu
+    načetla i `QUANTITY`, které mezitím mohlo změnit přepsání aktuálního řádku (C2).
+  - Takhle přidávej každý systémový parametr závislý na řádku.
+  - Názvy systémových parametrů jsou od té doby přeložitelné labely (`MaxLength = 100`, jinak `PC0022` při `exit` do
+    `Text[100]`). `{QUANTITY:Name}` tak v české relaci vrací česky.
+  - Doc: `prod-ess-configurator-bc/docs/Configurator - Systémový parametr UNIT_PRICE … - plán.md`, CONFIGURATOR-DOCUMENTATION 14.2/14.3.
 
 ## C2. Kde se hodnota systémového parametru plní — a kde ne
 
@@ -110,6 +122,28 @@ filtruj podle kontextu, nebo hodnotu injektuj i do zbylých cest.
 jako výchozí hodnotu parametru; ve variantě se uložila 0 a odtud prosákla do popisů
 prodejních řádků. Táž konfigurace používala `QUANTITY` 4× na Množství akce prodejního
 řádku — tam počítá správně.)
+
+⚠️ **Přepsání aktuálního řádku (pole `CL …`) se u nové varianty použije dvakrát.** Code review 2026-10-16 nad masterem
+76ea8d6, potvrzeno čtením kódu, testem zatím ne.
+
+- **Proč:** dialog i API (`Variant Config. Engine.ApplyToSalesLine`) volají u nové varianty nejdřív `ExecuteSalesLineActions`
+  (vloží `QUANTITY` → `ModifyCurrentLine`) a hned potom `ApplyCurrentLineOverrides`. Ten znovu načte `QUANTITY` z DB, tedy už
+  přepsané, a `ModifyCurrentLine` pustí podruhé.
+- **Důsledky:**
+  - Vzorec Množství aktuálního řádku, který sám obsahuje `QUANTITY` (`2 * QUANTITY`), dá 1 → 2 → **4**. Každé další OK se
+    stejnou variantou ho znovu zdvojí.
+  - Eventy `OnBefore/OnAfterModifyCurrentSalesLine` se volají dvakrát.
+  - Rozdělení řádku (`Sales Line Split Mgt.`, :87–92) pustí `ExecuteSalesLineActions` i na původní řádek: 10 → 3 + 7 skončí jako
+    12 + 14.
+- **Kdy to nevadí:** vzorce bez `QUANTITY` (parametry, konstanty, `UNIT_PRICE`) dají v obou průchodech totéž.
+- **Další mezery:**
+  - Připojené řádky z `ExecuteSalesLineActions` počítají s `QUANTITY` **před** přepsáním. Injekce proběhne před
+    `ModifyCurrentLine`.
+  - Vzorce aktuálního řádku se po změně množství nepřepočítají (`RecalculateConfigCreatedLines` zdrojový řádek nemění).
+  - `ApplyCLPricingOverrides` validuje Množství až po ceně a slevě.
+- **Než budeš psát vzorec aktuálního řádku s `QUANTITY`,** počítej s tím. Oprava patří do samostatného WI. Detail, tabulka po
+  průchodech a ověřovací testy jsou v `prod-ess-configurator-bc/docs/Configurator - Systémový parametr UNIT_PRICE … - plán.md`,
+  sekce *Související nález*.
 
 ## C3. Číselné vzorce — `Action Formula Line COEBS`
 
