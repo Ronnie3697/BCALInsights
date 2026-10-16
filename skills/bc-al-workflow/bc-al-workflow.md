@@ -308,6 +308,20 @@ Regex `LookupHint=([^)]*)\)` na jménech se závorkou uřízne, ber `LookupHint=
 v XLIFF jako celek nenajdeš (Jednotková cena + `ExclVATTxt` „bez DPH“ z `VAT CaptionClass Mgmt`). Ne každá Essence appka
 má překlady (EM Alternative BOM and Routing 28.0 žádné `Translations/` nemá, v CZ klientu ukazuje anglické popisky) —
 v příručce to zmiň. (2026-09-29, cust-alumistr-bc prezentace 66389/66397.)
+**Název stránky ber z `Caption`, ne z `AboutTitle`** – vyhledávání (Tell Me) hledá podle captionu. V Dotykačka konektoru
+příručka měsíc psala „Rozcestník synchronizace Dotykačky“ (target `Property AboutTitle` = nadpis teaching tipu), stránka se
+přitom jmenuje *Synchronizace Dotykačky* a „Rozcestník“ uživatel nenajde. V XLIFF filtruj poznámku `Xliff Generator` na
+`- Property Caption` přímo u `Page …` (ne `Control`/`Action`). (2026-10-16, prod-ess-dotykackaConnector-bc.)
+**Příručka „pro laiky“** (přání uživatele 2026-10-16 – heslovitá verze typu „Kontroly: pobočka jen u jedné lokace, barvy
+#RRGGBB…“ byla nesrozumitelná): slovníček pojmů na začátku, u každého kroku věta *proč*, u nastavení sloupec „co když je
+prázdné“, propočítaný příklad, změny po review jako tabulka **Dřív / Teď / Co to znamená pro vás**. Tvrzení „prázdné pole =
+X“ ověř v kódu (pre-flight `TestField` = import vůbec nezačne, ne „účtenka selže“).
+
+**Playwright MCP na kontrolu vygenerovaného HTML:** `file://` blokuje stejně jako Claude in Chrome a screenshot uloží jen pod
+workspace (`<repo>/.playwright-mcp`, v Essence repech gitignored přes `.*`, po kontrole smaž). Lokální `python -m http.server`
+posílá stránku s cache – po přegenerování otevři `…html?v=2`, jinak kontroluješ starou verzi. Tabulka uvnitř CSS gridu
+roztáhne sloupec na telefonu přes šířku obrazovky → `.grid>*{min-width:0}`; přetečení ověř `scrollWidth > clientWidth`
+po slidech při viewportu 390 px.
 
 **Screenshoty z reálného prostředí** (Claude in Chrome, detail a pasti v 12.3): nafoť
 nastavení, kartu s klíčovým polem, hlavičku dokladu s akcí a řádky; k obrázku vždy popisek
