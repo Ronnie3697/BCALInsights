@@ -342,6 +342,12 @@ cust-soitron-bc (`Job Lot Tracking Mgt. SOI`, 2026-10-07): u SN zboží auto-ř�
   Test, který to chytí: posting přes `LibraryInventory.PostItemJournalBatch` **i** přímé `ItemJnlPostLine.RunWithCheck(Line)`;
   samotná kontrola řádku bez postingu neodhalí nic. (2026-10-15, cust-sonnentor-bc PBI 65215 `Pallet Tracking Mgt. SON`,
   hlášeno z deníku výroby; zdroj Base App 28.5 `ItemJnlPostLine.Codeunit.al`, `ItemTrackingManagement.Codeunit.al`.)
+- **`Package No.` jde zadat a zaúčtovat i bez „Package Specific Tracking" na kódu sledování.** Sloupec na 6510 je editovatelný
+  podle stavu řádku (`SetAccess`), ne podle flagů kódu; `Item Journal Line.CheckTrackingIsEmpty` / `CheckTrackingIfRequired*`
+  testují jen SN + Lot, package jen když je `"Package No. Required"` (specific / inbound-outbound flagy) → zadané číslo zásilky
+  projde na ILE vždy. Flagy kódu řídí jen *vyžadování* a vyrovnávání podle zásilky. Zboží ale **nějaký** kód sledování mít
+  musí (bez něj `OpenItemTrackingLines` spadne na `TestField("Item Tracking Code")`). Vlastní kontrola „zboží musí mít
+  Package Specific Tracking" je tedy zbytečná překážka — Sonnentor ji 2026-10-16 zrušil (šaržové zboží + ruční číslo palety).
 
 ### 5.x22 Převodka: `Item Journal Line."Order No."` nikdy nevyprázdnit ani nepřepsat — jinak „New Expiration Date must be equal to…" a rozbité in-transit párování
 
