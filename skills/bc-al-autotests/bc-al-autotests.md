@@ -337,6 +337,13 @@ Assert.ExpectedErrorCode('Dialog');
   does not use the queried record") — oba warning → s `failOn warning` CI fail. Existenci záznamu assertuj `Rec.SetRecFilter()` +
   `Assert.RecordIsNotEmpty(Rec)` / `RecordIsEmpty(Rec)` (funguje i po `Delete`, PK v proměnné zůstává), refresh hodnot přes
   `Get(PK)`. (2026-10-02, cust-soitron-bc)
+- **`Item.Validate("Expiration Calculation", <vzorec>)` bez Item Tracking Code s *Use Expiration Dates* spadne** —
+  `Item.Table.al` pole 6502 `OnValidate` (w1-28): neprázdný vzorec → `ItemTrackingCodeUseExpirationDates()` → jinak
+  `Error(ItemTrackingCodeIgnoresExpirationDateErr)`. Test, který potřebuje jen hodnotu pole (výpočet trvanlivosti do reportu),
+  ji přiřadí přímo `Evaluate(Item."Expiration Calculation", '<2Y>')` + `Modify(true)` (vzor `TestManufacturing.Codeunit.al`
+  v cust-sonnentor-bc); přes `Validate` jen s `LibraryItemTracking.CreateItemTrackingCode` a `"Use Expiration Dates" := true`
+  na zboží. Totéž platí pro `Item Category`/`Item` DateFormula pole bez vlastní validace — `Evaluate` do pole s `<…>` zápisem
+  je nezávislý na jazyku session. (2026-10-16, cust-sonnentor-bc `TestProductReport`, trvanlivost Product Specification.)
 ## `TestPermissions` — kdy co
 
 > ⚠️ **Default je `Restrictive`, NE `Disabled`!** Když property vynecháš, test

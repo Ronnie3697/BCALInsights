@@ -151,6 +151,10 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   Spolehlivé: malý python dekodér, který zkusí `utf-8-sig` / `utf-16` / `utf-16-le` (i s posunem o 1 bajt)
   a vezme variantu, ve které je vidět text `Compilation`. Pozor při grepu na `error`: LC0084 obsahuje
   „error handling" — filtruj `: error ` / `: warning `. (2026-09-04, cust-alumistr-bc)
+  **Bez pythonu (Bash tool jen se Store stubem): `alc.exe … 2>&1 | tr -d '\0' > log`** — UTF-16 výstup má mezi ASCII
+  znaky nulové bajty, `tr` je vyhodí a log je čitelný pro `grep` (diakritika v hláškách se rozpadne, kódy chyb, cesty
+  a čísla řádků ne); UTF-8 log projde beze změny, takže netřeba hádat kódování. Exit code alc pak `${PIPESTATUS[0]}`,
+  počet nálezů `grep -cE "\b(error|warning) [A-Z]{2,3}[0-9]{4}"`. (2026-10-16, cust-sonnentor-bc, alc 17.0.)
 - **Claude Code Bash tool (Windows): heredoc `<<'EOF'` s apostrofem v OBSAHU** (AL `item''s`, `can''t`,
   python `'`) skončí `unexpected EOF while looking for matching `''` a **celý příkaz se neprovede** — u
   `cd x && cat > a <<EOF …` se nezapíše nic, u příkazů na samostatných řádcích za spadlým `cd` se soubory
