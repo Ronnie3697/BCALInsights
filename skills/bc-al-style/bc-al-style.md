@@ -587,6 +587,14 @@ end;
 `System Param Tests COEBS.CreateConfiguredVariant` vypadal jako duplicita, která nemůže
 projít; kompilace test appky přitom byla čistá.)
 
+### 1.16 CodeCop AA0240 — label s dlouhým číslem (GLN, EAN, IČO) = „phone number"
+
+`Label '4099200007472', Locked = true` (GLN v testu) hlásí CodeCop **AA0240** „The Label must not contain
+email addresses or phone numbers" — 13 číslic vypadá jako telefon. Essence CI jede `failOn warning`, takže to
+shodí build test appky; `Locked = true` nepomůže. Číselné konstanty (GLN, EAN, IČO, bankovní účet) drž jako
+**lokální proceduru vracející literál** (`local procedure AldiHungaryGLN(): Code[20] begin exit('4099200007472'); end;`)
+nebo `Code` proměnnou plněnou v `Initialize` — string literál v kódu AA0240 nekontroluje. (2026-10-15,
+cust-ardo-bc PBI 67087, `EDI ALDI Text Tests ATARD`; zachyceno lokálním alc s CodeCop.)
 ---
 
 

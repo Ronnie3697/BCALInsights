@@ -1,12 +1,14 @@
 ---
 name: bc-al-autotests-infra
 description: >-
-  BC/AL autotesty – infrastruktura test appky (Business Central, Essence CI): app.json test appky
-  (explicitní dependencies, AL0185), internalsVisibleTo v hlavní appce (PTE0012, AL0161 = nesedící GUID),
+  BC/AL autotesty – infrastruktura test appky (BC, Essence CI): app.json test appky (explicitní
+  dependencies, AL0185; BC 28: Library - * v Application Test Library, AL0185 bez AL1022),
+  internalsVisibleTo v hlavní appce (PTE0012, AL0161 = nesedící GUID),
   test app bez permissionsetu, název souboru bez affixu (AppSourceCop mandatoryAffixes), plochá src/,
   test ruleset dědí hlavní + LC0015 (al.ruleSetPath folder-level), symboly Tests-TestLibraries mimo
-  .alpackages, lokální kompilace ze sibling .alpackages / temp cache (tranzitivní vs explicitní deps,
-  AL1022 smíchané minor verze MS knihoven, logo ..\app, #IF TESTS), spouštění testů (Run-AlPipeline
+  .alpackages (MSSymbols sada vč. Any, BF Test Libraries), lokální kompilace ze sibling .alpackages
+  / temp cache (tranzitivní vs explicitní deps, AL1022 smíchané minor verze MS knihoven, logo ..\app,
+  #IF TESTS, alc z BcContainerHelper), spouštění testů (Run-AlPipeline
   v Dockeru, BcContainerHelper 6.1.18, verze deps jako CI, lokální testovací kontejner, AL Test Runner),
   čtení CI failů (Test Runs REST errorMessage, stejné Document No. = rollback). Načti při zakládání
   test appky, kompilaci a běhu testů a rozboru CI failů; psaní testů je ve skillu bc-al-autotests.

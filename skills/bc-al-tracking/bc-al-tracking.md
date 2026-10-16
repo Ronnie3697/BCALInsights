@@ -271,17 +271,102 @@ cust-soitron-bc (`Job Lot Tracking Mgt. SOI`, 2026-10-07): u SN zboží auto-ř�
   `Create Prod. Order from Sale.CreateProductionOrder` (Item Order: `BindToTracking` → `ProdOrderLine.Modify()`),
   `Create Prod. Order Lines.CopyFromSalesOrder` (Project Order / Refresh VZ se zdrojem Sales Header: `BindToTracking` →
   `ProdOrderLine.Modify()`), `Mfg. Carry Out Action.InsertProdOrderLine` (sešit: `TransferPlanningLineToPOLine` /
-  `ReserveBindingOrderToProd` → `ProdOrderLine.Modify()`). Hlavička VZ (jiná instance, base ji po vazbě znovu neukládá)
-  přežije → při změně stavu (`Prod. Order Status Management`: `ToProdOrderLine := FromProdOrderLine` → `Insert` →
-  subscriber `OnAfterInsertEvent` řádku nastaví pole na **`var Rec`** → následný `ToProdOrderLine.Modify()` ho zachová)
-  se pole na řádcích „záhadně" objeví až po vydání. Pevně plánovaná z prodejky ho nemá, vydaná ano = tenhle vzor.
+  `ReserveBindingOrderToProd` → `ProdOrderLine.Modify()`). **Hlavičku přepíše taky** — `Create Prod. Order
+  Lines.ProcessProdOrderLines` končí `ProdOrder.AdjustStartEndingDate()` + `ProdOrder.Modify()` z globální kopie hlavičky
+  (platí pro Create from Sale i Refresh). Při změně stavu Project Order (`Source Type = Sales Header`) hlavičku nastaví
+  subscriber `OnAfterInsertEvent` na `var Rec` a řádky (`ToProdOrderLine := FromProdOrderLine` → `Insert` → subscriber
+  řádku na `var Rec` → následný `ToProdOrderLine.Modify()` ho zachová) ji zdědí → pole se na VZ „záhadně" objeví až po
+  vydání. Pevně plánovaná z prodejky ho nemá, vydaná ano = tenhle vzor.
 - `Production Order.OnAfterInsertEvent` s podmínkou na `Source Type/No.` v `Create Prod. Order from Sale` nikdy nechytne:
-  `ProdOrder.Insert(true)` běží **před** nastavením zdroje (Source No. prázdné), zdroj se dopíše `Modify()`.
-- **Fix = nastav pole do `var ProdOrderLine` těsně před base `Modify()`** (všechny tři eventy mají řádek by-ref):
-  `OnCreateProductionOrderOnBeforeProdOrderLineModify(var ProdOrderLine; var SalesLine; var ProdOrder; …)` (99000787),
-  `OnCopyFromSalesOrderOnBeforeProdOrderLineModify(var ProdOrderLine; SalesLine; SalesPlanningLine; var NextProdOrderLineNo)`
-  (99000788), `OnInsertProdOrderLineOnBeforeModifyProdOrderLine(var ProdOrderLine; var RequisitionLine)` (Mfg. Carry Out
-  Action). Nejjednodušeji obecně: načti uloženou verzi řádku (`Stored.Get(ProdOrderLine.RecordId)`) a převezmi z ní pole,
-  které reservation subscriber zapsal — nezávislé na tom, odkud se vazba bere. Test „VZ z prodejky (MTO) má příznak na
-  řádku" musí assertovat **DB po dokončení akce**, ne stav uvnitř subscriberu. (2026-10-15, cust-sonnentor-bc PBI 65215
-  `Pallet Tracking Mgt. SON`; zdroj Base App 28.5 extrakce z .app.)
+  `ProdOrder.Insert(true)` běží **před** nastavením zdroje (Source No. prázdné), zdroj se dopíše `Modify()`. Hlavička se
+  z prodejního řádku nastaví v `OnAfterCreateProdOrderFromSalesLine(var ProdOrder; var SalesLine)` (těsně před tím
+  `Modify()`), řádky pak hodnotu zdědí z hlavičky už při `Insert`.
+- **Přesun vazby = `Modify`, ne `Insert`.** `Create Reserv. Entry.TransferReservEntry` (carry-out sešitu
+  `TransferPlanningLineToPOLine`, změna stavu `TransferPOLineToPOLine`) při plném přenosu páru dělá
+  `NewReservEntry.Modify()` s novým zdrojem — subscriber jen na `OnAfterInsertEvent` tabulky 337 tyto cesty nevidí;
+  dej ho i na `OnAfterModifyEvent` (po guardu na `Binding` / `Source Type` je levný).
+- **Fix proti zastaralé kopii: trigger `OnBeforeModify` v tableextension hlavičky i řádku** — když `Rec` ani `xRec` pole
+  nemají, načti uloženou verzi (`Stored.SetLoadFields(pole); Stored.Get(PK)`) a hodnotu převezmi do `Rec`. Zastaralá kopie
+  z kódu má `xRec = Rec` (3.9 v `bc-al-data.md`), takže se obnoví; ruční zrušení na stránce nese v `xRec` původní *Ano*
+  a projde. Jedna ochrana pro všechny cesty (Create from Sale, Refresh, Carry Out, budoucí) místo honby za každým base
+  `Modify()`; cena = jeden PK `Get` per `Modify(true)` bez pole. Alternativa po cestách: eventy
+  `OnCreateProductionOrderOnBeforeProdOrderLineModify` (99000787), `OnCopyFromSalesOrderOnBeforeProdOrderLineModify` +
+  `OnProcessProdOrderLinesOnBeforeAdjustStartEndingDate(var ProductionOrder)` (99000788),
+  `OnInsertProdOrderLineOnBeforeModifyProdOrderLine` (Mfg. Carry Out Action). Test „VZ z prodejky (MTO) má příznak"
+  assertuj **DB po dokončení akce**, ne stav uvnitř subscriberu; `Create Prod. Order from Sale.CreateProductionOrder`
+  v testu s `SetHideValidationDialog(true)` (jinak `Message`), Project Order potřebuje zboží s `Replenishment System =
+  Prod. Order` (`IsReplSystemProdOrder`). (2026-10-15, cust-sonnentor-bc PBI 65215 `Pallet Tracking Mgt. SON`,
+  `Test Pallet Tracking SON`; zdroj Base App 28.5 extrakce z .app.)
+
+### 5.x20 Expirace na řádku sledování zmizí po zadání Package No.; změna stavu VZ vloží řádek dřív, než přenese jeho tracking
+
+- **`Tracking Specification.InitExpirationDate` běží při každé změně `Lot No.` / `Serial No.` / `Package No.`** (OnValidate
+  těch polí, w1-28), vynuluje `Expiration Date` a doplní ji jen z existujících položek zboží (`ExistingExpirationDate`;
+  `HasSameTracking(xRec)` porovnává jen SN + Lot, package změna tedy init spustí). U šarže, která ještě není skladem
+  (očekávaný výstup VZ, předvyplněná expirace z vlastní logiky), **zadání čísla zásilky na stránce 6510 expiraci smaže**
+  — stránka ji pak při `OnModifyRecord` zapíše do rezervačních položek prázdnou (`ModifyFieldsWithinFilter`). Hooky:
+  `OnBeforeInitExpirationDate(var Rec; xRec; var IsHandled)` (zachovat `xRec."Expiration Date"`, když se Lot/SN nezměnily →
+  `IsHandled`) a `OnAfterInitExpirationDate(var Rec)` (dopočítat default, když zůstala 0D; respektuj `"Buffer Status2" =
+  "ExpDate blocked"` = kód sledování bez *Use Expiration Dates*, a `IsReclass()`). Zdroj dokladu z `Source Type/Subtype/ID/
+  Batch/Ref. No./Prod. Order Line` (Prod. Order Line: Subtype = status, ID = VZ; Item Journal Line: ID = šablona **Code[20]
+  → `CopyStr` na Code[10]**, jinak PC0013). Test bez TestPage: `TrackingSpecification.Init()` + source pole + `Item No.` +
+  `Lot No.` + `Expiration Date`, pak `Validate("Package No.", …)` / `Validate("Lot No.", …)` — `xRec` je ve field triggeru
+  spolehlivý i z kódu; pro cestu OnAfter musí mít kód sledování `"Use Expiration Dates" := true`
+  (`Library - Item Tracking.CreateItemTrackingCode` ho nenastaví).
+- **`Prod. Order Status Management.TransProdOrderLine`: `ToProdOrderLine.Insert()` → … → `TransferPOLineToPOLine` → `Modify()`.**
+  Subscriber na `Prod. Order Line.OnAfterInsertEvent`, který řádku zakládá tracking „když žádný nemá" (seed očekávaného
+  výstupu = Surplus položka s šarží), při změně stavu žádný nevidí (položky starého řádku se přenesou až po insertu) → založí
+  nový a po přenosu jsou tam **dvě položky na stejné množství** (uživatel: „po vydání mám druhý řádek sledování s expirací").
+  Fix bez stavu nejde (nové číslo VZ při jiné řadě = podle `Source ID` to nepoznáš): `OnBeforeInsertProdOrderLine(var
+  ToProdOrderLine; FromProdOrderLine)` → klíč řádku do SingleInstance helperu, insert subscriber ho přeskočí,
+  `OnAfterToProdOrderLineModify(var ToProdOrderLine; var FromProdOrderLine; var NewStatus: Option
+  Quote,Planned,"Firm Planned",Released,Finished)` (pozor, **Option**, ne enum) klíč smaže a seed spustí až tam — guard
+  „už má tracking" pak funguje. Stále klíč (status + číslo + řádek) místo bool: po chybě uprostřed změny stavu zůstane
+  v session, ale ovlivní jen tentýž řádek při opakování. (2026-10-15, cust-sonnentor-bc PBI 64043/65215
+  `Prod. Order Lot Mgt. SON`, `Single Instance Helper SON`; zdroj Base App 28.5 `TrackingSpecification.Table.al`,
+  `ProdOrderStatusManagement.Codeunit.al`.)
+
+### 5.x21 Kontrola trackingu v `Item Jnl.-Check Line` běží i PO smazání rezervačních položek řádku — čti tracking z polí rozděleného řádku
+
+- `Item Jnl.-Post Line.RunWithCheck` (w1-28): `ItemTrackingMgt.RetrieveItemTracking` → `RetrieveItemTrackingFromReservEntry`
+  sečte položky řádku do temp `Tracking Specification` a **Prospect položky řádku smaže** (`DeleteAll`; tracking zadaný na
+  řádku deníku přes 6510 je Prospect), pak `PostSplitJnlLine` → `SplitItemJnlLine` rozdělí řádek per tracking
+  (`TempSplitItemJnlLine.CopyTrackingFromSpec` → `Lot No.` / `Serial No.` / `Package No.` **v polích Item Journal Line**, stejné
+  `Line No.`) a `Code()` na každém dílu volá `ItemJnlCheckLine.RunCheck`. Subscriber na `OnAfterCheckItemJnlLine`, který
+  tracking řádku ověřuje přes `Reservation Entry` se source filtrem řádku, tedy při účtování dávky projde v `CheckLines`
+  (položky ještě jsou) a **spadne v `PostLines`** (položky pryč) — i když uživatel tracking zadal; přes
+  `Codeunit.Run("Item Jnl.-Post Line")` (kiosk) rovnou spadne. Správně: nejdřív pole rozděleného řádku
+  (`ItemJnlLine."Package No." <> ''` → OK), teprve pak rezervační položky (pre-check dávky); „žádné položky" je pak
+  správně chyba (buď tracking chybí, nebo díl bez hodnoty). Alternativa s úplným bufferem:
+  `OnRunWithCheckOnAfterRetrieveItemTracking(var ItemJnlLine; var TempTrackingSpecification; var TrackingSpecExists; …)`.
+  Test, který to chytí: posting přes `LibraryInventory.PostItemJournalBatch` **i** přímé `ItemJnlPostLine.RunWithCheck(Line)`;
+  samotná kontrola řádku bez postingu neodhalí nic. (2026-10-15, cust-sonnentor-bc PBI 65215 `Pallet Tracking Mgt. SON`,
+  hlášeno z deníku výroby; zdroj Base App 28.5 `ItemJnlPostLine.Codeunit.al`, `ItemTrackingManagement.Codeunit.al`.)
+
+### 5.x22 Převodka: `Item Journal Line."Order No."` nikdy nevyprázdnit ani nepřepsat — jinak „New Expiration Date must be equal to…" a rozbité in-transit párování
+
+- Standard (`TransferOrder-Post Shipment` i `-Post Receipt`, `CreateItemJnlLine`) plní na řádek deníku `Order Type = Transfer` +
+  `Order No. = číslo převodky`; `Source Type` / `Source No.` u převodů **neplní vůbec**.
+- `Item Jnl.-Post Line.CheckExpirationDate` (w1-27.5 ř. ~4084, w1-28 stejně) rozlišuje převodku od deníku přeřazení podmínkou
+  `Order Type = Transfer and Order No. <> ''`: s vyplněným `Order No.` **sám doplní `New Expiration Date`** z existující položky
+  šarže; s prázdným bere řádek jako reclass → `TestField("New Expiration Date", ExistingExpirationDate)` → *„New Expiration Date
+  must be equal to '02/09/28' in Tracking Specification: Entry No.=1. Current value is ''."* — uživatel to z převodky nemá kde
+  vyplnit. Bez expirace (`Man. Expir. Date Entry Reqd.` = false) chyba nevyskočí → projeví se až u sledovaného zboží s expirací.
+- `ApplyItemLedgEntrySetFilters` + `TestFirstApplyItemLedgEntry` na in-transit lokaci párují příjem k dodávce filtrem `Order Type =
+  Transfer` + `Order No.` → hodnota musí být na dodávce i příjmu (vč. odvozené položky z `InsertTransferEntry`) stejná; víc
+  převodek se stejnou hodnotou sdílí filtr (zúží ho jen šarže / lokace).
+- **Subscriber, který `Order No.` / `Source No.` přepisuje vlastní hodnotou (LPC: číslo PO a dodavatel z řádku převodky vzniklé
+  z nákupu), je špatný návrh** — guard na neprázdnou hodnotu jen zalepí ruční převodky. Správně: vlastní pole na `Item Journal
+  Line` + `Item Ledger Entry` (stejné ID), plnit v `OnAfterCreateItemJnlLine` / `OnPostItemJnlLineOnBeforeWriteDownDerivedLines`
+  a propsat v `Item Jnl.-Post Line.OnAfterInitItemLedgEntry` (běží i pro odvozenou in-transit položku — `InsertTransferEntry`
+  volá `InitItemLedgEntry`); standardní pole nechat. Historii dorovnat upgrade codeunitou (Upgrade Tag, 5.2 v `bc-al-objects.md`),
+  reporting (Power BI API page) přepnout na vlastní pole. (2026-09-12 chyba, 2026-10-15 refactor, cust-londonPharma-bc
+  `Transfer Mgt. LPC` / `Purchase Transfer Mgt LPC`.)
+- **Test vzor (Application Test Library 28.4):** `LibraryWarehouse.CreateTransferLocations(From, To, InTransit)`;
+  `LibraryItemTracking.CreateItemTrackingCodeWithExpirationDate(Code, false, true)` + `CreateItemWithItemTrackingCode`; zásoba
+  `LibraryInventory.CreateItemJournalLineInItemTemplate` + `LibraryItemTracking.CreateItemJournalLineItemTracking` +
+  `ReservationEntry.Validate("Expiration Date")` + `PostItemJournalLine`; převodka `CreateTransferHeader(TH, From, To, InTransit)`
+  + `CreateTransferLine` + `CreateTransferOrderItemTracking(ResEntry, TransferLine, '', LotNo, Qty)`; `PostTransferHeader(TH, true,
+  true)` → 4 ILE `Entry Type = Transfer` (−From, +InTransit, −InTransit, +To), na všech ověř `Order No.` = číslo převodky. Enum
+  `Order Type` porovnávej `TestField`, ne `Assert.AreEqual`. Surové ILE pro test upgrade rutiny: `Init` + `"Entry No." :=
+  LibraryUtility.GetNewRecNo(ILE, FieldNo("Entry No."))` + `Insert(false)`.
