@@ -60,7 +60,7 @@ codeunit **63154 `System Parameter Mgt. COEBS`** (`Access = Public`).
   `X1` / `X` / `Y` / `Z` pod Line No. **−51990…−51993** (Sort Order −20000…−19970).
   Záporné Line No. musí být **unikátní napříč všemi appkami** — base drží −1 a −2,
   zvol si vlastní rozsah odvozený od svého object ID rozsahu.
-- **`UNIT_PRICE` (−2)**: větev `UnitPriceSystemParam`, 2026-10-16, zatím nevydáno.
+- **`UNIT_PRICE` (−2)**: větev `UnitPriceQuantityFixes`, 2026-10-16, zatím nevydáno.
   - Hodnota = `Item."Unit Price"` zboží toho řádku, **pro který se vzorec právě počítá**, v měně dokladu
     (`Currency Exchange Rate.ExchangeAmtLCYToFCY(SalesHeader.GetUseDate(), …, "Currency Factor")`). Jiný typ řádku má 0.
   - Přepsání aktuálního řádku bere cenu konfigurovaného zboží (`InjectSalesLineSystemParameters`). Vytvářený řádek bere cenu
@@ -124,7 +124,7 @@ prodejních řádků. Táž konfigurace používala `QUANTITY` 4× na Množství
 řádku — tam počítá správně.)
 
 ⚠️ **Přepsání aktuálního řádku (pole `CL …`) se u nové varianty použije dvakrát** (COEBS do 76ea8d6). Code review
-2026-10-16, potvrzeno čtením kódu. **Oprava na větvi `CurrentLineOverrideOnce`** (2026-10-16, zatím nevydáno), detail níže
+2026-10-16, potvrzeno čtením kódu. **Oprava na větvi `UnitPriceQuantityFixes`** (2026-10-16, zatím nevydáno, jeden PR s `UNIT_PRICE`), detail níže
 v *Oprava*.
 
 - **Proč:** dialog i API (`Variant Config. Engine.ApplyToSalesLine`) volají u nové varianty nejdřív `ExecuteSalesLineActions`
@@ -142,7 +142,7 @@ v *Oprava*.
     `ModifyCurrentLine`.
   - Vzorce aktuálního řádku se po změně množství nepřepočítají (`RecalculateConfigCreatedLines` zdrojový řádek nemění).
   - `ApplyCLPricingOverrides` validuje Množství až po ceně a slevě.
-- **Oprava (větev `CurrentLineOverrideOnce`):**
+- **Oprava (větev `UnitPriceQuantityFixes`):**
   - Veřejné `ExecuteSalesLineActions` zůstává beze změny. Přepíše aktuální řádek i vytvoří řádky. Na tom stojí testy COZLK
     (`SLActionParamTests` čeká přepsání Parametr A/B na aktuálním řádku).
   - Nové interní přetížení `(…; WithCurrentLineOverrides = false)` jen vytvoří řádky. Volá ho dialog, engine a rozdělení řádku.
@@ -155,8 +155,12 @@ v *Oprava*.
   - Testy: `CL Override Tests COEBS` (63253).
   - Rozhodnutí uživatele: po ruční změně množství se vzorce aktuálního řádku nepřepočítávají a `QUANTITY` v Popisu varianty
     zůstává povolené.
-  - **Zbývá omezení:** vzorec Množství aktuálního řádku s `QUANTITY` se při každém dalším potvrzení konfigurace na témže řádku
-    použije znovu (2 → 4 → 8).
+  - **Opakované potvrzení:** `QUANTITY` v přepsání aktuálního řádku je **zadané množství**. Řádek si pamatuje pole
+    `Config. Entered Qty. COEBS` (z čeho přepsání Množství vycházelo) a `Config. Overridden Qty. COEBS` (co nastavilo). Dokud má
+    řádek přepsané množství, dosadí se zadané, takže `2 * QUANTITY` dá pořád 2. Ruční změna po přepsání se bere jako nové
+    zadané množství (5 → OK → 10). Totéž `QUANTITY` dostanou ceny, slevy i texty přepsání. Vytvořené řádky počítají se
+    skutečným množstvím. Vzor pro každý „sebe-referenční“ vzorec, který se může použít opakovaně: uložit vstup i výsledek
+    a vstup použít, dokud výsledek nikdo nezměnil.
 - Detail review a tabulka po průchodech: `prod-ess-configurator-bc/docs/Configurator - Systémový parametr UNIT_PRICE … - plán.md`,
   sekce *Související nález*. Oprava: `docs/Configurator - Přepsání aktuálního řádku se použije jen jednou.md`.
 
