@@ -481,3 +481,10 @@ Z prod-ess-dotykackaConnector-bc, PBI 63075 (test Pavla Fily 2026-10-08, oprava 
   (originál po stornu) přijdou znovu → deduplikace přes import log a klíč na `Order Id` v hlavičkách dokladů. Watermark
   posouvej po každém úspěšném čtení API a selhané účtenky opakuj z uloženého JSON — watermark držený „do běhu bez
   chyb" jedna trvale vadná účtenka zmrazí a každý běh pak stahuje celou historii od ní.
+- **EANy produktu = pole `ean[]`, které PUT celé přepíše** → zúžení výběru (jen čárové kódy jedné MJ) řeš na zdroji,
+  ne odebíráním z hotového pole: další subscriber téhož „after" eventu (aktivační kód poukazu) by se se smazáním
+  srazil podle pořadí subscriberů. Konektor má proto event `OnAfterSetProductEanFilters(ItemNo, VariantCode, var
+  ItemReference)` před `FindSet` a zákaznická appka jen přidá filtr (Sonnentor: FlowField `Item Reference."Packaging
+  Type SON"` = Consumer, lookup do Item UoM podle MJ odkazu; odkaz bez MJ tím vypadne). **Skrytý produkt
+  (`display: false`) sync neposílá, jen ho skryje** → v adminu Dotykačky si nechá staré EANy a ceny; při ověřování
+  změny payloadu kontroluj jen zobrazené produkty. (PBI 63075 / Task 63116, ověřeno na BC-DEV 2026-10-16.)

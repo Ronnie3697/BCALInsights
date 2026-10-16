@@ -762,6 +762,11 @@ parametru pro textovou formuli.)
   další řádek začni `scroll left`. Screenshot přes `zoom` + `save_to_disk` ukládá v rozlišení podle `scale`
   (0.3 → 247 px), pro dokumentaci `scale: 0.75`. **Skrytá záložka** (`visibilityState = 'hidden'`) zastaví
   smooth scroll/animace a screenshot bývá prázdný – počkej, zopakuj, stav ověř JS. (2026-09-29, BC-DEV.)
+  ⚠️ **`Down` na `<select>` vybraném klikem do buňky nemusí měnit hodnotu – BC ho vezme jako šipku gridu** a skočí
+  na nový prázdný řádek (Měrné jednotky zboží v *Upravit seznam*, sloupec *Typ balení*; `Up` prázdný řádek zahodil).
+  Spolehlivě: `const a = iframe.contentDocument.activeElement; a.value = '<index>'; a.dispatchEvent(new Event('input',
+  {bubbles:true})); a.dispatchEvent(new Event('change',{bubbles:true}))` → `Tab` → klik mimo řádek (uložení),
+  hodnoty `<option>` jsou indexy enumu. Výsledek ověř screenshotem listu po zavření editace. (2026-10-16, BC-DEV Sonnentor.)
 - **Ověření hlášení testera na jiném prostředí** (2026-10-06, Alumistr BC-TEST2 místo BC-TEST, PBI 65916):
   - **Nejdřív porovnej nainstalované appky obou prostředí** (`d365bc-admin` `get_installed_apps` pro každé env, jen čtení).
     BC-TEST2 měl hlavní appku jako *dev* build bez Pricing Matrix (PMALU + EPB), BC-TEST verzi z pipeline s ní. Pořizovací

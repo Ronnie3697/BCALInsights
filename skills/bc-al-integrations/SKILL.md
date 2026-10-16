@@ -5,13 +5,13 @@ description: >-
   jen v BC, export varianty nemaže, nové varianty jen sync (Can Update Shopify Products), Add Item
   skip, userErrors tiché, produkt bez options, OnAfterCreateTempShopifyProduct, Add z karty mimo
   30106, zásoba OnAfterCalculationStock (nulování), BCShopifyConnectorDocs,
-  Internal vrstva → vlastní HttpClient + fronta;
-  BC29: tokeny expirují 2027-01-01, GQL → .graphql, HttpClientHandler),
-  HttpClient SaaS (Allow HttpClient Requests, Windows auth OnPrem), Isolated Storage, SecretText
-  (Unwrap AL0296, HMAC, SecretStrSubstNo), Power Automate (Business Events / API page); API page
+  Internal vrstva → vlastní HttpClient+fronta;
+  BC29: tokeny expirují 1.1.2027, GQL → .graphql, HttpClientHandler),
+  HttpClient SaaS (Allow HttpClient Requests, Win auth OnPrem), Isolated Storage, SecretText
+  (Unwrap AL0296, HMAC, SecretStrSubstNo), Power Automate (Business Events/API page); API page
   zápis (POST validace, temp OnFindRecord, $filter); Dataverse/CDS (Integration Table Filter
-  Dataverse→BC, Enum→Choice přes OptionOrdinalValues, testy @@test@@, reset mapování recreate,
-  Man. Integration Table Mapping); Dotykačka (stockQuantityStatus, display, priceWithVat); Jira/Tempo
+  Dataverse→BC, Enum→Choice (OptionOrdinalValues), testy @@test@@, reset mapování recreate,
+  Man. Integration Table Mapping); Dotykačka (stockQuantityStatus, display, priceWithVat, EAN filtr); Jira/Tempo
   (user search, worklog→parent). Načti u Shopify, HTTP, API, Dataverse, Jira.
 user-invocable: true
 ---
