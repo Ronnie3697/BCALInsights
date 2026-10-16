@@ -341,6 +341,14 @@ mechanismus akce *Filter by Attributes* z Item Listu znovupoužitelný 1:1:
   dle ID). (2026-08-18, prod-ess-configurator-bc, PBI 58056 — Attribute Filter
   na Table Lookup parametrech, vzor codeunit `Item Attr. Filter Mgt. COEBS`.)
 
+**Hodnotu atributu typu Option nikdy nerozpoznávej podle `Item Attribute Value.ID`.** `ID` (pole 2 tabulky 7501) je
+`AutoIncrement` **napříč všemi atributy** (stejně `Item Attribute.ID` v 7500), takže „Ano“ atributu 83 nemá ID 2 jen proto,
+že je to druhá z jeho dvou hodnot — podmínka `Mapping."Item Attribute Value ID" = 2` tiše nikdy neplatí (Product Specification
+SON, pole Pesticidy, 2026-10-16). Porovnávej text: uložené `ItemAttributeValue.Value` (nepřeložené, `UpperCase` na obou
+stranách) proti konstantě z dat zákazníka jako `Label 'Ano', Locked = true` s komentářem, že jde o data; `GetValueInCurrentLanguage()`
+jen pro tisk. V testu atribut s pevným ID založ `ItemAttribute.ID := 83; Insert(false)` (explicitní hodnota do AutoIncrement pole
+projde), hodnotu s `ID := 0` (přidělí SQL) a mapping `Item Attribute Value Mapping` (`Table ID` = `Database::Item`) ručně.
+
 ### 5.z DateFormula — možnosti a limity (půlrok NEjde)
 
 Jednotky: `D`, `WD1–WD7` (den v týdnu), `W`, `M`, `Q`, `Y`. Prefix `C` = current
