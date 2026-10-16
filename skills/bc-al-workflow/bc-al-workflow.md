@@ -888,6 +888,13 @@ psaný skriptem (node generuje `document.xml` + customXml, PowerShell zipuje), b
 - **Obrázek (logo):** `w:picture` content control s `w:dataBinding` na Blob sloupec
   (`column(CompanyPicture; CompanyInformation.Picture)` po `CalcFields`) + placeholder PNG v
   `word/media` a `r:embed`; vzor `DisposalProtocol.Report.docx` (header).
+  ⚠️ **Picture control chce Blob sloupec, ne Base64 `Text`.** `column(Photo; Base64Convert.ToBase64(InStream))`
+  s picture controlem spadne za běhu na „The image stream does not contain valid image or bitmap data" (CZ „Datový
+  proud obrazu neobsahuje platná data pro obraz nebo bitmapu") i u JPEG, který přes Blob (logo firmy) tiskne. Obrázek
+  z Media / Document Attachment dej do Blob pole temporary recordu: `TempTenantMedia: Record "Tenant Media" temporary`,
+  `Clear(TempTenantMedia.Content)` + `Content.CreateOutStream` ← `CopyStream` z `GetAsTempBlob` / `TenantMedia.Get(MediaId)`
+  + `CalcFields(Content)` a `column(Photo; TempTenantMedia.Content)`. (2026-10-16, cust-sonnentor-bc 65436 Product
+  Information; oprava kompiluje, runtime tisk po opravě zatím neověřen.)
 - **Barcode fonty BC online** (MS Learn `devenv-report-barcode-fonts`, IDAutomation): Code 128 =
   `IDAutomationC128XS/S/M/L/XL/XXL`, UPC/EAN = `IDAutomationUPCEANXXS/XS/S/M/L`. **Přípona = výška čar,
   šířku kódu řídí jen velikost písma** (XS není „úzký“ — ověřeno 2026-10-09: GS1-128 s 38 symboly při 11 pt
