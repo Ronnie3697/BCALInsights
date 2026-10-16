@@ -811,6 +811,9 @@ Configurator Ext 28.0.50.
   verze pole odebrala. Fix (jen se svolením, maže data těch polí): nový `POST extensionUpload` s
   `{"schedule":"Current Version","schemaSyncMode":"Force"}` (API vrátí `Force_x0020_Sync`) + PATCH obsahu + `upload` — opakovaný
   upload téže už publikované verze projde. (2026-10-14, Alumistr BC-DEV: EPB Pricing Matrix 28.0.6 vs. zbytky `Width/Height PMEBS`.)
+  Totéž přes dev endpoint (Dev build): `altool publishapp <app> … --schemaupdatemode ForceSync` (hláška v CZ „Pole 'X' nelze
+  nalézt. Odebrání polí není povoleno.“, zbytek po odinstalovaném lokálním buildu téže appky). Před ForceSync se zeptej.
+  (2026-10-16, Sonnentor BC-DEV: EW Mobile Base vs. pole `Country of Origin EXEBS` z prototypu 29. 9.)
 - **curl `--data-binary @<cesta>` v Git Bash: `error encountered when reading a file`** = buď MSYS cestu `/c/…` za `@`
   nepřeloží (použij `@"$(cygpath -m "$f")"`), nebo cesta přesáhne **260 znaků** — rozbalená složka `.nupkg` ve scratchpadu
   (`x_<package-id>.<ver>/<Publisher>_<Name>_<ver>.app`) na to stačí, `ls` ji pak ukáže s prefixem `//?/`. `.app` zkopíruj
