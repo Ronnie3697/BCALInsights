@@ -300,3 +300,11 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   se zapnutým Automatic Update Job Item Cost (projekt se do `JobsToAdjust` dostane z VE prodejní dodávky, která u skip projektů nese Job No.
   — neověřeno během, jen ze zdrojů). `JobSalesPostTest.VerifySaleJobLedgerEntry` nově filtruje `Document No.` = posted invoice no.
 - al-mcp `al_packages load` na složku bez `.alpackages` (temp cache ve scratchpadu): `autoDiscover: false` + `path` přímo na složku s `.app`.
+  ⚠️ Přepis `Document No.` dělej na **lokální kopii** (`InvoiceSalesLine := SalesLine`): tentýž subscriber
+  `SalesPost_OnBeforePostJobContractLineIMEBS` pak při dodávce + fakturaci jedním účtováním volá
+  `CreateJobLedgerEntryFromSalesLine(SalesLine)`, a ten z řádku bere `Reservation Entry` (tracking dodávky, filtr Document Type +
+  Document No.), `CalcFields("Posting Date")` (flowfield přes hlavičku) i `Document No.` usage položky — s číslem faktury by usage
+  přišla o tracking a datum. Co kopii čte dál: `Job Post-Line` jen `Job Contract Entry No.` + `Line No.` (otevřený JPLI přes
+  `SalesHeader."No."`), `Job Transfer Line` ji kopíruje do JJL (Document No., dimenze, texty, posting groups), G/L větev páruje
+  temp JJL jen přes `Line No.`; EPEBS subscribery (`OnAfterFromPlanningSalesLineToJnlLine`, `OnBeforeJobLedgEntryInsert`) Document No.
+  nečtou. Regresní test `ShipAndInvoiceInOneRun_SkipProject_UsageCarriesOrderNoAndSaleEntryCarriesInvoiceNo`. (2026-10-19)
