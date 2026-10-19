@@ -9,7 +9,7 @@ description: >-
   návazné doklady projektu (Job Planning Line Invoice, Job No. EPEBS, nákupní objednávka / příjemka), guardy
   Job Planning Line.OnDelete, undo nákupní příjemky s projektem (ReapplyJobConsumption, Skip Purchase
   Consumption IMEBS), spotřeba projektu z prodejní dodávky per šarže / SN / položka příjmu
-  (CreateJobLedgerEntryFromSalesLine, OnBeforePostJobContractLine před PostItemLine). Načti u řádků plánování,
+  (CreateJobLedgerEntryFromSalesLine z OnAfterInsertShipmentLine, ne Qty. to Handle). Načti u řádků plánování,
   deníku projektů, mazání plánovacích řádků, návazných dokladů, storna příjemky a spotřeby z dodávky.
 user-invocable: true
 ---
@@ -44,6 +44,8 @@ Vyčleněno z `bc-al-objects.md` 2026-10-05, číslování 5.x je původní.
 - **5.x20** Prodejní doklad z plánovacích řádků = `Job Planning Line Invoice`; projekt na hlavičce IMEBS prodejky =
   `Job No. EPEBS`. `Job Planning Line.OnDelete` blokuje příjemky, fakturaci a usage, otevřenou nákupní objednávku ne.
 - **5.x24** Spotřeba projektu z prodejní dodávky (IMEBS `CreateJobLedgerEntryFromSalesLine`): `OnBeforePostJobContractLine`
-  běží před `PostItemLine` → dodávané sledování čti z rezervačních položek řádku (`Qty. to Handle (Base)`, `Item Tracking
-  <> None`), položky příjmu = každý řádek příjemky × každá ILE; JLE per kombinace SN / Lot / Package / expirace s vazbou
-  na položku příjmu. IMEBS `CreateItemTrackingForSalesLine` píše do 336, ne 337 (dodávka to nečte).
+  běží před `PostItemLine` a `Qty. to Handle (Base)` trackingu řádku NENÍ dodávané množství (řádek sledování na celý řádek
+  se částečnou dodávkou nekrátí) → účtuj z `OnAfterInsertShipmentLine` podle položek zboží dodávkového řádku
+  (`ItemTrackingMgt.CollectItemEntryRelation` / `Item Shpt. Entry No.`); položky příjmu = každý řádek příjemky × každá ILE;
+  JLE per kombinace SN / Lot / Package / expirace s vazbou na položku příjmu. Nadspotřeba = `Job Link Usage` zvedne
+  `Quantity` budget řádku. IMEBS `CreateItemTrackingForSalesLine` píše do 336, ne 337 (dodávka to nečte).

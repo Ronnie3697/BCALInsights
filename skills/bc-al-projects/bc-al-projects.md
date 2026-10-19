@@ -209,12 +209,20 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
 
 - **`Sales-Post.OnBeforePostJobContractLine` běží z `UpdateSalesLineBeforePost`, tj. PŘED `PostItemTrackingLine` /
   `PostItemLine`** (w1-28 `SalesPost.Codeunit.al`: `PostSalesLine` → `UpdateSalesLineBeforePost` → `PostJobContractLine`
-  → … → `PostItemLine`). V subscriberu ještě neexistují položky zboží dodávky ani `Item Entry Relation`; zato rezervační
-  položky prodejního řádku jsou netknuté. **Dodávané sledování** = `Reservation Entry` se `SetSourceFilter(Database::"Sales
-  Line", DocType.AsInteger(), DocNo, LineNo, true)` + `SetSourceFilter('', 0)` + `SetFilter("Item Tracking", '<>%1', None)`,
-  množství `-"Qty. to Handle (Base)"` (demand je záporný) — totéž, co standard sčítá v `ItemTrackingMgt.
-  CalcQtyToHandleForTrackedQtyOnDocumentLine` a čím `Sales-Post.CheckTrackingSpecification` hlídá rovnost s `Qty. to Ship
-  (Base)` (jen když kód sledování tracking na prodeji vyžaduje). Zbytek do `Qty. to Ship (Base)` = dodáno bez sledování.
+  → … → `PostItemLine` → `InsertShipmentLine`). V tom subscriberu ještě neexistují položky zboží dodávky ani `Item Entry
+  Relation`. ⚠️ **Rezervační položky řádku (`Qty. to Handle (Base)` trackingu) NEJSOU dodávané množství:** řádek sledování
+  na celé množství objednávky (šarže = číslo projektu u Soitronu, ručně zadaný tracking) se částečnou dodávkou neupraví —
+  `Sales-Post.CheckTrackingSpecification` rovnost s `Qty. to Ship (Base)` hlídá jen u zboží, kde tracking na prodeji
+  **není** vyžadovaný (`TrackingRequired()` → kontrola se přeskočí), u Lot/SN Specific si `Sales Line-Reserve.
+  TransferSalesLineToItemJnlLine` prostě odebere dodávané množství z řádku sledování (5 na řádku, dodáno 2 → projde).
+  První verze přepisu (2026-10-19 ráno) z toho u dodávky 2 z 5 zaúčtovala usage 5 a při druhé dodávce 3 celkem 8 →
+  `Job Link Usage` zvedl množství budget řádku z 5 na 8 (ověřeno uživatelkou na BC-DEV). **Správně: spotřebu účtovat až
+  z položek zboží dodávky** — subscriber `Sales-Post.OnAfterInsertShipmentLine(var SalesHeader, var SalesLine, var
+  SalesShptLine, PreviewMode, xSalesLine)` (po `SalesShptLine.Insert` i `InsertShptEntryRelation`), položky =
+  `ItemTrackingMgt.CollectItemEntryRelation(TempILE, Database::"Sales Shipment Line", 0, DocNo, '', 0, LineNo, 0)`
+  (tracking → `Item Entry Relation`) a když je prázdné, `SalesShptLine."Item Shpt. Entry No."` (bez trackingu); Sale
+  položky jsou záporné. `Sales Shipment Line.GetItemLedgEntries` v w1-28 není. Event dává skutečný `SalesLine` (ne kopii
+  s přepsaným Document No. z 5.x25), usage tedy dál nese číslo objednávky.
 - **Položky příjmu budget řádku:** všechny `Purch. Rcpt. Line` (Job No. / Job Task No. / `Job Planning Line No. EPEBS`,
   Type Item) × všechny ILE řádku (`Document Type = Purchase Receipt` + `Document No.` + `Document Line No.`, klíč Key9) —
   tracking rozdělí jeden řádek příjemky na položku per SN / šarže / zásilka. `FindFirst` na obou úrovních (původní kód)
@@ -227,8 +235,10 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   její tracking (`JobJournalLine.CopyTrackingFromItemLedgEntry`). Mezisoučty v temp `Tracking Specification` (bucket) a
   temp `Item Ledger Entry` (`Quantity` = zbývající kapacita). `Job Jnl.-Post Line.CreateJobLedgEntry` kopíruje SN / Lot /
   Package (`CopyTrackingFromJobJnlLine`) a přes `Job Link Usage.HandleMatchUsageSpecifiedJobPlanningLine` **přepíše Lot/SN
-  na budget řádku plánování** (`CopyTrackingFromJobLedgEntry`) — po víc JLE zůstane poslední. Testy `Purch. Consumption Test
-  IMEBS` (dvě příjemky, dvě dodávky 1+4 proti 2+3, dvě šarže, nepřijatá šarže).
+  na budget řádku plánování** (`CopyTrackingFromJobLedgEntry`) — po víc JLE zůstane poslední; a když Σ usage přesáhne
+  `Quantity` řádku, `HandleMatchUsageSpecifiedJobPlanningLine` udělá `Validate(Quantity, Σ)` → množství i cena řádku
+  plánování se „sama" změní (příznak nadspotřeby, ne feature). Testy `Purch. Consumption Test IMEBS` (dvě příjemky, dvě
+  dodávky 1+4 proti 2+3, dvě šarže, nepřijatá šarže, řádek sledování 5 dodaný 2+3 → usage 2+3 a budget řádek zůstane 5).
 - ⚠️ **IMEBS `CreateItemTrackingForSalesLine` (šarže / SN z řádku plánování na prodejní řádek) zapisuje do `Tracking
   Specification` (336), ne do `Reservation Entry`** — dodávka tracking z 336 nebere (336 čte jen `RetrieveInvoiceSpecification`
   pro fakturaci dodaného), takže řádek z plánovací řádky se šarží se pravděpodobně chová jako bez sledování. Neopraveno,
@@ -300,11 +310,10 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   se zapnutým Automatic Update Job Item Cost (projekt se do `JobsToAdjust` dostane z VE prodejní dodávky, která u skip projektů nese Job No.
   — neověřeno během, jen ze zdrojů). `JobSalesPostTest.VerifySaleJobLedgerEntry` nově filtruje `Document No.` = posted invoice no.
 - al-mcp `al_packages load` na složku bez `.alpackages` (temp cache ve scratchpadu): `autoDiscover: false` + `path` přímo na složku s `.app`.
-  ⚠️ Přepis `Document No.` dělej na **lokální kopii** (`InvoiceSalesLine := SalesLine`): tentýž subscriber
-  `SalesPost_OnBeforePostJobContractLineIMEBS` pak při dodávce + fakturaci jedním účtováním volá
-  `CreateJobLedgerEntryFromSalesLine(SalesLine)`, a ten z řádku bere `Reservation Entry` (tracking dodávky, filtr Document Type +
-  Document No.), `CalcFields("Posting Date")` (flowfield přes hlavičku) i `Document No.` usage položky — s číslem faktury by usage
-  přišla o tracking a datum. Co kopii čte dál: `Job Post-Line` jen `Job Contract Entry No.` + `Line No.` (otevřený JPLI přes
+  ⚠️ Přepis `Document No.` dělej na **lokální kopii** (`InvoiceSalesLine := SalesLine`): usage z dodávky
+  (`CreateJobLedgerEntryFromSalesLine`, od 2026-10-19 odpoledne volaná z `OnAfterInsertShipmentLine`, 5.x24) bere z řádku
+  `CalcFields("Posting Date")` (flowfield přes hlavičku) i `Document No.` usage položky — s číslem faktury na skutečném
+  řádku by usage přišla o datum a nesla číslo faktury. Co kopii čte dál: `Job Post-Line` jen `Job Contract Entry No.` + `Line No.` (otevřený JPLI přes
   `SalesHeader."No."`), `Job Transfer Line` ji kopíruje do JJL (Document No., dimenze, texty, posting groups), G/L větev páruje
   temp JJL jen přes `Line No.`; EPEBS subscribery (`OnAfterFromPlanningSalesLineToJnlLine`, `OnBeforeJobLedgEntryInsert`) Document No.
   nečtou. Regresní test `ShipAndInvoiceInOneRun_SkipProject_UsageCarriesOrderNoAndSaleEntryCarriesInvoiceNo`. (2026-10-19)
