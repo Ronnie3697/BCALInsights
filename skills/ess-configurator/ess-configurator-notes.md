@@ -60,7 +60,7 @@ codeunit **63154 `System Parameter Mgt. COEBS`** (`Access = Public`).
   `X1` / `X` / `Y` / `Z` pod Line No. **−51990…−51993** (Sort Order −20000…−19970).
   Záporné Line No. musí být **unikátní napříč všemi appkami** — base drží −1 a −2,
   zvol si vlastní rozsah odvozený od svého object ID rozsahu.
-- **`UNIT_PRICE` (−2)**: větev `UnitPriceQuantityFixes`, 2026-10-16, zatím nevydáno.
+- **`UNIT_PRICE` (−2)**: vydáno v **COEBS 28.0.37** (PR 9774, master 635a1f1, build 28944, 2026-10-16).
   - Hodnota = `Item."Unit Price"` zboží toho řádku, **pro který se vzorec právě počítá**, v měně dokladu
     (`Currency Exchange Rate.ExchangeAmtLCYToFCY(SalesHeader.GetUseDate(), …, "Currency Factor")`, zaokrouhlené na
     `Unit-Amount Rounding Precision` měny jako standardní přepočet ceny). Jiný typ řádku má 0. `SetLineItemUnitPrice` je `internal`.
@@ -125,7 +125,7 @@ prodejních řádků. Táž konfigurace používala `QUANTITY` 4× na Množství
 řádku — tam počítá správně.)
 
 ⚠️ **Přepsání aktuálního řádku (pole `CL …`) se u nové varianty použije dvakrát** (COEBS do 76ea8d6). Code review
-2026-10-16, potvrzeno čtením kódu. **Oprava na větvi `UnitPriceQuantityFixes`** (2026-10-16, zatím nevydáno, jeden PR s `UNIT_PRICE`), detail níže
+2026-10-16, potvrzeno čtením kódu. **Opraveno v COEBS 28.0.37** (PR 9774 spolu s `UNIT_PRICE`, 2026-10-16), detail níže
 v *Oprava*.
 
 - **Proč:** dialog i API (`Variant Config. Engine.ApplyToSalesLine`) volají u nové varianty nejdřív `ExecuteSalesLineActions`
