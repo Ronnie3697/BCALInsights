@@ -638,6 +638,20 @@ vazby žádnou. Testy, které zakládají řádek přes `Library - Purchase/Sale
 mají **vždy** → „převázání bez dotazu" prošlo v testech a v UAT by se ptalo. Odsouhlasení ber z dat (původní `Blanket Order No.`
 uložené před odpojením, předané do rozhodování jako „accepted"), cache neplň (u klíče dokladu by pustila i další řádky) a přidej
 test s vazbou standardní validací **bez ConfirmHandleru**. (2026-10-09, code review cust-sonnentor-bc Task 66586.)
+Opačná past téže cache: uložené **Ano** („převzít X“, „pokračovat bez X“) pak řádek **potichu** přepíná mezi HNO a zapíná / vypíná
+vazbu (hlášení PFIL „jakoby si to řádek pamatoval“). Pamatuj jen odpovědi, které stav řádku nemění (Ne na převzetí, Ano na „bez“
+u řádku, který bez vazby zůstává), a před odpojením odpověď smaž. (2026-10-19, cust-sonnentor-bc Task 66948.)
+
+⚠️ **Hlavička / pole řádku, které vazbu na HNO/HPO nehlídají (w1-28.5, Task 66948).** `Recreate{Purch,Sales}Lines` (změna dodavatele,
+plátce, měny, zákazníka) řádky smaže a založí znovu (`TransferSavedFields` / `CreateSalesLine`) **bez** `Blanket Order No./Line No.` →
+vazba tiše zmizí, množství se validuje z kódu (`CurrFieldNo = 0`). Hooky s novým i původním řádkem: `Purchase Header.OnAfterRecreatePurchLine
+(var PurchLine; var TempPurchLine temporary; var PurchaseHeader)` po `Insert`, `Sales Header.OnAfterRecreateSalesLine`; rámec změny
+`OnBeforeRecreate…Lines(var Header)` / `OnAfterRecreate…Lines(var Header; ChangedFieldName: Text[100])`. Změna Buy-from recreatuje jednou
+(Pay-to jen při stejném Buy-from). `Document Date` hlavičky na řádky nesahá (`Posting Date` ho validuje přes `ValidateDocumentDateWithPostingDate`),
+header `Location Code` jen hlásí `MessageIf…LinesExist`. **`Variant Code` ani `Location Code` řádku nevalidují `Quantity`** (`No.` ano, přes
+`Validate(UoM)`) → logika na `OnAfterValidateEvent(Quantity)` se po změně varianty / lokace nespustí. `Purchase Order Subform.Quantity`
+`OnValidate` i `Sales Order Subform.QuantityOnAfterValidate` (Item) volají `CurrPage.SaveRecord()` → subscriber při dalším `SetValue(Quantity)`
+v TestPage vidí v DB stav po předchozím kroku.
 
 ### 5.x6 „Nemáte dostatečné množství zboží … na skladě" u spotřeby/transferu — `VerifyOnInventory` ignoruje Prevent Negative Inventory
 
