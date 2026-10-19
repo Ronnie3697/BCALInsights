@@ -596,3 +596,13 @@ metody na tabulku. (2026-06, `prod-em-operOutputChaining-bc`, BC28.)
   dělej cílený zápis (`OnRename`: vyčisti `xRec` slot, nastav `Rec` slot). (2026-09-22, cust-soitron-bc, Business Unit 1-5.)
 
 ---
+
+### 2.9 `Get` / `Find` na temporary recordu čte TEMP tabulku, ne DB — načti reálnou instancí a přiřaď
+
+`TempItemLedgerEntry.Get(EntryNo)` na proměnné deklarované `temporary` hledá jen v in-memory datech té proměnné (prázdné
+→ `false`), do DB nesáhne — kompilátor nic nehlásí a kód „jen nic nenajde". Správně: reálná proměnná `ItemLedgerEntry.Get`
+→ `TempItemLedgerEntry := ItemLedgerEntry` → `Insert(false)`. Chytlo se až při review větve, kde pro zboží bez sledování
+(bez `Item Entry Relation`, položka jen v `Sales Shipment Line."Item Shpt. Entry No."`) nevznikla žádná spotřeba, zatímco
+sledované zboží (položky z `ItemTrackingMgt.CollectItemEntryRelation`, který temp plní sám) fungovalo. Totéž platí pro
+`FindFirst`/`FindSet`/`IsEmpty` s filtry na temp proměnné. (2026-10-19, prod-ep-itemManagement-bc
+`CollectShippedItemTracking`.)

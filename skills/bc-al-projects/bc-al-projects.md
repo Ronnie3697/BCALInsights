@@ -227,13 +227,20 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   Type Item) × všechny ILE řádku (`Document Type = Purchase Receipt` + `Document No.` + `Document Line No.`, klíč Key9) —
   tracking rozdělí jeden řádek příjemky na položku per SN / šarže / zásilka. `FindFirst` na obou úrovních (původní kód)
   bral jen první příjemku a první položku.
-- **Přepis 2026-10-19 (prod-ep-itemManagement-bc, větev `features/misc`):** JLE Usage per kombinace (SN, Lot, Package,
-  Expiration Date) dodávaného množství, každá navázaná (`Ledger Entry Type/No.`) na položku příjmu se stejným sledováním
-  (expirace jen když ji dodávka nese); kapacita položky = `ILE.Quantity − Σ "Quantity (Base)"` JLE Usage s `Ledger Entry
-  No.` = ta položka (dřívější dodávky), poslední kandidát bere zbytek (= původní „všechno na první položku"), bez kandidáta
-  JLE bez vazby (Ledger Entry No. 0, tracking z dodávky). Dodávka bez sledování bere libovolnou položku příjmu a přebírá
-  její tracking (`JobJournalLine.CopyTrackingFromItemLedgEntry`). Mezisoučty v temp `Tracking Specification` (bucket) a
-  temp `Item Ledger Entry` (`Quantity` = zbývající kapacita). `Job Jnl.-Post Line.CreateJobLedgEntry` kopíruje SN / Lot /
+- **Přepis 2026-10-19 (prod-ep-itemManagement-bc, větev `features/misc`) — požadavek PO (Honzík): JLE Usage : položka
+  příjmu = 1:1** (jedna položka projektu na celé množství jedné položky příjmu, jinak se nedají dát dohromady náklady).
+  Dodávané množství per tracking (SN, Lot, Package, Expiration Date) = Σ položek zboží **všech** dodávkových řádků
+  objednávkového řádku (`Sales Shipment Line` klíč `Order No.` + `Order Line No.`, bez `Correction`), mínus usage už
+  zaúčtované pro budget řádek (navázané na jeho položky příjmu + nenavázané přes `Job Usage Link`); položky příjmu se
+  stejným sledováním (expirace jen když ji dodávka nese) se účtují v pořadí vzniku **celé a teprve když je dodané
+  množství pokryje** — částečná dodávka přes hranici příjemky tedy spotřebu té položky odloží na dodávku, která ji dokončí
+  (usage dodávku nikdy nepředběhne; příjem 2+3+1, dodávka 3+3 → usage 2 | 3+1). Při plně dodaném řádku (`"Quantity Shipped"
+  + "Qty. to Ship" >= Quantity` — Quantity Shipped se aktualizuje až v `PostUpdateOrderLine`) se zbytek doúčtuje na
+  blokující položku (částečně) nebo bez vazby (`Ledger Entry No.` 0, tracking z dodávky). Dodávka bez sledování bere
+  libovolnou položku příjmu a přebírá její tracking (`JobJournalLine.CopyTrackingFromItemLedgEntry`). Mezisoučty v temp
+  `Tracking Specification` (bucket) a temp `Item Ledger Entry` (`Remaining Quantity` = množství ještě nenavázané na usage).
+  Varianta „eager" (spotřebovat celou položku příjmu, jakmile se z ní něco dodá) zamítnuta: projekt by spotřeboval zboží,
+  které je fyzicky skladem a nemusí se už nikdy dodat. `Job Jnl.-Post Line.CreateJobLedgEntry` kopíruje SN / Lot /
   Package (`CopyTrackingFromJobJnlLine`) a přes `Job Link Usage.HandleMatchUsageSpecifiedJobPlanningLine` **přepíše Lot/SN
   na budget řádku plánování** (`CopyTrackingFromJobLedgEntry`) — po víc JLE zůstane poslední; a když Σ usage přesáhne
   `Quantity` řádku, `HandleMatchUsageSpecifiedJobPlanningLine` udělá `Validate(Quantity, Σ)` → množství i cena řádku

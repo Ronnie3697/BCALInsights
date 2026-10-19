@@ -47,5 +47,6 @@ Vyčleněno z `bc-al-objects.md` 2026-10-05, číslování 5.x je původní.
   běží před `PostItemLine` a `Qty. to Handle (Base)` trackingu řádku NENÍ dodávané množství (řádek sledování na celý řádek
   se částečnou dodávkou nekrátí) → účtuj z `OnAfterInsertShipmentLine` podle položek zboží dodávkového řádku
   (`ItemTrackingMgt.CollectItemEntryRelation` / `Item Shpt. Entry No.`); položky příjmu = každý řádek příjemky × každá ILE;
-  JLE per kombinace SN / Lot / Package / expirace s vazbou na položku příjmu. Nadspotřeba = `Job Link Usage` zvedne
-  `Quantity` budget řádku. IMEBS `CreateItemTrackingForSalesLine` píše do 336, ne 337 (dodávka to nečte).
+  **JLE : položka příjmu 1:1** (celé množství položky, až když ji Σ dodávek řádku pokryje — usage dodávku nepředběhne,
+  může se zpozdit). Nadspotřeba = `Job Link Usage` zvedne `Quantity` budget řádku. IMEBS `CreateItemTrackingForSalesLine`
+  píše do 336, ne 337 (dodávka to nečte).
