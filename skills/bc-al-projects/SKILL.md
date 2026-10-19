@@ -1,8 +1,8 @@
 ---
 name: bc-al-projects
 description: >-
-  BC/AL projekty (Business Central, Job / Job Task / Job Planning Line, sekce 5.x17–5.x24): Gen. Prod. Posting
-  Group řádku plánování jako zdroj pravdy pro deník projektů (Job Transfer Line bez Validate("No.")), změna
+  BC/AL projekty (Job / Job Task / Job Planning Line, sekce 5.x17–5.x24): Gen. Prod. Posting
+  Group řádku plánování jako zdroj pravdy pro deník projektů (Job Transfer Line), změna
   default dimenze projektu (Default Dimension, xRec v OnAfterModifyEvent), Location Code z Job / Job Task jen pro
   nové řádky, vazba budget ↔ billable Purch. Job Cont.Entry No.IMEBS, dimenze řádku plánování do Job Journal
   Line (UpdateDimensions až po OnAfterCreateDim, SingleInstance mezi eventy, Usage Link, TSEBS placeholder),

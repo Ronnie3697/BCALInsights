@@ -3,11 +3,11 @@ name: bc-al-tracking
 description: >-
   BC/AL Item Tracking (šarže, sériová čísla, Reservation Entry 337, Tracking Specification 336;
   sekce 5.x–5.x23): stránka Item Tracking Lines (6510) a její eventy pro ruční řádek (OnBeforeOnInsertRecord
-  / OnBeforeOnModifyRecord), Assign Serial No. / Create Customized SN (OnAfterAssignNewTrackingNo),
+  / OnModifyRecord), Assign Serial No. / Create Customized SN (OnAfterAssignNewTrackingNo),
   předvyplnění šarže (šarže = číslo projektu, zadání SN šarži maže), SN zboží bez automatického řádku,
   vlastní výběr šarže z akce na 6510, source pole u Prod. Order Line, tracking na Sales Quote (Prospect vs
-  Surplus), tracking z Get Shipment Lines (jen Prospect), PC0013 Get do enum PK, TestPage Enter Quantity
-  to Create, FEFO z kódu a prošlé šarže (Strict Expiration), Lot Specific vs. prodej do mínusu, Entry No.
+  Surplus), tracking z Get Shipment Lines (jen Prospect), PC0013 Get do enum PK, Enter Quantity to
+  Create, FEFO z kódu a prošlé šarže (Strict Expiration), Lot Specific vs. prodej do mínusu, Entry No.
   AutoIncrement, dobropis / storno s Appl.-from Item Entry (SQNR), Item Jnl.-Check Line po smazání
   rezervací, převodka s prázdným Order No. (New Expiration Date, in-transit), SetTrackingFilterFrom… jen
   SN+Lot (Package přes event), Item Tracking Setup temp (AA0073). Načti u šarží, SN, Item Tracking Lines,
