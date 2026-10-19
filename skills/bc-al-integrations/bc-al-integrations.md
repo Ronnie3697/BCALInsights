@@ -123,11 +123,11 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
   - ⚠️ `Handled = true` obchází i všechno, co dělá dočasná nabídka: **měnu shopu / katalogu** (`TempSalesHeader.Validate("Currency
     Code")`), **`Prices Including VAT`** shopu a **ceník** (`Customer Price Group` / `Customer Disc. Group` shopu, slevy;
     `Price` = `Line Amount`). Záložní větev konektoru (`Item."Unit Price"` z karty) běží jen bez dočasné hlavičky, tedy prakticky
-    nikdy. `Item."Unit Price"` je v LCY, typicky bez DPH a mimo ceník → do EUR shopu nebo B2C shopu s cenami vč. DPH pošleš
-    špatné číslo (a s prázdnou kartou nulu). Cenu ber ze zdroje, který je v měně shopu (u poukazů hodnota poukazu + kontrola
-    měny poukazu proti `Shop."Currency Code"`, prázdná = LCY), jinak nech `Handled = false`. Příští sync ceny v Shopify přepíše,
-    takže před nasazením porovnej nové ceny s tím, co v Shopify je. (Review hotfixu 28.0.167.1, cust-sonnentor-bc, 2026-10-19,
-    zdroj `Shpfy Product Price Calc.` konektor 28.5.)
+    nikdy. I bez ceníku standardní cesta cenu z karty nepošle surově: `Price Asset - Item.FillBestLine` (w1-28) ji dá jako řádek
+    s `Currency Code` '' a `Price Includes VAT` z karty a výpočet řádku ji přepočte na měnu a DPH dočasné hlavičky (= shopu).
+    S `Handled` a holým `Item."Unit Price"` tedy pošleš stejné číslo jen když je shop v LCY a sazba DPH je 0 % nebo `Price
+    Includes VAT` karty = `Prices Including VAT` shopu. Jinak přepočet udělej sám, nebo to aspoň ověř na datech. Příští sync ceny
+    v Shopify přepíše, takže změnu uvidí zákazník. (Review hotfixu 28.0.167.1, cust-sonnentor-bc, 2026-10-19, konektor 28.5.)
   - `UnitOfMeasure` je `Code[20]`. Do `Item Unit of Measure.Get` ho dávej přes `Code[10]` proměnnou, jinak ALCops **PC0013**.
   - Vytvoření prodejního dokladu ze Shopify objednávky (`Shpfy Process Order.CreateLinesFromShopifyOrder`) cenu nepočítá. Bere
     `Shpfy Order Line."Unit Price"` z importu objednávky (`Validate("Unit Price", …)`).
