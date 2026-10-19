@@ -7,7 +7,7 @@
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
 Obsahuje:
-- **5.x17–5.x20** Projekty
+- **5.x17–5.x24** Projekty (5.x24: spotřeba projektu z prodejní dodávky per tracking a per položka příjmu, pořadí v Sales-Post)
 
 ### 5.x17 Job Planning Line `Gen. Prod. Posting Group` = zdroj pravdy pro deník projektů; změna default dimenze projektu
 
@@ -204,3 +204,32 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   `TestField("Remaining Quantity", Quantity)` na položce příjmu (`OnCheckItemLedgEntriesOnBeforeCheckTempItemLedgEntry` nebo před
   účtováním). Hook `Undo Posting Management.OnBeforeReapplyJobConsumption(ItemRcptEntryNo, var IsHandled)` sám nestačí — zůstala by
   druhá Negative Adjmt. položka a Applies-to 0. (2026-10-14, cust-soitron-bc: NO 106182 / příjemka 107358, Base App 28.4.)
+
+### 5.x24 Spotřeba projektu z prodejní dodávky (IMEBS `CreateJobLedgerEntryFromSalesLine`): víc příjemek, víc položek zboží na příjemce, tracking
+
+- **`Sales-Post.OnBeforePostJobContractLine` běží z `UpdateSalesLineBeforePost`, tj. PŘED `PostItemTrackingLine` /
+  `PostItemLine`** (w1-28 `SalesPost.Codeunit.al`: `PostSalesLine` → `UpdateSalesLineBeforePost` → `PostJobContractLine`
+  → … → `PostItemLine`). V subscriberu ještě neexistují položky zboží dodávky ani `Item Entry Relation`; zato rezervační
+  položky prodejního řádku jsou netknuté. **Dodávané sledování** = `Reservation Entry` se `SetSourceFilter(Database::"Sales
+  Line", DocType.AsInteger(), DocNo, LineNo, true)` + `SetSourceFilter('', 0)` + `SetFilter("Item Tracking", '<>%1', None)`,
+  množství `-"Qty. to Handle (Base)"` (demand je záporný) — totéž, co standard sčítá v `ItemTrackingMgt.
+  CalcQtyToHandleForTrackedQtyOnDocumentLine` a čím `Sales-Post.CheckTrackingSpecification` hlídá rovnost s `Qty. to Ship
+  (Base)` (jen když kód sledování tracking na prodeji vyžaduje). Zbytek do `Qty. to Ship (Base)` = dodáno bez sledování.
+- **Položky příjmu budget řádku:** všechny `Purch. Rcpt. Line` (Job No. / Job Task No. / `Job Planning Line No. EPEBS`,
+  Type Item) × všechny ILE řádku (`Document Type = Purchase Receipt` + `Document No.` + `Document Line No.`, klíč Key9) —
+  tracking rozdělí jeden řádek příjemky na položku per SN / šarže / zásilka. `FindFirst` na obou úrovních (původní kód)
+  bral jen první příjemku a první položku.
+- **Přepis 2026-10-19 (prod-ep-itemManagement-bc, větev `features/misc`):** JLE Usage per kombinace (SN, Lot, Package,
+  Expiration Date) dodávaného množství, každá navázaná (`Ledger Entry Type/No.`) na položku příjmu se stejným sledováním
+  (expirace jen když ji dodávka nese); kapacita položky = `ILE.Quantity − Σ "Quantity (Base)"` JLE Usage s `Ledger Entry
+  No.` = ta položka (dřívější dodávky), poslední kandidát bere zbytek (= původní „všechno na první položku"), bez kandidáta
+  JLE bez vazby (Ledger Entry No. 0, tracking z dodávky). Dodávka bez sledování bere libovolnou položku příjmu a přebírá
+  její tracking (`JobJournalLine.CopyTrackingFromItemLedgEntry`). Mezisoučty v temp `Tracking Specification` (bucket) a
+  temp `Item Ledger Entry` (`Quantity` = zbývající kapacita). `Job Jnl.-Post Line.CreateJobLedgEntry` kopíruje SN / Lot /
+  Package (`CopyTrackingFromJobJnlLine`) a přes `Job Link Usage.HandleMatchUsageSpecifiedJobPlanningLine` **přepíše Lot/SN
+  na budget řádku plánování** (`CopyTrackingFromJobLedgEntry`) — po víc JLE zůstane poslední. Testy `Purch. Consumption Test
+  IMEBS` (dvě příjemky, dvě dodávky 1+4 proti 2+3, dvě šarže, nepřijatá šarže).
+- ⚠️ **IMEBS `CreateItemTrackingForSalesLine` (šarže / SN z řádku plánování na prodejní řádek) zapisuje do `Tracking
+  Specification` (336), ne do `Reservation Entry`** — dodávka tracking z 336 nebere (336 čte jen `RetrieveInvoiceSpecification`
+  pro fakturaci dodaného), takže řádek z plánovací řádky se šarží se pravděpodobně chová jako bez sledování. Neopraveno,
+  jen zjištěno při přepisu výše (žádný test to nepokrývá).

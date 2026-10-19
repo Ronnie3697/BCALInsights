@@ -15,6 +15,7 @@ Obsahuje:
 - **5.x16** automatické přiřazení šarže z kódu (FEFO) — prošlé šarže při Strict Expiration Posting přeskoč
 - **5.x17** `Reservation Entry."Entry No."` je AutoIncrement — `"Entry No." := 0` před Insert, nikdy FindLast + 1
 - **5.x18** dobropis / vratka s `Appl.-from Item Entry` z kódu — SQNR se mění až při účtování, slučování šarží při účtování
+- **5.x23** tracking filtry `SetTrackingFilterFrom…` v base = jen SN + Lot (Package přes event); `Item Tracking Setup` je temp (AA0073)
 
 ## 5. Specifické objekty a API — Item Tracking
 
@@ -376,3 +377,15 @@ cust-soitron-bc (`Job Lot Tracking Mgt. SOI`, 2026-10-07): u SN zboží auto-ř�
   true)` → 4 ILE `Entry Type = Transfer` (−From, +InTransit, −InTransit, +To), na všech ověř `Order No.` = číslo převodky. Enum
   `Order Type` porovnávej `TestField`, ne `Assert.AreEqual`. Surové ILE pro test upgrade rutiny: `Init` + `"Entry No." :=
   LibraryUtility.GetNewRecNo(ILE, FieldNo("Entry No."))` + `Insert(false)`.
+
+### 5.x23 `SetTrackingFilterFromSpec` / `…FromReservEntry` v base tabulkách filtrují jen SN + Lot; `Item Tracking Setup` je temp tabulka
+
+- **`Item Ledger Entry.SetTrackingFilterFromSpec`, `Tracking Specification.SetTrackingFilterFromReservEntry` (a sourozenci)
+  dělají v tabulce samé jen `SetRange("Serial No.")` + `SetRange("Lot No.")`** (w1-28); `Package No.` doplňuje až subscriber
+  package trackingu na `OnAfterSetTrackingFilterFrom…`. Když má kód spárovat sledování i podle zásilky (a nechceš záviset na
+  tom, co kdo přidá do eventu), nastav tři `SetRange` (Serial / Lot / Package) sám — prázdná hodnota = filtr na prázdno, což
+  je pro párování „stejné sledování" správně. `Expiration Date` žádný helper nefiltruje. `TrackingExists()` na ILE / 336 /
+  337 kontroluje SN + Lot (+ Package přes event). (2026-10-19, prod-ep-itemManagement-bc, spotřeba projektu z dodávky.)
+- **`Item Tracking Setup` (6565) je `TableType = Temporary`** → proměnná musí mít prefix `Temp` (CodeCop **AA0073**
+  „The name of temporary variable … must be prefixed with Temp"), i když ji jen plníš a předáváš do `Library - Item
+  Tracking.InsertItemTracking` / `GetItemTrackingSetup`. Stejně `Entry Summary` (338).

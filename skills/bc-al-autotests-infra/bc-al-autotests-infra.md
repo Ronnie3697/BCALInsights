@@ -209,6 +209,18 @@ Dvě verze téže appky v jedné cache (stará `.alpackages` + nový build) = ne
   kopií `test/` ve scratchpadu se symbolem přepnutým na `TESTS` (`sed` na `app.json` kopie); jinak se chyby v testech neukážou.
   (2026-09-29, prod-ef-replications-bc, Send With Parent Record.)
 
+
+- **alc 18 + `Tests-TestLibraries` 28.4.53241.53504: tranzitivní `Any` a `Business Foundation Test Libraries` v cache BÝT
+  MUSÍ** (`AL1022 … 'Any' … compatible with '28.4.0.0' could not be found`), i když je test `app.json` nedeklaruje —
+  dřívější věta „tranzitivní v cache být nemusí, alc 17.0 projde" platí jen pro 17.0 / 28.3. Hotové 28.4.53241.53504 kopie:
+  sonnentor scratchpad `build/testcache/` (`find "$LOCALAPPDATA/Temp/claude" -iname "Microsoft_Any_28.4*"`). Recept
+  prod-ep-itemManagement-bc (2026-10-19): cache = MS 28.4 řada z repo `.alpackages` + EP Base 28.0.24.0 + čerstvý build hlavní
+  appky + 9 test balíčků 28.4.53241.53504; test `app.json` repa má jen `Tests-TestLibraries` + `System Application Test
+  Library` (CI `bcartifacts/onprem/28.0/cz/weekly` to přeloží), lokálně proti 28.4 symbolům kompiluj **kopii** `test/` s
+  `Application Test Library` doplněnou PowerShellem (`ConvertFrom-Json` → `$j.dependencies += …` → `ConvertTo-Json -Depth 10`)
+  a s `app/essence.png` + `app/<main>.ruleset.json` vedle kopie (logo `..\app\…`, test ruleset dědí `..\app\…`).
+  Repo ruleset s externím includem přes `/enableexternalrulesets` prošel (blob TLS OK).
+
 ### Re-analýza VS Code po změně `app.json`
 
 Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS Code AL extension **necachuje** změnu okamžitě. Diagnostiky stále hlásí "Codeunit 'Library Assert' is missing" pro již refaktorované kódy. Řešení:
