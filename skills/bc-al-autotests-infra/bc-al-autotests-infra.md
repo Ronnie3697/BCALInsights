@@ -286,6 +286,15 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   Permissions Mock, Library Assert, Library Variable Storage, **Any** (`microsoft.any.symbols.e7320ebb-08b3-4406-b1ec-b4927d3e280b`)
   a **Business Foundation Test Libraries** (`microsoft.businessfoundationtestlibraries.symbols.bee8cf2f-494a-42f4-aabd-650e87934d39`).
   Hotovo ve scratchpadu `…/c--WorkingFolder-AL-cust-londonPharma-bc-W1-Base-W1-app/…/scratchpad/testsym/`.
+  **Sada 28.5.54151.54365 stažená skriptem (2026-10-19, cust-sonnentor-bc):** `query2/?q=<název-bez-mezer>` vrátí ID balíčku
+  (`microsoft.tests-testlibraries.symbols.<guid>`), `flat2/<id>/index.json` verze, `flat2/<id>/<ver>/<id>.<ver>.nupkg` balíček.
+  Dvě pasti: (a) **Test Runner a BF Test Libraries jsou na feedu jen jako country varianty** (`Microsoft.TestRunner.CZ.symbols.<guid>`,
+  `…BusinessFoundationTestLibraries.CZ…`) — `q=<název>` je nenajde, hledej `q=<guid>` a vezmi `.cz.` variantu (obsahově W1);
+  (b) **dlouhá cesta scratchpadu + dlouhý název `.nupkg` přeteče MAX_PATH** → `Could not find a part of the path`, stahuj do
+  krátké složky (`%TEMP%\mssym\<název>.zip`). `Expand-Archive` odmítá příponu `.nupkg` → ulož rovnou jako `.zip`. Stejný postup
+  dá i MS appky mimo `.alpackages` (E-Document Core `microsoft.e-documentcore.cz.symbols.e1d97edc-…`, závislost Essence
+  Document Attachments W1). Essence produktové appky na tomhle feedu nejsou (BCNugetPackages chce packaging PAT) — zkompiluj je
+  ze zdrojáku do temp cache (`alc /out:<cache>\<Publisher>_<Name>_<ver>.app`) a konzumenta kompiluj proti nim.
 - **Když VS Code AL 18 extension zmizí** (`~/.vscode/extensions` má jen 17.0), stejný kompilátor, jaký bere CI, leží v
   `C:\ProgramData\BcContainerHelper\alLanguageExtension\<verze>\extension\bin\alc.exe` (2026-10: `18.0.2819426`, vedle
   CodeCop / UICop / PTE / AppSourceCop DLL, ALCops ne). alc 17 symboly s `RuntimeVersion 17.0` přečte a appku s `runtime 17.0`
