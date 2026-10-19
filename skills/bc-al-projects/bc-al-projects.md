@@ -259,7 +259,7 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   (od 4b6d257 jde JLE přes `Job Jnl.-Post Line.CreateJobLedgEntry` → `ApplyUsage` → link existuje). Správné místo je
   `OnBeforePostTotalCostAdjustment` (exit před výpočtem) nebo vlastní výpočet: Σ VE příjmové položky
   (`Item Ledger Entry No.` = `JLE."Ledger Entry No."`, Actual + Expected) / `ILE.Quantity` × `JLE.Quantity` + vlastní
-  `UpdatePostedTotalCost`. (2026-10-19, prod-ep-itemManagement-bc, analÃ½za zadÃ¡nÃ­ âocenÄnÃ­ poloÅ¾ek projektu dle ILE".)
+  `UpdatePostedTotalCost`. (2026-10-19, prod-ep-itemManagement-bc, analýza zadání „ocenění položek projektu dle ILE".)
   **Opraveno tamtéž (2026-10-19, větev `features/misc`):** nový subscriber `UpdateJobItemCost_OnBeforePostTotalCostAdjustmentIMEBS`
   (`OnBeforePostTotalCostAdjustment(var JobLedgEntry, ItemLedgerEntry, …, var IsHandled)`, pro ILE typu Purchase `IsHandled := true`),
   původní subscriber ponechán jako pojistka s komentářem. Test `UpdateJobItemCost_UsageFromShipment_KeepsEntryAndPostedCostOfBudgetLine`
