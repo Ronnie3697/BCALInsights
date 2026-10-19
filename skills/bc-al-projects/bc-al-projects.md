@@ -233,3 +233,38 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   Specification` (336), ne do `Reservation Entry`** — dodávka tracking z 336 nebere (336 čte jen `RetrieveInvoiceSpecification`
   pro fakturaci dodaného), takže řádek z plánovací řádky se šarží se pravděpodobně chová jako bez sledování. Neopraveno,
   jen zjištěno při přepisu výše (žádný test to nepokrývá).
+
+### 5.x25 Přecenění položek projektu po adjustaci nákladů (`Update Job Item Cost`, 1095) — co standard umí a kde IMEBS spotřeba z dodávky vypadává
+
+- **Kdy běží:** `Inventory Adjustment.PostItemJnlLine` sbírá `OrigValueEntry."Job No."` (ne ILE) do `JobsToAdjust`;
+  `RunUpdateJobItemCost` po `MakeMultiLevelAdjmt` spustí report **jen při `Jobs Setup."Automatic Update Job Item Cost"`**
+  (jinak ručně z karty projektu), per projekt `Job.SetRange("No.")`, jen Job Status Planning / Quote / Open.
+- **Co report dělá (w1-28):** JLE `Type = Item`, `Entry Type = Usage`, `Ledger Entry Type = Item` → ILE z `Ledger Entry No.` →
+  Value Entry filtr **`Job No.` + `Job Task No.` + `Job Ledger Entry No.` + `Item Ledger Entry Type = Negative Adjmt.` +
+  `Document Type = Purchase Invoice`** (= standardní spotřeba projektu z nákupní příjemky). Když nic nenajde, bere
+  **celou** `ILE."Cost Amount (Expected)" + "Cost Amount (Actual)"` a nastaví `JLE."Total Cost (LCY)" := -hodnota`
+  (znaménko počítá se záporným Negative Adjmt.). Pořadí v `PostTotalCostAdjustment`: Total/Unit Cost → `Adjusted := true` →
+  `OnPostTotalCostAdjustmentOnBeforeJobLedgEntryModify(var JLE, ILE)` → `Modify` → **`UpdatePostedTotalCost(delta)`** přes
+  `Job Usage Link` → `JobPlanningLine.UpdatePostedTotalCost` (jen `Posted Total Cost (LCY)`, nikdy plánovaný `Unit Cost`).
+  Plánovaný `Unit Cost (LCY)` řádku plánování report přepisuje **jen u `System-Created Entry`** řádků (vzniklých z
+  `MatchUsageUnspecified`); ručně plánované řádky si cenu drží navždy. Standard tedy „přepočet částek na řádcích
+  plánování" po adjustaci dělá jen v `Posted Total Cost (LCY)`.
+- **IMEBS usage z prodejní dodávky** (`PostConsumption`, `Ledger Entry No.` = **kladná položka nákupního příjmu**, ne
+  Negative Adjmt.): filtr VE nic nenajde → fallback = náklad celé příjemky se záporným znaménkem na usage s částí
+  množství. První verze modulu (06/2026, přímý `JobLedgerEntry.Insert`) to nechaly běžet → „automatické přecenění", ale
+  na špatná čísla. Od 374f10c (2026-08-24) subscriber na `OnPostTotalCostAdjustmentOnBeforeJobLedgEntryModify`
+  vrátí JLE z DB (`JobLedgerEntry := OrigJobLedgerEntry`) → ceny z řádku plánování zůstanou. ⚠️ Blokovat **v tomhle
+  eventu nestačí**: `Adjusted` zůstane false a `UpdatePostedTotalCost(delta)` za `Modify` se zavolá stejně → při
+  každém běhu adjustace přičte deltu (celá příjemka − usage) do `Posted Total Cost (LCY)` budget řádku s usage linkem
+  (od 4b6d257 jde JLE přes `Job Jnl.-Post Line.CreateJobLedgEntry` → `ApplyUsage` → link existuje). Správné místo je
+  `OnBeforePostTotalCostAdjustment` (exit před výpočtem) nebo vlastní výpočet: Σ VE příjmové položky
+  (`Item Ledger Entry No.` = `JLE."Ledger Entry No."`, Actual + Expected) / `ILE.Quantity` × `JLE.Quantity` + vlastní
+  `UpdatePostedTotalCost`. (2026-10-19, prod-ep-itemManagement-bc, analýza zadání „ocenění položek projektu dle ILE".)
+- **Sale JLE z fakturace** (`Job Transfer Line.FromPlanningSalesLineToJnlLine`): `Unit Price` = **`JobPlanningLine."Unit
+  Price"`** (ne prodejní řádek!), `Line Discount %` = `SalesLine`, `Unit Cost` = `SalesLine."Unit Cost (LCY)"` (jen když
+  `DoUpdateUnitCost` — Standard costing bez projektu ne), `Direct Unit Cost (LCY)` = planning line. Změna ceny na
+  objednávce se tedy do položky projektu nepropíše — `Job Post-Line.ValidateRelationship` hlídá jen shodu `Unit Cost (LCY)`
+  (event `OnValidateRelationshipOnUnitCostLCYDifferenceError`), cenu ne. Cena z dokladu = `OnAfterFromPlanningSalesLineToJnlLine`
+  → `Validate("Unit Price", SalesLine."Unit Price")`. `Job Jnl.-Post Line.PostItem` u Usage náklad z VE **nečte**
+  (`UpdateJobJnlLineTotalAmounts` = Unit Cost řádku × množství z VE), takže ani standardní spotřeba není „dle ILE" při
+  účtování — až report 1095. `Job Planning Line Invoice."Invoiced Amount (LCY)"` = `CalcLineAmountLCY` z ceny řádku plánování.
