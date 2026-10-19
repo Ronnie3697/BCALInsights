@@ -2,16 +2,16 @@
 name: bc-al-tracking
 description: >-
   BC/AL Item Tracking (šarže, sériová čísla, Reservation Entry 337, Tracking Specification 336;
-  sekce 5.x–5.x22): stránka Item Tracking Lines (6510) a její eventy pro ruční řádek (OnBeforeOnInsertRecord
-  / OnBeforeOnModifyRecord), Assign Serial No. / Create Customized SN (OnAfterAssignNewTrackingNo),
+  sekce 5.x–5.x23): stránka Item Tracking Lines (6510) a její eventy pro ruční řádek (OnBeforeOnInsertRecord
+  / OnModifyRecord), Assign Serial No. / Create Customized SN (OnAfterAssignNewTrackingNo),
   předvyplnění šarže (šarže = číslo projektu, zadání SN šarži maže), SN zboží bez automatického řádku,
   vlastní výběr šarže z akce na 6510, source pole u Prod. Order Line, tracking na Sales Quote (Prospect vs
-  Surplus), tracking z Get Shipment Lines (jen Prospect), PC0013 Get do enum PK, TestPage handlery Enter
-  Quantity to Create, FEFO z kódu a prošlé šarže (Strict Expiration), Lot Specific vs. prodej do mínusu,
-  Reservation Entry Entry No. AutoIncrement, dobropis / storno s Appl.-from Item Entry (SQNR), Item
-  Jnl.-Check Line po smazání rezervací, převodka s prázdným / přepsaným Order No. = chyba New Expiration
-  Date a in-transit párování. Načti u šarží, SN, Item Tracking Lines, Reservation Entry, převodek se
-  sledováním.
+  Surplus), tracking z Get Shipment Lines (jen Prospect), PC0013 Get do enum PK, Enter Quantity to
+  Create, FEFO z kódu a prošlé šarže (Strict Expiration), Lot Specific vs. prodej do mínusu, Entry No.
+  AutoIncrement, dobropis s Appl.-from Item Entry (SQNR), Item Jnl.-Check Line po smazání
+  rezervací, převodka s prázdným Order No. (New Expiration Date), SetTrackingFilterFrom… jen
+  SN+Lot (Package přes event), Item Tracking Setup temp (AA0073). Načti u šarží, SN, Item Tracking Lines,
+  Reservation Entry, převodek se sledováním.
 user-invocable: true
 ---
 
@@ -50,3 +50,6 @@ Vyčleněno z `bc-al-objects.md` 2026-10-07, číslování 5.x je původní.
   `CheckExpirationDate` bez něj bere řádek jako reclass a chce `New Expiration Date` (z převodky nejde zadat), in-transit
   párování jde přes `Order Type` + `Order No.`. Vlastní reference (PO, dodavatel) = vlastní pole na Item Journal Line + ILE,
   propsat v `OnAfterInitItemLedgEntry` (běží i pro odvozenou položku).
+- **5.x23** `SetTrackingFilterFromSpec` / `…FromReservEntry` v base tabulkách filtrují jen SN + Lot (Package jen přes
+  event) → párování per SN / Lot / Package = tři `SetRange` ručně; `Item Tracking Setup` je temp tabulka (`Temp` prefix,
+  AA0073).

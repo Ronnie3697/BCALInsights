@@ -1,18 +1,20 @@
 ---
 name: bc-al-projects
 description: >-
-  BC/AL projekty (Business Central, Job / Job Task / Job Planning Line, sekce 5.x17–5.x23): Gen. Prod. Posting
-  Group řádku plánování jako zdroj pravdy pro deník projektů (Job Transfer Line bez Validate("No.")), změna
+  BC/AL projekty (Job / Job Task / Job Planning Line, sekce 5.x17–5.x24): Gen. Prod. Posting
+  Group řádku plánování jako zdroj pravdy pro deník projektů (Job Transfer Line), změna
   default dimenze projektu (Default Dimension, xRec v OnAfterModifyEvent), Location Code z Job / Job Task jen pro
-  nové řádky, vazba budget ↔ billable `Purch. Job Cont.Entry No.IMEBS`, dimenze řádku plánování do Job Journal
-  Line (UpdateDimensions až po OnAfterCreateDim, OnAfterUpdateDimensions, SingleInstance mezi eventy, Usage Link,
-  TSEBS placeholder resource), návazné doklady projektu (Job Planning Line Invoice, Sales Header Job No. EPEBS,
-  nákupní objednávka / příjemka) a guardy Job Planning Line.OnDelete (mazání, Attached to Line No.), undo nákupní příjemky s projektem (ReapplyJobConsumption, Skip Purchase Consumption IMEBS). Načti
-  u řádků plánování projektu, deníku projektů, přegenerování / mazání plánovacích řádků, návazných dokladů a storna příjemky projektu.
+  nové řádky, vazba budget ↔ billable Purch. Job Cont.Entry No.IMEBS, dimenze řádku plánování do Job Journal
+  Line (UpdateDimensions až po OnAfterCreateDim, SingleInstance mezi eventy, Usage Link, TSEBS placeholder),
+  návazné doklady projektu (Job Planning Line Invoice, Job No. EPEBS, nákupní objednávka / příjemka), guardy
+  Job Planning Line.OnDelete, undo nákupní příjemky s projektem (ReapplyJobConsumption, Skip Purchase
+  Consumption IMEBS), spotřeba projektu z prodejní dodávky per šarže / SN / položka příjmu
+  (CreateJobLedgerEntryFromSalesLine, OnBeforePostJobContractLine před PostItemLine). Načti u řádků plánování,
+  deníku projektů, mazání plánovacích řádků, návazných dokladů, storna příjemky a spotřeby z dodávky.
 user-invocable: true
 ---
 
-# BC/AL — Projekty: Job, Job Task, Job Planning Line (sekce 5.x17–5.x20)
+# BC/AL — Projekty: Job, Job Task, Job Planning Line (sekce 5.x17–5.x24)
 
 **Zdroj pravdy:** `bc-al-projects.md` ve stejném adresáři jako tenhle `SKILL.md`
 (adresář skillu = „Base directory" hlášený při načtení; cestu skládej odtud, ne přes `..`). Tenhle skill je jen wrapper —
@@ -41,3 +43,7 @@ Vyčleněno z `bc-al-objects.md` 2026-10-05, číslování 5.x je původní.
   `OnAfterCreateDim`); stav mezi eventy jen se `SingleInstance = true`.
 - **5.x20** Prodejní doklad z plánovacích řádků = `Job Planning Line Invoice`; projekt na hlavičce IMEBS prodejky =
   `Job No. EPEBS`. `Job Planning Line.OnDelete` blokuje příjemky, fakturaci a usage, otevřenou nákupní objednávku ne.
+- **5.x24** Spotřeba projektu z prodejní dodávky (IMEBS `CreateJobLedgerEntryFromSalesLine`): `OnBeforePostJobContractLine`
+  běží před `PostItemLine` → dodávané sledování čti z rezervačních položek řádku (`Qty. to Handle (Base)`, `Item Tracking
+  <> None`), položky příjmu = každý řádek příjemky × každá ILE; JLE per kombinace SN / Lot / Package / expirace s vazbou
+  na položku příjmu. IMEBS `CreateItemTrackingForSalesLine` píše do 336, ne 337 (dodávka to nečte).

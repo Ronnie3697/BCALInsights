@@ -166,6 +166,21 @@ NEmodifikuje). Směr částky: odchozí platba dodavateli z výpisu má na řád
   explicitně, jinak kontrola „MJ není nastavena pro sumarizovaný zdroj" správně shodí i pozitivní test. Zdroj knihovny:
   microsoft/BCApps `LibraryResource.Codeunit.al` (`.app` těla nemá). (2026-10-13, cust-soitron-bc 67015, `QB Buffer Test SOI`.)
 
+
+- **`Library - Item Tracking.CreateSalesOrderItemTracking` odmítne prodejní řádek s `Job Contract Entry No. <> 0`** („You
+  cannot use item tracking on a Sales Line created from a Project", Text048 — knihovna kopíruje guard z `Sales Line.
+  OpenItemTrackingLines`). Řádky generované IMEBS z billable řádků plánování ho mají vždy → tracking na ně v testu vlož přes
+  veřejnou `LibraryItemTracking.InsertItemTracking(ReservEntry, false, ItemNo, Location, Variant, -Qty * QtyPerUoM,
+  QtyPerUoM, TempItemTrackingSetup, Database::"Sales Line", DocType.AsInteger(), DocNo, '', 0, LineNo, "Shipment Date")`
+  (demand = `Positive false` + záporné base množství; `Validate("Quantity (Base)")` nastaví `Qty. to Handle (Base)` =
+  celé množství). Nákupní strana (`CreatePurchOrderItemTracking`) guard nemá. Šaržové zboží: `LibraryItemTracking.
+  CreateItemTrackingCode(Code, false, true)` + `Item.Validate("Item Tracking Code")` — Lot Specific = šarže povinná na
+  příjmu i dodávce. Částečný příjem / dodávka v testu: `Validate("Qty. to Receive" / "Qty. to Ship")` + `Modify(true)` +
+  `Post…Document(…, true, false)`, pak **`Get` hlavičky** a druhé účtování bere zbytek bez reopen (částečné účtování
+  doklad vydá, ale další `Post` to nevadí; reopen je nutný jen pro změnu řádku). Zboží z `LibraryInventory.CreateItem` má
+  `Reserve = Optional`, takže auto-rezervace IMEBS (`Reserve::Always`) v testech nehraje. (2026-10-19,
+  prod-ep-itemManagement-bc `Purch. Consumption Test IMEBS`, kompilace čistá, běh až v CI.)
+
 ## Prodejní a nákupní doklady
 
 - **Částečné zaúčtování (jen příjem / dodávka) doklad VYDÁ** — `Purch.-Post` / `Sales-Post` volají release, takže

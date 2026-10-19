@@ -7,7 +7,7 @@
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
 Obsahuje:
-- **5.x17–5.x20** Projekty
+- **5.x17–5.x24** Projekty (5.x24: spotřeba projektu z prodejní dodávky per tracking a per položka příjmu, pořadí v Sales-Post)
 
 ### 5.x17 Job Planning Line `Gen. Prod. Posting Group` = zdroj pravdy pro deník projektů; změna default dimenze projektu
 
@@ -204,3 +204,107 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   `TestField("Remaining Quantity", Quantity)` na položce příjmu (`OnCheckItemLedgEntriesOnBeforeCheckTempItemLedgEntry` nebo před
   účtováním). Hook `Undo Posting Management.OnBeforeReapplyJobConsumption(ItemRcptEntryNo, var IsHandled)` sám nestačí — zůstala by
   druhá Negative Adjmt. položka a Applies-to 0. (2026-10-14, cust-soitron-bc: NO 106182 / příjemka 107358, Base App 28.4.)
+
+### 5.x24 Spotřeba projektu z prodejní dodávky (IMEBS `CreateJobLedgerEntryFromSalesLine`): víc příjemek, víc položek zboží na příjemce, tracking
+
+- **`Sales-Post.OnBeforePostJobContractLine` běží z `UpdateSalesLineBeforePost`, tj. PŘED `PostItemTrackingLine` /
+  `PostItemLine`** (w1-28 `SalesPost.Codeunit.al`: `PostSalesLine` → `UpdateSalesLineBeforePost` → `PostJobContractLine`
+  → … → `PostItemLine`). V subscriberu ještě neexistují položky zboží dodávky ani `Item Entry Relation`; zato rezervační
+  položky prodejního řádku jsou netknuté. **Dodávané sledování** = `Reservation Entry` se `SetSourceFilter(Database::"Sales
+  Line", DocType.AsInteger(), DocNo, LineNo, true)` + `SetSourceFilter('', 0)` + `SetFilter("Item Tracking", '<>%1', None)`,
+  množství `-"Qty. to Handle (Base)"` (demand je záporný) — totéž, co standard sčítá v `ItemTrackingMgt.
+  CalcQtyToHandleForTrackedQtyOnDocumentLine` a čím `Sales-Post.CheckTrackingSpecification` hlídá rovnost s `Qty. to Ship
+  (Base)` (jen když kód sledování tracking na prodeji vyžaduje). Zbytek do `Qty. to Ship (Base)` = dodáno bez sledování.
+- **Položky příjmu budget řádku:** všechny `Purch. Rcpt. Line` (Job No. / Job Task No. / `Job Planning Line No. EPEBS`,
+  Type Item) × všechny ILE řádku (`Document Type = Purchase Receipt` + `Document No.` + `Document Line No.`, klíč Key9) —
+  tracking rozdělí jeden řádek příjemky na položku per SN / šarže / zásilka. `FindFirst` na obou úrovních (původní kód)
+  bral jen první příjemku a první položku.
+- **Přepis 2026-10-19 (prod-ep-itemManagement-bc, větev `features/misc`):** JLE Usage per kombinace (SN, Lot, Package,
+  Expiration Date) dodávaného množství, každá navázaná (`Ledger Entry Type/No.`) na položku příjmu se stejným sledováním
+  (expirace jen když ji dodávka nese); kapacita položky = `ILE.Quantity − Σ "Quantity (Base)"` JLE Usage s `Ledger Entry
+  No.` = ta položka (dřívější dodávky), poslední kandidát bere zbytek (= původní „všechno na první položku"), bez kandidáta
+  JLE bez vazby (Ledger Entry No. 0, tracking z dodávky). Dodávka bez sledování bere libovolnou položku příjmu a přebírá
+  její tracking (`JobJournalLine.CopyTrackingFromItemLedgEntry`). Mezisoučty v temp `Tracking Specification` (bucket) a
+  temp `Item Ledger Entry` (`Quantity` = zbývající kapacita). `Job Jnl.-Post Line.CreateJobLedgEntry` kopíruje SN / Lot /
+  Package (`CopyTrackingFromJobJnlLine`) a přes `Job Link Usage.HandleMatchUsageSpecifiedJobPlanningLine` **přepíše Lot/SN
+  na budget řádku plánování** (`CopyTrackingFromJobLedgEntry`) — po víc JLE zůstane poslední. Testy `Purch. Consumption Test
+  IMEBS` (dvě příjemky, dvě dodávky 1+4 proti 2+3, dvě šarže, nepřijatá šarže).
+- ⚠️ **IMEBS `CreateItemTrackingForSalesLine` (šarže / SN z řádku plánování na prodejní řádek) zapisuje do `Tracking
+  Specification` (336), ne do `Reservation Entry`** — dodávka tracking z 336 nebere (336 čte jen `RetrieveInvoiceSpecification`
+  pro fakturaci dodaného), takže řádek z plánovací řádky se šarží se pravděpodobně chová jako bez sledování. Neopraveno,
+  jen zjištěno při přepisu výše (žádný test to nepokrývá).
+
+### 5.x25 Přecenění položek projektu po adjustaci nákladů (`Update Job Item Cost`, 1095) — co standard umí a kde IMEBS spotřeba z dodávky vypadává
+
+- **Kdy běží:** `Inventory Adjustment.PostItemJnlLine` sbírá `OrigValueEntry."Job No."` (ne ILE) do `JobsToAdjust`;
+  `RunUpdateJobItemCost` po `MakeMultiLevelAdjmt` spustí report **jen při `Jobs Setup."Automatic Update Job Item Cost"`**
+  (jinak ručně z karty projektu), per projekt `Job.SetRange("No.")`, jen Job Status Planning / Quote / Open.
+- **Co report dělá (w1-28):** JLE `Type = Item`, `Entry Type = Usage`, `Ledger Entry Type = Item` → ILE z `Ledger Entry No.` →
+  Value Entry filtr **`Job No.` + `Job Task No.` + `Job Ledger Entry No.` + `Item Ledger Entry Type = Negative Adjmt.` +
+  `Document Type = Purchase Invoice`** (= standardní spotřeba projektu z nákupní příjemky). Když nic nenajde, bere
+  **celou** `ILE."Cost Amount (Expected)" + "Cost Amount (Actual)"` a nastaví `JLE."Total Cost (LCY)" := -hodnota`
+  (znaménko počítá se záporným Negative Adjmt.). Pořadí v `PostTotalCostAdjustment`: Total/Unit Cost → `Adjusted := true` →
+  `OnPostTotalCostAdjustmentOnBeforeJobLedgEntryModify(var JLE, ILE)` → `Modify` → **`UpdatePostedTotalCost(delta)`** přes
+  `Job Usage Link` → `JobPlanningLine.UpdatePostedTotalCost` (jen `Posted Total Cost (LCY)`, nikdy plánovaný `Unit Cost`).
+  Plánovaný `Unit Cost (LCY)` řádku plánování report přepisuje **jen u `System-Created Entry`** řádků (vzniklých z
+  `MatchUsageUnspecified`); ručně plánované řádky si cenu drží navždy. Standard tedy „přepočet částek na řádcích
+  plánování" po adjustaci dělá jen v `Posted Total Cost (LCY)`.
+- **IMEBS usage z prodejní dodávky** (`PostConsumption`, `Ledger Entry No.` = **kladná položka nákupního příjmu**, ne
+  Negative Adjmt.): filtr VE nic nenajde → fallback = náklad celé příjemky se záporným znaménkem na usage s částí
+  množství. První verze modulu (06/2026, přímý `JobLedgerEntry.Insert`) to nechaly běžet → „automatické přecenění", ale
+  na špatná čísla. Od 374f10c (2026-08-24) subscriber na `OnPostTotalCostAdjustmentOnBeforeJobLedgEntryModify`
+  vrátí JLE z DB (`JobLedgerEntry := OrigJobLedgerEntry`) → ceny z řádku plánování zůstanou. ⚠️ Blokovat **v tomhle
+  eventu nestačí**: `Adjusted` zůstane false a `UpdatePostedTotalCost(delta)` za `Modify` se zavolá stejně → při
+  každém běhu adjustace přičte deltu (celá příjemka − usage) do `Posted Total Cost (LCY)` budget řádku s usage linkem
+  (od 4b6d257 jde JLE přes `Job Jnl.-Post Line.CreateJobLedgEntry` → `ApplyUsage` → link existuje). Správné místo je
+  `OnBeforePostTotalCostAdjustment` (exit před výpočtem) nebo vlastní výpočet: Σ VE příjmové položky
+  (`Item Ledger Entry No.` = `JLE."Ledger Entry No."`, Actual + Expected) / `ILE.Quantity` × `JLE.Quantity` + vlastní
+  `UpdatePostedTotalCost`. (2026-10-19, prod-ep-itemManagement-bc, analýza zadání „ocenění položek projektu dle ILE".)
+  **Opraveno tamtéž (2026-10-19, větev `features/misc`):** nový subscriber `UpdateJobItemCost_OnBeforePostTotalCostAdjustmentIMEBS`
+  (`OnBeforePostTotalCostAdjustment(var JobLedgEntry, ItemLedgerEntry, …, var IsHandled)`, pro ILE typu Purchase `IsHandled := true`),
+  původní subscriber ponechán jako pojistka s komentářem. Test `UpdateJobItemCost_UsageFromShipment_KeepsEntryAndPostedCostOfBudgetLine`
+  (`Purch. Consumption Test IMEBS`): report puštěný 2× přes `SetTableView(Job s SetRecFilter)` + `UseRequestPage(false)` +
+  `SetProperties(true)` (potlačí závěrečnou `Message`) + `RunModal()`; assert `Total Cost (LCY)` + `Adjusted = false` na JLE a
+  `Posted Total Cost (LCY)` budget řádku. Bez `SetProperties(true)` by test potřeboval `[MessageHandler]`.
+- **Sale JLE z fakturace** (`Job Transfer Line.FromPlanningSalesLineToJnlLine`): `Unit Price` = **`JobPlanningLine."Unit
+  Price"`** (ne prodejní řádek!), `Line Discount %` = `SalesLine`, `Unit Cost` = `SalesLine."Unit Cost (LCY)"` (jen když
+  `DoUpdateUnitCost` — Standard costing bez projektu ne), `Direct Unit Cost (LCY)` = planning line. Změna ceny na
+  objednávce se tedy do položky projektu nepropíše — `Job Post-Line.ValidateRelationship` hlídá jen shodu `Unit Cost (LCY)`
+  (event `OnValidateRelationshipOnUnitCostLCYDifferenceError`), cenu ne. Cena z dokladu = `OnAfterFromPlanningSalesLineToJnlLine`
+  → `Validate("Unit Price", SalesLine."Unit Price")`. `Job Jnl.-Post Line.PostItem` u Usage náklad z VE **nečte**
+  (`UpdateJobJnlLineTotalAmounts` = Unit Cost řádku × množství z VE), takže ani standardní spotřeba není „dle ILE" při
+  účtování — až report 1095. `Job Planning Line Invoice."Invoiced Amount (LCY)"` = `CalcLineAmountLCY` z ceny řádku plánování.
+- **Vlastní přecenění položek projektu reportem (IMEBS `Update Job Item Cost IMEBS`, 65131, 2026-10-19, větev `features/misc`):**
+  zrcadlo 1095 pro položky, které standard neumí — Usage s `Ledger Entry No.` na kladnou položku nákupního příjmu: `Unit Cost (LCY)` =
+  Σ VE příjmové položky (`ILE.CalcFields` Expected + Actual, u non-inventory Non-Invtbl.) / `ILE.Quantity` × `JLE."Quantity (Base)"`, FCY přes
+  `ExchangeAmtLCYToFCY` s `JLE."Currency Factor"`, `Adjusted` + `DateTime Adjusted`, delta přes `Job Usage Link` →
+  `JobPlanningLine.UpdatePostedTotalCost(AdjustJobCost, AdjustJobCostLCY)` + `Modify()` (CodeCop **AA0214** „record should be modified before
+  saving" — změna je uvnitř table metody, `#pragma warning disable AA0214` kolem; Essence CI má failOn warning). Sale: cena z `Sales Invoice
+  Line` / `Sales Cr.Memo Line` přes `Job Planning Line Invoice."Job Ledger Entry No."` (Key2 = Document Type, Document No., JLE No.; filtr jen
+  na JLE No. jde přes PK prefix Job No. + Job Task No.), přepočet LCY ↔ měna položky, `Line Discount %` z dokladu, částky formulí
+  `Quantity × Unit Price` (množství Sale záporné → záporné částky), ACY přes `ExchangeRate(date, ARC)`. Idempotentní: cílové hodnoty se
+  počítají vždy znovu a `Modify` jen při rozdílu. Spouštění: akce na Job Card / Job List (`addafter("Create Job &Sales Invoice")` — na Job
+  Card ani Job List **žádná akce `"Update Job Item Cost"` není**, AL0271; standardní report se spouští jen z adjustace / Tell me), Job
+  Queue (Object Type Report, request page jen filtry `SaveValues`), a subscriber `Inventory Adjustment.OnBeforeRunUpdateJobItemCost(var
+  JobsToAdjust: List of [Code[20]])` (event běží PŘED kontrolou `Jobs Setup."Automatic Update Job Item Cost"` → setup si zkontroluj sám,
+  ať platí jeden vypínač), stejný způsob běhu jako standard (`SetTableView(Job)`, `UseRequestPage(false)`, `SetProperties(true)`, `RunModal`).
+- **Vazba Sale JLE ↔ zaúčtovaný řádek faktury u objednávky fakturované z objednávky:** `Job Post-Line.UpdateJobLedgerEntryNoOnJobPlanLineInvoice`
+  hledá JPLI podle `Job No.` + `Job Task No.` + **`Document No.` + `Line No.` z Job Journal Line** (bez Document Type). JJL `Document No.` =
+  `SalesLine."Document No."` → u Order číslo objednávky, zatímco JPLI Posted Invoice (IMEBS `OnBeforeJobPlanningLineUpdateQtyToInvoice`) nese
+  číslo zaúčtované faktury → `Job Ledger Entry No.` zůstane 0. Oprava v IMEBS `SalesPost_OnBeforePostJobContractLineIMEBS`: před
+  `InvoicePostingInterface.PrepareJobLine(SalesHeader, SalesLine, …)` přepsat na kopii `SalesLine."Document No." := <posted invoice no.>`
+  (z `OnAfterInsertPostedHeaders` → SingleInstance `Project Item Mgt. SI IMEBS`) — Sale JLE pak nese číslo faktury jako u Invoice dokladu a
+  link se vytvoří. Testy: `Upd. Job Item Cost Test IMEBS` (65140; **název objektu max 30 znaků, AL0305** — „Update Job Item Cost Test IMEBS"
+  má 31; soubor pak `UpdJobItemCostTest.Codeunit.al`, AA0215): nákup přijat → dodávka → `LibraryPurchase.ReopenPurchaseDocument` + jiný
+  `Direct Unit Cost` + fakturace → report; změna `Unit Price` na objednávce → dodávka + faktura → report; `LibraryCosting.AdjustCostItemEntries`
+  se zapnutým Automatic Update Job Item Cost (projekt se do `JobsToAdjust` dostane z VE prodejní dodávky, která u skip projektů nese Job No.
+  — neověřeno během, jen ze zdrojů). `JobSalesPostTest.VerifySaleJobLedgerEntry` nově filtruje `Document No.` = posted invoice no.
+- al-mcp `al_packages load` na složku bez `.alpackages` (temp cache ve scratchpadu): `autoDiscover: false` + `path` přímo na složku s `.app`.
+  ⚠️ Přepis `Document No.` dělej na **lokální kopii** (`InvoiceSalesLine := SalesLine`): tentýž subscriber
+  `SalesPost_OnBeforePostJobContractLineIMEBS` pak při dodávce + fakturaci jedním účtováním volá
+  `CreateJobLedgerEntryFromSalesLine(SalesLine)`, a ten z řádku bere `Reservation Entry` (tracking dodávky, filtr Document Type +
+  Document No.), `CalcFields("Posting Date")` (flowfield přes hlavičku) i `Document No.` usage položky — s číslem faktury by usage
+  přišla o tracking a datum. Co kopii čte dál: `Job Post-Line` jen `Job Contract Entry No.` + `Line No.` (otevřený JPLI přes
+  `SalesHeader."No."`), `Job Transfer Line` ji kopíruje do JJL (Document No., dimenze, texty, posting groups), G/L větev páruje
+  temp JJL jen přes `Line No.`; EPEBS subscribery (`OnAfterFromPlanningSalesLineToJnlLine`, `OnBeforeJobLedgEntryInsert`) Document No.
+  nečtou. Regresní test `ShipAndInvoiceInOneRun_SkipProject_UsageCarriesOrderNoAndSaleEntryCarriesInvoiceNo`. (2026-10-19)

@@ -618,3 +618,21 @@ Důsledky pro pageextension:
 
 Pravidlo: u čteček dávej odvozené údaje do **hlaviček** (pole ve skupinách). Seznamy rozšiřuj jen s vědomím, co se stane
 s dlaždicí, a ověř to v 600×900 (viz `ew-mobile-ui`). (2026-10-16, PBI 64732 — seznamy nakonec vynechány.)
+
+**Doplnění 2026-10-19 (cust-sonnentor-bc Task 65223, číslo zásilky na kiosku):**
+- **`modify(<akce>)` na akci uvnitř `cuegroup` (dlaždice kiosku Send / Leave) = `warning AL0611: Modifying actions in
+  CueGroups is not supported`** – s Essence `failOn warning` CI fail. Hook „před / po dlaždici“ z pageextension nejde;
+  ber integrační eventy stránky (`OnBeforePost`, `OnBeforeLeave`, `OnAfterFillData`, `OnAfterSetTrackingForProdOrderRoutingLine`)
+  a eventy účtování (`Item Jnl.-Post.OnBeforeCode` / `OnCodeOnAfterItemJnlPostBatchRun` s guardem
+  `Single Instance KIEBS.GetIsKioskCall()`).
+- **Vstup uživatele na stránce bez SourceTable z pageextension = SingleInstance stav + výrazové pole + dialog.**
+  Editovatelná proměnná pageextension se po `usercontrol` roundtripu (sken kiosku) neobnoví; proto hodnotu drž v
+  SingleInstance codeunitu klíčovanou kontextem stránky (klíč řádku VZ z page eventu), pole piš jako výraz
+  `Mgt.GetPackageNo(ProdOrderLine, LotNo, SerialNo)` nad `protected var` a ruční zadání řeš `AssistEdit = true` +
+  `OnAssistEdit` / `OnDrillDown` (otevře `StandardDialog`) – `AssistEdit` na `Editable = false` výrazovém poli alc 18
+  + UICop přeloží bez nálezu (v klientu neověřeno, vzor *Currency Code* na účtovaných dokladech). Sken chyť na
+  `Interpret Barcode KIEBS.OnAfterInterpretBarcode` (buffer prázdný = kiosek kód nerozpoznal); kiosk s viditelným
+  sledováním zboží nerozpoznaný sken tiše zahodí, takže žádná chyba, a výraz se při renderu přepočítá.
+- Scanner add-in kiosku (`Scanner.Startup.js`) je globální `keypress` listener na `window.parent` (terminátor `#`,
+  buffer ≥ 3 znaky, bez `preventDefault`) – skenuje se bez fokusu v poli; sken do fokusovaného pole / otevřeného
+  dialogu projde zároveň do pole (i s `#`) i do `Scanned` → do dialogů se zadává ručně.
