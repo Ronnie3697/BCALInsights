@@ -8,8 +8,8 @@ description: >-
   vlastní výběr šarže z akce na 6510, source pole u Prod. Order Line, tracking na Sales Quote (Prospect vs
   Surplus), tracking z Get Shipment Lines (jen Prospect), PC0013 Get do enum PK, Enter Quantity to
   Create, FEFO z kódu a prošlé šarže (Strict Expiration), Lot Specific vs. prodej do mínusu, Entry No.
-  AutoIncrement, dobropis / storno s Appl.-from Item Entry (SQNR), Item Jnl.-Check Line po smazání
-  rezervací, převodka s prázdným Order No. (New Expiration Date, in-transit), SetTrackingFilterFrom… jen
+  AutoIncrement, dobropis s Appl.-from Item Entry (SQNR), Item Jnl.-Check Line po smazání
+  rezervací, převodka s prázdným Order No. (New Expiration Date), SetTrackingFilterFrom… jen
   SN+Lot (Package přes event), Item Tracking Setup temp (AA0073). Načti u šarží, SN, Item Tracking Lines,
   Reservation Entry, převodek se sledováním.
 user-invocable: true
