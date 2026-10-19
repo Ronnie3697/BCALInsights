@@ -167,7 +167,7 @@ Distribution) nad **otevřeným** dokladem → kontroly řádků z hlavičky ome
 z Posting Date ho nese; z codeunity přes `internal procedure` v tableextension, AL0161) a `GuiAllowed()`. Carry Out (`ReqWkshMakeOrder.
 CopyOrderDateFromPurchHeader`) validuje `Order Date` na **kopii** řádku sešitu (zboží s nákupním ceníkem) → subscriber `OnAfterGetDirectCost`
 by se ptal nad kopií; `OnBeforeCopyOrderDateFromPurchHeader` + výpočet na temporary kopii.
-header `Location Code` jen hlásí `MessageIf…LinesExist`. **`Variant Code` ani `Location Code` řádku nevalidují `Quantity`** (`No.` ano, přes
+Header `Location Code` jen hlásí `MessageIf…LinesExist`. **`Variant Code` ani `Location Code` řádku nevalidují `Quantity`** (`No.` ano, přes
 `Validate(UoM)`) → logika na `OnAfterValidateEvent(Quantity)` se po změně varianty / lokace nespustí. `Purchase Order Subform.Quantity`
 `OnValidate` i `Sales Order Subform.QuantityOnAfterValidate` (Item) volají `CurrPage.SaveRecord()` → subscriber při dalším `SetValue(Quantity)`
 v TestPage vidí v DB stav po předchozím kroku.
