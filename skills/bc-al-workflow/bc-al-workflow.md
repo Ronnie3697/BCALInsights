@@ -888,13 +888,18 @@ psaný skriptem (node generuje `document.xml` + customXml, PowerShell zipuje), b
 - **Obrázek (logo):** `w:picture` content control s `w:dataBinding` na Blob sloupec
   (`column(CompanyPicture; CompanyInformation.Picture)` po `CalcFields`) + placeholder PNG v
   `word/media` a `r:embed`; vzor `DisposalProtocol.Report.docx` (header).
-  ⚠️ **Picture control chce Blob sloupec, ne Base64 `Text`.** `column(Photo; Base64Convert.ToBase64(InStream))`
-  s picture controlem spadne za běhu na „The image stream does not contain valid image or bitmap data" (CZ „Datový
-  proud obrazu neobsahuje platná data pro obraz nebo bitmapu") i u JPEG, který přes Blob (logo firmy) tiskne. Obrázek
-  z Media / Document Attachment dej do Blob pole temporary recordu: `TempTenantMedia: Record "Tenant Media" temporary`,
-  `Clear(TempTenantMedia.Content)` + `Content.CreateOutStream` ← `CopyStream` z `GetAsTempBlob` / `TenantMedia.Get(MediaId)`
-  + `CalcFields(Content)` a `column(Photo; TempTenantMedia.Content)`. (2026-10-16, cust-sonnentor-bc 65436 Product
-  Information; oprava kompiluje, runtime tisk po opravě zatím neověřen.)
+  ⚠️ **„The image stream does not contain valid image or bitmap data" (CZ „Datový proud obrazu neobsahuje platná data
+  pro obraz nebo bitmapu") = platformní hláška, renderer dostal bajty, které nejsou obrázek.** Než podezíráš JPEG nebo
+  typ sloupce, zkontroluj, **odkud obrázek bereš**: u zákazníků s **Essence Document Attachments W1/CZ** (ABEBS, SharePoint
+  služba zapnutá v *Doc. Attachment Service*) jde každá příloha do SharePointu a do Media `"Document Reference ID"` appka
+  uloží **jen text s Drive Item ID** (`OutStream.WriteText(DriveItemId)` + `ImportStream`). `HasContent()` je true, `File Type`
+  = Image, ale `GetAsTempBlob` vrátí ten text → Word i RDLC spadnou na téhle hlášce. Logo firmy (`Company Information.Picture`)
+  přílohou nejde, proto tiskne. Poznáš to podle `"Sharepoint File ABEBS"` / vyplněného *Folder Name* na detailu přílohy.
+  Řešení: stáhnout obsah přes `Online Drive API ABEBS.DownloadFile(GetAccessToken('AZUREAD'), OnlineDriveItem."Site ID",
+  "Drive Id", Id, InStream)` (záznam `Online Drive Item ABEBS` podle `"Drive Item ID ABEBS"`) — ideálně v produktové appce
+  subscriberem na `Document Attachment.OnBeforeGetAsTempBlob` (Base App má i `OnBeforeHasContent`, `OnBeforeExportToStream`),
+  jinak v zákaznické appce se závislostí na W1. Base64 `Text` vs. Blob sloupec rozdíl nedělal (obě varianty padly stejně;
+  Blob = vzor Base App, nech ho). (2026-10-16/19, cust-sonnentor-bc 65436 Product Information, BC-TEST.)
 - **Barcode fonty BC online** (MS Learn `devenv-report-barcode-fonts`, IDAutomation): Code 128 =
   `IDAutomationC128XS/S/M/L/XL/XXL`, UPC/EAN = `IDAutomationUPCEANXXS/XS/S/M/L`. **Přípona = výška čar,
   šířku kódu řídí jen velikost písma** (XS není „úzký“ — ověřeno 2026-10-09: GS1-128 s 38 symboly při 11 pt
