@@ -636,3 +636,9 @@ s dlaždicí, a ověř to v 600×900 (viz `ew-mobile-ui`). (2026-10-16, PBI 6473
 - Scanner add-in kiosku (`Scanner.Startup.js`) je globální `keypress` listener na `window.parent` (terminátor `#`,
   buffer ≥ 3 znaky, bez `preventDefault`) – skenuje se bez fokusu v poli; sken do fokusovaného pole / otevřeného
   dialogu projde zároveň do pole (i s `#`) i do `Scanned` → do dialogů se zadává ručně.
+- **Výsledek 2026-10-19:** uživatel variantu „needitovatelný výraz + dialog" zamítl (pole má vypadat jako *Lot No.*,
+  tj. psát přímo + „…"), a číslo zásilky šlo **do produktu EM Kiosk** (`protected var PackageNo`, pole, sken, zápis
+  při účtování, setup *Package No. on Output*). Pravidlo: když má vstup uživatele na stránce bez SourceTable vypadat
+  jako base pole, patří proměnná do base stránky – rozšíření to nenahradí; event navíc nepomůže, pomůže jen
+  `protected var` (na tu jde navázat editovatelné pole i z pageextension). `AL0305`: název objektu max 30 znaků
+  (`EM Kiosk Package No. Tests KIEBS` = 32).
