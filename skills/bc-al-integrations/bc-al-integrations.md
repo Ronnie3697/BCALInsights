@@ -435,6 +435,21 @@ IntegrationRecordSynch.Codeunit.al`, `IntegrationTableMapping.Table.al`, `Integr
   záznam pryč (`Ship-to Sync Setup Test SON`; ruční záznam v testu `Init` + přímé přiřazení + `Insert(true)`, `CreateRecord` je internal).
   (2026-10-14, cust-sonnentor-bc, SON CDS Sync.)
 
+- **Lookup (Code → GUID) na Dataverse tabulku, která se NEsynchronizuje (číselník udržovaný ručně v PA), standard nepřeloží.**
+  `CRM Int. Table. Subscriber.OnTransferFieldData` (w1-28 `Integration/D365Sales/CRMIntTableSubscriber.Codeunit.al`) řeší
+  Code → Guid jen přes `AreFieldsRelatedToMappedTables` (obě tabulky relace musí mít vlastní `Integration Table Mapping`) a pak
+  `FindNewValueForCoupledRecordPK` = coupling v `CRM Integration Record` (bez něj `Error` „must be coupled“, nebo prázdný GUID
+  při *Clear Value on Failed Sync*); event `OnFindNewValueForCoupledRecordPK` se vyvolá **jen uvnitř té větve**. Bez mapování
+  standard nic nenastaví a engine zkusí konverzi textu na GUID → chyba synchronizace celého záznamu. Řešení: CRM proxy tabulka
+  číselníku (`TableType = CRM`, `ExternalName` entity, PK + `ebs_code`, sekundární klíč na `ebs_code`, bez mapování) +
+  vlastní subscriber na `Integration Record Synch.OnTransferFieldData` (guard `if IsValueFound then exit`, test na dvojici
+  tabulka/pole zdroje i cíle, `NewValue := Guid` / prázdný Guid, `IsValueFound := true`, `NeedsConversion := false`) +
+  řádek field mappingu `Direction::ToIntegrationTable`. Pořadí se standardem nevadí: oba subscribery respektují `IsValueFound`
+  a standard navíc **exituje, když není integrace enabled** (`IsCDSIntegrationEnabled()`), takže v testu bez `CDS Connection
+  Setup` běží jen vlastní kód — test přes `Integration Record Synch.` s `Temp Integration Field Mapping` (vzor výše) a
+  `RegisterTableConnection(... @@test@@)`; proxy záznam číselníku `Insert(false)` jde do lokální DB. (2026-10-19, cust-jps-bc,
+  Customer `VAT Bus. Posting Group` → `CRM Account.ebs_vatbusinesspostinggroupid`, `CDSManagementJPS`.)
+
 ### 11.9 Jira Cloud user lookup podle e-mailu — `/rest/api/3/user/search?query=<e-mail>`, NE `/rest/api/3/users`
 
 Z cust-soitron-bc (Jira synchronizace zdrojů, 2026-10-09): zdroje dostávaly cizí Account Id. Příčina: v setupu zůstal z první

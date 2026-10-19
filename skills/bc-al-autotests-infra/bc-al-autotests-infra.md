@@ -241,7 +241,8 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   (vyžaduje .NET 10 + ASP.NET Core 10, viz 7.20 v `bc-al-build.md`); (b) **bez `-imageName ''` staví Run-AlPipeline
   cache image** (dočasný kontejner s náhodným jménem + commit, +7–14 GB) — na malém disku vypnout; (c)
   `-testResultsFile` musí ležet **uvnitř `-baseFolder`**; (d) kompiluj **kopii repa** (robocopy do scratchpadu), alc
-  přepisuje `.docx` layouty; (e) Essence partner licence má expiraci — při startu testů warning „license expires in N days".
+  přepisuje `.docx` layouty (a stejně tak `.rdl` layouty `reportextension` přímo v repu — po lokálním `alc` nad repem
+  `git checkout -- "src/Report Extension/"*.rdl`, jinak se do commitu přibalí cizí změny; cust-jps-bc 2026-10-19); (e) Essence partner licence má expiraci — při startu testů warning „license expires in N days".
   Jeden sdílený kontejner na BC verzi pro víc projektů = před publikací odpublikovat ne-Microsoft appky cizích projektů
   (`Get-BcContainerAppInfo -sort DependenciesLast` + `Unpublish-BcContainerApp -unInstall -doNotSaveData -doNotSaveSchema`),
   PTE ID rozsahy zákazníků kolidují. Image `ltsc2025` (~10,8 GB) + artifact jsou sdílené napříč kontejnery. Celkem ~26 min
