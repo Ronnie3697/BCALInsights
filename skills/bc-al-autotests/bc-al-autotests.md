@@ -334,7 +334,7 @@ Assert.ExpectedErrorCode('Dialog');
   až v CI (build 28636: `its check did not pass` → `its check ended with the status`). Po úpravě labelu grepni test appku na
   jeho klíčová slova.
 - **Přecenění řádku dokladu testuj s řádkem ceníku.** Bez něj si řádek ruční nebo kódem nastavenou `Unit Price` při
-  `Validate(Quantity)` / `Validate("Variant Code")` nechá (`IsPriceUpdateNeeded`, 5.x21 v `bc-al-objects.md`). Test „cena přežije
+  `Validate(Quantity)` / `Validate("Variant Code")` nechá (`IsPriceUpdateNeeded`, 5.x21 v `bc-al-blanket.md`). Test „cena přežije
   změnu množství“ tak projde, i když ji kód v produkci, kde ceník je, ztratí. Chytilo to až review splitu konfigurátoru.
   Funkční recept (BC 28.4 cz kontejner):
   - `LibraryPriceCalculation: Codeunit "Library - Price Calculation"` jako **globální** proměnnou. `EnableExtendedPriceCalculation()`

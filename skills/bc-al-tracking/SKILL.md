@@ -28,7 +28,7 @@ Vyčleněno z `bc-al-objects.md` 2026-10-07, číslování 5.x je původní.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
-3. Sousední témata: ostatní objekty (No. Series, Requisition Line, Job Queue, NMEBS vazba SO↔VZ) → `bc-al-objects`;
+3. Sousední témata: ostatní objekty (No. Series, Job Queue, NMEBS vazba SO↔VZ) → `bc-al-objects`; Requisition Line → `bc-al-blanket`;
    propagace polí Sales Line → Item Jnl. Line → ILE a Job No. dodávka vs. faktura → `bc-al-posting`; subscribery →
    `bc-al-data`; testy přes TestPage a handlery → `bc-al-autotests`; ověření `var` u event parametrů ze zdrojáku .app →
    `bc-al-tools` (7.6) a `bc-al-objects` (5.y).

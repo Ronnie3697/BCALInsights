@@ -154,7 +154,7 @@ v *Oprava*.
   - Rozdělení řádku už na původní řádek akce nepouští. Připojené řádky mu přepočítá trigger `Modify`.
     ⚠️ Druhé volání akcí ale původnímu řádku vracelo **cenu z přepsání**. `Validate(Quantity)` řádek přecení z ceníku nebo
     matice (`OnAfterUpdateUnitPrice`), takže ji split teď vrací sám (`RestoreUnitPrice`, stejně jako slevu). Testy bez řádku
-    ceníku to neodhalí: bez ceníku si řádek cenu nechá (`IsPriceUpdateNeeded`, 5.x21). Chytilo to až review.
+    ceníku to neodhalí: bez ceníku si řádek cenu nechá (`IsPriceUpdateNeeded`, 5.x21 v `bc-al-blanket.md`). Chytilo to až review.
     Nová linka splitu dostane přepsání **bez Množství** (`ApplyCurrentLineOverrides(…; WithQuantityOverride = false)`),
     takže 10 → 6 + 4. Obě linky mají zapamatovaná pole vynulovaná. Kontrola „připojené řádky
     jsou dodané nebo fakturované“ je teď na začátku rozdělení (`CheckConfigCreatedLinesNotPosted`, label přesunutý → nové
@@ -335,7 +335,7 @@ ale nepřepočítává**, ty se jen čtou přes `LoadVariantParameterValues`.
 **Rozdělení řádku (`Sales Line Split Mgt. COEBS.ProcessSplitLine`) re-pricuje obě linky** — nová linka vzniká řetězem
 `Validate(… Variant Code / Quantity)`, originál `Validate(Quantity)`, `ApplyCurrentLineOverrides` validuje variantu nové
 linky znovu. Každá validace spustí `ApplyDiscount` a `Line Discount %` spadne na slevu z ceníku (0), ruční cena zůstane
-(5.x21 v `bc-al-objects.md`). Od PBI 66392 (větev `66392_SplitLineDiscount`, 2026-10-06) si split slevu originálu
+(5.x21 v `bc-al-blanket.md`). Od PBI 66392 (větev `66392_SplitLineDiscount`, 2026-10-06) si split slevu originálu
 pamatuje a na konci ji vrací **na obě linky** — i přes CL slevu z konfigurace (rozhodnutí: ručně přepsaná sleva musí
 přežít i split se stejnou konfigurací). Nový krok do splitu, který mění řádek přes `Validate`, dej **před** `RestoreLineDiscount`.
 

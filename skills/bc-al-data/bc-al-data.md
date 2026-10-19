@@ -595,6 +595,20 @@ metody na tabulku. (2026-06, `prod-em-operOutputChaining-bc`, BC28.)
   Před-triggery (`OnInsert/OnDelete/OnRename`) běží **před** DB zápisem, takže „přepočítej vše z DB" tam nefunguje —
   dělej cílený zápis (`OnRename`: vyčisti `xRec` slot, nastav `Rec` slot). (2026-09-22, cust-soitron-bc, Business Unit 1-5.)
 
+### 3.10 `CurrFieldNo` mimo tabulku a příznak v SingleInstance, který přežije `Error`
+
+- **`CurrFieldNo` (číslo pole, které uživatel změnil na stránce) z codeunity nepřečteš** — `Record.CurrFieldNo` mimo tabulku
+  = `AL0161`. Getter v tableextension: `internal procedure GetCurrFieldNoSON(): Integer begin exit(CurrFieldNo); end;`.
+  Je to stav **instance recordu**: čti ho na `var` recordu subscriberu; record předaný proceduře **hodnotou** (kopie) má
+  `CurrFieldNo = 0` (chytil to test v kontejneru: `IsAutoAnswerActive(RequisitionLine: Record …)` bez `var` → změna ze
+  stránky vypadala jako změna z kódu). Vnořený `Validate("Document Date")` z `Validate("Posting Date")` na stránce nese
+  `CurrFieldNo` pole Posting Date. `CurrFieldNo` nastavují i API stránky → když myslíš „z UI", kombinuj s `GuiAllowed()`.
+- **Příznak ve stavu SingleInstance codeunity („běží recreate") přežije `Error`** — stav session se při rollbacku nevrací.
+  Jako hodnotu příznaku ulož `SystemRowVersion` hlavičky (`Format(Header.SystemRowVersion, 0, 9)`) a ber ho jako platný,
+  jen dokud má uložená hlavička pořád tuhle row version — rollback neúspěšné změny značku zneplatní sám.
+
+(2026-10-19, cust-sonnentor-bc Task 66948)
+
 ---
 
 ### 2.9 `Get` / `Find` na temporary recordu čte TEMP tabulku, ne DB — načti reálnou instancí a přiřaď

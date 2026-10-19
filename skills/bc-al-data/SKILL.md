@@ -5,7 +5,8 @@ description: >-
   Insert/Modify/Delete(true|false) (LC0040), Temp Blob, SetLoadFields, SetFilter wildcard + %1 (LC0050),
   TransferFields + PK v copy smyčce, Mark/MarkedOnly vs Copy, trvalý filtr ve FilterGroup, SetView neznámé pole bez chyby (TrySetView), field-by-field kopie, TableRelation
   mimo PK (Validate za běhu spadne), tableextension triggery vs subscribery, modify() ve fields, klíč jen
-  vlastní pole (AL0423), var guard vs CurrFieldNo, xRec = Rec při Modify z kódu, IsTemporary, init detection
+  vlastní pole (AL0423), var guard vs CurrFieldNo, CurrFieldNo z codeunity (getter, kopie recordu = 0), příznak
+  v SingleInstance po Error (SystemRowVersion), xRec = Rec při Modify z kódu, IsTemporary, init detection
   OnAfterValidateEvent, SkipOnMissingLicense/Permission, LC0028, AL0432. Propagace vlastních polí do posted /
   archive / kopie dokladu (3.5–3.6f) je ve skillu bc-al-posting. Načti u recordů, subscriberů, tableextension
   a relací polí.
@@ -27,8 +28,8 @@ jsou v souboru.
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
 3. Sousední témata: konvence a naming → `bc-al-style`; propagace vlastních polí
-   do posted / archive / kopie dokladu → `bc-al-posting` (3.5–3.6f); No. Series, Item
-   Tracking, Requisition Line → `bc-al-objects`; ověření signatur eventů
+   do posted / archive / kopie dokladu → `bc-al-posting` (3.5–3.6f); No. Series → `bc-al-objects`;
+   Item Tracking → `bc-al-tracking`; Requisition Line, hromadné objednávky → `bc-al-blanket`; ověření signatur eventů
    (al-mcp, extrakce z .app) → `bc-al-tools` (7.2, 7.6).
 
 ## TL;DR — nejtvrdší pravidla (čísla = sekce v souboru)

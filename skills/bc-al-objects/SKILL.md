@@ -4,12 +4,12 @@ description: >-
   BC/AL specifické objekty a API (sekce 5): All Profile, Upgrade Tag, No. Series GetNextNo vs PeekNextNo,
   kontrola Document No., Unix timestamp, NMEBS vazba SO↔VZ, al-mcp ByReference, atributy zboží, DateFormula, CaptionClass + Translation
   Helper, CZ↔EN terminologie, CZZ zálohy, Attached to Line No. parent↔child (xRec, Validate(No.) Init,
-  CurrFieldNo), Requisition Line (GetDirectCost, Make Order, Order Planning, Carry Out, Calculate Plan bez dotazu),
-  IsPriceUpdateNeeded, VerifyOnInventory, Item Jnl. Line UoM qty-per, Auto Format, Item Charge Assignment, Job Queue z účtování / recurring,
+  CurrFieldNo), VerifyOnInventory, Item Jnl. Line UoM qty-per, Auto Format, Item Charge Assignment, Job Queue z účtování / recurring,
   Data Exchange / camt.053 (merge sloupců, Regex Match), Retention Policy (OnRefreshAllowedTables), Bin Code na řádcích SO/PO → Whse. Receipt/Shipment Line
-  (OnAfterGetDefaultBin, Validate Bin Code = Message). Načti u číselných řad, výroby, plánování, Job Queue,
+  (OnAfterGetDefaultBin, Validate Bin Code = Message). Načti u číselných řad, výroby, Job Queue,
   bankovního importu, přihrádek. (Shopify, HttpClient → bc-al-integrations; Job Planning Line /
-  projekty → bc-al-projects; Item Tracking / šarže / SN → bc-al-tracking.)
+  projekty → bc-al-projects; Item Tracking / šarže / SN → bc-al-tracking; hromadné objednávky HNO/HPO,
+  Requisition Line / sešit požadavků, přepočet ceny bez ceníku → bc-al-blanket.)
 user-invocable: true
 ---
 
@@ -31,7 +31,8 @@ cesty) a příklady jsou v souboru.
    `bc-al`).
 3. Sousední témata: Shopify Connector, HttpClient/SecretText na SaaS, Power
    Automate → `bc-al-integrations` (5.y2, 11); projekty / Job Planning Line → `bc-al-projects` (5.x17–5.x20); Item Tracking
-   (šarže, SN, Item Tracking Lines, Reservation Entry) → `bc-al-tracking` (5.x, 5.x2, 5.x2b, 5.x15); subscribery a propagace polí →
+   (šarže, SN, Item Tracking Lines, Reservation Entry) → `bc-al-tracking` (5.x, 5.x2, 5.x2b, 5.x15); hromadné objednávky
+   HNO/HPO, Requisition Line / sešit požadavků a přepočet ceny bez ceníku → `bc-al-blanket` (5.x5, 5.x9, 5.x21); subscribery a propagace polí →
    `bc-al-data`; Cloud target patterny obecně → `bc-al-style` (10); ověření
    signatur z .app → `bc-al-tools` (7.2, 7.6).
 
@@ -76,9 +77,8 @@ cesty) a příklady jsou v souboru.
   odmítnutí; **číslování dětí do mezery pod parent** (vzor extended textů,
   fallback poslední + 10000); Copy Document přemapuj
   v `OnAfterCopySalesLineExtText` (před Insert).
-- **5.x5** `Requisition Line.OnAfterGetDirectCost` běží vždy na konci
-  (filtruj sám); `Req. Wksh.-Make Order` maže řádek sešitu až ve
-  `FinalizeOrderHeader` → dvojí započtení; carry-out bere celý batch.
+- **5.x5 / 5.x9 / 5.x21** Requisition Line, poptávka → sešit požadavků → NO, přepočet ceny bez ceníku a hromadné
+  objednávky HNO/HPO → skill `bc-al-blanket` (vyčleněno 2026-10-19).
 - **5.x6** Consumption (i Assembly) / Transfer nikdy do mínusu bez ohledu na Prevent
   Negative Inventory (`VerifyOnInventory`); `Validate("Unit of Measure Code")`
   přepíše `Qty. per Unit of Measure` → vlastní qty-per až po něm + `Validate(Quantity)`.
