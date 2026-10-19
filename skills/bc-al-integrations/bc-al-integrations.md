@@ -109,6 +109,37 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
   „schovat z webu" = nulovat zásobu tímhle eventem (a zásobová politika varianty *Deny*). Testovat jde jen procedura
   subscriberu volaná napřímo (event i `GetStock` jsou internal). (cust-sonnentor-bc PBI 63036 *Blokováno pro web*, 2026-10-14,
   konektor 28.5.)
+- **Cena varianty pro Shopify se počítá přes dočasnou prodejní nabídku, takže běží tvoje validace `Sales Line`.**
+  `Shpfy Product Price Calc.CalcPrice` (30182) volají Add Item, produktový / cenový sync, katalogové ceny i `Shpfy Update Price
+  Source`. Pro každou exportovanou variantu založí temp `Sales Header` (Quote, `No.` = kód shopu) a temp `Sales Line` a validuje
+  `Type`, `No.`, `Variant Code`, `Quantity` 1 a MJ.
+  - Triggery tableextension na `Sales Line` (`modify(...) OnBeforeValidate`) i subscribery bez `IsTemporary` guardu proto běží
+    při každé synchronizaci produktů a cen.
+  - Zboží se speciálními pravidly řádku (dárkové poukazy: množství ±1, stav varianty) vyřaď subscriberem
+    `Shpfy Product Events.OnBeforeCalculateUnitPrice(Item, VariantCode, UnitOfMeasure, ShopifyShop, Catalog, var UnitCost,
+    var Price, var ComparePrice, var Handled)` (internal + IntegrationEvent, z PTE jde odebírat).
+  - S `Handled = true` musíš sám nastavit i `ComparePrice`. Nulování „compare ≤ price → 0“ je uvnitř ne-handled větve. Přepočet
+    na MJ (`Qty. per Unit of Measure`) si taky udělej sám, záložní větev konektoru ho dělá.
+  - `UnitOfMeasure` je `Code[20]`. Do `Item Unit of Measure.Get` ho dávej přes `Code[10]` proměnnou, jinak ALCops **PC0013**.
+  - Vytvoření prodejního dokladu ze Shopify objednávky (`Shpfy Process Order.CreateLinesFromShopifyOrder`) cenu nepočítá. Bere
+    `Shpfy Order Line."Unit Price"` z importu objednávky (`Validate("Unit Price", …)`).
+
+  (cust-sonnentor-bc hotfix 28.0.167.1, `Shpfy Sync Event Handler SON.CalcVoucherPrice`, 2026-10-19, konektor 28.5.)
+- **Vazba Shopify objednávka ↔ prodejní doklad drží pevně jen hlavičku.**
+  - Hlavičky: `Shpfy Order Header."Sales Order No." / "Sales Invoice No."` ↔ `Sales Header."Shpfy Order Id"` + tabulka
+    `Shpfy Doc. Link To Doc.` (30146).
+  - Řádky jen jedním směrem: `Sales Line."Shpfy Order Line Id"`.
+  - Víc prodejních řádků se stejným Line Id konektor snese. Fulfillment (`Shpfy Export Shipments.FindFulfillmentOrderLines`)
+    sčítá `Quantity to Fulfill` podle Line Id. Kontrola konfliktu při reimportu prodejní řádky nečte.
+  - Rozdělit Shopify řádek s množstvím N na N prodejních řádků jde přes `Shpfy Order Events.OnBeforeCreateItemSalesLine(…, var
+    Handled)`.
+  - Pozor na `ApplyGlobalDiscounts`: počítá slevu hlavičky ze **Shopify** řádků. Slevu, kterou na prodejním řádku zahodíš, v BC
+    ztratíš.
+  - Smazání prodejního dokladu `Sales Order No.` ani `Processed` na objednávce nevynuluje. Na to je akce *Unlink Processed
+    Documents*.
+  - Detail je v rozcestníku BCShopifyConnectorDocs, `shopify_functional_breakdown.md` sekce 3a.
+
+  (2026-10-19, konektor 28.5 i 29.0.)
 - **Co export produktu z BC do Shopify reálně pošle u metapolí a značek** (BC 28.4, `Shpfy Product Export` / `Shpfy Metafield API`):
   metapole jen při `Shop."Product Metafields To Shopify"` (pole 130; zákazník 131, společnost 132) přes
   `SyncMetafieldsToShopify` → `CollectMetafieldsInBC` bere jen `Type <> string & <> integer` (legacy typy se **nikdy** nepošlou),

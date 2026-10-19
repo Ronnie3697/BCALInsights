@@ -2,13 +2,14 @@
 name: bc-al-integrations
 description: >-
   BC/AL integrace, SaaS gotchas (5.y2–5.y4, 11): Shopify Connector BC28+ (Available For Sales
-  jen v BC, export varianty nemaže, nové varianty jen sync (Can Update Shopify Products), Add Item
+  jen v BC, export varianty nemaže, nové varianty jen sync, Add Item
   skip, userErrors tiché, produkt bez options, OnAfterCreateTempShopifyProduct, Add z karty mimo
-  30106, zásoba OnAfterCalculationStock (nulování), BCShopifyConnectorDocs,
+  30106, zásoba OnAfterCalculationStock, cena OnBeforeCalculateUnitPrice (temp nabídka),
+  objednávka ↔ doklad, BCShopifyConnectorDocs,
   Internal vrstva → vlastní HttpClient+fronta;
   BC29: tokeny expirují 1.1.2027, GQL → .graphql, HttpClientHandler),
   HttpClient SaaS (Allow HttpClient Requests, Win auth OnPrem), Isolated Storage, SecretText
-  (Unwrap AL0296, HMAC, SecretStrSubstNo), Power Automate (Business Events/API page); API page
+  (Unwrap AL0296, HMAC, SecretStrSubstNo), Power Automate; API page
   zápis (POST validace, temp OnFindRecord, $filter); Dataverse/CDS (Integration Table Filter
   Dataverse→BC, Enum→Choice (OptionOrdinalValues), testy @@test@@, reset mapování recreate,
   Man. Integration Table Mapping); Dotykačka (stockQuantityStatus, display, priceWithVat, EAN filtr); Jira/Tempo
