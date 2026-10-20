@@ -170,8 +170,45 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
   - Smazání prodejního dokladu `Sales Order No.` ani `Processed` na objednávce nevynuluje. Na to je akce *Unlink Processed
     Documents*.
   - Detail je v rozcestníku BCShopifyConnectorDocs, `shopify_functional_breakdown.md` sekce 3a.
+  - ⚠️ `OnBeforeCreateItemSalesLine`: konektor `IsHandled` mezi řádky zboží **neresetuje** (jen ve smyčce dopravy). Subscriber,
+    který nastaví `Handled := true` pro jeden řádek, musí u ostatních vracet `false`, jinak se všechny další řádky přeskočí.
 
   (2026-10-19, konektor 28.5 i 29.0.)
+- **Slevové kódy objednávky konektor nedrží. Všechny kódy a částky po kódech jdou jen vlastním dotazem.**
+  - Import čte jen `discountCode` (jeden kód, uříznutý na Code[20]). `Shpfy Order Header."Discount Codes"` (Text[250]) se plní
+    z `discountCodes`, který v dotazu chybí, takže je **vždy prázdné**.
+  - Řádky čtou `discountAllocations { allocatedAmountSet }` **bez** `discountApplication`. `Shpfy Order Line."Discount Amount"` je
+    součet všech slev na řádku, včetně kódu „částka z objednávky“, který Shopify rozpustil poměrem na řádky. Na prodejním řádku
+    je to `Line Discount Amount`.
+  - Ani *Načtená data Shopify* (`Shpfy Data Capture` 30114, Internal) víc nemají. Ověřeno na objednávce se 3 kódy: JSON hlavičky
+    má jeden `discountCode`, JSON řádku jen částky. Tabulka `Shpfy Order Disc.Appl.` (30117) je Internal a nikde se neplní.
+  - Dotazy konektoru rozšířit nejde: GraphQL eventy jsou `InternalEvent`, `Shpfy Communication Mgt.` je Internal (5.y3).
+  - Řešení:
+    - Vlastní HttpClient (5.y3) s oprávněním **`read_orders`**: `order(id: "gid://shopify/Order/<id>") { discountApplications { nodes
+      { index ... on DiscountCodeApplication { code } } } lineItems(first: 50, after: $after) { pageInfo { hasNextPage endCursor }
+      nodes { id discountAllocations { allocatedAmountSet { shopMoney { amount } presentmentMoney { amount } } discountApplication
+      { index } } } } }`.
+    - `DiscountApplication.value` je **nastavená** hodnota slevy, ne odečtená. Skutečně odečtené = součet alokací řádků
+      s daným `index`. Shopify ořízne fixní slevu na hodnotu košíku a při skládání slev se druhý kód spotřebuje jen zčásti.
+    - `read_orders` vidí objednávky za posledních 60 dní.
+  - Kde zasáhnout při vytvoření dokladu (`Shpfy Process Order`, celé uvnitř `if not ProcessOrder.Run()`):
+    - Načtení a kontrola patří do `OnBeforeProcessSalesDocument`. `Error` tam zastaví jen tuhle objednávku: konektor ho uloží do
+      `Error Message` přes `CopyStr` na 2048 a doklad vrátí zpět.
+    - Zápis do vlastních tabulek ve stejné transakci se při chybě vrátí taky. Co má chybu přežít, musí se zapsat mimo
+      zpracování, třeba ruční akcí.
+    - Úpravu řádkové slevy dělej v `OnAfterCreateItemSalesLine` jen na prodejním řádku. Shopify řádek nech být:
+      `ApplyGlobalDiscounts` by rozdíl vrátil jako fakturační slevu.
+    - Řádky zboží vznikají v pořadí PK Shopify řádků. Vlastní řádky „po zboží“ tedy vlož v `OnAfterCreateItemSalesLine`
+      posledního Shopify řádku (`FindLast` se stejným filtrem). Po `ApplyGlobalDiscounts` už event není a
+      `OnAfterProcessSalesDocument` může vidět vydaný doklad.
+    - Import (`OnAfterImportShopifyOrderHeader` / `OnAfterCreateShopifyOrderAndLines`) JSON nepředává. Pád HTTP tam vrátí import
+      celé objednávky.
+  - Automatické vytvoření dokladu v *Sync Orders From Shopify* běží jen pro **nově** naimportované objednávky. Objednávku, která
+    spadla do chyby, zpracuje znovu akce *Create Sales Document(s)* nebo report **30103 `Shpfy Create Sales Orders`** (všechny
+    nezpracované objednávky obchodu, jde do fronty úloh).
+
+  (cust-sonnentor-bc PBI 63637 uplatnění dárkových poukazů z objednávek Shopify, `Shpfy Voucher Redemption SON`, 2026-10-20, konektor
+  28.5, stejné i v 29.0.)
 - **Co export produktu z BC do Shopify reálně pošle u metapolí a značek** (BC 28.4, `Shpfy Product Export` / `Shpfy Metafield API`):
   metapole jen při `Shop."Product Metafields To Shopify"` (pole 130; zákazník 131, společnost 132) přes
   `SyncMetafieldsToShopify` → `CollectMetafieldsInBC` bere jen `Type <> string & <> integer` (legacy typy se **nikdy** nepošlou),
