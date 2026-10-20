@@ -471,8 +471,10 @@ IntegrationRecordSynch.Codeunit.al`, `IntegrationTableMapping.Table.al`, `Integr
   řádek field mappingu `Direction::ToIntegrationTable`. Pořadí se standardem nevadí: oba subscribery respektují `IsValueFound`
   a standard navíc **exituje, když není integrace enabled** (`IsCDSIntegrationEnabled()`), takže v testu bez `CDS Connection
   Setup` běží jen vlastní kód — test přes `Integration Record Synch.` s `Temp Integration Field Mapping` (vzor výše) a
-  `RegisterTableConnection(... @@test@@)`; proxy záznam číselníku `Insert(false)` jde do lokální DB. (2026-10-19, cust-jps-bc,
-  Customer `VAT Bus. Posting Group` → `CRM Account.ebs_vatbusinesspostinggroupid`, `CDSManagementJPS`.)
+  `RegisterTableConnection(... '@@test@@')`; proxy záznam číselníku `Insert(false)` jde do lokální DB. Ověřeno kompilací
+  a čtením zdroje, **ne během v Dataverse** — zákazník nakonec lookup nahradil textovým sloupcem (`Text[20]`, `ExternalType =
+  'String'`), který engine kopíruje 1:1 bez vlastního kódu; levnější varianta, když PA číselník nepotřebuje relaci.
+  (2026-10-19/20, cust-jps-bc, Customer `VAT Bus. Posting Group` → `CRM Account.ebs_vatbusinesspostinggroupid`.)
 
 ### 11.9 Jira Cloud user lookup podle e-mailu — `/rest/api/3/user/search?query=<e-mail>`, NE `/rest/api/3/users`
 
