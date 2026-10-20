@@ -808,6 +808,9 @@ Configurator Ext 28.0.50.
     upload task" (záznam z prvního pokusu visel) — bez detailu; přímé volání API výš prošlo.
   - Node `https` neparsuje odpověď `Microsoft.NAV.upload` (`Parse Error: Expected HTTP/`, ani `insecureHTTPParser` nepomůže) —
     akci volej curlem. Polling `extensionDeploymentStatus` občas vrátí prázdné tělo → `JSON.parse` obal `try`.
+  - curl `-X POST …/Microsoft.NAV.upload` **bez těla** vrátí `HTTP 411 Length Required` (IIS) → přidej `-d ""` (+ `Content-Type:
+    application/json`), pak 200. Token do hlavičkového souboru a `curl -H @soubor`, ať není v příkazové řádce. (2026-10-20,
+    Sonnentor BC-TEST, Dotykačka konektor 28.0.5.1, upgrade PTE→PTE za ~4 min.)
   - Token: `d365bc-admin get_microsoft_entra_id_token` (aud `api.businesscentral.dynamics.com`), drž ho v souboru ve scratchpadu
     a po skončení smaž.
 - **Detail chyby** API nevrací: BC stránka 2508 *Stav instalace rozšíření* → řádek → 2509 → *Zobrazit podrobnosti*.
