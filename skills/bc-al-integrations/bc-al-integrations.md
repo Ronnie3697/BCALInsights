@@ -128,11 +128,24 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
     S `Handled` a holým `Item."Unit Price"` tedy pošleš stejné číslo jen když je shop v LCY a sazba DPH je 0 % nebo `Price
     Includes VAT` karty = `Prices Including VAT` shopu. Jinak přepočet udělej sám, nebo to aspoň ověř na datech. Příští sync ceny
     v Shopify přepíše, takže změnu uvidí zákazník. (Review hotfixu 28.0.167.1, cust-sonnentor-bc, 2026-10-19, konektor 28.5.)
+  - ⚠️ **Než s `Handled` sáhneš po `Item."Unit Price"`, ověř na datech, kde cena zboží reálně žije.** Zákazník s ceníky (B2C ceník,
+    pokladna) mívá jednotkovou cenu na kartě 0 a standardní cesta konektoru našla cenu v ceníku přes dočasnou nabídku. Hotfix s kartou
+    pak pošle do Shopify **cenu 0**. Import objednávky převezme cenu ze Shopify, takže zboží jde v e-shopu koupit zadarmo.
+  - Sonnentor 28.0.167.1 → 28.0.167.2: cena poukazu se bere z vlastního pole hodnoty a měny (`Voucher Value SON` / `Voucher Currency
+    SON`). Na měnu shopu ji přepočte `Currency Exchange Rate.ExchangeAmtFCYToFCY(WorkDate(), Z, Do, Částka)` (prázdný kód = LCY,
+    stejné kódy = beze změny) a zaokrouhlí na `Unit-Amount Rounding Precision` (`Currency.Initialize`).
+  - Kód měny rovný `General Ledger Setup."LCY Code"` (`CZK`) normalizuj na `''`. `ExchangeAmtFCYToFCY('CZK', '', …)` by hledal kurz
+    pro CZK a sync by spadl.
+  - Nulová hodnota → `exit(false)`, tedy standardní výpočet konektoru. Nikdy neposílej 0.
+  - Cílová měna: `ShopifyShop."Currency Code"`, ne `Catalog`. `Shpfy Product Price Calc.` je SingleInstance a `SetShop` mění
+    parametry jen při změně shopu, takže katalog v eventu může zůstat z dřívějšího katalogového syncu téže session.
+  - Test zakládá zboží s **nulovou** jednotkovou cenou na kartě. Test, kde se karta rovná očekávané hodnotě, projde i se špatným
+    zdrojem ceny.
   - `UnitOfMeasure` je `Code[20]`. Do `Item Unit of Measure.Get` ho dávej přes `Code[10]` proměnnou, jinak ALCops **PC0013**.
   - Vytvoření prodejního dokladu ze Shopify objednávky (`Shpfy Process Order.CreateLinesFromShopifyOrder`) cenu nepočítá. Bere
     `Shpfy Order Line."Unit Price"` z importu objednávky (`Validate("Unit Price", …)`).
 
-  (cust-sonnentor-bc hotfix 28.0.167.1, `Shpfy Sync Event Handler SON.CalcVoucherPrice`, 2026-10-19, konektor 28.5.)
+  (cust-sonnentor-bc hotfix 28.0.167.1 / 28.0.167.2, `Shpfy Sync Event Handler SON.CalcVoucherPrice`, 2026-10-19/20, konektor 28.5.)
 - **Vazba Shopify objednávka ↔ prodejní doklad drží pevně jen hlavičku.**
   - Hlavičky: `Shpfy Order Header."Sales Order No." / "Sales Invoice No."` ↔ `Sales Header."Shpfy Order Id"` + tabulka
     `Shpfy Doc. Link To Doc.` (30146).
