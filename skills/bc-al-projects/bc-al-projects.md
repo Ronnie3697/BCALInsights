@@ -7,7 +7,7 @@
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
 Obsahuje:
-- **5.x17–5.x24** Projekty (5.x24: spotřeba projektu z prodejní dodávky per tracking a per položka příjmu, pořadí v Sales-Post)
+- **5.x17–5.x26** Projekty (5.x24: spotřeba projektu z prodejní dodávky per tracking a per položka příjmu, pořadí v Sales-Post; 5.x25: přecenění položek projektu; 5.x26: nákupní dobropis / vratka u Skip projektu)
 
 ### 5.x17 Job Planning Line `Gen. Prod. Posting Group` = zdroj pravdy pro deník projektů; změna default dimenze projektu
 
@@ -324,3 +324,38 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   `SalesHeader."No."`), `Job Transfer Line` ji kopíruje do JJL (Document No., dimenze, texty, posting groups), G/L větev páruje
   temp JJL jen přes `Line No.`; EPEBS subscribery (`OnAfterFromPlanningSalesLineToJnlLine`, `OnBeforeJobLedgEntryInsert`) Document No.
   nečtou. Regresní test `ShipAndInvoiceInOneRun_SkipProject_UsageCarriesOrderNoAndSaleEntryCarriesInvoiceNo`. (2026-10-19)
+
+### 5.x26 Nákupní dobropis / vratka dodavateli u Skip projektu s navázaným rozpočtovým řádkem — modul vypnul standard i pro vratky, kontrola spotřeby je vlastní
+
+- **Standard u vratky s projektem** (`Purch.-Post.PostItemJnlLine`, w1-28: `PostJobConsumptionBeforePurch := ItemJnlLine.IsPurchaseReturn()`
+  → `PostItemJnlLineJobConsumption` běží **před** zaúčtováním položky vrácení, `PurchItemLedgEntryNo = 0`) chce odúčtovat spotřebu z příjmu
+  (kladná korekce s projektem + záporná Usage přes `PrepareJobLine`) a bez ní spadne na `Appl.-from Item Entry` — tj. zboží, které projekt
+  spotřeboval, se dodavateli vrátit nedá. IMEBS subscriber `OnPostItemJnlLineJobConsumption` (`IsHandled` u Skip projektu s rozpočtovým
+  řádkem navázaným z billable řádku) tuhle větev vypínal **i pro vratky** → dobropis prošel bez položky projektu a bez kontroly skladu
+  (záporná zásoba / zboží jiného projektu), usage z dodávky zůstala (ověřeno uživatelem v Posting Preview, 2026-10-20).
+- **Oprava (prod-ep-itemManagement-bc, větev `features/misc`, 2026-10-20):** v tomtéž subscriberu u `PurchHeader.IsCreditDocType()` kontrola
+  **per sledování**: vráceno ≤ přijato pro rozpočtový řádek − usage navázané na položky příjmu − dříve vráceno − nenavázané usage
+  (`CheckReturnedQtyOnInventoryForProject`, jinak `Error` „cannot be returned to the vendor… Post the sales credit memo of the customer
+  return first“). Vrácené množství per tracking = `TempPurchReservEntry` eventu (Purch.-Post do něj sbírá tracking item jnl line,
+  `CollectPurchaseLineReservEntries`; outbound `Quantity (Base)` záporné), bez trackingu `ItemJournalLine."Quantity (Base)"` (u credit
+  doc typů záporné — `ReverseAmount`) → `Abs`. Event běží před položkou zboží → chyba zastaví i Posting Preview. Dřívější vratky se
+  odečítají i v `CollectReceiptItemEntries` (`SubtractReturnedQuantities`): `Return Shipment Line` má standardní `Job Planning Line No.`
+  (1019, TransferFields z Purchase Line; EPEBS pole na vratce/dobropisu **není**), položky `Document Type = Purchase Return Shipment`
+  se záporným množstvím, nejdřív podle vyrovnání (`Item Application Entry` Key3 `Outbound Item Entry No.` + `Item Ledger Entry No.`,
+  `Quantity` záporné → Abs), zbytek FIFO per tracking; `Remaining Quantity` kopie tedy = přijato − usage − vráceno, „už spotřebováno“
+  z ní nejde odvodit (`GetUsageQtyBaseLinkedToItemEntry` znovu). Pozdější dodávka se na vrácenou položku příjmu nenaváže (usage bez
+  `Ledger Entry No.`). Storno spotřeby patří k **prodejnímu** dobropisu (vratka od zákazníka) — dohodnuto jako další krok, zatím
+  neimplementováno.
+- **Posting Preview položky projektu zobrazuje** (`Posting Preview Event Handler` subscriber na `Job Ledger Entry.OnAfterInsertEvent`,
+  page `Job Ledger Entries Preview`; `Job Jnl.-Post Line` sám nic nereguje) → chybějící „Položka projektu“ v náhledu = opravdu nevznikla.
+- **Získat účtované řádky pro stornování:** nákup job pole **kopíruje** (`CopyPurchDocLine` → `CopyPurchaseJobFields`: `Validate` Job No. /
+  Job Task No. / Job Planning Line No. / Job ceny), prodej je **maže** (`SetDefaultValuesToSalesLine` → `InitSalesLineFields` →
+  `InitJobFieldsForSalesLine`; `CopySalesJobFields` jen s `CopyJobData` = Correct / Cancel). `Job Post-Line.CheckItemQuantityPurchCredit`
+  se v w1-28 nevolá odnikud (ani Purchase Line, ani Purch.-Post).
+- **Testy (`Purch. Consumption Test IMEBS`):** dobropisový řádek `LibraryPurchase.CreatePurchHeader(…, "Credit Memo", …)` + job pole jako u
+  objednávky (Validate Job No. / Job Task No. / Job Planning Line No. / EPEBS pole); `Purchases & Payables Setup."Exact Cost Reversing
+  Mandatory" := false` (jinak `TestField("Appl.-to Item Entry")`) — `LibrarySetupStorage.Save` **po** úpravě v suite initu, `Restore` hned
+  po `OnTestInitialize`; šarže na dobropisový řádek `LibraryItemTracking.InsertItemTracking(ReservEntry, false, …, -Qty * QtyPerUoM, …,
+  Database::"Purchase Line", DocType.AsInteger(), DocNo, '', 0, LineNo, "Expected Receipt Date")` (outbound, jako u prodejního řádku);
+  vratku ověř `ILE Entry Type Purchase + Document Type Purchase Return Shipment`; zboží pro dodávku po vratce doplň `PostPositiveAdjustment`.
+  Kompilace app i test čistá (alc 17.0 + CodeCop/PTE/UICop/ALCops), běh v kontejneru až při push.

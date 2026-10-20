@@ -9,8 +9,11 @@ description: >-
   návazné doklady projektu (Job Planning Line Invoice, Job No. EPEBS, nákupní objednávka / příjemka), guardy
   Job Planning Line.OnDelete, undo nákupní příjemky s projektem (ReapplyJobConsumption, Skip Purchase
   Consumption IMEBS), spotřeba projektu z prodejní dodávky per šarže / SN / položka příjmu
-  (CreateJobLedgerEntryFromSalesLine z OnAfterInsertShipmentLine, ne Qty. to Handle). Načti u řádků plánování,
-  deníku projektů, mazání plánovacích řádků, návazných dokladů, storna příjemky a spotřeby z dodávky.
+  (CreateJobLedgerEntryFromSalesLine z OnAfterInsertShipmentLine, ne Qty. to Handle), nákupní dobropis / vratka
+  dodavateli u Skip projektu (OnPostItemJnlLineJobConsumption i pro vratky, kontrola spotřebovaného množství per
+  tracking, Return Shipment Line Job Planning Line No., Posting Preview JLE, Get Posted Doc. Lines to Reverse a job
+  pole). Načti u řádků plánování, deníku projektů, mazání plánovacích řádků, návazných dokladů, storna příjemky,
+  spotřeby z dodávky a vratek dodavateli.
 user-invocable: true
 ---
 
@@ -50,3 +53,7 @@ Vyčleněno z `bc-al-objects.md` 2026-10-05, číslování 5.x je původní.
   **JLE : položka příjmu 1:1** (celé množství položky, až když ji Σ dodávek řádku pokryje — usage dodávku nepředběhne,
   může se zpozdit). Nadspotřeba = `Job Link Usage` zvedne `Quantity` budget řádku. IMEBS `CreateItemTrackingForSalesLine`
   píše do 336, ne 337 (dodávka to nečte).
+- **5.x26** `Purch.-Post` volá `OnPostItemJnlLineJobConsumption` i u vratek (před položkou zboží) — `IsHandled` pro Skip projekt vypne
+  i standardní stop „nelze vrátit spotřebované“; IMEBS kontroluje vráceno ≤ přijato − usage − dříve vráceno per tracking a vrácené
+  množství vyřazuje ze spotřeby při dodávce. Posting Preview JLE zobrazuje; Get Posted Doc. Lines to Reverse job pole u nákupu
+  kopíruje, u prodeje maže.
