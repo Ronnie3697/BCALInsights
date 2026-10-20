@@ -194,13 +194,20 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
   - Kde zasáhnout při vytvoření dokladu (`Shpfy Process Order`, celé uvnitř `if not ProcessOrder.Run()`):
     - Načtení a kontrola patří do `OnBeforeProcessSalesDocument`. `Error` tam zastaví jen tuhle objednávku: konektor ho uloží do
       `Error Message` přes `CopyStr` na 2048 a doklad vrátí zpět.
-    - Zápis do vlastních tabulek ve stejné transakci se při chybě vrátí taky. Co má chybu přežít, musí se zapsat mimo
-      zpracování, třeba ruční akcí.
-    - Úpravu řádkové slevy dělej v `OnAfterCreateItemSalesLine` jen na prodejním řádku. Shopify řádek nech být:
-      `ApplyGlobalDiscounts` by rozdíl vrátil jako fakturační slevu.
-    - Řádky zboží vznikají v pořadí PK Shopify řádků. Vlastní řádky „po zboží“ tedy vlož v `OnAfterCreateItemSalesLine`
-      posledního Shopify řádku (`FindLast` se stejným filtrem). Po `ApplyGlobalDiscounts` už event není a
-      `OnAfterProcessSalesDocument` může vidět vydaný doklad.
+    - Zápis do vlastních tabulek ve stejné transakci se při chybě vrátí taky. Co má chybu přežít (výsledek kontroly pro
+      uživatele), drž v SingleInstance bufferu. Zapiš ho v subscriberu `Shpfy Order Header.OnAfterModifyEvent` při
+      `Has Error`: obě cesty konektoru (`Shpfy Process Orders.ProcessShopifyOrder` i report Sync Orders) po rollbacku
+      nastaví chybu přes `Modify(true)` a pak `Commit`.
+    - Úpravu řádkové slevy dělej v `OnAfterCreateItemSalesLine` jen na prodejním řádku, a to na `var SalesLine` eventu.
+      Znovu načtený záznam by další subscriber se starou kopií přepsal. Shopify řádek nech být: `ApplyGlobalDiscounts` by
+      rozdíl vrátil jako fakturační slevu.
+    - Vlastní řádky dokladu (např. uplatnění poukazu) vkládej v `OnAfterCreateSalesHeader`. Řádky zboží si pak berou
+      `GetNextLineNo` (FindLast + 10000) za nimi. Na „poslední Shopify řádek“ nespoléhej: BC 29 vynechává řádky výměny
+      (`Is Exchange Item`) a cizí subscriber s `Handled` může řádky přeskočit. Po `ApplyGlobalDiscounts` už event není a
+      `OnAfterProcessSalesDocument` může vidět vydaný doklad. Hodí se jen na závěrečnou pojistku s `Error`.
+    - Shopify drží `discountAllocations` i u vráceného řádku, který konektor při importu sníží na 0 a smaže. Alokace kódu
+      na řádku, který v `Shpfy Order Line` není, se na žádný prodejní řádek nepromítne. Hlídej to předem a na konci porovnej
+      odečtenou a alokovanou částku.
     - Import (`OnAfterImportShopifyOrderHeader` / `OnAfterCreateShopifyOrderAndLines`) JSON nepředává. Pád HTTP tam vrátí import
       celé objednávky.
   - Automatické vytvoření dokladu v *Sync Orders From Shopify* běží jen pro **nově** naimportované objednávky. Objednávku, která
