@@ -734,6 +734,14 @@ Zdroj w1-28 `Modules/System/JobQueue/JobQueueEntry.Table.al` + `JobQueueEnqueue.
   `BindSubscription(LibraryJobQueue)` → po volání `Earliest Start <= now + minuta` (status s DoNotScheduleTask zůstane On
   Hold — neassertovat). Zdroj Base App 28.5 `JobQueueEnqueue.Codeunit.al`. (2026-10-06, cust-soitron-bc
   `QB Buffer Automation Mgt. SOI.StartScheduledAutomation` — start QB automatizace z API page bufferu.)
+- **Codeunit pro Job Queue musí mít `TableNo = "Job Queue Entry"` (nebo žádné `TableNo`)** — Job Queue Dispatcher volá
+  `Codeunit.Run(ID, JobQueueEntry)`, takže codeunita s `TableNo` na vlastní tabulku skončí hned chybou
+  `Record(472) is not compatible with Codeunit.Run(Record(<vlastní tabulka>))` (472 = Job Queue Entry) — v testech přes
+  `AutomationMgt.RunAutomation(Rec)` se to neukáže. Jeden codeunit pro „dávka z fronty" i „jeden záznam v error boundary
+  (`if not Runner.Run(Rec)`)" tedy nejde; error-boundary běh dej do samostatné malé codeunity s `TableNo` = vlastní tabulka,
+  která zavolá zpět orchestrátor. Test: `Codeunit.Run(Codeunit::X, JobQueueEntry)` s `Init()` entry (bez Insert) po `Commit()`
+  GIVEN dat (`Codeunit.Run` s návratovou hodnotou uvnitř chce zavřenou write transakci). (2026-10-20, cust-soitron-bc
+  `QB Buffer Automation Mgt. SOI` / `QB Buffer Automation Run SOI`, chyba z Job Queue na testu zákazníka.)
 
 ### 5.x15 → vyčleněno do `bc-al-tracking.md`
 
