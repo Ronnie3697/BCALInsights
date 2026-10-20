@@ -481,7 +481,11 @@ IntegrationRecordSynch.Codeunit.al`, `IntegrationTableMapping.Table.al`, `Integr
   přesně tenhle blok zakomentovaný. Generátor (altpgen) dává `OptionMembers = Active,Inactive; InitValue = Active` bez
   ordinálů — když stav potřebuješ, drž generovanou podobu. Textový sloupec místo lookupu není zkratka: do lookup atributu
   string neprojde (*Unable to cast object of type 'System.String' to type 'Microsoft.Xrm.Sdk.EntityReference'*) a lookup
-  sloupec v Dataverse nejde přetypovat. (2026-10-19/20, cust-jps-bc DEV, Customer `VAT Bus. Posting Group` →
+  sloupec v Dataverse nejde přetypovat. **Nová custom tabulka v Dataverse = přidat `Read` (Organization) aplikačnímu
+  uživateli BC** (*Business Central Integration*, ApplicationId `88c57617-…`, type=8 Non-interactive) v jeho security roli,
+  jinak dotaz z proxy skončí *Principal user … is missing prvRead<entity> privilege*; v BC je celý text jen v poli *Error
+  Message* (2048) tabulky *Integration Synch. Job Errors*, pole *Message* (250) i seznam ho uříznou. (2026-10-19/20,
+  cust-jps-bc DEV, Customer `VAT Bus. Posting Group` →
   `CRM Account.ebs_vatbusinesspostinggroupid`, `CDSManagementJPS`.)
 
 ### 11.9 Jira Cloud user lookup podle e-mailu — `/rest/api/3/user/search?query=<e-mail>`, NE `/rest/api/3/users`
