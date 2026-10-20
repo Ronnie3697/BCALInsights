@@ -905,4 +905,10 @@ zdroje prod-ess-configurator-bc master, COEBS 28.0.22.0.)
   a `Param. Display Text Mgt.GetTableLookupDisplayText` — ten s filtrem podle parametru může vzít popis z cizího záznamu (neunikátní
   zdrojové pole, `Item Variant.Code`). ⚠️ Vrátit z `GetConditionTableFilter` **neplatné** view nejde: konzumenti ho přes `TrySetView`
   tiše vynechají a nabídnou všechno; „nic nenabídnout" = platný filtr bez výsledku (`'%1&<>%1'`).
-- `FilterPageBuilder` (okno *Filtr stránky*) je platformní dialog — vlastní tlačítko / lookup do něj přidat nejde.
+- `FilterPageBuilder` (okno *Filtr stránky*) je platformní dialog — vlastní tlačítko / lookup do něj přidat nejde. Zástupný text
+  (`{PROFIL}`) v něm projde jen u Code/Text pole a jen do délky pole; u Decimal pole (`Unit Price`) nebo s 22 znaky v Code[20]
+  okno po OK hlásí „Jeden nebo více filtrů je neplatný a bude ignorován“ a filtr zahodí.
+- **Ověřeno 2026-10-20 na Alumistr BC-DEV** (COEBS 28.0.35, konfigurace A00005 / zboží CLAUDE-CFG / nabídka 1006, data ponechaná):
+  Vyhledání nad `Unit Price` s jediným záznamem dá `1 337,44` s NBSP (znak 160) → kopie do Desetinného i Celé ← `2.5` zůstanou
+  prázdné bez výchozí hodnoty, kopie do Výběru uloží neexistující kód; OK pak hlásí „Následující parametry musí být vyplněny“.
+  Filtr typu v lookupu jde vymazat v menu sloupce (*Vymazat filtr*).
