@@ -654,11 +654,13 @@ spustí AL trigger až ve chvíli, kdy se stránka dostane nahoru** – po jedn�
 Výsledek: po návratu na seznam vyskočí série hlášek, případně se otevřou stránky, které skener „našel“ dávno předtím.
 Kontrola `CurrPage.ObjectId` (proti subpage) to nechytí, ruční zadání do pole netrpí (jde jen do aktivní stránky).
 
-**Jak klient stack skrývá (BC 28, ověřeno v DOM):** každá stránka je `.spa-view`; dvě a víc pod vrcholem `display:none`,
-**přímo pod vrcholem `display:block`** s `aria-hidden="true"` a třídou `spa-not-top-most`. Proto `getClientRects()`,
-`offsetParent`, `checkVisibility()`, `document.visibilityState` ani `IntersectionObserver` stránku přímo pod vrchní
-**nepoznají**. Spolehlivě rozliší jen `window.frameElement.closest('[aria-hidden="true"]') !== null` (zevnitř iframu
-add-inu, same-origin), případně `spa-not-top-most` nebo `elementFromPoint`.
+**Jak klient stack skrývá (BC 28, ověřeno v DOM):** každá stránka je `.spa-view`. **Phone:** dvě a víc pod vrcholem
+`display:none`, **přímo pod vrcholem `display:block`** s `aria-hidden="true"` a třídou `spa-not-top-most`. **Desktop web
+klient** (stejný jev, `Page.Run` = panel nad zašedlou stránkou): zakrytá stránka má jen atribut **`inert`** (+ `spa-not-top-most`),
+`aria-hidden` nikde. Proto `getClientRects()`, `offsetParent`, `checkVisibility()`, `document.visibilityState` ani
+`IntersectionObserver` stránku přímo pod vrchní **nepoznají**. Spolehlivě rozliší jen
+`window.frameElement.closest('[aria-hidden="true"], [inert]') !== null` (zevnitř iframu add-inu, same-origin) – samotný
+`aria-hidden` stačí jen na telefonu.
 
 **Fix v JS add-inu:** před `InvokeExtensibilityMethod` zkontroluj, že stránka není zakrytá; když to nejde vyhodnotit
 (`frameElement` null, výjimka), pusť událost jako dřív:
@@ -666,21 +668,25 @@ add-inu, same-origin), případně `spa-not-top-most` nebo `elementFromPoint`.
 ```js
 function isPageCovered() {
   try {
-    return window.frameElement.closest('[aria-hidden="true"]') !== null;
+    return window.frameElement.closest('[aria-hidden="true"], [inert]') !== null;
   } catch (err) {
     return false;
   }
 }
 ```
 
-- Vrchní stránka s otevřeným **dialogem** (Message, Error, Confirm) je taky `aria-hidden` → událost během dialogu se
-  **zahodí** (bez fixu by se odložila). U čtečky žádoucí, jinde zvaž.
-- Je to interní DOM klienta, ne API – po updatu BC ověř. Když klient atribut přestane nastavovat, vrátí se odkládání;
-  když by ho nastavoval i na vrchní stránku, add-in přestane posílat úplně.
+- Vrchní stránka s otevřeným **dialogem** (Message, Error, Confirm) je taky zakrytá (phone `aria-hidden`, desktop
+  `inert`) → událost během dialogu se **zahodí** (bez fixu by se odložila). U čtečky žádoucí, jinde zvaž. Vrchní stránka
+  bez dialogu nemá ani jeden atribut (ověřeno na obou klientech).
+- Je to interní DOM klienta, ne API – po updatu BC ověř. Když klient atributy přestane nastavovat, vrátí se odkládání;
+  když by je nastavoval i na vrchní stránku, add-in přestane posílat úplně.
+- Simulace skenu z DevTools: keypress na `window` phone záložky; desktop klient běží v `iframe.designer-client-frame`,
+  keypress tedy na jeho `contentWindow` (na top `window` se nestane nic).
 - **Startup skript add-inu je zabalený** do `function __controlAddInInitialize() {…}`: top-level funkce a `let` nejsou na
   `window` iframu (`typeof iframe.contentWindow.isPageCovered` = `undefined`, i když nový skript běží). Na `window` je
   jen to, co skript přiřadí sám (`window.X = …`, proto AL → JS metody takhle). Nasazenou verzi ověřuj přes text skriptu.
 
-(2026-10-20, prod-ew-mobileBase-bc 66918, BC-DEV build 28.0.0.9: seznam skladových pohybů po dokončení dokladu otevíral
-detaily cizích dokladů, seznam vyskladnění hlásil „Naskenován špatný čárový kód“ za každý sken z karty a detailu; po fixu
-37 simulovaných skenů, každý poslala jen vrchní stránka, 2 zahozené pod dialogem.)
+(2026-10-20, prod-ew-mobileBase-bc 66918, BC-DEV: seznam skladových pohybů po dokončení dokladu otevíral detaily cizích
+dokladů, seznam vyskladnění hlásil „Naskenován špatný čárový kód“ za každý sken z karty a detailu. Build 28.0.0.9 jen
+s `aria-hidden` opravil phone, na desktopu replay zůstal; 28.0.0.10 s `[inert]`: phone 21 + desktop 15 simulovaných
+skenů, všechny poslala jen vrchní stránka, 4 zahozené pod dialogem.)
