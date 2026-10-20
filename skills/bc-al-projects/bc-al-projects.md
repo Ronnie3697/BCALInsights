@@ -389,6 +389,13 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
     Invoice` je pak netto). `Job Planning Line.InitFromJobPlanningLine` (Copy Document faktury, Correct/Cancel) dělá `TransferFields` → kopíruje
     i `Purch. Job Cont.Entry No.IMEBS` na novou / stornovací řádku → `OnAfterInitFromJobPlanningLine(var ToJobPlanningLine, FromJobPlanningLine)`
     vazbu nuluje (1 : 1 budget ↔ billable). Correct/Cancel dobropisy (kontrakt = stornovací řádka bez vazby) spotřebu nestornují — nepokryto.
+  - ⚠️ **Řádek faktury / dobropisu se smluvní položkou NEúčtuje položky zboží:** `Sales-Post.PostItemJnlLine` má `ShouldPostItemJnlLine :=
+    not JobContractLine` (`JobContractLine` nastaví `PostJobContractLine` u Invoice / Credit Memo; u Order ho IMEBS `OnBeforePostJobContractLine`
+    `IsHandled` nechá false). Projektová faktura z plánovacích řádků zboží nehýbe, ale dobropis Skip projektu zboží fyzicky vrací → bez položek
+    vratky by storno spotřeby nemělo z čeho jet (Posting Preview: Project Ledger Entry ano, Item Ledger Entry zmizely — BC-DEV 2026-10-20).
+    Fix: `OnPostItemJnlLineOnBeforeIsJobContactLineCheck(var ItemJnlLine, SalesHeader, SalesLine, var ShouldPostItemJnlLine, var ItemJnlPostLine,
+    QtyToBeShipped)` → pro Credit Memo + kontrakt + Skip projekt `ShouldPostItemJnlLine := true`. Stejná větev zřejmě platí i pro **fakturu přes
+    Získat řádky dodávky** (řádek s kontraktem → fakturační value entry k dodávce se neúčtuje) — neověřeno, otevřená otázka.
   - Testy `CreditMemoFromPostedInvoice_*`: dobropis z faktury v testu = `CopyDocumentMgt.SetProperties(false, false, false, false, true, true,
     false)` + `CopySalesInvLinesToDoc(CrMemoHeader, SalesInvoiceLine s filtrem Document No., LinesNotCopied, MissingExCostRevLink)` (stejně
     jako page 5850); částečná vratka = `Validate(Quantity, menší)` na zkopírovaném řádku. Kompilace čistá, běh až v CI.
