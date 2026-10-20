@@ -10,7 +10,7 @@
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
 Obsahuje:
-- **4.** UI patterny (4.1–4.14)
+- **4.** UI patterny (4.1–4.23)
 
 ## 4. UI patterny
 
@@ -642,3 +642,45 @@ s dlaždicí, a ověř to v 600×900 (viz `ew-mobile-ui`). (2026-10-16, PBI 6473
   jako base pole, patří proměnná do base stránky – rozšíření to nenahradí; event navíc nepomůže, pomůže jen
   `protected var` (na tu jde navázat editovatelné pole i z pageextension). `AL0305`: název objektu max 30 znaků
   (`EM Kiosk Package No. Tests KIEBS` = 32).
+
+---
+
+### 4.23 Phone klient: událost control add-inu ze stránky **pod** vrchní stránkou se odloží a přehraje
+
+Na telefonu (`…/phone`) zůstávají stránky otevřené přes `Page.Run` ve stacku (seznam → řádky → detail) a jejich control
+add-iny dál běží. Když JS add-inu reaguje na něco globálního (typicky čtečka: `keypress` listener na `window.parent`), volá
+`Microsoft.Dynamics.NAV.InvokeExtensibilityMethod` i add-in schované stránky. **BC takovou událost nezahodí, odloží ji a
+spustí AL trigger až ve chvíli, kdy se stránka dostane nahoru** – po jedné, v pořadí, a po `Error()` v jedné pokračuje další.
+Výsledek: po návratu na seznam vyskočí série hlášek, případně se otevřou stránky, které skener „našel“ dávno předtím.
+Kontrola `CurrPage.ObjectId` (proti subpage) to nechytí, ruční zadání do pole netrpí (jde jen do aktivní stránky).
+
+**Jak klient stack skrývá (BC 28, ověřeno v DOM):** každá stránka je `.spa-view`; dvě a víc pod vrcholem `display:none`,
+**přímo pod vrcholem `display:block`** s `aria-hidden="true"` a třídou `spa-not-top-most`. Proto `getClientRects()`,
+`offsetParent`, `checkVisibility()`, `document.visibilityState` ani `IntersectionObserver` stránku přímo pod vrchní
+**nepoznají**. Spolehlivě rozliší jen `window.frameElement.closest('[aria-hidden="true"]') !== null` (zevnitř iframu
+add-inu, same-origin), případně `spa-not-top-most` nebo `elementFromPoint`.
+
+**Fix v JS add-inu:** před `InvokeExtensibilityMethod` zkontroluj, že stránka není zakrytá; když to nejde vyhodnotit
+(`frameElement` null, výjimka), pusť událost jako dřív:
+
+```js
+function isPageCovered() {
+  try {
+    return window.frameElement.closest('[aria-hidden="true"]') !== null;
+  } catch (err) {
+    return false;
+  }
+}
+```
+
+- Vrchní stránka s otevřeným **dialogem** (Message, Error, Confirm) je taky `aria-hidden` → událost během dialogu se
+  **zahodí** (bez fixu by se odložila). U čtečky žádoucí, jinde zvaž.
+- Je to interní DOM klienta, ne API – po updatu BC ověř. Když klient atribut přestane nastavovat, vrátí se odkládání;
+  když by ho nastavoval i na vrchní stránku, add-in přestane posílat úplně.
+- **Startup skript add-inu je zabalený** do `function __controlAddInInitialize() {…}`: top-level funkce a `let` nejsou na
+  `window` iframu (`typeof iframe.contentWindow.isPageCovered` = `undefined`, i když nový skript běží). Na `window` je
+  jen to, co skript přiřadí sám (`window.X = …`, proto AL → JS metody takhle). Nasazenou verzi ověřuj přes text skriptu.
+
+(2026-10-20, prod-ew-mobileBase-bc 66918, BC-DEV build 28.0.0.9: seznam skladových pohybů po dokončení dokladu otevíral
+detaily cizích dokladů, seznam vyskladnění hlásil „Naskenován špatný čárový kód“ za každý sken z karty a detailu; po fixu
+37 simulovaných skenů, každý poslala jen vrchní stránka, 2 zahozené pod dialogem.)

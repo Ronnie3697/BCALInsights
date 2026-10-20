@@ -9,7 +9,8 @@ description: >-
   (AL0604), List v LookupMode jen pro čtení; filtr partu z OnOpenPage zmizí; DelayedInsert = prázdné
   SystemId; CurrPage.Update(false) v OnValidate zahodí hodnotu; ListPart přes RunModal pod TestPage;
   stránka bez SourceTable (protected var / veřejný getter + výraz v SourceExpr, stínění parametrů);
-  dlaždice na phone klientu (Brick / DropDown / prvních 5 controlů, addlast Brick). Načti u page,
+  dlaždice na phone klientu (Brick / DropDown / prvních 5 controlů, addlast Brick); událost
+  add-inu ze schované stránky phone klientu se odloží a přehraje (aria-hidden). Načti u page,
   pageextension, factboxů, partů, výběrů, captionů a viditelnosti.
 user-invocable: true
 ---
