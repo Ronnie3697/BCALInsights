@@ -1,19 +1,17 @@
 ---
 name: bc-al-projects
 description: >-
-  BC/AL projekty (Job / Job Task / Job Planning Line, sekce 5.x17–5.x24): Gen. Prod. Posting
-  Group řádku plánování jako zdroj pravdy pro deník projektů (Job Transfer Line), změna
-  default dimenze projektu (Default Dimension, xRec v OnAfterModifyEvent), Location Code z Job / Job Task jen pro
-  nové řádky, vazba budget ↔ billable Purch. Job Cont.Entry No.IMEBS, dimenze řádku plánování do Job Journal
-  Line (UpdateDimensions až po OnAfterCreateDim, SingleInstance mezi eventy, Usage Link, TSEBS placeholder),
-  návazné doklady projektu (Job Planning Line Invoice, Job No. EPEBS, nákupní objednávka / příjemka), guardy
-  Job Planning Line.OnDelete, undo nákupní příjemky s projektem (ReapplyJobConsumption, Skip Purchase
-  Consumption IMEBS), spotřeba projektu z prodejní dodávky per šarže / SN / položka příjmu
-  (CreateJobLedgerEntryFromSalesLine z OnAfterInsertShipmentLine, ne Qty. to Handle), nákupní dobropis / vratka
-  dodavateli u Skip projektu (OnPostItemJnlLineJobConsumption i pro vratky, kontrola spotřebovaného množství per
-  tracking, Return Shipment Line Job Planning Line No., Posting Preview JLE, Get Posted Doc. Lines to Reverse a job
-  pole). Načti u řádků plánování, deníku projektů, mazání plánovacích řádků, návazných dokladů, storna příjemky,
-  spotřeby z dodávky a vratek dodavateli.
+  BC/AL projekty (Job / Job Task / Job Planning Line, 5.x17–5.x26): Gen. Prod. Posting Group řádku plánování
+  jako zdroj pravdy pro deník projektů (Job Transfer Line), změna default dimenze projektu (Default Dimension,
+  xRec v OnAfterModifyEvent), Location Code z Job / Job Task jen pro nové řádky, vazba budget ↔ billable
+  Purch. Job Cont.Entry No.IMEBS, dimenze řádku plánování do Job Journal Line (UpdateDimensions až po
+  OnAfterCreateDim, SingleInstance, Usage Link, TSEBS placeholder), návazné doklady projektu (Job Planning Line
+  Invoice, Job No. EPEBS, nákupní objednávka / příjemka), guardy Job Planning Line.OnDelete, undo nákupní
+  příjemky s projektem (ReapplyJobConsumption, Skip Purchase Consumption IMEBS), spotřeba projektu z prodejní
+  dodávky per šarže / SN / položka příjmu (CreateJobLedgerEntryFromSalesLine z OnAfterInsertShipmentLine),
+  nákupní dobropis / vratka dodavateli u Skip projektu (OnPostItemJnlLineJobConsumption i pro vratky, kontrola
+  spotřebovaného množství per tracking, Posting Preview JLE, Get Posted Doc. Lines to Reverse). Načti u řádků
+  plánování, deníku projektů, návazných dokladů, storna příjemky, spotřeby z dodávky a vratek dodavateli.
 user-invocable: true
 ---
 
