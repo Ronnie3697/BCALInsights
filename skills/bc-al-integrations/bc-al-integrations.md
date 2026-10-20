@@ -576,3 +576,12 @@ Z prod-ess-dotykackaConnector-bc, PBI 63075 (test Pavla Fily 2026-10-08, oprava 
   Type SON"` = Consumer, lookup do Item UoM podle MJ odkazu; odkaz bez MJ tím vypadne). **Skrytý produkt
   (`display: false`) sync neposílá, jen ho skryje** → v adminu Dotykačky si nechá staré EANy a ceny; při ověřování
   změny payloadu kontroluj jen zobrazené produkty. (PBI 63075 / Task 63116, ověřeno na BC-DEV 2026-10-16.)
+- **Účtenku v Dotykačce smazat nejde** – vydaná účtenka je daňový doklad, pokladna ji umí jen stornovat a storno je
+  **nový order** (záporné množství, `_sourceOrderId`), který import natáhne taky. API docs nemají u orders DELETE; článek
+  podpory „Vymazat data“ (historie bez produktů) je starý a dnes 404. **Nové prostředí na stejném cloudu** (BC-TEST po
+  BC-DEV): prázdný watermark = první import stáhne celou historii, testovací účtenky z DEV mají ID produktů, které si
+  TEST při synchronizaci založil znovu → *Selhalo* a opakování z uloženého JSON napořád. Mazání v Dotykačce by
+  nepomohlo (retry čte Import Log, ne API) → v konektoru akce *Ignorovat účtenku* (Failed / Imported bez dokladu →
+  Skipped, nevratné). ⚠️ Při zavádění „ignore“ stavu zkontroluj navazující toky: `CheckCancelledReceiptPosted` pouštěl
+  storno přeskočeného originálu dál bez vyrovnání → ignorovaný prodej by dostal dobropis; proto `GetSkipReason`
+  přeskočí i storno přeskočené účtenky. (prod-ess-dotykackaConnector-bc, Sonnentor BC-TEST, 2026-10-20.)
