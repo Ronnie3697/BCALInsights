@@ -465,7 +465,7 @@ IntegrationRecordSynch.Codeunit.al`, `IntegrationTableMapping.Table.al`, `Integr
   `FindNewValueForCoupledRecordPK` = coupling v `CRM Integration Record` (bez něj `Error` „must be coupled“, nebo prázdný GUID
   při *Clear Value on Failed Sync*); event `OnFindNewValueForCoupledRecordPK` se vyvolá **jen uvnitř té větve**. Bez mapování
   standard nic nenastaví a engine zkusí konverzi textu na GUID → chyba synchronizace celého záznamu. Řešení: CRM proxy tabulka
-  číselníku (`TableType = CRM`, `ExternalName` entity, PK + `ebs_code`, sekundární klíč na `ebs_code`, bez mapování) +
+  číselníku (`TableType = CRM`, `ExternalName` entity, PK + sloupec s kódem — u ručně založené PA tabulky bývá jen primární `ebs_name`, žádný `ebs_code` — + `statecode` pro vyřazení deaktivovaných, sekundární klíč na ten sloupec, bez mapování) +
   vlastní subscriber na `Integration Record Synch.OnTransferFieldData` (guard `if IsValueFound then exit`, test na dvojici
   tabulka/pole zdroje i cíle, `NewValue := Guid` / prázdný Guid, `IsValueFound := true`, `NeedsConversion := false`) +
   řádek field mappingu `Direction::ToIntegrationTable`. Pořadí se standardem nevadí: oba subscribery respektují `IsValueFound`
