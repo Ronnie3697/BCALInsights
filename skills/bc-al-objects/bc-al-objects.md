@@ -854,3 +854,33 @@ na hlavičce → řádky → skladový doklad):
 - Test: registraci vytáhni do `internal procedure` a assertuj přes public API `Reten. Pol. Allowed Tables.IsAllowedTable`;
   skutečné mazání jde otestovat během `Apply Retention Policy` nad záznamy s datem 400 dní zpět (engine jde po dnech → pár
   sekund). (2026-10-14, prod-ess-dotykackaConnector-bc code review — Sync Log + Import Log.)
+
+### 5.x26 Skladový přesun / vyskladnění z kódu: `Validate("Bin Code")` na řádku Take a registrace jednoho páru Take/Place
+
+Ověřeno ve zdrojích w1-28 (`WarehouseActivityLine.Table.al`, `WhseActRegisterYesNo` / `WhseActivityRegister.Codeunit.al`,
+`WMSManagement.CheckBalanceQtyToHandle`, `BinContent.Table.al`) při review prod-ew-mobileBase-bc 66918 (2026-10-20):
+
+- **`Warehouse Activity Line."Bin Code".OnValidate` dělá kontroly jen při `CurrFieldNo <> 0`** (= ze stránky). Z kódu
+  (`TakeLine.Validate("Bin Code", …)`) se přeskočí: `BinType.TestField(Receive, false)` u Take řádku, `CheckWhseDocLine`,
+  dostupnost v přihrádce (`CheckExceedQtyAvailBase`) i u řízené lokace `CreatePick.CalcTotalAvailQtyToPick`. Kdo mění
+  přihrádku Take řádku z kódu (sken na čtečce), musí si kontroly napsat sám a **zrcadlit base**:
+  - Obsah přihrádky hledej v MJ podle `GetUOMCode`: řízená lokace (*Directed Put-away and Pick*) = `"Unit of Measure Code"`
+    řádku, **jinak základní MJ zboží** (`WMS Management.GetBaseUOM`) — na základní lokaci je Bin Content v základní MJ,
+    `BinContent.Get(…, řádek."Unit of Measure Code")` s jinou než základní MJ nenajde nic a dostupnost vyjde 0.
+  - Typ aktivity: `Pick`, `Invt. Pick`, `Invt. Movement` → `BinContent.CalcQtyAvailToPick(0)`, **`Movement` →
+    `CalcQtyAvailToTake(0)`**. `CalcQtyAvailToPick` vrací **0 pro dedikovanou přihrádku** a pro `Block Movement` =
+    Outbound/All (exit bez hodnoty), `CalcQtyAvailToTake` dedikaci neřeší.
+  - Při jiné zóně nejdřív `Validate("Zone Code", Bin."Zone Code")` (TableRelation `Bin Code` filtruje podle zóny řádku),
+    `Zone Code.OnValidate` vyprázdní `Bin Code` / `Bin Ranking` / `Bin Type Code`.
+- **Registrace jen jednoho páru jde přes standard:** `Codeunit.Run(Codeunit::"Whse.-Act.-Register (Yes/No)", Lines)` s filtrem
+  `"Line No." = Take|Place`. `Yes/No` dělá `WhseActivLine.Copy(Rec)`, `CheckBalanceQtyToHandle` kopíruje filtry volajícího a
+  `Whse.-Activity-Register.Code` jen přidá `Activity Type` / `No.` / `Qty. to Handle (Base) <> 0` → zapíše se jen pár a
+  bilance Take = Place se kontroluje jen na něm. Potvrzovací dialog přeskočí manuálně bindovaný subscriber na
+  `OnBeforeConfirmRegister(var Line; var Result; var IsHandled)` (`Result := true; IsHandled := true`).
+- **Po částečné registraci standard sám vyplní `Qty. to Handle` na všech zbylých řádcích** (`AutofillQtyToHandle`), pokud
+  hlavička nemá `Do Not Fill Qty. to Handle`; plně zapsané řádky a prázdnou hlavičku smaže (`Header.Get` = false → doklad hotový).
+- **Párování Take ↔ Place nemá v tabulce vazbu.** Standard (Create Pick / Create Inventory Pick/Movement) zakládá Take a hned za
+  ním Place, ale **`Split Line` na Take řádku vloží nový Take mezi ně** (`Line No.` = půlka mezery) → „nejbližší předchozí
+  Take" pak ukáže na odštěpenou část s menším množstvím. Robustnější filtr: zboží, varianta, tracking, MJ,
+  `"Whse. Document Line No."` / `"Source Line No."` a kontrola 1:1 (`Qty. Outstanding (Base)` Take = Place), jinak srozumitelná
+  chyba „zpracuj v BC".
