@@ -358,4 +358,37 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   po `OnTestInitialize`; šarže na dobropisový řádek `LibraryItemTracking.InsertItemTracking(ReservEntry, false, …, -Qty * QtyPerUoM, …,
   Database::"Purchase Line", DocType.AsInteger(), DocNo, '', 0, LineNo, "Expected Receipt Date")` (outbound, jako u prodejního řádku);
   vratku ověř `ILE Entry Type Purchase + Document Type Purchase Return Shipment`; zboží pro dodávku po vratce doplň `PostPositiveAdjustment`.
-  Kompilace app i test čistá (alc 17.0 + CodeCop/PTE/UICop/ALCops), běh v kontejneru až při push.
+  Kompilace app i test čistá (alc 17.0 + CodeCop/PTE/UICop/ALCops), běh v kontejneru až při push. Uživatel ověřil na BC-DEV: nákupní
+  dobropis po dodávce se zastaví hláškou (2026-10-20).
+- **Prodejní dobropis = vratka od zákazníka → storno spotřeby per položka zboží (tamtéž, 2026-10-20):**
+  - **Získat účtované řádky pro stornování u prodeje projektová pole MAŽE** (`CopySalesDocLine`: `"Job Contract Entry No." := 0` pro Credit
+    Memo / Return Order ještě před `UpdateSalesLine`, pak `SetDefaultValuesToSalesLine` → `InitSalesLineFields` → `InitJobFieldsForSalesLine`
+    smaže Job No./Task; `CopySalesJobFields` jen s `CopyJobData` = Correct/Cancel). Zpětné nasazení kontraktu: subscriber
+    `Copy Document Mgt.OnCopySalesDocLineOnBeforeCopySalesJobFields(var ToSalesHeader, var ToSalesLine, var FromSalesHeader, var FromSalesLine,
+    FromSalesDocType)` — běží po `UpdateSalesLine`, `FromSalesLine` je temp kopie účtovaného řádku (`TransferFields(FromSalesInvLine)`, kontrakt
+    1002 nese); IMEBS tam pro Credit Memo z Posted Invoice / Posted Shipment dá Job No./Task/kontrakt původního billable řádku (jen Credit Memo —
+    Return Order by při účtování spadl na `TestField("Job Contract Entry No.", 0)` v `PostJobContractLine`). Standard pak u dobropisu sám zaúčtuje
+    Sale položku s kladným množstvím (`FromPlanningSalesLineToJnlLine` Credit Memo `-Quantity`), `ValidateRelationship` kontroluje Type/No./
+    Location/Work Type/UoM/Variant/Gen. Prod./Line Discount %/Unit Cost (LCY) (IMEBS u Skip potlačí)/VAT % — kopie z faktury IMEBS objednávky
+    sedí. Otevřená JPLI typu Credit Memo není třeba (`if Get`).
+  - **Storno spotřeby:** `Sales-Post.OnAfterReturnRcptLineInsert(var ReturnRcptLine, ReturnRcptHeader, SalesLine, ItemShptLedEntryNo, …,
+    SalesCrMemoHeader, …, var SalesHeader)` — řádek příjemky vratky i jeho `Item Entry Relation` (`InsertReturnEntryRelation` uvnitř
+    `InsertReturnReceiptLineWhsePost`) už existují, bez trackingu `"Item Rcpt. Entry No."`; položky vratky jsou kladné. IMEBS
+    (`ReverseJobLedgerEntryFromSalesLine`) per tracking stornuje usage rozpočtového řádku: záporná Usage per položku příjmu, na kterou je usage
+    navázaná (`GetUsageQtyBaseLinkedToItemEntry` = netto, pořadí účtování), zbytek z nenavázané usage; `PostConsumption` se záporným množstvím
+    (`Job Link Usage.HandleMatchUsageSpecifiedJobPlanningLine` záporné `Use` zvládá — `Qty. Posted` klesne), `Document No.` = číslo zaúčtovaného
+    dobropisu (`SalesCrMemoHeader` z eventu). Netto usage na položce příjmu klesne → další dodávka ji spotřebuje znovu a nákupní vratka
+    projde kontrolou (5.x26 výše) — to byl požadavek PO (nejdřív prodejní, pak nákupní dobropis).
+  - **„Dodáno" se musí počítat na úrovni kontraktu, ne řádku objednávky:** `CollectShippedItemTracking` nově sčítá všechny `Sales Shipment Line`
+    s `Job Contract Entry No.` (všechny objednávky billable řádku) mínus `Return Receipt Line` se stejným kontraktem (pole 1002 na obou,
+    `Correction = false`); per řádek objednávky by opětovná dodávka vrácených kusů (nová objednávka z téhož řádku plánování) spotřebu minula nebo
+    podsekla. `GetJPLQuantity` (množství k převodu do objednávky) přičítá otevřené i zaúčtované dobropisové řádky s kontraktem → vrácené
+    množství jde znovu objednat.
+  - **JPLI dobropisu:** IMEBS `OnBeforeJobPlanningLineUpdateQtyToInvoice` zakládal i pro Credit Memo JPLI typu Posted Invoice s kladným
+    množstvím → nově `Posted Credit Memo` s **−Qty. to Invoice** (jak standard eviduje dobropis z plánovacího řádku; `Qty. Transferred to
+    Invoice` je pak netto). `Job Planning Line.InitFromJobPlanningLine` (Copy Document faktury, Correct/Cancel) dělá `TransferFields` → kopíruje
+    i `Purch. Job Cont.Entry No.IMEBS` na novou / stornovací řádku → `OnAfterInitFromJobPlanningLine(var ToJobPlanningLine, FromJobPlanningLine)`
+    vazbu nuluje (1 : 1 budget ↔ billable). Correct/Cancel dobropisy (kontrakt = stornovací řádka bez vazby) spotřebu nestornují — nepokryto.
+  - Testy `CreditMemoFromPostedInvoice_*`: dobropis z faktury v testu = `CopyDocumentMgt.SetProperties(false, false, false, false, true, true,
+    false)` + `CopySalesInvLinesToDoc(CrMemoHeader, SalesInvoiceLine s filtrem Document No., LinesNotCopied, MissingExCostRevLink)` (stejně
+    jako page 5850); částečná vratka = `Validate(Quantity, menší)` na zkopírovaném řádku. Kompilace čistá, běh až v CI.
