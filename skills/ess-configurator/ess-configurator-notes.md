@@ -34,6 +34,7 @@
 - [C11. API konfigurace varianty (task 66387) — ověření na Alumistr BC-TEST2](#c11-api-konfigurace-varianty-task-66387--ověření-na-alumistr-bc-test2)
 - [C12. Strom podmínek parametru — zastaralé `Root Condition No.` (Zlomek)](#c12-strom-podmínek-parametru--zastaralé-root-condition-no-zlomek)
 - [C15. Strom podmínek ze struktury (66845) a nerecyklovaná čísla parametrů (66711)](#c15-strom-podmínek-ze-struktury-66845-a-nerecyklovaná-čísla-parametrů-66711)
+- [C16. Kopírovat hodnotu z parametru jiného typu a filtr Vyhledání hodnotou parametru](#c16-kopírovat-hodnotu-z-parametru-jiného-typu-a-filtr-vyhledání-hodnotou-parametru)
 
 ---
 
@@ -402,9 +403,9 @@ proceduru); `ValidateTableLookupValue` dává hledanou hodnotu do skupiny 11. CO
 žádný ručně napsaný kód, i když ho lookup nabízí. Po review (2026-09-29) ho vynechá taky (`RecRef.Reset()`, kód jen musí
 existovat), test `ValidateTableLookupValueLeavesOutFilterThatCannotBeApplied`. ⚠️ PR 9605 ho měl s filtrem na neexistující pole
 a master build 28532 spadl — **`SetView` neznámé pole tiše ignoruje** (2.6c v `bc-al-data.md`), `TrySetView` selže jen na nesmyslné
-syntaxi → test bere `'BADDATA'` (větev `65364_InvalidViewTestFix`, 2026-09-29, PR zakládá uživatel). Riziko neplatného filtru:
-`Source Table Filter` se ukládá přes `FilterPageBuilder.GetView(…, false)` = **captiony** polí — kdyby je `SetView` v jiném jazyce
-nepřečetl, filtr se ztratí potichu (bez chyby, víc nabízených hodnot); neověřeno.
+syntaxi → test bere `'BADDATA'` (větev `65364_InvalidViewTestFix`, 2026-09-29, PR zakládá uživatel). `Source Table Filter` se
+ukládá přes `FilterPageBuilder.GetView(…, false)` = **čísla polí**, ne captiony (`VERSION(1) SORTING(Field1) WHERE(Field1=1(AL-…))`,
+karta parametru, 2026-10-20) → na jazyku relace nezávisí; dřívější obava „captiony v jiném jazyce" neplatí.
 **API (dořešeno 2026-10-02, větev `VariantConfigEngineUnify`, čeká na PR):** filtr `value`/`displayText` v `FillTableLookupValues`
 (`TrySetRecRefFieldFilter`) šel do skupiny filtru tabulky → filtr parametru na `No.` přepsal. Teď `RecRef.FilterGroup(11)` pro
 `value` a `12` pro `displayText` (odvozeno z `AttributeFilterGroup() + 1/+2`), po nich `FilterGroup(0)`; test
@@ -883,3 +884,25 @@ zdroje prod-ess-configurator-bc master, COEBS 28.0.22.0.)
   uživatele 2026-10-09, dřív tichý úklid; cust-zlomek-bc `66711_ParamLineNoReuse`.)
 - `Variant Configuration COEBS` neměla klíč na `Configuration No.` → každé filtrování podle konfigurace = scan celé tabulky; přidán
   klíč `ConfigParamLineKey (Configuration No., Parameter Line No.)`.
+
+## C16. Kopírovat hodnotu z parametru jiného typu a filtr Vyhledání hodnotou parametru
+
+> Analýza 2026-10-20 nad master 635a1f1 (COEBS 28.0.37), nic neimplementováno. Plán: `prod-ess-configurator-bc/docs/Configurator -
+> Filtr vyhledání hodnotou jiného parametru a kopie hodnoty mezi typy - plán.md`.
+
+- **Typ zdroje u *Kopírovat hodnotu z* hlídá jen lookup.** Filtr `Parameter Type` = typ cíle + `Sort Order` < cíl nastavuje `OnLookup`
+  pole `Copy Value From Param TrueNo` na kartě i v dialogu podmínky (dvě kopie, `Page.RunModal(…, Rec)` → filter group 0). Pole má
+  `TableRelation` jen na konfiguraci a `OnValidate` jen `CalcFields` → ruční zadání jiného typu (i parametru za cílem) projde.
+- **`Variant Config. Engine.InitializeParameterCopiedValue` polyká chyby převodu.** Převádí podle cílového typu a vrací `true`, i když
+  číslo nepřečte → cíl zůstane prázdný, výchozí hodnota se nepoužije a u skrytého cíle se přeskočí `VerifyHiddenParameterHasValue`
+  (chyba až na OK se jménem parametru, který uživatel nevidí). Vlastní normalizace maže jen obyčejnou mezeru, ne NBSP → lokalizovaná
+  hodnota Vyhledání nad číselným polem `1 234,56` se nepřečte; `Cond. Comparison Mgt.TryParseDecimal` NBSP i čárku zvládne.
+  Cíl Výběr / Vyhledání dostane `Value Code` **bez kontroly** (hodnoty výběru, tabulka, filtr) — platí i pro kopii stejného typu.
+- **Efektivní filtr Vyhledání za běhu jde jedinou procedurou `GetConditionTableFilter`** (lookup dialogu, auto-výběr jediné hodnoty,
+  `ValidateTableLookupValue`, API `FillTableLookupValues`, COZLK `Nested Cfg Runtime`). Novou osu filtru, která potřebuje hodnoty
+  parametrů, jde „zapéct" tam (`SetView` → `FldRef.SetRange` → `GetView(false)`; escapování hodnoty řeší platforma) bez zásahu do
+  konzumentů. Surový `Source Table Filter` čtou jen design-time místa (auto-doplnění *Výchozí hodnoty kódu*, výběr hodnot v podmínkách)
+  a `Param. Display Text Mgt.GetTableLookupDisplayText` — ten s filtrem podle parametru může vzít popis z cizího záznamu (neunikátní
+  zdrojové pole, `Item Variant.Code`). ⚠️ Vrátit z `GetConditionTableFilter` **neplatné** view nejde: konzumenti ho přes `TrySetView`
+  tiše vynechají a nabídnou všechno; „nic nenabídnout" = platný filtr bez výsledku (`'%1&<>%1'`).
+- `FilterPageBuilder` (okno *Filtr stránky*) je platformní dialog — vlastní tlačítko / lookup do něj přidat nejde.

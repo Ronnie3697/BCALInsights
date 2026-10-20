@@ -3,9 +3,9 @@ name: ess-configurator
 description: >-
   Essence Configurator (COEBS, prod-ess-configurator-bc) a rozšíření COALU Alumistr / COZLK Zlomek (BC/AL):
   parametry a podmínky (strom, zastaralé Root Condition No. po připojení / Kopírovat), dialog konfigurace
-  varianty, systémové parametry (QUANTITY Line No. -1, CNC X1/X/Y/Z -51990..-51993, eventy
-  OnAddNumericSystemParameters / OnGetSystemParameterCode, tiché nuly), číselné vzorce Action Formula Line
-  (PK bez Field Type, Line No. napříč typy polí, Math Expression Parser), textové vzorce Text Formula Line
+  varianty, systémové parametry (QUANTITY -1, CNC X1/X/Y/Z, OnAddNumericSystemParameters, tiché nuly),
+  Kopírovat hodnotu z (převod typů), filtr Vyhledání hodnotou parametru,
+  číselné vzorce Action Formula Line (PK bez Field Type, Math Expression Parser), textové vzorce Text Formula Line
   ({KOD:Value}/{KOD:ValueName} + řádek Formula {= A * QUANTITY} s Expression No., i na poznámkovém řádku),
   identita varianty = množina hodnot parametrů (FindExistingVariantWithSameValues), akce kusovníku / postupu /
   prodejního řádku a eventy kopie, diagnostika (service stránky), Zrušit editorů (WasCancelled, EditFormula),
