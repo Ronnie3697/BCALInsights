@@ -549,7 +549,19 @@ Z prod-ess-dotykackaConnector-bc, PBI 63075 (test Pavla Fily 2026-10-08, oprava 
 - **Ceny:** minimální body je `priceWithoutVat` + `vat` (multiplikátor 1.21); `priceWithVat` je volitelné a Dotykačka ho
   jinak dopočte. B2C ceník v BC je s DPH → posílat `priceWithVat` = cena a `priceWithoutVat` = cena / `vat` s jemnou
   přesností (0,00001), jinak se cena s DPH zapíše jako cena bez DPH a pokladna přičte DPH podruhé. Hladiny
-  `priceWithVatB–E` jsou s DPH a platí **pro celý cloud** (pole produktu) → mapování hladina → ceník bez lokace v klíči.
+  `priceWithVatB–E` jsou s DPH a platí **pro celý cloud** (pole produktu) → jedna hladina = jeden ceník napříč mapou.
+  **Hladinu nevolí pobočka ani pokladna** (Branch ani nastavení pokladny pole hladiny nemají): použije se, když ji
+  obsluha vybere u položky, nebo **automaticky podle zákazníka** (webová správa → Zákazníci → *Cenová hladina*; skrytou
+  hladinu jde použít jen přes zákazníka); per pokladna jsou jen cenové akce (Plán cen, Happy Hours). Hladina zákazníka
+  v API v2 Customer **není** → BC ji nepřečte, mapa „pobočka + zákazník → hladina → ceník“ je jen deklarace
+  (manuál `cenove-hladiny-vs`, `zakaznicivs`; 2026-10-20).
+- **Zákazník účtenky:** order (i order item) má `_customerId` (null = bez zákazníka; filtr EQUALS). `include` na orders
+  umí jen `orderItems,moneyLogs` → zákazníka čti zvlášť `GET /clouds/{id}/customers/{customerId}` (cache per běh;
+  smazaný → nejspíš 404). *Externí označení* z webové správy = **`externalId`** (string ≤ 256, při importu CSV unikátní,
+  ani po smazání zákazníka nejde znovu použít) → přirozený nosič čísla zákazníka BC. Sleva zákazníka jde ze *Slevové
+  skupiny* (`_discountGroupId`, %) a na order item je jen jako `discountPercent` bez zdroje; platí jen při výběru
+  zákazníka **před** vystavením účtu — dodatečné přiřazení v historii účtenek změní `_customerId` (a `versionDate`),
+  ne ceny. Ověřeno z docs.api.dotypos.com + manuálu, **ne na živých datech** (2026-10-20).
   Výběr řádku `Price List Line` pro export: `Status` Active, `Amount Type` Price|Any, `Minimum Quantity` 0, LCY,
   `Unit of Measure Code` prázdná|základní, `Starting Date ..WorkDate`, `Ending Date` `%1|>=%2` (0D, WorkDate), varianta →
   fallback řádek zboží, převod přes `"Price Includes VAT"` řádku.
