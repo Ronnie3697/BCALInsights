@@ -502,6 +502,17 @@ nejde sync mode nastavit** (literál, ani variable trik nefunguje).
   všechna cílová prostředí musí mezikrok (verzi N) opravdu dostat — prostředí,
   které skočí rovnou z verze N−1 na N+1, spadne stejně. U live zákazníka to
   skládej s bodem výše: `Pending` (N, migrace dat) → `Removed` (N+1) → smazat (N+2).
+- **`Removed` rovnou projde schema sync Add i u celé tabulky, ne jen u pole (ověřeno na
+  SaaS):** tabulka přešla z normálního stavu **bez fáze `Pending`** rovnou na
+  `ObsoleteState = Removed` (pole a klíč ve zdroji ponechané, triggery a procedury
+  odstraněné) a její page byla z appky smazaná — upgrade PTE se `schemaSyncMode: "Add"`
+  skončil `Completed`. Důsledek: tabulka není za běhu dostupná, náhradní tabulka startuje
+  prázdná a data je potřeba zadat znovu (převod dat upgrade codeunitem by chtěl mezikrok
+  `Pending`, viz bod o Force Sync výše; zde záměrně bez migrace). Tabulku jde smazat
+  v další verzi, až Removed verzi dostanou všechna prostředí.
+  (2026-10-20, prod-ess-dotykackaConnector-bc, Sonnentor BC-TEST (SaaS sandbox), Essence
+  Dotykacka Connector PTE 28.0.5.1 → 28.0.5.2 přes Automation API `extensionUpload`
+  se `schemaSyncMode: "Add"` → `Completed`; tabulka 63218 „Dotykacka Price Map DCEBS".)
 - ⚠️ ForceSync **nenávratně zahodí data** odstraněných polí — u zákazníka v ostrém
   provozu patří před destruktivní změnu obsolete fáze + migrace, ne ForceSync.
   (Zachyceno 2026-08-05, prod-epb-pricingMatrix-bc build 27692 — odstranění
