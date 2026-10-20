@@ -14,6 +14,7 @@ Obsahuje:
 - **3.6** Vlastní pole na Sales/Purchase Header/Line — kompletní rozšíření (+ 3.6b–3.6h)
 - **3.6i** Report dokladu pro tělo emailu z vlastního kódu archivuje podruhé (`Mail Management` bind)
 - **3.6j** Programové účtování staršího dokladu: subscriber přepíše zúčtovací datum na WorkDate (Essence Distribution) — nastav WorkDate
+- **3.6k** Platba / refundace zákazníka z kódu přes `Gen. Journal Line`: zákazník s vlastním plátcem = Confirm → `SetHideValidation(true)`
 
 ## 3. Event Subscribery — propagace polí (3.5–3.6f)
 
@@ -580,3 +581,25 @@ ship jen část řádků → `PostSalesDocument(SalesHeader, false, true)` musí
 - Najít, kdo datum mění: `search_code` přes ADO MCP na `"Posting Date" OnBeforePostSalesDoc WorkDate` (výsledek je obří →
   uložený soubor, parsovat jako víc JSON objektů za sebou přes `raw_decode`). (2026-10-12, prod-ess-dotykackaConnector-bc
   PBI 63075, Sonnentor BC-DEV: účtenka z 28. 8. účtovaná 12. 10.)
+
+### 3.6k Platba / refundace zákazníka z kódu přes `Gen. Journal Line`: `Validate("Account No.")` zákazníka s vlastním plátcem = Confirm → `SetHideValidation(true)`
+
+- `Gen. Journal Line` s `Account Type = Customer`: `Validate("Account No.")` (stejně `Bal. Account No.`) volá
+  `CheckConfirmDifferentCustomerAndBillToCustomer` — když má karta zákazníka vyplněné `Bill-to Customer No.` odlišné od
+  účtu, ptá se „The Customer X has a Bill-to Customer No. Y. Do you still want to use Customer X in this journal line?"
+  (CZ „Zákazník X má Fakturovat zákazníkovi Y …"); odpověď Ne → `Error('')`. Totéž u dodavatele s vlastním
+  `Pay-to Vendor No.` (`CheckConfirmDifferentVendorAndPayToVendor`).
+- Dotaz jde přes `ConfirmManagement.GetResponseOrDefault(…, true)` → bez GUI (Job Queue, `GuiAllowed = false`) vrátí
+  default Ano a řádek projde. Padá to v **testu** (`Unhandled UI: Confirm`) a při **interaktivním** běhu (import spuštěný
+  akcí ze stránky): uživatel dostane uprostřed importu nečekaný dotaz, Ne → `Error('')`; když kód účtuje přes
+  `Codeunit.Run` s návratovou hodnotou, chyba se spolkne a platba tiše zůstane nezaúčtovaná (s prázdným textem chyby).
+- Typický spouštěč: platba se účtuje na plátce účtovaného dokladu (`Sales Invoice Header` / `Sales Cr.Memo Header`
+  `"Bill-to Customer No."`), ale karta toho zákazníka sama ukazuje na dalšího plátce (řetězený plátce, nebo se karta
+  změnila až po zaúčtování dokladu).
+- **Oprava:** `GenJnlLine.SetHideValidation(true);` **před** `Validate("Account Type")` / `Validate("Account No.")`.
+  Přepínač na `Gen. Journal Line` (w1-28) hlídá jen tyhle dva dotazy (plátce zákazníka / dodavatele), jiné kontroly
+  neskryje. Pozor na název: na `Gen. Journal Line` je to `SetHideValidation`, na `Sales Header` / `Purchase Header` / `Job`
+  `SetHideValidationDialog`. Alternativa `OnBeforeCheckConfirmDifferentCustomerAndBillToCustomer` (`IsHandled`) platí
+  pro všechny deníky včetně ručních — bez manuálního bindu nevhodné.
+  (2026-10-20, prod-ess-dotykackaConnector-bc `Dotykacka Receipt Pay. DCEBS` — spadlý autotest; zdroje w1-28
+  `GenJournalLine.Table.al`.)
