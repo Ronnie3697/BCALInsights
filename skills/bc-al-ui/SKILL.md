@@ -9,7 +9,7 @@ description: >-
   prázdné SystemId; CurrPage.Update(false) v OnValidate zahodí hodnotu; ListPart přes RunModal pod TestPage;
   stránka bez SourceTable (protected var / getter + výraz v SourceExpr); dlaždice na phone klientu (Brick /
   DropDown / 5 controlů); událost add-inu ze schované stránky phone klientu se odloží a přehraje
-  (aria-hidden); kostka „moje doklady" (User ID Filter), drill-down a řazení kostek. Načti u page,
+  (aria-hidden/inert); kostka „moje doklady" (User ID Filter), drill-down a řazení kostek. Načti u page,
   pageextension, factboxů, partů, kostek, výběrů, captionů a viditelnosti.
 user-invocable: true
 ---

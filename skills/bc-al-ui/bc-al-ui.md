@@ -682,7 +682,12 @@ function isPageCovered() {
   otevřeným **menu ⋮ / menu partu** (obsah stránky dostane `aria-hidden`); desktop menu stránku neblokuje. **Sbalený
   FastTab / „Zobrazit méně“ je jen `display:none`** – bez `aria-hidden`/`inert`, takže stráž událost pustí.
 - Kontrola `CurrPage.ObjectId(false) = Page::X` na začátku obsluhy skenu proti tomu **nepomůže**: v kódu stránky je
-  `CurrPage` vždy ta stránka sama, i když je zakrytá (přehrané události jí prošly).
+  `CurrPage` vždy ta stránka sama, i když je zakrytá (přehrané události jí prošly; build bez kontroly na 16 stránkách
+  se choval stejně).
+- **Control add-in ve sbalitelném FastTabu (desktop) je mina:** po sbalení a znovurozbalení FastTabu zůstane iframe
+  add-inu `about:blank` bez skriptů (add-in mrtvý až do zavření stránky); stránka otevřená už se sbaleným FastTabem
+  (BC si stav pamatuje) add-in nevykreslí, vznikne až po rozbalení. Add-in, který musí běžet pořád (čtečka), dávej do
+  `area(Content)` nebo do `group`/`grid` bez hlavičky (`ShowCaption = false`). Phone sekci tapem na nadpis nesbalí.
 - Je to interní DOM klienta, ne API – po updatu BC ověř. Když klient atributy přestane nastavovat, vrátí se odkládání;
   když by je nastavoval i na vrchní stránku, add-in přestane posílat úplně.
 - Simulace skenu z DevTools: keypress na `window` phone záložky; desktop klient běží v `iframe.designer-client-frame`,
