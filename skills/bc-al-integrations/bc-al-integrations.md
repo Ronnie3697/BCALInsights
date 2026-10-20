@@ -459,24 +459,30 @@ IntegrationRecordSynch.Codeunit.al`, `IntegrationTableMapping.Table.al`, `Integr
   záznam pryč (`Ship-to Sync Setup Test SON`; ruční záznam v testu `Init` + přímé přiřazení + `Insert(true)`, `CreateRecord` je internal).
   (2026-10-14, cust-sonnentor-bc, SON CDS Sync.)
 
-- **Lookup (Code → GUID) na Dataverse tabulku, která se NEsynchronizuje (číselník udržovaný ručně v PA), standard nepřeloží.**
-  `CRM Int. Table. Subscriber.OnTransferFieldData` (w1-28 `Integration/D365Sales/CRMIntTableSubscriber.Codeunit.al`) řeší
-  Code → Guid jen přes `AreFieldsRelatedToMappedTables` (obě tabulky relace musí mít vlastní `Integration Table Mapping`) a pak
-  `FindNewValueForCoupledRecordPK` = coupling v `CRM Integration Record` (bez něj `Error` „must be coupled“, nebo prázdný GUID
-  při *Clear Value on Failed Sync*); event `OnFindNewValueForCoupledRecordPK` se vyvolá **jen uvnitř té větve**. Bez mapování
-  standard nic nenastaví a engine zkusí konverzi textu na GUID → chyba synchronizace celého záznamu. Řešení: CRM proxy tabulka
-  číselníku (`TableType = CRM`, `ExternalName` entity, PK + sloupec s kódem — u ručně založené PA tabulky bývá jen primární `ebs_name`, žádný `ebs_code` — + `statecode` pro vyřazení deaktivovaných, sekundární klíč na ten sloupec, bez mapování) +
-  vlastní subscriber na `Integration Record Synch.OnTransferFieldData` (guard `if IsValueFound then exit`, test na dvojici
-  tabulka/pole zdroje i cíle, `NewValue := Guid` / prázdný Guid, `IsValueFound := true`, `NeedsConversion := false`) +
-  řádek field mappingu `Direction::ToIntegrationTable`. Pořadí se standardem nevadí: oba subscribery respektují `IsValueFound`
-  a standard navíc **exituje, když není integrace enabled** (`IsCDSIntegrationEnabled()`), takže v testu bez `CDS Connection
-  Setup` běží jen vlastní kód — test přes `Integration Record Synch.` s `Temp Integration Field Mapping` (vzor výše) a
-  `RegisterTableConnection(... '@@test@@')`; proxy záznam číselníku `Insert(false)` jde do lokální DB. **Textový sloupec
-  místo lookupu není zkratka:** pokud v PA zůstane atribut typu lookup, zápis stringu skončí chybou synchronizace *Error
-  converting attribute value … Unable to cast object of type 'System.String' to type 'Microsoft.Xrm.Sdk.EntityReference'*
-  (ověřeno v DEV JPS 2026-10-20); lookup sloupec v Dataverse nejde přetypovat, jen smazat a založit znovu. Lookup bez proxy
-  tabulky v BC nejde — BC musí GUID cílového záznamu odněkud přečíst a `TableRelation` dává platformě cílovou entitu.
-  (2026-10-19/20, cust-jps-bc, Customer `VAT Bus. Posting Group` → `CRM Account.ebs_vatbusinesspostinggroupid`, `CDSManagementJPS`.)
+- **Lookup (Code → GUID) na Dataverse tabulku, která se NEsynchronizuje (číselník udržovaný ručně v PA) = NE řádek field
+  mappingu, ale `Integration Rec. Synch. Invoke.OnAfterTransferRecordFields`.** Standard (`CRM Int. Table. Subscriber.
+  OnTransferFieldData` → `CRM Synch. Helper.AreFieldsRelatedToMappedTables`, w1-28 `Integration/D365Sales/`) u mapovaného
+  páru polí, kde mají obě strany `TableRelation` a cíl je Guid, **vyžaduje `Integration Table Mapping` mezi oběma
+  tabulkami, jinak `Error` „Table X must be mapped to table Y to transfer value between fields…“** — a protože pořadí
+  subscriberů téhož eventu není zaručené, vlastní subscriber na `OnTransferFieldData` s `IsValueFound` to neobejde (ověřeno
+  v DEV: řádek synchronizace spadl přesně na tuhle hlášku). Bez `TableRelation` na cílovém poli zase platforma nezná
+  cílovou entitu lookupu. Funkční vzor: CRM proxy tabulka číselníku (`TableType = CRM`, `ExternalName` entity, PK + sloupec
+  s kódem — u ručně založené PA tabulky bývá jen primární `ebs_name`, žádný `ebs_code` — sekundární klíč na ten sloupec,
+  **bez mapování**), pole na `CRM Account` jako `Guid` + `ExternalType = 'Lookup'` + `TableRelation` na proxy, **žádný
+  řádek field mappingu** a subscriber `OnAfterTransferRecordFields(SourceRecordRef, var DestinationRecordRef, var
+  AdditionalFieldsWereModified, DestinationIsInserted)` (hook Base App pro doplňková pole, stejný používá standard): guard
+  na zdroj Customer / cíl CRM Account, GUID dohledat podle kódu, zapsat `FieldRef.Value(...)` jen při změně a nastavit
+  `AdditionalFieldsWereModified := true` (jinak engine Modify neudělá). Prázdný kód / bez shody = prázdný GUID, záznam
+  nepadá. Test: `internal` procedura nad `RecordRef` temp Customer / temp CRM Account +
+  `RegisterTableConnection(... '@@test@@')`, proxy záznam číselníku `Insert(false)` jde do lokální DB.
+  ⚠️ **`statecode` na vlastní proxy tabulce jako `Option " ",Active,Inactive` s `OptionOrdinalValues = -1, 0, 1`** (vzor
+  Picklist) shodil celý synchronizační job na *Object reference not set to an instance of an object* (job bez Finish
+  Date/Time, fronta úloh opakuje 10×); po odstranění pole hned čitelná AL chyba. V cust-jps-bc mají starší proxy tabulky
+  přesně tenhle blok zakomentovaný. Generátor (altpgen) dává `OptionMembers = Active,Inactive; InitValue = Active` bez
+  ordinálů — když stav potřebuješ, drž generovanou podobu. Textový sloupec místo lookupu není zkratka: do lookup atributu
+  string neprojde (*Unable to cast object of type 'System.String' to type 'Microsoft.Xrm.Sdk.EntityReference'*) a lookup
+  sloupec v Dataverse nejde přetypovat. (2026-10-19/20, cust-jps-bc DEV, Customer `VAT Bus. Posting Group` →
+  `CRM Account.ebs_vatbusinesspostinggroupid`, `CDSManagementJPS`.)
 
 ### 11.9 Jira Cloud user lookup podle e-mailu — `/rest/api/3/user/search?query=<e-mail>`, NE `/rest/api/3/users`
 
