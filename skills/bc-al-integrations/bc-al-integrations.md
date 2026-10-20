@@ -599,3 +599,26 @@ Z prod-ess-dotykackaConnector-bc, PBI 63075 (test Pavla Fily 2026-10-08, oprava 
   Skipped, nevratné). ⚠️ Při zavádění „ignore“ stavu zkontroluj navazující toky: `CheckCancelledReceiptPosted` pouštěl
   storno přeskočeného originálu dál bez vyrovnání → ignorovaný prodej by dostal dobropis; proto `GetSkipReason`
   přeskočí i storno přeskočené účtenky. (prod-ess-dotykackaConnector-bc, Sonnentor BC-TEST, 2026-10-20.)
+
+### 11.11 Email modul (System Application) z PTE — `Sent Email` má pole Internal, `Email Message` / `Email Recipient` jsou Internal tabulky
+
+Z review commitu `992bc0e` (větev MPRI, cust-sonnentor-bc, Email → Power Automate, 2026-10-20; ověřeno alc 17 proti
+System Application 28.5):
+
+- **Tabulka `Sent Email` (8889) je `Access = Public`, ale všechna pole kromě `Id` mají `Access = Internal`** („marked as internal
+  in order to prevent modifying it from code"). Z PTE tedy `Rec."Message Id"`, `"Sent From"`, `"Date Time Sent"` = `AL0161`,
+  `ODataKeyFields = "Message Id"` = `AL0186`. **API page se `SourceTable = "Sent Email"` nejde z PTE postavit** — potřebuješ
+  vlastní tabulku (fronta / buffer) plněnou subscriberem, nebo temporary API page.
+- **`Email Message` (8900) a `Email Recipient` (8903) jsou `Access = Internal` tabulky** → `Record "Email Message"` v kódu
+  i `tabledata "Email Message" = R` v permission setu = `AL0161`. Obsah zprávy čti výhradně přes codeunit `Email Message`
+  (`Get(MessageId)`, `GetSubject`, `GetBody`, `IsBodyHTMLFormatted()`, `GetRecipients(Type, List)`); tabledata granty
+  nepotřebuješ, codeunit si je deklaruje sám (`InherentPermissions`).
+- **Event `Email.OnAfterEmailSent(SentEmail: Record "Sent Email")`** předá record, ze kterého z PTE přečteš jen `Id`.
+  Runtime workaround: `RecordRef.GetTable(SentEmail)` + `FieldRef.Value` (Access je jen compile-time) — funguje, ale je to
+  obcházení záměru modulu; čti jen, nikdy nezapisuj, a drž to v jedné proceduře s komentářem. Pole: 2 `Message Id` (Guid),
+  7 `Date Time Sent`, 13 `Sent From` (Text[250]). Subscriber běží v session Email Dispatcheru (background task), ne v UI.
+- `using System.Email;` v appce bez `namespace` = `warning AL0789` (direktivy se ignorují) → s Essence `failOn warning`
+  shodí CI; buď celá appka na namespaces, nebo `using` vynech.
+- Pro notifikaci do Power Automate platí 11.6: `[ExternalBusinessEvent]` (preview, Dataverse + Virtual Table appka, Dataverse
+  trigger) vs. vlastní fronta + API page + BC trigger „When a record is created (V3)". Sonnentor má Dataverse (SON CDS Sync), takže
+  prerekvizity business eventů tam odpadají; i tak je fronta jednodušší na test (tabulka jde naplnit a číst v autotestu).
