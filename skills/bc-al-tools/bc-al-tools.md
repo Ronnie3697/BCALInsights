@@ -56,6 +56,11 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   `BusinessCentral.LinterCop.dll` v extensionu není vůbec (VS Code si ho stahuje jinam) → CLI check jede jen
   s CodeCop + PTE + UICop, LinterCop nálezy hlídá VS Code / CI. Hledej `find <ext> -name alc.exe`, ne pevnou
   cestu. (2026-09-10, cust-alumistr-bc)
+  ⚠️ **Vedle aktuální extension může ležet stará `ms-dynamics-smb.al-10.1.*`** (alc BC 21): `ls … | head -1` ji vybere
+  první a kompilace skončí `AL1043: The runtime version '17.0' is not supported` + `AL1009: Unrecognized option
+  '/enableexternalrulesets'`. Vyber nejvyšší verzi (`ls -d …/ms-dynamics-smb.al-* | sort -V | tail -1`); 17.0.2273547 má
+  `bin/win32/alc.exe`, analyzery v `bin/Analyzers` a externí ruleset z blobu stáhl bez TLS chyby.
+  (2026-10-20, prod-em-kiosk-bc 65223)
 - **alc 18.0 při kompilaci PŘEPÍŠE Word layouty reportů (`*.docx`) v projektu** — po CLI buildu se objeví
   změněný `.docx` v `git status`, i když jsi na report nesáhl. Před commitem `git checkout -- <report>.docx`.
   Log alc 18 je UTF-8 (ne UTF-16 jako u 17) a chyby závislostí mají tvar `error AL1022: …` bez prefixu
