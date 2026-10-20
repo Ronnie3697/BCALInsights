@@ -136,7 +136,15 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
     stejné kódy = beze změny) a zaokrouhlí na `Unit-Amount Rounding Precision` (`Currency.Initialize`).
   - Kód měny rovný `General Ledger Setup."LCY Code"` (`CZK`) normalizuj na `''`. `ExchangeAmtFCYToFCY('CZK', '', …)` by hledal kurz
     pro CZK a sync by spadl.
-  - Nulová hodnota → `exit(false)`, tedy standardní výpočet konektoru. Nikdy neposílej 0.
+  - Chybějící hodnota (rozhodnutí DNEM): `Handled := true` a ceny nech, jak je konektor předal. U existující varianty jsou to
+    uložené hodnoty (`ShopifyVariant.Price`), takže se cena v Shopify nezmění. Chybu zapiš do vlastního logu. Výpočet volá
+    konektor pro **každou** variantu, i pro varianty, které v Shopify teprve zakládá (u poukazu každý prodaný kód), takže log
+    deduplikuj (SingleInstance seznam zboží + shop, reset v `OnAfterProductsToSynchronizeFiltersSet` = začátek každého exportu).
+    Nový produkt by se stejnou logikou vznikl s cenou 0 → `Error` v `OnAfterCreateTempShopifyProduct` (běží až po výpočtu cen,
+    ale před voláním Shopify).
+  - Souhrnná zpráva na konci syncu: `reportextension` na report 30108 `Shpfy Sync Products` s `OnPreReport` / `OnPostReport` +
+    `if GuiAllowed()`. Konektor ho pouští z karty shopu přes `Report.Execute` (spustí triggery reportu bez request page) i z fronty
+    úloh (`Shpfy Background Syncs.EnqueueJobEntry`). Za běhu zatím neověřeno.
   - Cílová měna: `ShopifyShop."Currency Code"`, ne `Catalog`. `Shpfy Product Price Calc.` je SingleInstance a `SetShop` mění
     parametry jen při změně shopu, takže katalog v eventu může zůstat z dřívějšího katalogového syncu téže session.
   - Test zakládá zboží s **nulovou** jednotkovou cenou na kartě. Test, kde se karta rovná očekávané hodnotě, projde i se špatným
