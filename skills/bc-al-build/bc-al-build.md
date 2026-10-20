@@ -703,6 +703,14 @@ hlásil `SUMMARY: 622 tests, 0 failed` (místo 1046) + exit 0. Od téhle verze �
 image i artefakty sdílí) a **zámek na kontejner** (`test-run.lock` otevřený bez sdílení — s pádem procesu se uvolní sám,
 `test-run.owner` = kdo ho drží); běh si vezme první volný, jinak čeká. `ERROR DIALOG` během testů = exit 1 + `BROKEN (tests
 not run)`. Kontrola i u starší kopie: počet testů proti předchozímu běhu a `grep 'ERROR DIALOG'` v logu.
+⚠️ **„`<appka> X is installed already (left by a run with -KeepApps?) - Y cannot be installed next to it`“ + `WARNING: The container
+has apps installed by another run`** = v kontejneru zůstaly **nainstalované** závislosti z dřívějšího běhu (správně mají zůstat jen
+publikované). Běh skončí po ~3 min, `tests 0 s`, exit 1 a testy vůbec neběžely. Bash wrapper s `; echo "exit $?"` vrací 0,
+směrodatný je řádek `SUMMARY` v logu. Nejdřív zkontroluj, že starý běh nežije: `test-run.owner` v `…\Extensions\<kontejner>\`
+zůstává i po skončení procesu, tak ověř `tasklist /FI "PID eq <pid>"`; `run.log` jeho složky v `test-runs\` ukáže, co odinstaloval.
+Pak pusť běh do druhého kontejneru poolu (`-ContainerName bctest28b`), nebo zbytky odinstaluj (`Uninstall-NAVApp`, bez unpublish).
+(2026-10-20, cust-sonnentor-bc: `bctest28` měl po včerejším „son“ běhu nainstalované Essence Shopify Connector 28.0.6.0, Essence
+Distribution Base a ED Item Sales Disponibility; v `bctest28b` 321/321.)
 
 **Předpoklady a pasti (Windows 11, uživatel bez admina):**
 

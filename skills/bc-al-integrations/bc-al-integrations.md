@@ -142,8 +142,8 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
     - Report Add Item (30106): `reportextension` `OnAfterPreDataItem`. Report volá `Shpfy Create Product.Run(Item)` bez ošetření,
       takže `Error` u jednoho zboží zastaví celý zbytek seznamu.
     - Filtr „není poukaz NEBO má hodnotu“ jde přes `Item.FilterGroup(-1)`: `SetRange` / `SetFilter` na různá pole se v této
-      skupině kombinují přes OR. Pak vrátit původní skupinu. Ověřuje test `AddItemToShopifyLeavesOutVoucherWithoutValueAndLogsIt`,
-      k datu zápisu jen zkompilovaný.
+      skupině kombinují přes OR. Pak vrátit původní skupinu. Ověřuje test `AddItemToShopifyLeavesOutVoucherWithoutValueAndLogsIt`
+      (`RecordCount` nad třemi zbožími = 2), který prošel v lokálním kontejneru BC 28.4 (2026-10-20).
   - Pojistka ve výpočtu ceny (katalogové ceny, Add to Shopify z karty): `Handled := true` a ceny nech, jak je konektor předal.
     U existující varianty jsou to uložené hodnoty (`ShopifyVariant.Price`), takže se cena v Shopify nezmění. Výpočet běží pro
     **každou** variantu, takže zápis do logu deduplikuj (SingleInstance seznam zboží + shop, reset na začátku každého exportu).
