@@ -15,7 +15,7 @@
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
 Obsahuje:
-- **7.** Nástroje a workflow — část **7.11–7.25** (dependencies, CI build, deploy, lokální testovací kontejner, ruční nasazení do sandboxu / sdíleného kontejneru)
+- **7.** Nástroje a workflow — část **7.11–7.26** (dependencies, CI build, deploy, lokální testovací kontejner, ruční nasazení do sandboxu / sdíleného kontejneru, dev publish přes altool)
 
 ## 7. Nástroje a workflow — dependencies, build & deploy (7.11–7.19)
 ### 7.11 NuGet „earliest match" — nízké minimum dependency = symbol bez novějších polí
@@ -880,3 +880,20 @@ ED Item Sales Disponibility 28.0.0, Essence Shopify Connector 28.0.6 (závislost
   `Publish-BcContainerApp -useDevEndpoint`. V PS 5.1 `System.Net.Http.HttpClient` + `MultipartFormDataContent`,
   `Timeout = InfiniteTimeSpan`. `200 OK` s prázdným tělem = publikováno, synchronizováno i nainstalováno (1–5 s na appku).
   Pořadí podle závislostí. Dev build v prostředí pak blokuje PTE téže appky (AVS0109, 7.24).
+
+### 7.26 Dev publish do SaaS sandboxu přes `altool` — osiřelá data staré verze, duplicitní package ID, EM závislosti
+
+- **Sandbox s osiřelými daty odinstalované verze** (banner *„There's orphaned data from uninstalled extensions"*): když nová verze
+  pole odebrala, `altool publishapp` (Synchronize) skončí *„Pole 'Comment 1 ZLK' nelze nalézt. Odebrání polí není povoleno."*
+- **Neúspěšný pokus balíček na serveru stejně zaregistruje** → opakování téhož `.app` hlásí *„A duplicate package ID is detected"*.
+  Přelož znovu (každá kompilace = nové package ID) a publikuj s `--schemaupdatemode ForceSync` — **jen DEV**, zahodí data
+  odebraných sloupců (7.18).
+- Příkaz (token z cache VS Code, bez interaktivního přihlášení, 7.2b v `bc-al-tools.md`): `altool.exe publishapp <app>
+  --environmenttype Sandbox --environmentname <env> --tenant <tenantId> [--schemaupdatemode ForceSync]`; výstup filtruj
+  `grep -v "^\[MSAL\]\|^\[LogMetrics"`, úspěch = `Success: The package … has been published`.
+- **Essence závislosti z dependency-cache lokálního testovacího kontejneru** (`C:\ProgramData\BcContainerHelper\Extensions\<kontejner>\dependency-cache\…`,
+  7.23) jdou do sandboxu dev-publishnout stejně, v pořadí závislostí (EM Alternative BOM and Routing, EM MRP Replenishment, EM Net Make
+  to Order, EM Production Batch Planning — v manifestu `<Dependencies />`, jen Application 28.0). `get_installed_apps` (d365bc-admin)
+  je pak vrací s `appType: "dev"`. Dev build blokuje PTE téže appky (AVS0109, 7.24).
+
+(2026-10-21, cust-zlomek-bc BC-DEV — ověření PBI 65654 / 65649 / 65149.)

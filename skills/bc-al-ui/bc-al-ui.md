@@ -10,7 +10,7 @@
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
 Obsahuje:
-- **4.** UI patterny (4.1–4.23)
+- **4.** UI patterny (4.1–4.24)
 
 ## 4. UI patterny
 
@@ -690,3 +690,28 @@ function isPageCovered() {
 dokladů, seznam vyskladnění hlásil „Naskenován špatný čárový kód“ za každý sken z karty a detailu. Build 28.0.0.9 jen
 s `aria-hidden` opravil phone, na desktopu replay zůstal; 28.0.0.10 s `[inert]`: phone 21 + desktop 15 simulovaných
 skenů, všechny poslala jen vrchní stránka, 4 zahozené pod dialogem.)
+
+---
+
+### 4.24 Kostka „moje doklady" na `SO Processor Activities` — hotový `User ID Filter`, vlastní drill-down standardních kostek, řazení
+
+- **`Sales Cue."User ID Filter"` (FlowFilter, pole 23) nastavuje standardní `SO Processor Activities` (9060) v `OnOpenPage` na
+  `UserId()`, ale žádný standardní FlowField ho nepoužívá.** Vlastní FlowField v tableextension `count("Sales Header" where(…,
+  "Assigned User ID" = field("User ID Filter"), "Responsibility Center" = field("Responsibility Center Filter")))` tak dá kostku
+  „moje doklady" bez jediného řádku kódu v `OnOpenPage`.
+- **Drill-down:** `SalesCue.CopyFilter("User ID Filter", SalesHeader."Assigned User ID")` (seznam vždy sedí s číslem na kostce) →
+  `SetTableView` + `Run` cílové list page. Filtry ve filter group 0 jsou v podokně filtrů seznamu běžné, s ×, uživatel je může
+  zrušit. **`Responsibility Center Filter` drží `Sales Cue` ve filter group 2** (`SetRespCenterFilter`) → `Rec.GetFilter` ve
+  skupině 0 vrátí `''`; nevadí, `Sales Quotes` / `Sales Order List` si ho v `OnOpenPage` nastaví samy (`SetSecurityFilterOnRespCenter`).
+- **`modify("Sales Quotes - Open") { trigger OnDrillDown() … }`** na standardní kostce, která má jen `DrillDownPageID` (bez vlastního
+  triggeru), se v pageextension přeloží (alc 18, 0 warningů — `AL0611` z 4.22 se týká jen **akcí** v cuegroup) a v klientu nahradí
+  výchozí drill-down (ověřeno BC-DEV 28.5). Nová skupina kostek **před** standardními: `addfirst(content)`.
+- **Řazení drill-downů od nejnovějšího:** `Page.SetTableView(SalesHeader)` přenese do otevřeného seznamu i `SetCurrentKey` +
+  `Ascending(false)` (ověřeno v klientu). Standardní kostky, které otevírá `Sales Cue.ShowOrders` (Ready to Ship, Partially
+  Shipped, Delayed), seřadíš subscriberem `Sales Cue.OnFilterOrdersOnAfterSalesHeaderSetFilters(var SalesHeader)`, *Completely
+  Reserved from Stock* přes `OnBeforeDrillDownNoOfReservedFromStockSalesOrders(var SalesHeader)`. Podle čeho řadit → 2.10 v `bc-al-data.md`.
+- **Test (vzor MS `ERMCues.Codeunit.al`, BCApps `src/Layers/W1/Tests/ERM-Finance/`):** `TestPage "SO Processor Activities".OpenView()`,
+  `<List>.Trap()`, `SOProcessorActivities.<control kostky>.Drilldown()`, hodnota kostky `AssertEquals`. Background tasky stránky
+  v testu doběhnou. Pořadí řádků čti `First()` / `Next()` do `List of [Code[20]]` a porovnej `IndexOf`.
+
+(2026-10-21, cust-zlomek-bc PBI 65654 — kostky *Moje otevřené nabídky / objednávky* na roli Zpracovatel prodejních objednávek.)

@@ -620,3 +620,13 @@ metody na tabulku. (2026-06, `prod-em-operOutputChaining-bc`, BC28.)
 sledované zboží (položky z `ItemTrackingMgt.CollectItemEntryRelation`, který temp plní sám) fungovalo. Totéž platí pro
 `FindFirst`/`FindSet`/`IsEmpty` s filtry na temp proměnné. (2026-10-19, prod-ep-itemManagement-bc
 `CollectShippedItemTracking`.)
+
+### 2.10 Řazení podle pole mimo klíč (`SetCurrentKey(SystemCreatedAt)`) — jde, jen bez indexu
+
+MS Learn `Record.SetCurrentKey`: *„If no key is found that matches the fields given to SetCurrentKey, the sort order will still be
+applied but without a key, the query may be slower."* — chyba za běhu nehrozí (`false` / error jen u FlowFilter, Blob, vnořených
+FlowFieldů apod.). „Od nejnovějšího dokladu" proto řaď **`SetCurrentKey(SystemCreatedAt)` + `Ascending(false)`**, ne podle `"No."`:
+u Zlomka objednávka z nabídky přebírá číslo nabídky, takže objednávky míchají řady `NP…` / `OP…` a sestupné číslo řadí podle prefixu,
+ne podle stáří. Klíč na `SystemCreatedAt` v tableextension nepřidáš (AL0423, 3.9); u filtrovaných seznamů (otevřené doklady) je
+řazení bez indexu zanedbatelné. **Test:** mezi založením dvou dokladů `Sleep(100)` (`SystemCreatedAt` má přesnost milisekund, dva
+inserty těsně po sobě můžou dostat stejný čas) a ověř, že později založený je v seznamu výš. (2026-10-21, cust-zlomek-bc PBI 65654.)

@@ -26,7 +26,7 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
 | `bc-al-integrations.md` | Shopify Connector, HttpClient na SaaS, SecretText/Isolated Storage, Business Events / Power Automate, vlastní API page pro zápis, Dataverse/CDS sync (5.y2, sekce 11) |
 | `bc-al-workflow.md` | lokalizace/XLIFF, dokumentace vč. uživatelské příručky, verifikace (sekce 6, 8, 9, 12) |
 | `bc-al-tools.md` | nástroje (alc, al-mcp, BC source), nová appka, git/PR, Azure DevOps (sekce 7.1–7.10) |
-| `bc-al-build.md` | NuGet dependencies, test symboly, kolize ID, major bump, Essence CI build & deploy gotchas, lokální testovací kontejner, ruční nasazení PTE do sandboxu, Dev publish závislostí do sdíleného kontejneru (sekce 7.11–7.25) |
+| `bc-al-build.md` | NuGet dependencies, test symboly, kolize ID, major bump, Essence CI build & deploy gotchas, lokální testovací kontejner, ruční nasazení PTE do sandboxu, Dev publish závislostí do sdíleného kontejneru a do SaaS sandboxu přes altool (sekce 7.11–7.26) |
 | `bc-al-autotests.md` | automatizované testy — povinnost, kanonický vzor, libraries, handlery, TestPage, `asserterror`, obecné gotchas |
 | `bc-al-autotests-saas-fallback.md` | příloha autotestů — vlastní Assert/Library pro SaaS-only test appku bez `Tests-TestLibraries` (reference) |
 | `bc-al-autotests-infra.md` | autotesty — test appka jako projekt: `app.json`, `internalsVisibleTo`, ruleset, symboly, lokální kompilace, spouštění z CLI / Dockeru, čtení CI failů (vyčleněno 2026-10-09) |

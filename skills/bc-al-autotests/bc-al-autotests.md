@@ -646,6 +646,16 @@ proběhlo bez chyby). Skutečný text případné vnitřní chyby se tím ztrat�
 (chyba doběhne do runneru s textem a stackem), negativní scénář řeš `asserterror`. Pattern `Run + Assert.IsTrue(ok, GetLastErrorText())`
 nepoužívat.
 
+### Report s request page v testu po zápisech = „An error occurred and the transaction is stopped"
+
+Test, který po zápisech v DB (GIVEN) pustí report **s request page** (`Report.UseRequestPage(true)` + `RunModal()`, obsloužené
+`[RequestPageHandler]`), spadne na generické *„An error occurred and the transaction is stopped. Contact your administrator or partner
+for further assistance."* — modální request page nejde otevřít, dokud je otevřená zápisová transakce. Call stack ukáže řádek s
+`RunModal()`; testy téhož reportu **bez** request page (`UseRequestPage(false)`) projdou, což svádí hledat chybu jinde. Fix:
+`Commit(); // The request page is modal and cannot be opened while a write transaction is open.` těsně před `RunModal()` (komentář
+kvůli LC0002); data stejně uklidí TestIsolation na konci codeunitu. (2026-10-21, cust-zlomek-bc PBI 65149 `Adv. Letter Text Tests ZLK`
+— 2 ze 7 testů červené v lokálním kontejneru, po opravě 7/7.)
+
 ## Odkazy
 
 - [MS Docs – Testing the Application](https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/developer/devenv-testing-application)

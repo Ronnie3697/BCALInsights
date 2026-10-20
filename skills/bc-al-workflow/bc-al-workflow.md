@@ -812,6 +812,20 @@ parametru pro textovou formuli.)
   (`[0,0,šířka,výška]`, `scale 0.5`): když obsah nevyplní obrázek, kalibruj (zoom výřez, porovnej polohu známého prvku)
   a výsledek dialogu po každém kliku ověř screenshotem. Request page zavřená navigací pryč se nespustí (bez **Ok** nic).
   (2026-10-01, BC-TEST Sonnentor.)
+- **Claude in Chrome: screenshot / zoom opakovaně končí `CDP sendCommand "Page.captureScreenshot" timed out`, JS přitom běží**
+  (`visibilityState` hlásí `visible`, příčina neověřena). Pomůže **nová záložka** (`tabs_create_mcp` + navigace na tutéž URL), stará
+  zůstane viset (i `tabs_close_mcp` timeoutne). Mezitím jde pracovat bez obrázků: `find` obsah BC nevidí (je v iframu) → souřadnice
+  prvku z `iframe.contentDocument` (`getBoundingClientRect()` × `1568 / innerWidth` = rámec screenshotu), hodnoty polí a stav
+  *Uloženo* / *Neuloženo* čti z DOM. (2026-10-21, BC-DEV Zlomek.)
+- **Role a jazyk pro focení:** URL parametr `?profile=ORDER%20PROCESSOR` přestal platit po změně Mého nastavení (přesměroval na roli
+  uživatele) → roli dočasně změň v **Moje nastavení** (page 9204, *Role*), tamtéž *Jazyk* (Czech kvůli českým screenshotům); na konci
+  vrať původní. Lookup v Moje nastavení: ikona hledání → klik do pole *Hledat* → psát. (2026-10-21, BC-DEV Zlomek.)
+- **Chyba z `OnValidate` pole na kartě** se ve web klientu ukáže inline: červený × u pole, banner *„Stránka obsahuje chybu. Aktualizovat
+  (F5) pro vrácení změny zpět nebo opravu chyby."*, stav *Neuloženo*; text chyby až po kliknutí na ×. *Aktualizovat (F5)* změnu vrátí
+  (ověř z DOM, že pole je zpátky). (2026-10-21, cust-zlomek-bc 65649.)
+- **Řádek dokladu po vodorovném posunu gridu:** klik na x sloupce *Číslo* z dřívějšího screenshotu trefí jiný sloupec (*Číslo odkazu
+  na zboží* → chyba) → na novém řádku klikni do *Typ* a `Tab` přesune fokus do *Číslo*. Sloupce vpravo (*Množství*) zpřístupní
+  tažení vodorovného posuvníku, pozici hlavičky pak vezmi z DOM (`th` s textem, `getBoundingClientRect`). (2026-10-21, BC-DEV Zlomek.)
 - **Zápis do prostředí zákazníka (vyplnění setupu, založení zákazníka a dokladu, naklikání testovacího
   scénáře) smíš dělat — ale JEN s výslovným svolením uživatele** pro dané prostředí a seanci. Bez něj
   jen čti a foť; data připraví uživatel. Svolení si vyžádej **dopředu**, než začneš fotit, ať nevzniknou

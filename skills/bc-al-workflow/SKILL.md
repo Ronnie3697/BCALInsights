@@ -1,21 +1,15 @@
 ---
 name: bc-al-workflow
 description: >-
-  BC/AL lokalizace, dokumentace a verifikace: NAB AL Tools XLIFF ([NAB: …]
-  prefixy, jeden target, note Xliff Generator nemazat), trans-unit ID hash
-  (FNV-1a), víc extensionů na objekt (LC0091), label s %n = update
-  <source> i <target>, duplicitní trans-unity po merge (AL0479); dokumentace
-  PBI/Task → docs/*.md, uživatelská příručka / prezentace featury v HTML se
-  screenshoty (base64, focení BC přes Claude in Chrome); co číst před
-  editem (hlavička, app.json, .alpackages = binární ZIP → al-mcp,
-  permission set); Word layouty (repeater w15:dataBinding, layout štítků
-  skriptem, namespace vazeb bez teček, zip s lomítky, barcode fonty
-  IDAutomation, GS1-128 / FNC1 vlastním encoderem); build a analyzery
-  AA/CA/PTE/LC (verifikace všech dotčených appek, failOn warning), XML doc
-  komentáře (LC0072, & = AL0640), runtime errory bez spekulačních smyček,
-  Essence ruleset per projekt (*Ruleset*.json vedle app.json). Načti u
-  XLIFF, dokumentace ticketu, příručky, před netriviálním editem, u warningů
-  a analyzerů.
+  BC/AL lokalizace, dokumentace a verifikace: NAB AL Tools XLIFF ([NAB: …] prefixy, jeden target), trans-unit
+  ID hash (FNV-1a), víc extensionů na objekt (LC0091), label s %n = update <source> i <target>, duplicitní
+  trans-unity po merge (AL0479); dokumentace PBI/Task → docs/*.md, uživatelská příručka / prezentace featury v
+  HTML se screenshoty (base64, focení BC přes Claude in Chrome, timeout screenshotu, inline chyba pole); co
+  číst před editem (hlavička, app.json, .alpackages = binární ZIP → al-mcp, permission set); Word layouty
+  (repeater w15:dataBinding, štítky skriptem, barcode fonty, GS1-128 / FNC1); build a analyzery AA/CA/PTE/LC
+  (verifikace všech dotčených appek, failOn warning), XML doc komentáře (LC0072, & = AL0640), runtime errory
+  bez spekulačních smyček, Essence ruleset per projekt (*Ruleset*.json vedle app.json). Načti u XLIFF,
+  dokumentace ticketu, příručky, před netriviálním editem, u warningů a analyzerů.
 user-invocable: true
 ---
 

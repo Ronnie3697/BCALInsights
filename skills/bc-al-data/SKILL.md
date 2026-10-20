@@ -3,13 +3,14 @@ name: bc-al-data
 description: >-
   BC/AL DB operace a subscribery (Business Central): FindSet, ReadIsolation::UpdLock vs LockTable,
   Insert/Modify/Delete(true|false) (LC0040), Temp Blob, SetLoadFields, SetFilter wildcard + %1 (LC0050),
-  TransferFields + PK v copy smyčce, Mark/MarkedOnly vs Copy, trvalý filtr ve FilterGroup, SetView neznámé pole bez chyby (TrySetView), field-by-field kopie, TableRelation
-  mimo PK (Validate za běhu spadne), tableextension triggery vs subscribery, modify() ve fields, klíč jen
-  vlastní pole (AL0423), var guard vs CurrFieldNo, CurrFieldNo z codeunity (getter, kopie recordu = 0), příznak
-  v SingleInstance po Error (SystemRowVersion), xRec = Rec při Modify z kódu, IsTemporary, init detection
-  OnAfterValidateEvent, SkipOnMissingLicense/Permission, LC0028, AL0432. Propagace vlastních polí do posted /
-  archive / kopie dokladu (3.5–3.6f) je ve skillu bc-al-posting. Načti u recordů, subscriberů, tableextension
-  a relací polí.
+  SetCurrentKey bez klíče (SystemCreatedAt), TransferFields + PK v copy smyčce, Mark/MarkedOnly vs Copy,
+  trvalý filtr ve FilterGroup, SetView neznámé pole bez chyby (TrySetView), field-by-field kopie,
+  TableRelation mimo PK (Validate za běhu spadne), tableextension triggery vs subscribery, modify() ve fields,
+  klíč jen vlastní pole (AL0423), var guard vs CurrFieldNo, CurrFieldNo z codeunity (getter, kopie recordu =
+  0), příznak v SingleInstance po Error (SystemRowVersion), xRec = Rec při Modify z kódu, IsTemporary, init
+  detection OnAfterValidateEvent, SkipOnMissingLicense/Permission, LC0028, AL0432. Propagace vlastních polí do
+  posted / archive / kopie dokladu (3.5–3.6f) je ve skillu bc-al-posting. Načti u recordů, subscriberů,
+  tableextension a relací polí.
 user-invocable: true
 ---
 

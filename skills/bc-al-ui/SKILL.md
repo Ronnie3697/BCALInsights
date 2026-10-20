@@ -1,17 +1,16 @@
 ---
 name: bc-al-ui
 description: >-
-  BC/AL UI patterny stránek (sekce 4): RunModal vs Run, výběr na RoleCenter CardPart (SingleInstance
-  + CurrPage.Close), OnDrillDown vs OnLookup, ConfirmManagement default, factbox Rec.Reset maže
-  SubPageLink, CaptionClass cache, expression control bez přejmenování (AL0270, XLIFF ID), modify()
-  cizí pageextension, smyčka aktualizace v OnAfterGet*Record, Visible = Rec.pole v pageextension
-  padá, MultiLine 3 řádky / RichContent / control add-in, page procedura se jménem metody Rec
-  (AL0604), List v LookupMode jen pro čtení; filtr partu z OnOpenPage zmizí; DelayedInsert = prázdné
-  SystemId; CurrPage.Update(false) v OnValidate zahodí hodnotu; ListPart přes RunModal pod TestPage;
-  stránka bez SourceTable (protected var / veřejný getter + výraz v SourceExpr, stínění parametrů);
-  dlaždice na phone klientu (Brick / DropDown / prvních 5 controlů, addlast Brick); událost
-  add-inu ze schované stránky phone klientu se odloží a přehraje (aria-hidden). Načti u page,
-  pageextension, factboxů, partů, výběrů, captionů a viditelnosti.
+  BC/AL UI patterny stránek (sekce 4): RunModal vs Run, výběr na RoleCenter CardPart, OnDrillDown vs OnLookup,
+  ConfirmManagement default, factbox Rec.Reset maže SubPageLink, CaptionClass cache, expression control bez
+  přejmenování (AL0270), modify() cizí pageextension, smyčka aktualizace v OnAfterGet*Record, Visible =
+  Rec.pole v pageextension padá, MultiLine 3 řádky / RichContent / control add-in, page procedura se jménem
+  metody Rec (AL0604), List v LookupMode jen pro čtení; filtr partu z OnOpenPage zmizí; DelayedInsert =
+  prázdné SystemId; CurrPage.Update(false) v OnValidate zahodí hodnotu; ListPart přes RunModal pod TestPage;
+  stránka bez SourceTable (protected var / getter + výraz v SourceExpr); dlaždice na phone klientu (Brick /
+  DropDown / 5 controlů); událost add-inu ze schované stránky phone klientu se odloží a přehraje
+  (aria-hidden); kostka „moje doklady" (User ID Filter), drill-down a řazení kostek. Načti u page,
+  pageextension, factboxů, partů, kostek, výběrů, captionů a viditelnosti.
 user-invocable: true
 ---
 

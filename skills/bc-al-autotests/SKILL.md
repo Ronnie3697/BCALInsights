@@ -1,20 +1,16 @@
 ---
 name: bc-al-autotests
 description: >-
-  BC/AL autotesty (Business Central): kdy jsou povinné (netriviální
-  funkčnost), vzor Essence (MS Assert + Library - *, vlastní library jen pro
-  custom tabulky, target Cloud + Test Runner/Tests-TestLibraries/SysApp Test
-  Library), [Test]/[HandlerFunctions]/[TransactionModel], TestPage,
-  TestPermissions Disabled, RunModal bez request page, OnBeforeActionEvent jen
-  přes TestPage, CreateItem base UoM past, asserterror rollbackne GIVEN →
-  Commit, bez placeholder testů, SaaS-only helpery, Setup Storage Save/Restore
-  (AL0296), TestPage Sales Order řádky (stockout/credit, Type vs
-  FilteredTypeField u nového řádku), ConfirmHandler Reply false + asserterror,
-  modální Worksheet bez Cancel, Library - Random seed → PK FindLast + 1,
-  BindSubscription na globální proměnnou, HttpClientHandler OnPrem-only,
-  ExpectedError a CaptionClass. Načti při psaní/opravě testů a u netriviální
-  funkčnosti; kompilace, běh a CI test appky → bc-al-autotests-infra, pasti
-  projektů, dokladů, Job Queue, výroby a plánování → bc-al-autotests-domains.
+  BC/AL autotesty (Business Central): kdy jsou povinné (netriviální funkčnost), vzor Essence (MS Assert +
+  Library - *, vlastní library jen pro custom tabulky), [Test]/[HandlerFunctions]/[TransactionModel],
+  TestPage, TestPermissions Disabled, RunModal bez request page, report s request page po zápisech (Commit),
+  OnBeforeActionEvent jen přes TestPage, CreateItem base UoM past, asserterror rollbackne GIVEN → Commit, bez
+  placeholder testů, SaaS-only helpery, Setup Storage Save/Restore (AL0296), TestPage Sales Order řádky
+  (stockout/credit, Type vs FilteredTypeField u nového řádku), ConfirmHandler Reply false + asserterror,
+  modální Worksheet bez Cancel, Library - Random seed → PK FindLast + 1, BindSubscription na globální
+  proměnnou, HttpClientHandler OnPrem-only, ExpectedError a CaptionClass. Načti při psaní/opravě testů a u
+  netriviální funkčnosti; kompilace, běh a CI test appky → bc-al-autotests-infra, pasti projektů, dokladů, Job
+  Queue, výroby a plánování → bc-al-autotests-domains.
 user-invocable: true
 ---
 

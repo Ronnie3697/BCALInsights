@@ -456,6 +456,39 @@ Poznatky z EF Advance CZ (WI 63636, 2026-08):
   Lokální codeunit proměnná v OnAction drží subscription po dobu volání. V guardu
   nezapomenout `IsTemporary()` exit (dialog pracuje s temp buffery téže tabulky).
 
+### 5.z5 CZZ `Create Sales Adv. Letter CZZ` (report 31012) — kde upravit generovaný řádek zálohy
+
+- **`OnCreateAdvanceLetterLineOnBeforeInsert(var SalesAdvLetterLineCZZ; SalesAdvLetterHeaderCZZ)`** běží těsně před `Insert(true)`
+  každého generovaného řádku, v obou režimech (seskupení podle DPH i *Navrhnout podle řádku*). Správné místo pro úpravu řádku (např.
+  `Description` podle DPH skupiny); subscriber na `OnInsert` tabulky by přepsal i ručně pořízené řádky na kartě zálohy.
+- `UpdateAmounts` dělá před eventem `TestField("VAT Prod. Posting Group")` → generovaný řádek **nikdy nemá prázdnou** DPH skupinu
+  zboží (větev „prázdná skupina" testuj přímo na proceduře, report ji nevyrobí).
+- `Sales Adv. Letter Line CZZ.Description` je **Text[100]** → delší text ze setupu `CopyStr(…, 1, MaxStrLen(Description))`.
+- Report na konci položí Confirm *„Chcete otevřít vytvořenou zálohu?"* → v testu `[ConfirmHandler]` (Reply false). Z prodejní
+  objednávky: *Akce → Záloha → Vytvořit zálohovou fakturu…* (request page *Vytvořit prodejní zálohu*: Kód zálohy, Záloha %,
+  Částka zálohy, Navrhnout podle řádku; to poslední jde zapnout jen na request page → test s `RequestPageHandler`, viz
+  „Report s request page v testu po zápisech" v `bc-al-autotests.md`).
+
+(2026-10-21, cust-zlomek-bc PBI 65149, zdroj cz-28, ověřeno v BC-DEV 28.5.)
+
+### 5.z6 Duplicita IČ / DIČ zákazníka a dodavatele — kde standard jen varuje a jak ji tvrdě zablokovat
+
+- **IČ je v BC 28 CZ pole W1 `"Registration Number"` (25)**; `"Registration No. CZL"` je od 26.0 Removed. DIČ = `"VAT Registration No."`.
+- Standardní varování o duplicitě je jen **Message**: IČ přes `Customer CZL` / `Vendor CZL` `modify("Registration Number")`
+  `OnAfterValidate` → `Registration No. Mgt. CZL.CheckRegistrationNo`, pak případně ARES; DIČ v triggeru pole → `UpperCase` →
+  `VAT Registration No. Format.Test` → `CheckCust` / `CheckVendor`, pak případně VIES. Na zákazníka žádný IsHandled.
+- **Tvrdý blok = subscriber na `OnBeforeValidateEvent` pole** (Customer i Vendor, obě pole): `Error` přijde dřív než standardní
+  hláška, test formátu i ARES/VIES. DIČ porovnávej `UpperCase` (trigger ho ukládá velkými), prázdnou a nezměněnou hodnotu (`= xRec`)
+  přeskoč (legacy duplicity pak neblokují editaci karty), vlastní `"No."` vyřaď. `Error` vrátí pole na `xRec` — nová karta zůstane
+  prázdná, existující dostane původní hodnotu; v klientu je to inline chyba pole (12.3 v `bc-al-workflow.md`).
+- **Založení zákazníka / dodavatele z kontaktu** (`CustVendBank-Update`) kopíruje IČ/DIČ přes `TransferFields` bez validace → kontrolou
+  neprojde (stejně jako standardní varování).
+- Test v CZ databázi: vlastní země bez formátu DIČ (`LibraryERM.CreateCountryRegion()`), VIES vypnout
+  (`VAT Reg. No. Srv Config`.ModifyAll(Enabled, false)), hodnoty z `CreateGuid`, `Commit()` po GIVEN kvůli `asserterror`.
+- Název záznamu dávej v hlášce do závorky (`zákazníka %3 (%4).`) — název končící tečkou (`s.r.o.`) jinak dá dvě tečky za sebou.
+
+(2026-10-21, cust-zlomek-bc PBI 65649 `Reg. No. Duplicity Check ZLK`, ověřeno v BC-DEV 28.5.)
+
 ### 5.x4 Sales Line "Attached to Line No." (pole 80) — co standard s vazbou dělá
 
 Prověřeno kompletním grepem Base App **BC 28.3** (extrakce z .app). Pole plní

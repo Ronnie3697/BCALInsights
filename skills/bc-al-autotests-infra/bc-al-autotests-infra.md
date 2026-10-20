@@ -312,3 +312,8 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   `C:\ProgramData\BcContainerHelper\alLanguageExtension\<verze>\extension\bin\alc.exe` (2026-10: `18.0.2819426`, vedle
   CodeCop / UICop / PTE / AppSourceCop DLL, ALCops ne). alc 17 symboly s `RuntimeVersion 17.0` přečte a appku s `runtime 17.0`
   zkompiluje taky — pro CI-paritu ale ber ten z BcContainerHelperu.
+- **Pozorováno (příčina neověřena):** `cust-zlomek-bc/base/test` deklaruje jen `Tests-TestLibraries` + `System Application Test
+  Library` (bez `Application Test Library`) a proti cache s **celou** sadou 28.4.53241 (Tests-TestLibraries, App Test Lib a jejich
+  tranzitivní deps) se s alc 18 přeloží čistě — `Library - *` i `Assert` vidí, `AL0185` z bodu výše se tedy neprojeví vždy.
+  Explicitní `Application Test Library` v test `app.json` přesto doporučuju (CI s jinou minor řadou může dopadnout jinak).
+  (2026-10-21, cust-zlomek-bc, temp cache z artifactu `onprem/28.4.53241.0/cz`.)
