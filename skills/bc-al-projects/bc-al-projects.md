@@ -103,6 +103,17 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   `GetResponseOrDefault` → **bez GUI (API, Job Queue, test bez handleru) skončí tichým `Error('')`**. Hromadné mazání z kódu proto
   **pre-checkni sám** (tender, Job Ledger Entry projektu, Sales/Purchase Line libovolného typu s `Job No.`) a dej vlastní hlášku,
   jinak akce spadne uprostřed bez textu. (2026-10-05, cust-soitron-bc 66489 — přegenerování QB bufferu, `QB Buffer Regenerate Mgt. SOI`.)
+- **Kde projekt na dokladech JE a kde NENÍ (Essence Project Base 28.0.24, ověřeno al-mcp):** `Job No. EPEBS` (hlavička) mají
+  `Sales Header`, `Sales Header Archive`, `Sales Invoice Header`, `Sales Cr.Memo Header`, `Purchase Header`, `Purch. Inv. Header`;
+  **`Sales Shipment Header` a `Purch. Rcpt. Header` ho NEMAJÍ** (jen `Tender No. EPEBS`). Zaúčtované příjemky a dodávky projektu tedy
+  dohledáš jen přes řádky: `Purch. Rcpt. Line."Job No."` (nákup řádkové `Job No.` nese), `Sales Shipment Line."Job No."` (ruční
+  řádky) **nebo `Sales Shipment Line."Job Contract Entry No."`** (dodávky objednávek z QB / IMEBS billable řádků — řádkové `Job No.`
+  je prázdné). Ani jedno z těch polí nemá na `Sales Shipment Line` klíč (Key1–7 = PK, Order No., Blanket, Item Shpt. Entry, Sell-to,
+  Bill-to, Document Id) → oba filtry jsou scan; kontraktová čísla projektu slož do jednoho `SetFilter('1|2|3')` z `Job Planning Line`
+  (`Job Contract Entry No. <> 0`), ne dotaz per řádek. Otevřené doklady z QB nesou projekt **jen na hlavičce** — kontrola přes
+  `Sales Line."Job No."` je nevidí (tvrdá kontrola „nevyfakturovaná objednávka“ v `Job Close Mgt. SOI` je tak dodnes mine; vzor
+  hlavička + řádky viz `QB Buffer Regenerate Mgt. SOI`). (2026-10-21, cust-soitron-bc 66504 — varování „existují doklady“ před stornem
+  projektu, `Job Close Mgt. SOI.CollectRelatedDocuments`, testy `Job Cancel Test SOI` vkládají posted řádky přímo `Insert(false)`.)
 
 ### 5.x21 Vazba nákupních / prodejních dokladů na KONKRÉTNÍ řádek plánování (součty částek per řádek, w1-28)
 
