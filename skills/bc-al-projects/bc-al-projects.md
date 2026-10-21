@@ -408,7 +408,15 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
     množstvím → nově `Posted Credit Memo` s **−Qty. to Invoice** (jak standard eviduje dobropis z plánovacího řádku; `Qty. Transferred to
     Invoice` je pak netto). `Job Planning Line.InitFromJobPlanningLine` (Copy Document faktury, Correct/Cancel) dělá `TransferFields` → kopíruje
     i `Purch. Job Cont.Entry No.IMEBS` na novou / stornovací řádku → `OnAfterInitFromJobPlanningLine(var ToJobPlanningLine, FromJobPlanningLine)`
-    vazbu nuluje (1 : 1 budget ↔ billable). Correct/Cancel dobropisy (kontrakt = stornovací řádka bez vazby) spotřebu nestornují — nepokryto.
+    vazbu nuluje (1 : 1 budget ↔ billable). **Opravit / Stornovat fakturu (2026-10-21, doplněno na přání):** `Correct Posted Sales Invoice.
+    CreateAndProcessJobPlanningLines` (volá se z `OnRun` = Cancel, `CreateCreditMemoCopyDocument` = Vytvořit opravný dobropis,
+    `CreateCorrectiveCreditMemo` z notifikace) pro každý řádek s kontraktem zakládá stornovací plánovací řádek (`InitFromJobPlanningLine(From,
+    -Quantity)` + JPLI Credit Memo) a přepíše `Sales Line."Job Contract Entry No."`; event `OnBeforeCreateAndProcessJobPlanningLines(var SalesHeader,
+    var IsHandled)` → IMEBS `IsHandled := true`, řádek si nechá původní kontrakt (`CopySalesJobFields` s `CopyJobData` ho u Credit Memo kopíruje
+    z faktury), účtování pak jde stejnou cestou jako dobropis z *Získat účtované řádky* (Sale storno na původní řádce, storno spotřeby z příjemky
+    vratky, JPLI Posted Credit Memo −Qty). Test `JobSalesPostTest.CorrectiveCrMemo_*` přepsán (žádný záporný plánovací řádek v úloze), nový
+    `CorrectiveCreditMemo_LinkedPurchaseShipped_KeepsContractEntryAndReversesUsage` v Purch. Consumption Test. `CreateCreditMemoCopyDocument`
+    dává Confirm jen když objednávka faktury ještě existuje (po úplné fakturaci je smazaná → bez handleru).
   - ⚠️ **Řádek faktury / dobropisu se smluvní položkou NEúčtuje položky zboží:** `Sales-Post.PostItemJnlLine` má `ShouldPostItemJnlLine :=
     not JobContractLine` (`JobContractLine` nastaví `PostJobContractLine` u Invoice / Credit Memo; u Order ho IMEBS `OnBeforePostJobContractLine`
     `IsHandled` nechá false). Projektová faktura z plánovacích řádků zboží nehýbe, ale dobropis Skip projektu zboží fyzicky vrací → bez položek
