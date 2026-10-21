@@ -850,6 +850,12 @@ Configurator Ext 28.0.50.
   neodinstalovaly. Verze dev buildu musí být > nainstalované PTE (jen v kopii `app.json`, 7.8). Další release PTE z pipeline do
   téhož prostředí pak narazí na AVS0109 výš → dev build nejdřív odinstalovat. (2026-10-13, Alumistr BC-TEST2 po čerstvé kopii
   z TEST: Alumistr Configurator Extension PTE 28.0.55.0 → dev 28.0.55.1.)
+- **PTE z feature větve na sdílený TEST zamyká release z masteru.** Verze nad buildem masteru (`<build>.<rev+1>`, např.
+  28.0.172.1 nad 28.0.172.0) projde a nic z masteru neubere, když větev master obsahuje (ověř `ci.sourceSha` buildu nainstalované
+  verze přes `pipelines_build list buildNumber`). Nové tabulky a pole ale v masteru nejsou. Další release z masteru do téhož
+  prostředí by je odebral, což je destruktivní změna a `schemaSyncMode: Add` ji odmítne (7.18). Release do TESTu proto počká na
+  merge PR, jinak by šlo jen přes ForceSync se ztrátou dat. Řekni to uživateli hned u nasazení. (2026-10-21, Sonnentor BC-TEST,
+  Sonnentor Extension 28.0.172.1 s uplatněním poukazů, upload `Completed` za ~3 min.)
 - **PTE smí záviset na DEV appce** (MS Learn *Extension types and scope*) — PMALU / Configurator Ext jako PTE nad dev buildem
   Alumistr SE Extension prošly. Pozor: přesun / upgrade sandboxu odinstaluje DEV appky i PTE, které na nich závisí, a nový publish
   DEV buildu z VS Code může závislé PTE odinstalovat (tak na TEST2 zmizely PTE Alumistr appky z 26. 8.).
