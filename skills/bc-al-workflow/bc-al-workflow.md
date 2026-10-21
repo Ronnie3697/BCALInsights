@@ -335,6 +335,10 @@ obrázek `max-width: 100%; max-height: calc(100vh - 80px); object-fit: contain`,
 klikem nebo `Escape`. Stačí pár řádků inline JS bez knihovny (delegovaný `click` na `document`, overlay `hidden`) a funguje
 to v souboru otevřeném dvojklikem i v publikovaném artefaktu. Odkaz `<a href="data:…" target="_blank">` na nové okno
 nepoužívej, protože Chrome navigaci top-level okna na `data:` URL blokuje a artefakt nová okna stejně neotevře.
+⚠️ **Do CSS dej `.lightbox[hidden] { display: none; }`.** Kostra artefaktu má reset `[hidden]{display:none!important}`,
+lokální soubor ne, takže `display: flex` overlaye atribut `hidden` přebije. Overlay pak po otevření souboru visí přes celou
+stránku, zatímco v artefaktu všechno funguje. Kontrolu dělej na lokálním souboru přes `http.server` (12.3), ne v artefaktu,
+a projdi i světlý režim. Overlay s průhledností 0,9 tam nechá prosvítat text stránky, použij aspoň 0,96.
 
 ---
 
