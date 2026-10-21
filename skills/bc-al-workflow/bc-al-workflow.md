@@ -340,6 +340,18 @@ lokální soubor ne, takže `display: flex` overlaye atribut `hidden` přebije. 
 stránku, zatímco v artefaktu všechno funguje. Kontrolu dělej na lokálním souboru přes `http.server` (12.3), ne v artefaktu,
 a projdi i světlý režim. Overlay s průhledností 0,9 tam nechá prosvítat text stránky, použij aspoň 0,96.
 
+**Animace (GIF) do příručky přes Claude in Chrome `gif_creator`** (2026-10-21, návod 67238, Alumistr BC-TEST2):
+- **Max 50 snímků na nahrávku, nejde zvýšit.** Snímek dělá každá akce `computer` včetně `wait`, takže čekání dělej přes
+  `javascript_tool` (`await new Promise(r => setTimeout(r, 3000))`) a výběr `<select>` taky JS (notes 12.3), ty se nenahrávají.
+  Data a nastavení, která nejsou tématem animace (vyplnění dialogu, založení parametru), připrav před `start_recording`.
+- **Poslední snímek bývá rozmazaný nebo starý.** Snímek se fotí dřív, než BC dokreslí: zavírané okno je průsvitný duch a
+  přepočet po `Enter` na snímku ještě není. Na konec udělej `screenshot` se `save_to_disk` (ve stejném rozlišení) a přidej
+  ho Pillow jako poslední snímek na ~4 s; rozmazaný předposlední zahoď.
+- Export jde jen přes stažení v prohlížeči (svolení uživatele před exportem, jméno souboru), jedna nahrávka = jeden soubor.
+  Plné rozlišení 1568 px dělá 2–7 MB na GIF; zmenšení Pillow na šířku 1100 px (LANCZOS, 128 barev) to zhruba půlí a text
+  zůstane čitelný. Víc GIFů base64 v jedné stránce hlídej proti limitu artefaktu 16 MB. MP4 bez `ffmpeg` nevznikne.
+- Popisky akcí (`showActionLabels`) jsou anglicky z `action_summary` a vodoznak je logo Claude, do firemní příručky obojí vypni.
+
 ---
 
 ## 9. Před úpravou AL objektu — co si přečíst
