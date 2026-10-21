@@ -528,7 +528,11 @@ IntegrationRecordSynch.Codeunit.al`, `IntegrationTableMapping.Table.al`, `Integr
   sloupec v Dataverse nejde přetypovat. **Nová custom tabulka v Dataverse = přidat `Read` (Organization) aplikačnímu
   uživateli BC** (*Business Central Integration*, ApplicationId `88c57617-…`, type=8 Non-interactive) v jeho security roli,
   jinak dotaz z proxy skončí *Principal user … is missing prvRead<entity> privilege*; v BC je celý text jen v poli *Error
-  Message* (2048) tabulky *Integration Synch. Job Errors*, pole *Message* (250) i seznam ho uříznou. (2026-10-19/20,
+  Message* (2048) tabulky *Integration Synch. Job Errors*, pole *Message* (250) i seznam ho uříznou. **Výsledek u JPS:** po
+  třech kolech (lookup → text → lookup) zákazník v PA lookup zrušil a založil textový sloupec `ebs_vatbusinesspostinggroup`;
+  v BC zbylo pole `Text[20]` + `ExternalType = 'String'` a jeden řádek field mappingu, bez proxy tabulky a bez kódu. Než
+  stavíš lookup na nesynchronizovaný číselník, zeptej se, jestli PA relaci opravdu potřebuje — text je o tři objekty, jeden
+  subscriber, testy a oprávnění v Dataverse levnější. (2026-10-19/21,
   cust-jps-bc DEV, Customer `VAT Bus. Posting Group` →
   `CRM Account.ebs_vatbusinesspostinggroupid`, `CDSManagementJPS`.)
 
