@@ -112,8 +112,9 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   Bill-to, Document Id) → oba filtry jsou scan; kontraktová čísla projektu slož do jednoho `SetFilter('1|2|3')` z `Job Planning Line`
   (`Job Contract Entry No. <> 0`), ne dotaz per řádek. Otevřené doklady z QB nesou projekt **jen na hlavičce** — kontrola přes
   `Sales Line."Job No."` je nevidí (tvrdá kontrola „nevyfakturovaná objednávka“ v `Job Close Mgt. SOI` je tak dodnes mine; vzor
-  hlavička + řádky viz `QB Buffer Regenerate Mgt. SOI`). (2026-10-21, cust-soitron-bc 66504 — varování „existují doklady“ před stornem
-  projektu, `Job Close Mgt. SOI.CollectRelatedDocuments`, testy `Job Cancel Test SOI` vkládají posted řádky přímo `Insert(false)`.)
+  hlavička + řádky viz `QB Buffer Regenerate Mgt. SOI`). (2026-10-21, cust-soitron-bc 66504 — varování „existují nezaúčtované doklady“
+  před stornem projektu, `Job Close Mgt. SOI.CollectUnpostedDocuments`; posted příjemky / dodávky z varování nakonec vyřazeny na přání
+  uživatele, poznatek o jejich dohledání ale platí.)
 
 ### 5.x21 Vazba nákupních / prodejních dokladů na KONKRÉTNÍ řádek plánování (součty částek per řádek, w1-28)
 
