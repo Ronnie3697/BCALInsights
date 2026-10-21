@@ -46,9 +46,10 @@ Vyčleněno z `bc-al-objects.md` 2026-10-05, číslování 5.x je původní.
 - **5.x24** Spotřeba projektu z prodejní dodávky (IMEBS `CreateJobLedgerEntryFromSalesLine`): `OnBeforePostJobContractLine`
   běží před `PostItemLine` a `Qty. to Handle (Base)` trackingu řádku NENÍ dodávané množství (řádek sledování na celý řádek
   se částečnou dodávkou nekrátí) → účtuj z `OnAfterInsertShipmentLine` podle položek zboží dodávkového řádku
-  (`ItemTrackingMgt.CollectItemEntryRelation` / `Item Shpt. Entry No.`); položky příjmu = každý řádek příjemky × každá ILE;
-  **JLE : položka příjmu 1:1** (celé množství položky, až když ji Σ dodávek řádku pokryje — usage dodávku nepředběhne,
-  může se zpozdit). Nadspotřeba = `Job Link Usage` zvedne `Quantity` budget řádku. IMEBS `CreateItemTrackingForSalesLine`
+  (`ItemTrackingMgt.CollectItemEntryRelation` / `Item Shpt. Entry No.`); položky příjmu = každý řádek příjemky × každá ILE.
+  **Od 2026-10-21 usage per položka zboží DODÁVKY** (každá dodávka hned, rozděleno podle položek příjmu, ze kterých bere —
+  jedna položka příjmu = zdroj nákladu usage; zbytek bez vazby). Dřívější 1 : 1 k položce příjmu (čekání na pokrytí) zrušeno.
+  Nadspotřeba = `Job Link Usage` zvedne `Quantity` budget řádku. IMEBS `CreateItemTrackingForSalesLine`
   píše do 336, ne 337 (dodávka to nečte).
 - **5.x26** `Purch.-Post` volá `OnPostItemJnlLineJobConsumption` i u vratek (před položkou zboží) — `IsHandled` pro Skip projekt vypne
   i standardní stop „nelze vrátit spotřebované“; IMEBS kontroluje vráceno ≤ přijato − usage − dříve vráceno per tracking a vrácené

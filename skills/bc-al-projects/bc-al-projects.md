@@ -246,6 +246,17 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   `Quantity` řádku, `HandleMatchUsageSpecifiedJobPlanningLine` udělá `Validate(Quantity, Σ)` → množství i cena řádku
   plánování se „sama" změní (příznak nadspotřeby, ne feature). Testy `Purch. Consumption Test IMEBS` (dvě příjemky, dvě
   dodávky 1+4 proti 2+3, dvě šarže, nepřijatá šarže, řádek sledování 5 dodaný 2+3 → usage 2+3 a budget řádek zůstane 5).
+- **Přepis podruhé (2026-10-21, tamtéž, rozhodnutí uživatele po testu na X-ESSENCE): usage = per položka zboží DODÁVKY, ne per položka
+  příjmu.** Dodávka 600 + 400 musí dát spotřebu 600 + 400 hned při každé dodávce (původní 1 : 1 k položce příjmu dalo při jedné příjemce
+  na 1000 jednu spotřebu až druhou dodávkou — uživatel to reklamoval jako chybu). Nová logika (`CreateJobLedgerEntryFromSalesLine` →
+  `PostConsumptionForShippedTracking`): položky zboží **jen právě vloženého dodávkového řádku** (`CollectPostedLineItemEntries` přes `Item Entry
+  Relation` / `Item Shpt. Entry No.`) → bucket per tracking → z položek příjmu rozpočtového řádku se stejným trackingem v pořadí účtování se
+  bere `Remaining Quantity` kopie (přijato − netto usage navázaná na položku − vráceno dodavateli) → jedna usage per (dodávka × položka
+  příjmu), zbytek hned bez vazby (dodáno dřív než přijato, šarže ze skladu). Žádné čekání na pokrytí položky příjmu, žádný
+  `LineFullyShipped` / blokující položka / kumulace přes kontrakt — storno u dobropisu i opětovná dodávka vrácených kusů fungují přes netto
+  usage per položka příjmu samy. Sale zůstává per řádek faktury (standard; dodávka výnos neúčtuje). Testy přepsány: 2+3 / 1+4 → usage
+  1 | 1+3; 2+3+1 / 3+3 → 2+1 | 2+1; tracking řádek 5 dodaný 2+3 → 2 | 3 na téže položce příjmu (`VerifyUsageQtyLinkedToItemEntry` =
+  počet + součet per položka příjmu).
 - ⚠️ **IMEBS `CreateItemTrackingForSalesLine` (šarže / SN z řádku plánování na prodejní řádek) zapisuje do `Tracking
   Specification` (336), ne do `Reservation Entry`** — dodávka tracking z 336 nebere (336 čte jen `RetrieveInvoiceSpecification`
   pro fakturaci dodaného), takže řádek z plánovací řádky se šarží se pravděpodobně chová jako bez sledování. Neopraveno,
