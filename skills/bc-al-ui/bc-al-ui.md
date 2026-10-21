@@ -10,7 +10,7 @@
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
 Obsahuje:
-- **4.** UI patterny (4.1–4.24)
+- **4.** UI patterny (4.1–4.25)
 
 ## 4. UI patterny
 
@@ -725,3 +725,23 @@ skenů, všechny poslala jen vrchní stránka, 4 zahozené pod dialogem.)
   v testu doběhnou. Pořadí řádků čti `First()` / `Next()` do `List of [Code[20]]` a porovnej `IndexOf`.
 
 (2026-10-21, cust-zlomek-bc PBI 65654 — kostky *Moje otevřené nabídky / objednávky* na roli Zpracovatel prodejních objednávek.)
+
+---
+
+### 4.25 `CurrPage.SaveRecord()` a hned `RunModal` = „Došlo k chybě a transakce byla zastavena" → `Commit()` mezi tím
+
+Obálka editoru na stránce, která řádek nejdřív uloží (`CurrPage.SaveRecord()` – u `DelayedInsert` řádek teprve **vloží**,
+protože editor potřebuje jeho `Line No.`) a pak otevře modální stránku (`Page.RunModal`, editor vzorce s vlastním `RunModal`),
+spadne v klientu na generické **„Došlo k chybě a transakce byla zastavena. O další pomoc požádejte správce nebo partnera."**
+(EN *An error occurred and the transaction is stopped*), bez textu skutečné chyby. Zápis z `SaveRecord` je otevřená zápisová
+transakce a modální stránku v ní platforma neotevře (stejný mechanismus jako request page reportu po zápisech v testu,
+`bc-al-autotests.md`).
+
+- **Fix:** `Commit(); // Required before RunModal` mezi `SaveRecord()` a `RunModal` (komentář kvůli LC0002) — vzor
+  konfigurátoru (karty a dialogy podmínek, karta parametru: `if Rec."Line No." = 0 then Rec.Insert(true) else
+  CurrPage.SaveRecord(); Commit();`). Totéž u akce na kartě, která před otevřením editoru ukládá hlavičkový záznam.
+- Kompilace ani analyzery to nechytí a TestPage test, který editor neotevírá (logika přes tabulky a codeunity), taky ne —
+  ukáže se až v klientu. Novou obálku `SaveRecord` → `RunModal` vždy jednou proklikej.
+
+(2026-10-21, prod-ess-configurator-bc PBI 67238 — editor *Filtr dle parametrů* 63198: nový řádek → „…“ u hodnoty → textový vzorec;
+build 28.0.37.67238 na Alumistr BC-DEV spadl, 67239 s `Commit()` funguje.)

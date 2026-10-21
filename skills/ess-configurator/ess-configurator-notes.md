@@ -912,3 +912,25 @@ zdroje prod-ess-configurator-bc master, COEBS 28.0.22.0.)
   Vyhledání nad `Unit Price` s jediným záznamem dá `1 337,44` s NBSP (znak 160) → kopie do Desetinného i Celé ← `2.5` zůstanou
   prázdné bez výchozí hodnoty, kopie do Výběru uloží neexistující kód; OK pak hlásí „Následující parametry musí být vyplněny“.
   Filtr typu v lookupu jde vymazat v menu sloupce (*Vymazat filtr*).
+
+**Implementováno (filtr, ne kopie) v PBI 67238** (2026-10-21, větev `67217_DeleteConditionWithChildren`, necommitnuto; doc
+`docs/67238 - Configurator - Filtr vyhledání v tabulce dle parametrů (COEBS).md`, CONFIGURATOR-DOCUMENTATION 5.4):
+- Zadání chtělo **textový vzorec** jako hodnotu (ne operátor + parametr) a dva filtry: *Filtr zdrojové tabulky dle parametrů* +
+  *Filtr atributů dle parametrů*. Výsledek vzorce = **filtr jako ručně napsaný** (`FldRef.SetFilter`), prázdný = nefiltruje,
+  neplatný pro typ pole = nic (platný filtr `hodnota&<>hodnota` na tomtéž poli přes `FldRef.Value()` jako jokér). Rozhodnutí
+  konzultanta (Josef Blaha).
+- Řádky v tabulce 63166 s PK `Configuration No., Line No.` — `Line No.` **jedinečné v konfiguraci**, protože textový vzorec
+  odkazuje `Source Type = Lookup Filter` (5) + `Source Line No.` = řádek filtru, `Field Type = Lookup Filter Value` (60).
+  Kopie konfigurace tak může nechat `Line No.` beze změny. Nové `Source Type` hlídej ve všech `Copy*FormulaLines`
+  (filtrují podle Source Type → izolované), v `Param. Reference Mgt.GetFormulaOwnerLineNo` (vlastník = parametr řádku filtru,
+  jinak by vlastní filtr blokoval smazání vlastníka) a v `GetDependentParamLineNosInt`.
+- Kontrola „pole už je filtrované" bez parsování textu: `RecRef.SetView(view)` + `FldRef.GetFilter() <> ''`.
+- Vzorce filtru čtou `{KOD:ValueName}` **bez** filtrů dle parametrů (interní `EvaluateTextFormula(…; false)`), jinak by se
+  filtry po přeházení pořadí parametrů sestavovaly navzájem donekonečna. Veřejné `EvaluateTextFormula` je s nimi.
+- Desetinné hodnoty parametrů jsou ve slovníku invariantně (`12.5`) — pro pole Decimal se tečka mezi číslicemi převádí na
+  oddělovač relace (`..` zůstává). Test `DecimalParameterValueFiltersADecimalField` zatím jen zkompilovaný (kontejner po pushi).
+- Výchozí hodnota kódu parametru s filtry dle parametrů se použije, jen když ji filtr nabízí (`IsTableLookupValueAllowed`);
+  jinak by zůstala stará hodnota z návrhu (auto-doplněná z pevného filtru) a přebila automatický výběr jediné hodnoty.
+- Ověřeno na Alumistr BC-DEV (dev 28.0.37.67239, A00005 / nabídka 1006): duplicita v obou směrech, PROFIL → CENA a znovu
+  po změně, filtr atributů `Barva = {BARVA_TXT:Value}` (Červený / Modrý / `Červený|Modrý`), odmítnutí hodnoty mimo filtr.
+  Editor potřeboval `Commit()` před `RunModal` (4.25 v `bc-al-ui.md`).
