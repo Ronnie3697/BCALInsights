@@ -328,6 +328,14 @@ nastavení, kartu s klíčovým polem, hlavičku dokladu s akcí a řádky; k ob
 „kde to v BC je". Obrazovky, které se do okna nevejdou (tělo e-mailu), radši **přečti z DOM
 a vykresli jako tabulku** přímo v příručce.
 
+**Obrázky v HTML příručce / prezentaci musí jít po kliknutí zvětšit** (požadavek uživatele 2026-10-21, návod ke 67238
+v prod-ess-configurator-bc). Screenshot BC má ~1570 px a ve sloupci textu (~760 px, dva vedle sebe ještě míň) popisky polí
+nepřečteš. Každý `<img>` dostane `cursor: zoom-in` a klik otevře overlay přes celé okno (`position: fixed; inset: 0`,
+obrázek `max-width: 100%; max-height: calc(100vh - 80px); object-fit: contain`, pod ním text z `figcaption`), zavírá se
+klikem nebo `Escape`. Stačí pár řádků inline JS bez knihovny (delegovaný `click` na `document`, overlay `hidden`) a funguje
+to v souboru otevřeném dvojklikem i v publikovaném artefaktu. Odkaz `<a href="data:…" target="_blank">` na nové okno
+nepoužívej, protože Chrome navigaci top-level okna na `data:` URL blokuje a artefakt nová okna stejně neotevře.
+
 ---
 
 ## 9. Před úpravou AL objektu — co si přečíst
