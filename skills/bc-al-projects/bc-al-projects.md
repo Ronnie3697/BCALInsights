@@ -382,21 +382,23 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
     Sale položku s kladným množstvím (`FromPlanningSalesLineToJnlLine` Credit Memo `-Quantity`), `ValidateRelationship` kontroluje Type/No./
     Location/Work Type/UoM/Variant/Gen. Prod./Line Discount %/Unit Cost (LCY) (IMEBS u Skip potlačí)/VAT % — kopie z faktury IMEBS objednávky
     sedí. Otevřená JPLI typu Credit Memo není třeba (`if Get`).
-  - **Storno spotřeby — NE z `OnAfterReturnRcptLineInsert`:** příjemka vratky u dobropisu vzniká jen se `Sales & Receivables Setup."Return
-    Receipt on Credit Memo"` (Sales-Post `if Credit Memo and SalesSetup."Return Receipt on Credit Memo"`); bez něj (X-ESSENCE CRONUS CZ,
-    2026-10-21, dobropis 104010 projektu PR01210) žádný dokument příjemky vratky není, položka zboží má `Document Type = Sales Credit Memo`
-    a `Document No.` = číslo zaúčtovaného dobropisu, a event řádku příjemky vratky nikdy nevystřelí — první verze subscriberu tiše nic
-    nestornovala. Správně **`Sales-Post.OnAfterPostItemJnlLine(var ItemJournalLine, SalesLine, SalesHeader, …, ShouldPostItemJnlLine, …)`**
-    (po `RunItemJnlPostLine` i tracking; `ItemJournalLine."Item Charge No."` = '' vyloučí poplatky) a položky zboží řádku dohledat
-    přes zaúčtovaný řádek deníku: `Document Type` + `Document No.` + `Document Line No.` (klíč Key9) + `Entry Type = Sale` + `Quantity > 0` —
-    sedí s příjemkou vratky (Document Type Sales Return Receipt, číslo příjemky) i bez ní (Sales Credit Memo, číslo dobropisu). IMEBS
+  - **Storno spotřeby z `Sales-Post.OnAfterReturnRcptLineInsert(var ReturnRcptLine, ReturnRcptHeader, SalesLine, ItemShptLedEntryNo, …,
+    SalesCrMemoHeader, …, var SalesHeader)`** — řádek příjemky vratky i jeho `Item Entry Relation` (`InsertReturnEntryRelation` uvnitř
+    `InsertReturnReceiptLineWhsePost`) už existují, bez trackingu `"Item Rcpt. Entry No."`. ⚠️ **Příjemka vratky u dobropisu vzniká jen se
+    `Sales & Receivables Setup."Return Receipt on Credit Memo"`** (Sales-Post `if Credit Memo and SalesSetup."Return Receipt on Credit Memo"`);
+    bez něj (X-ESSENCE CRONUS CZ, 2026-10-21, dobropis 104010 projektu PR01210) žádný dokument příjemky vratky není, položka zboží má
+    `Document Type = Sales Credit Memo` a `Document No.` = číslo zaúčtovaného dobropisu, event nikdy nevystřelí a storno tiše neproběhne.
+    Varianta nezávislá na nastavení = `Sales-Post.OnAfterPostItemJnlLine(var ItemJournalLine, SalesLine, SalesHeader, …, ShouldPostItemJnlLine,
+    …)` (po `RunItemJnlPostLine` i tracking; `"Item Charge No."` = '' vyloučí poplatky) + položky zboží přes zaúčtovaný řádek deníku
+    (`Document Type` + `Document No.` + `Document Line No.`, Key9, `Entry Type = Sale`, `Quantity > 0`) — implementováno a zkompilováno
+    2026-10-21, ale **na přání uživatele vráceno** (rozhodnutí: nastavení se zapne, storno zůstává na řádku příjemky vratky; test appka
+    nastavení zapíná v `Initialize`). IMEBS
     (`ReverseJobLedgerEntryFromSalesLine`) per tracking stornuje usage rozpočtového řádku: záporná Usage per položku příjmu, na kterou je usage
     navázaná (`GetUsageQtyBaseLinkedToItemEntry` = netto, pořadí účtování), zbytek z nenavázané usage; `PostConsumption` se záporným množstvím
     (`Job Link Usage.HandleMatchUsageSpecifiedJobPlanningLine` záporné `Use` zvládá — `Qty. Posted` klesne), `Document No.` = číslo zaúčtovaného
-    dobropisu (`Project Item Mgt. SI IMEBS.GetGenJnlLineDocNo` z `OnAfterInsertPostedHeaders`). Netto usage na položce příjmu klesne → další
-    dodávka ji spotřebuje znovu a nákupní vratka projde kontrolou (5.x26 výše) — to byl požadavek PO (nejdřív prodejní, pak nákupní dobropis).
-    Testy: `Initialize` dává `Return Receipt on Credit Memo := false` (Setup Storage Save po úpravě), jeden test ho zapíná a ověřuje ILE
-    `Document Type = Sales Return Receipt` + storno.
+    dobropisu (`SalesCrMemoHeader` z eventu). Netto usage na položce příjmu klesne → další dodávka ji spotřebuje znovu a nákupní vratka
+    projde kontrolou (5.x26 výše) — to byl požadavek PO (nejdřív prodejní, pak nákupní dobropis). Testy: `Initialize` dává `Return Receipt
+    on Credit Memo := true` (Setup Storage Save po úpravě).
   - **„Dodáno" se musí počítat na úrovni kontraktu, ne řádku objednávky:** `CollectShippedItemTracking` nově sčítá všechny `Sales Shipment Line`
     s `Job Contract Entry No.` (všechny objednávky billable řádku) mínus `Return Receipt Line` se stejným kontraktem (pole 1002 na obou,
     `Correction = false`); per řádek objednávky by opětovná dodávka vrácených kusů (nová objednávka z téhož řádku plánování) spotřebu minula nebo
