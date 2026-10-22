@@ -411,11 +411,10 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
     dobropisu (`SalesCrMemoHeader` z eventu). Netto usage na položce příjmu klesne → další dodávka ji spotřebuje znovu a nákupní vratka
     projde kontrolou (5.x26 výše) — to byl požadavek PO (nejdřív prodejní, pak nákupní dobropis). Testy: `Initialize` dává `Return Receipt
     on Credit Memo := true` (Setup Storage Save po úpravě).
-  - **„Dodáno" se musí počítat na úrovni kontraktu, ne řádku objednávky:** `CollectShippedItemTracking` nově sčítá všechny `Sales Shipment Line`
-    s `Job Contract Entry No.` (všechny objednávky billable řádku) mínus `Return Receipt Line` se stejným kontraktem (pole 1002 na obou,
-    `Correction = false`); per řádek objednávky by opětovná dodávka vrácených kusů (nová objednávka z téhož řádku plánování) spotřebu minula nebo
-    podsekla. `GetJPLQuantity` (množství k převodu do objednávky) přičítá otevřené i zaúčtované dobropisové řádky s kontraktem → vrácené
-    množství jde znovu objednat.
+  - ~~„Dodáno" na úrovni kontraktu (`CollectShippedItemTracking` přes všechny dodávky kontraktu mínus vratky)~~ — **překonáno 2026-10-21**
+    přepisem na usage per položka zboží dodávky (5.x24): dodávka bere jen své položky a konzumuje `Remaining Quantity` položek příjmu (netto
+    po stornech), takže opětovná dodávka vrácených kusů funguje bez kumulace. Platí dál: `GetJPLQuantity` (množství k převodu do objednávky)
+    přičítá otevřené i zaúčtované dobropisové řádky s kontraktem → vrácené množství jde znovu objednat.
   - **JPLI dobropisu:** IMEBS `OnBeforeJobPlanningLineUpdateQtyToInvoice` zakládal i pro Credit Memo JPLI typu Posted Invoice s kladným
     množstvím → nově `Posted Credit Memo` s **−Qty. to Invoice** (jak standard eviduje dobropis z plánovacího řádku; `Qty. Transferred to
     Invoice` je pak netto). `Job Planning Line.InitFromJobPlanningLine` (Copy Document faktury, Correct/Cancel) dělá `TransferFields` → kopíruje
@@ -429,6 +428,17 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
     vratky, JPLI Posted Credit Memo −Qty). Test `JobSalesPostTest.CorrectiveCrMemo_*` přepsán (žádný záporný plánovací řádek v úloze), nový
     `CorrectiveCreditMemo_LinkedPurchaseShipped_KeepsContractEntryAndReversesUsage` v Purch. Consumption Test. `CreateCreditMemoCopyDocument`
     dává Confirm jen když objednávka faktury ještě existuje (po úplné fakturaci je smazaná → bez handleru).
+  - **Vrátit dodávku (Undo Shipment) na řádku účtované dodávky (2026-10-22):** `Undo Sales Shipment Line.Code` per řádek: `PostItemJnlLine`
+    (korekční ILE, kladná, vyrovnaná na dodanou, `Posting Date` = hlavička dodávky) → `InsertNewShipmentLine` (kopie řádku, `Quantity` záporné,
+    `Correction = true`, `Item Shpt. Entry No.` = korekční ILE, `InsertItemEntryRelation` pro tracking) → **`OnAfterInsertNewShipmentLine(var
+    SalesShipmentLine = PŮVODNÍ řádek, var PostedWhseShipmentLine, var PostedWhseShptLineFound, DocLineNo = číslo nového řádku,
+    ItemShptEntryNo)`** → `UpdateOrderLine` (až potom, `Quantity Shipped` objednávky v eventu ještě nesnížené). IMEBS tam stornuje spotřebu
+    stejně jako u vratky od zákazníka (`ReverseConsumptionForItemEntries`): položky korekčního řádku přes `CollectPostedLineItemEntries(Sales
+    Shipment Line, DocNo, DocLineNo, ItemShptEntryNo)`, objednávkový řádek `SalesLine.Get(Order, "Order No.", "Order Line No.")` (při undo
+    existuje, dodávka nesmí být fakturovaná), `Document No.` = číslo objednávky, `Posting Date` = datum dodávky (`PostConsumption` dostal
+    parametr `PostingDate`, 0D = datum hlavičky prodejního dokladu). Test `UndoShipment_LinkedPurchaseShipped_…`: `SetRecFilter` +
+    `SetHideDialog(true)` + `Run` (bez handleru), po undo `SalesHeader.Get` a znovu `PostSalesDocument(…, true, false)` → usage znovu na položku
+    příjmu.
   - ⚠️ **Řádek faktury / dobropisu se smluvní položkou NEúčtuje položky zboží:** `Sales-Post.PostItemJnlLine` má `ShouldPostItemJnlLine :=
     not JobContractLine` (`JobContractLine` nastaví `PostJobContractLine` u Invoice / Credit Memo; u Order ho IMEBS `OnBeforePostJobContractLine`
     `IsHandled` nechá false). Projektová faktura z plánovacích řádků zboží nehýbe, ale dobropis Skip projektu zboží fyzicky vrací → bez položek
