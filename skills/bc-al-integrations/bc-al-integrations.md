@@ -682,3 +682,16 @@ System Application 28.5):
 - Pro notifikaci do Power Automate platí 11.6: `[ExternalBusinessEvent]` (preview, Dataverse + Virtual Table appka, Dataverse
   trigger) vs. vlastní fronta + API page + BC trigger „When a record is created (V3)". Sonnentor má Dataverse (SON CDS Sync), takže
   prerekvizity business eventů tam odpadají; i tak je fronta jednodušší na test (tabulka jde naplnit a číst v autotestu).
+
+- **Obousměrná synchronizace prodejních objednávek (SALESORDER-ORDER / SOLINE-ORDERDETAIL): „při kolizi vyhrává BC“ =
+  `Update-Conflict Resolution := "Send Update to Integration"` v subscriberu na `CRM Setup Defaults.
+  OnResetBidirectionalSalesOrderMappingOnAfterInsertFieldsMapping` / `…SalesOrderLineMappingOnAfterInsertFieldsMapping`**
+  (w1-28 `Integration/D365Sales/CRMSetupDefaults.Codeunit.al`; obyčejné `[IntegrationEvent(false, false)]`, z Cloud appky jdou
+  odebírat, i když `ResetBidirectionalSalesOrderMapping` sama má `[Scope('OnPrem')]`). Standard nechává u hlavičky update
+  i deletion konflikt `None` (= záznam změněný na obou stranách skončí chybou synchronizace), u řádku jen
+  `Deletion-Conflict = Remove Coupling`; směr nech `Bidirectional`, aby šly obě větve. Eventy pálí z `ResetSalesOrderMappingConfiguration`
+  (zapnutí *Bidirectional Sales Order Int. Enabled* na CRM Connection Setup) i z „Use Default Synchronization Setup“ — **existující
+  mapování se nezmění**, dokud se setup znovu neresetuje nebo se pole nepřepíše ručně na Integration Table Mappings. Guard na dvojici
+  tabulek (`Sales Header`/`CRM Salesorder`, `Sales Line`/`CRM Salesorderdetail`), testy s `RegisterTableConnection('@@test@@')`
+  + `Integration Table Mapping.CreateRecord` nad proxy tabulkami bez Dataverse. (cust-soitron-bc CDS.W1
+  `CDS Management CWSOI.SetSalesOrderMappingToPreferBCOnUpdateConflict`, 2RING DEV, 2026-10-22.)
