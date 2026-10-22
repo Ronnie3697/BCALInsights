@@ -211,6 +211,12 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   přegenerovaný layout. Platí i pro `git worktree` čerstvě vytvořený z čistého HEAD.
   (2026-09-16, cust-sonnentor-bc PR 9511 — `DisposalProtocol.Report.docx` 13785 → 14742 B
   po ověřovací kompilaci `base/app`.)
+  **Totéž dělá alc 17 s RDLC (`.rdl`) layouty — a se VŠEMI `rendering { layout(...) }` reportu, ne jen s tím
+  aktivním:** do `<DataSets>` každého layoutu dopíše nové `<Field>` (včetně `XFormat` polí Decimal sloupců) a
+  přeformátuje XML (jednořádkové elementy rozepíše s odsazením). Po kompilaci reportu s víc layouty tak v `git
+  status` svítí i layout, na který jsi nesáhl (`ExportSalesQuote.Report2.rdl` = „Previous layout") → `git checkout --`
+  na něj; u vlastního upraveného `.rdl` je alc normalizace neškodná (nech ji, repo pak sedí s tím, co generuje
+  kompilátor). (2026-10-22, cust-jiri-bc / cust-jiri-w1-bc, akční cena v exportu nabídky.)
 
 ### 7.2 Čtení symbolů z `.alpackages` — al-mcp-server
 

@@ -349,6 +349,12 @@ Assert.ExpectedErrorCode('Dialog');
 
   (2026-10-16, prod-ess-configurator-bc `CL Override Tests COEBS.SplitKeepsCurrentLinePriceOfOriginalLineWithPriceList`, prošel
   v kontejneru. Že by bez opravy spadl, ověřené není.)
+- **Helper `FindXxx(var Rec, …)`, který na předaný record jen přidává `SetRange`, musí začínat `Rec.Reset()`.** Když jeden test
+  použije tutéž proměnnou pro dva helpery (`FindReturnEntries` = Item No. + Entry Type + `Document Type = Purchase Return Shipment`, pak
+  `FindReceiptEntries` = Item No. + Entry Type), filtr z prvního přežije, `FindFirst` vrátí vratku místo první příjemky a assert na
+  navázanou usage hlásí `Expected 1, Actual 0` s cizím `Ledger Entry No.` — v hlášce jsou vidět jen filtry assertu, ne příčina.
+  Lokálně to projde, dokud test helpery nekombinuje; chytil až CI (build 29039, prod-ep-itemManagement-bc). Filtry zužující množinu
+  (`Quantity > 0` u příjmů, když existují i vratky stejného `Entry Type`) dávej do helperu hned. (2026-10-22)
 - **CodeCop `AA0181` + `AA0175` na `Find('=')` uvnitř `Assert.IsTrue/IsFalse`** („Find only with Next", „queries the database but
   does not use the queried record") — oba warning → s `failOn warning` CI fail. Existenci záznamu assertuj `Rec.SetRecFilter()` +
   `Assert.RecordIsNotEmpty(Rec)` / `RecordIsEmpty(Rec)` (funguje i po `Delete`, PK v proměnné zůstává), refresh hodnot přes
