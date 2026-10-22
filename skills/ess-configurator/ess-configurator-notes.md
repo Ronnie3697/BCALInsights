@@ -159,7 +159,7 @@ v *Oprava*.
     Nová linka splitu dostane přepsání **bez Množství** (`ApplyCurrentLineOverrides(…; WithQuantityOverride = false)`),
     takže 10 → 6 + 4. Obě linky mají zapamatovaná pole vynulovaná. Kontrola „připojené řádky
     jsou dodané nebo fakturované“ je teď na začátku rozdělení (`CheckConfigCreatedLinesNotPosted`, label přesunutý → nové
-    trans-unit ID, 6.2 v `bc-al-workflow.md`).
+    trans-unit ID, 6.2 v `bc-al-xliff.md`).
   - Testy: `CL Override Tests COEBS` (63253).
   - Rozhodnutí uživatele: po ruční změně množství se vzorce aktuálního řádku nepřepočítávají a `QUANTITY` v Popisu varianty
     zůstává povolené.

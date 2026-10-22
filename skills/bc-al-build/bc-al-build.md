@@ -331,7 +331,7 @@ přitom hlásil 22 souborů / 511 řádků — přesně obsah toho dávno mergnu
 Podruhé tamtéž 2026-09-02, větev `BlanketOrders_64046` po squashi PR 9380 (`96a7513`): jediný
 „konflikt" byl trans-unit `Codeunit 1429337669 - NamedType 3648368596`, který obě strany přidaly
 na **jinou pozici** v `.cs-CZ.xlf` (HEAD o 12 řádků níž než master) — resoluce = nechat pozici
-masteru a HEAD blok zahodit (vzít obojí = AL0479 duplicita, viz 6.4). `git diff --cached
+masteru a HEAD blok zahodit (vzít obojí = AL0479 duplicita, viz 6.4 v `bc-al-xliff.md`). `git diff --cached
 origin/master` po resoluci prázdný → merge commit má strom bit-identický s masterem; kompilaci
 pak dokazuje zelený CI build masteru (28038) na tomtéž stromu, lokální `alc` netřeba. Nová dependency
 z masteru `Banking Documents Localization for Czech` má symbol 28.3 na MSSymbols feedu pod ID

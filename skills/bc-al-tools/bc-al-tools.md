@@ -119,7 +119,7 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   (`AL0297` ID mimo range, `AL0264` už deklarováno, `AL0275` ambiguous) — VS Code ho možná ignoruje přes workspace
   nastavení, alc bere celou složku. Cizí rozdělaný soubor nemaž: **zkompiluj kopii projektu ve scratchpadu**
   (`cp -r app.json *.json *.png src Translations` → `/project:` na kopii). Bonus: vygenerovaný `.g.xlf` v kopii je
-  přesně ten, ze kterého opíšeš trans-unit ID pro ruční překlady (6.2), a repo zůstane nedotčené.
+  přesně ten, ze kterého opíšeš trans-unit ID pro ruční překlady (6.2 v `bc-al-xliff.md`), a repo zůstane nedotčené.
   Když v Claude Code Bash toolu chybí python (Store stub „Python was not found"), skript na XLIFF udělej v PowerShellu
   (`powershell -File x.ps1`), soubor s diakritikou **ulož s UTF-8 BOM** (PS 5.1 bez BOM čte ANSI) a zapisuj přes
   `[IO.File]::WriteAllText(path, text, UTF8Encoding($false))`, ať zůstane LF bez BOM jako původní `.xlf`.
@@ -130,7 +130,7 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   z Bash: `printf '\xEF\xBB\xBF' | cat - x.ps1 > x_bom.ps1`. (2026-10-07, split `bc-al-tracking.md`)
 - **Trans-unit ID do ručních překladů:** po CLI kompilaci (s feature
   `TranslationFile`) se přegeneruje `Translations/*.g.xlf` — ID nových
-  trans-unitů opiš odtud, není nutné počítat FNV-1a hash ručně (viz 6.2).
+  trans-unitů opiš odtud, není nutné počítat FNV-1a hash ručně (viz 6.2 v `bc-al-xliff.md`).
 - **Symboly test frameworku (Test Runner, Tests-TestLibraries, SysApp Test Library, Library Assert, Permissions Mock…)
   bývají už stažené ve scratchpadech dřívějších seancí Claude Code** — `find "$LOCALAPPDATA/Temp/claude" -iname
   "*Tests-TestLibraries*28.*.app"` (složky `…/<session>/scratchpad/testcache|cache`) je rychlejší než feed (7.12 v

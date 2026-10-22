@@ -24,7 +24,8 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
 | `bc-al-tracking.md` | Item Tracking — šarže / SN: Item Tracking Lines (6510) a její eventy, předvyplnění šarže, Reservation Entry vs Tracking Specification, source pole VZ, tracking na nabídce a na fakturačním řádku z dodávky (sekce 5.x, 5.x2, 5.x2b, 5.x15) |
 | `bc-al-projects.md` | projekty — Job Planning Line: účto skupina a dimenze do deníku projektů, Location Code, vazba budget ↔ billable, návazné doklady projektu, guardy `OnDelete` (sekce 5.x17–5.x20) |
 | `bc-al-integrations.md` | Shopify Connector, HttpClient na SaaS, SecretText/Isolated Storage, Business Events / Power Automate, vlastní API page pro zápis, Dataverse/CDS sync (5.y2, sekce 11) |
-| `bc-al-workflow.md` | lokalizace/XLIFF, dokumentace vč. uživatelské příručky, verifikace (sekce 6, 8, 9, 12) |
+| `bc-al-workflow.md` | dokumentace vč. uživatelské příručky, co číst před editem, verifikace a analyzery (sekce 8, 9, 12) |
+| `bc-al-xliff.md` | lokalizace / XLIFF — NAB AL Tools, trans-unit ID hash (FNV-1a), `%n` v přeložených labelech, duplicitní trans-unity po merge (sekce 6, vyčleněno 2026-10-22) |
 | `bc-al-tools.md` | nástroje (alc, al-mcp, BC source), nová appka, git/PR, Azure DevOps (sekce 7.1–7.10) |
 | `bc-al-build.md` | NuGet dependencies, test symboly, kolize ID, major bump, Essence CI build & deploy gotchas, lokální testovací kontejner, ruční nasazení PTE do sandboxu, Dev publish závislostí do sdíleného kontejneru a do SaaS sandboxu přes altool (sekce 7.11–7.26) |
 | `bc-al-autotests.md` | automatizované testy — povinnost, kanonický vzor, libraries, handlery, TestPage, `asserterror`, obecné gotchas |
@@ -55,6 +56,7 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
   5.x17–5.x20 (projekty) → `bc-al-projects.md` (2026-10-05, `bc-al-objects.md` přesáhl 1000 řádků).
   5.x, 5.x2, 5.x2b, 5.x15 (Item Tracking) → `bc-al-tracking.md` (2026-10-07, `bc-al-objects.md` by znovu přesáhl 1000 řádků).
   5.x5, 5.x9, 5.x21 (hromadné objednávky, sešit požadavků, přepočet ceny) → `bc-al-blanket.md` (2026-10-19, `bc-al-objects.md` přesáhl 1000 řádků).
+  Sekce 6 (lokalizace, XLIFF) → `bc-al-xliff.md` (2026-10-22, `bc-al-workflow.md` přesáhl 1000 řádků).
   Test appka jako projekt (app.json, ruleset, symboly, kompilace, běh, CI) → `bc-al-autotests-infra.md` a doménové
   gotchas (projekty, doklady, Job Queue, výroba) → `bc-al-autotests-domains.md` (2026-10-09, `bc-al-autotests.md`
   znovu přesáhl 1000 řádků / 77 KB).
@@ -318,7 +320,8 @@ stabilních pravidel. **Notes soubory zůstávají zdrojem pravdy.**
 | `bc-al-tracking` | `bc-al-tracking.md` | Item Tracking Lines (6510) a eventy, šarže = projekt, Reservation Entry, Prospect vs Surplus |
 | `bc-al-projects` | `bc-al-projects.md` | Job Planning Line, deník projektů, návazné doklady projektu, mazání plánovacích řádků |
 | `bc-al-integrations` | `bc-al-integrations.md` | Shopify Connector, HttpClient/SecretText na SaaS, Power Automate, Dataverse sync |
-| `bc-al-workflow` | `bc-al-workflow.md` | XLIFF, dokumentace + uživatelská příručka, analyzery, ruleset |
+| `bc-al-workflow` | `bc-al-workflow.md` | dokumentace + uživatelská příručka, analyzery, ruleset |
+| `bc-al-xliff` | `bc-al-xliff.md` | XLIFF / NAB AL Tools, trans-unit ID, `%n` v přeložených labelech, AL0479 po merge |
 | `bc-al-tools` | `bc-al-tools.md` | alc, symboly, nová appka, git/PR, ADO |
 | `bc-al-build` | `bc-al-build.md` | NuGet, test symboly, kolize ID, major bump, CI build/deploy |
 | `bc-al-autotests` | `bc-al-autotests.md` | testy + netriviální funkčnost |

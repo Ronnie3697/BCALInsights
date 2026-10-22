@@ -1,25 +1,24 @@
 ---
 name: bc-al-workflow
 description: >-
-  BC/AL lokalizace, dokumentace a verifikace: NAB AL Tools XLIFF ([NAB: …] prefixy, jeden target), trans-unit
-  ID hash (FNV-1a), víc extensionů na objekt (LC0091), label s %n = update <source> i <target>, duplicitní
-  trans-unity po merge (AL0479); dokumentace PBI/Task → docs/*.md, uživatelská příručka / prezentace featury v
+  BC/AL dokumentace a verifikace: dokumentace PBI/Task → docs/*.md, uživatelská příručka / prezentace featury v
   HTML se screenshoty (base64, focení BC přes Claude in Chrome, timeout screenshotu, inline chyba pole); co
   číst před editem (hlavička, app.json, .alpackages = binární ZIP → al-mcp, permission set); Word layouty
   (repeater w15:dataBinding, štítky skriptem, barcode fonty, GS1-128 / FNC1), RDLC tablix sloupce skriptem
   (TablixCell = sloupec, ColSpan, Hidden); build a analyzery AA/CA/PTE/LC
   (verifikace všech dotčených appek, failOn warning), XML doc komentáře (LC0072, & = AL0640), runtime errory
-  bez spekulačních smyček, Essence ruleset per projekt (*Ruleset*.json vedle app.json). Načti u XLIFF,
-  dokumentace ticketu, příručky, před netriviálním editem, u warningů a analyzerů.
+  bez spekulačních smyček, Essence ruleset per projekt (*Ruleset*.json vedle app.json). Načti u
+  dokumentace ticketu, příručky, před netriviálním editem, u warningů a analyzerů. (XLIFF / překlady →
+  bc-al-xliff.)
 user-invocable: true
 ---
 
-# BC/AL — Lokalizace, dokumentace & verifikace (sekce 6, 8, 9, 12)
+# BC/AL — Dokumentace & verifikace (sekce 8, 9, 12)
 
 **Zdroj pravdy:** `bc-al-workflow.md` ve stejném adresáři jako tenhle `SKILL.md`
 (adresář skillu = „Base directory" hlášený při načtení; cestu skládej odtud, ne přes `..`). Tenhle skill je jen wrapper —
-pravidla níže jsou výcuc; detail, hash algoritmus, struktura dokumentace a
-příklady jsou v souboru.
+pravidla níže jsou výcuc; detail, struktura dokumentace a
+příklady jsou v souboru. Sekce 6 (XLIFF) je od 2026-10-22 ve skillu `bc-al-xliff`.
 
 ## Co udělat
 
@@ -28,26 +27,13 @@ příklady jsou v souboru.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
-3. Sousední témata: kompilace z CLI, al-mcp, GitHub source, git/PR → `bc-al-tools`
+3. Sousední témata: překlady / XLIFF (NAB AL Tools, trans-unit ID, AL0479) → `bc-al-xliff` (6.1–6.4);
+  kompilace z CLI, al-mcp, GitHub source, git/PR → `bc-al-tools`
   (7.1–7.3, 7.7); NuGet dependencies, CI build faily → `bc-al-build` (7.11+); moderní patterny a Cloud target → `bc-al-style` (10);
   CZ↔EN terminologie → `bc-al-objects` (5.z4).
 
 ## TL;DR — nejtvrdší pravidla (čísla = sekce v souboru)
 
-- **6.1** Po `Refresh XLIFF`: **jeden `<target>`** per trans-unit, smazat celý
-  `[NAB: …]` prefix, note `Xliff Generator` **nikdy nemazat**. Hromadně →
-  Python skript source → překlad, pak **zkompiluj**. Drž BC CZ konvence
-  (Zboží, Přihrádka, Šarže, Sériové číslo).
-- **6.2** Trans-unit ID = FNV-1a 32-bit přes UTF-16LE jména + 2147483647;
-  rename pole/objektu ID mění, změna textu ne. **2.+ extension na stejný
-  target objekt** má disambiguované ID → ber z `Translations/*.g.xlf`,
-  nepřepočítávej (LC0091 tam dělá false positive; ID v `.cs-CZ.xlf` nesahat).
-- **6.3** Změna zdrojového textu labelu (typicky nové `%n`) → uprav
-  `<source>` **i** `<target>` v každém locale XLF, jinak CZ klient ukazuje
-  starou hlášku.
-- **6.4** Po každém merge, který sáhl na `.xlf`: `grep -o 'trans-unit
-  id="[^"]*"' <soubor> | sort | uniq -d` + kompilace; AL0479 je warning →
-  Essence CI (`failOn warning`) spadne.
 - **8** Dokumentace ticketu: `docs/<PBI-ID> - <kód> - <popis>.md` v rootu repa
   (žádná podsložka), pořadí: meta → upravené appky → Description → AC → odkazy
   → příklad využití → technická dokumentace (jen když vznikly objekty/pole).
