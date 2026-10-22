@@ -695,3 +695,20 @@ System Application 28.5):
   tabulek (`Sales Header`/`CRM Salesorder`, `Sales Line`/`CRM Salesorderdetail`), testy s `RegisterTableConnection('@@test@@')`
   + `Integration Table Mapping.CreateRecord` nad proxy tabulkami bez Dataverse. (cust-soitron-bc CDS.W1
   `CDS Management CWSOI.SetSalesOrderMappingToPreferBCOnUpdateConflict`, 2RING DEV, 2026-10-22.)
+- **Víc konfiguračních šablon na jednom mapování (sloupec *Table Config Templates* na Integration Table Mappings) =
+  tabulka `Table Config Template` (5325; pro Dataverse stranu `Int. Table Config Template` 5326), ne pole
+  `Table Config Template Code` mapování.** Engine (`Integration Rec. Synch. Invoke.FindTableConfigTemplate`, w1-28) čte
+  záznamy mapování (`Parent Name`, jinak `Name`) podle `Priority` vzestupně, uložený *Integration Table Filter* aplikuje
+  `SetView` na RecordRef integrační tabulky + `SetRange` na UID pole (`AccountId`) a první neprázdný výsledek dá kód;
+  prázdný filtr vyhrává hned, bez shody se šablona nepoužije (žádný fallback na pole mapování). Chybějící `Config.
+  Template Header` = `SynchAction::Fail` daného záznamu; pole `Table Config Template Code` šablony **nemá OnValidate**,
+  takže přímé přiřazení existenci hlavičky nekontroluje. `Integration Table Mapping.OnDelete` šablony mapování maže
+  (pokud není ruční `Man. Integration Table Mapping` téhož jména) → při „Use Default Synchronization Setup“
+  (`CreateRecord` = Get → Delete) zmizí a musí se v subscriberu `OnAfterReset…Mapping` založit znovu: `DeleteAll` podle
+  jména mapování + `Init`, `Table ID` / `Integration Table ID` z mapování, `Priority` 1..n, filtr přes
+  `SetIntegrationTableFilter(GetTableFilterFromView(...))` (stejný `FilterPageBuilder` round-trip jako u filtru
+  mapování; `GetView` z typovaného `CRMAccount.SetFilter`), `Insert(false)` (`No.` AutoIncrement). Priority nastav
+  explicitně — všechny 0 = nedefinované pořadí. Test bez Dataverse: temp `CRM Account` s `AccountId` + stejná smyčka
+  SetCurrentKey(Priority) / SetView / SetRange / IsEmpty nad šablonami. Vzor: cust-soitron-bc CDS.W1
+  `CDS Management CWSOI.ResetCustomerConfigTemplates` (CUST_DOM SK / CUST_EU / CUST_EXP podle `ebs_countrycode`;
+  task 67287, 2026-10-22).
