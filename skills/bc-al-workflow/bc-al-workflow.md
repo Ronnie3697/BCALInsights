@@ -82,6 +82,12 @@ Nesnaž se to opravit reencodingem výstupu: extrahované dvojice **zapiš do so
 Platí pro jakýkoli český text tažený z repa přes Bash (Labely, `Description`, MD dokumentace).
 Hodí se při psaní uživatelské příručky, kde se terminologie bere z XLIFF (8.1). (2026-09-21, prod-em-kiosk-bc)
 
+**⚠️ `.cs-CZ.xlf` se může změnit pod rukama.** Uživatel má vedle Claude Code otevřený VS Code s NAB AL Tools: když mezitím
+upraví nebo smaže Label v `.al`, NAB Refresh přepíše `.cs-CZ.xlf` (osiřelý trans-unit zmizí, prefixy se přegenerují). Skript,
+který hledá blok načtený před pár minutami, pak hlásí „0 matches" i při správném textu a konce řádků s tím nemají nic společného.
+Před skriptovaným editem XLIFF zkontroluj `ls -la` (mtime) a `grep` na dané `NamedType` ID — a když je unit pryč, oprava už
+není potřeba. (2026-10-22, cust-sonnentor-bc 65436, `WeightVolumeWithBagsLbl`.)
+
 ### 6.2 XLIFF trans-unit ID — hash algoritmus (ruční doplnění unitů bez rebuildu)
 
 ID v `trans-unit` (`Table 66836948 - Field 922357686 - Property 2879900210`)
