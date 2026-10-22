@@ -366,6 +366,15 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
 
 ### 5.x26 Nákupní dobropis / vratka dodavateli u Skip projektu s navázaným rozpočtovým řádkem — modul vypnul standard i pro vratky, kontrola spotřeby je vlastní
 
+- ⚠️ **Druhá standardní kontrola nákupního dobropisu s projektem: `Job Post-Line.CheckItemQuantityPurchCredit`** — volá ji `Purch. Post
+  Invoice.CheckCreditLine` z `Purch.-Post.PostPurchLine` u credit doc typů s `Job No.` (ne Purchase Line, ne Purch.-Post přímo; 2026-10-21
+  jsem mylně napsal, že se nevolá odnikud). Vyžaduje `Job.GetQuantityAvailable(Item, Location, Variant, Usage, Both)` ≥ vrácené množství
+  (netto Usage položky projektu na zboží) — *„You must post more usage or credit the sale of Item … before you can post purchase credit
+  memo"*. U Skip projektu s navázaným řádkem spotřeba při příjmu není (zboží je skladem) → kontrola padá, pokud projekt nemá netto usage
+  z dodávek alespoň ve výši vratky (CI build 29039: 3 testy; v GUI prošlo jen náhodou — netto usage 75 ≥ vratka 25). Fix: IMEBS
+  `Job Post-Line.OnBeforeCheckItemQuantityPurchCredit(var PurchaseHeader, var PurchaseLine, var IsHandled)` → `IsHandled` pro Skip projekt
+  s navázaným rozpočtovým řádkem (vlastní kontrola `CheckReturnedQtyOnInventoryForProject` zůstává). `Purch. Post Invoice` má ještě vlastní
+  `PurchPostInvoiceEvents.RunOnBeforeCheckItemQuantityPurchCredit`, ale event na `Job Post-Line` stačí.
 - **Standard u vratky s projektem** (`Purch.-Post.PostItemJnlLine`, w1-28: `PostJobConsumptionBeforePurch := ItemJnlLine.IsPurchaseReturn()`
   → `PostItemJnlLineJobConsumption` běží **před** zaúčtováním položky vrácení, `PurchItemLedgEntryNo = 0`) chce odúčtovat spotřebu z příjmu
   (kladná korekce s projektem + záporná Usage přes `PrepareJobLine`) a bez ní spadne na `Appl.-from Item Entry` — tj. zboží, které projekt
