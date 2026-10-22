@@ -616,6 +616,13 @@ parametru pro textovou formuli.)
   tabulky **vyparsuj z DOM** (`[...doc.querySelectorAll('table')]` → řádky) a vykresli ho v dokumentaci sám.
   `javascript_tool` vrací `[BLOCKED: Cookie/query string data]`, když výsledek obsahuje celé `innerHTML`
   s URL a tokeny — vracej jen extrahovaná data (texty buněk), ne HTML.
+- **Screenshot ve všech záložkách „timed out after 30000ms … renderer may be frozen“ a `screenX = -21333` = okno Chrome je
+  minimalizované** (uživatel ho schoval / šel spát; skupina záložek běží v jeho okně, nová skupina taky). Minimalizované okno
+  nekreslí; `resize_window` ani `window.focus()` ho neobnoví, `window.open` bez gesta se zablokuje (s gestem přes CDP klik vznikne
+  popup mimo skupinu záložek, nástroje na něj nedosáhnou). Obnov okno přes PowerShell Win32 `EnumWindows` + `ShowWindow(hwnd, 3)` +
+  `SetForegroundWindow` podle titulku okna (= titulek **aktivní** záložky, např. „New Tab - Google Chrome“); `IsIconic` ukáže
+  minimalizaci. Celou plochu ověříš `System.Drawing` `CopyFromScreen`. **Playwright MCP** má vlastní prohlížeč bez přihlášení
+  (BC skončí na přihlášení Microsoft) a zakládá `.playwright-mcp/` v pracovní složce – po sobě smazat. (2026-10-22, BC-DEV.)
 - **Kontrola hotového HTML v Claude in Chrome: `file://` URL nástroj odmítne** (*Can't interact with browser-internal or unparseable URLs*) –
   spusť `python -m http.server <port> --bind 127.0.0.1` ve složce souboru (na pozadí, pak `TaskStop`) a otevři `http://127.0.0.1:<port>/…`.
   Screenshot do dokumentace: `computer` akce `zoom` s `region` + `save_to_disk: true` uloží výřez v plném rozlišení (PNG) – lepší než

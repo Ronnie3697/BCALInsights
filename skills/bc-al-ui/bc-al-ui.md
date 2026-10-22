@@ -760,3 +760,28 @@ build 28.0.37.67238 na Alumistr BC-DEV spadl, 67239 s `Commit()` funguje.)
 
 (2026-10-22, prod-ew-mobileBase-bc 66453 — množství v MJ naskenovaného odkazu na detailech vyskladnění, pohybů, příjemek a inventury;
 BC-DEV 28.5, phone klient.)
+
+### 4.27 Phone klient: klepnutí na řádek = náhled, karta z `CardPageId` v režimu zobrazení, chyba pole jen křížek, `InstructionalText`
+
+Ověřeno v BC-DEV 28.5, phone klient 600 × 900 (prod-ew-mobileBase-bc, revize MobileOverallCheck, 2026-10-23):
+
+- **Klepnutí na dlaždici listu bez `CardPageId` otevře náhled záznamu** – generický seznam polí repeateru, bez akcí, prázdné
+  drill-down hodnoty jako podtržené „_“. `OnDrillDown` pole se spustí až klepnutím na hodnotu v náhledu → detail na dvě klepnutí.
+  S `CardPageId` otevře klepnutí rovnou kartu.
+- **Karta z `CardPageId` je v režimu zobrazení** (list je v režimu zobrazení): pole `Rec` jsou šedá, dokud uživatel neťukne na tužku
+  (a tužka v phone klientu otevře novou instanci karty). Stejná karta otevřená z kódu (`Page.Run` / proměnná stránky + `Run`) je
+  editovatelná. **Pole nad proměnnou stránky zůstanou editovatelná i v režimu zobrazení** → množství na mobilním detailu važ na
+  proměnnou a v `OnValidate` udělej `Rec.Validate(...)` + `Rec.Modify(true)` (ne `CurrPage.SaveRecord`).
+- **`Error` v `OnValidate` pole = inline chyba pole**: na telefonu jen červený křížek u pole a banner „Na stránce je chyba. Opravte
+  chybu nebo zkuste zrušit změnu.“, **text chyby až po klepnutí na křížek**; hodnota zůstane v poli. Když pak kód stránku zavře
+  (`CurrPage.Close`), klient se zeptá „Na stránce se vyskytly neuložené změny. Chcete zrušit tyto změny?“. `Error` z triggeru
+  control add-inu (sken čtečky) se ukáže jako normální dialog. Otevřená bublina s chybou (klepnutí na křížek) stránku překryje jako
+  dialog (`aria-hidden`).
+- **`InstructionalText` funguje i na telefonu** – placeholder v prázdném poli (např. „Naskenujte nebo zadejte kód“ u ručního zadání).
+- **Pořadí slotů dlaždice bez fieldgroup (4.22, režim 3)** v praxi: 1. control drobně nahoře, 2. nadpis (odkaz), 3. vpravo (číslo),
+  4. pod nadpisem vlevo, 5. pod číslem vpravo; prázdné hodnoty se slévají. Množství + MJ dávej na 3 + 4/5, ne variantu na 2
+  (prázdná varianta = prázdný nadpis). Ověř v 600 × 900.
+- **List otevřený přes `Page.Run(Page, Rec)` se `SetRange` filtry a bez záznamů:** v triggerech může `Rec` nést hodnoty filtrů
+  z otevření (šablona, list deníku), ne ale filtr nastavený až v `OnOpenPage` (lokace). `NewLine := Rec` pak dá řádek bez lokace →
+  „Pole Kód přihrádky … nelze nalézt ve svázané tabulce“. Prázdnost testuj `Rec."Line No." = 0` / `IsEmpty`, ne filtrovaným polem;
+  názvy si vezmi z filtrů (`Rec.GetFilter` + `Rec.GetRangeMin`) v `OnOpenPage`.

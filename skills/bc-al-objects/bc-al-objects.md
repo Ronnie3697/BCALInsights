@@ -918,6 +918,10 @@ Ověřeno ve zdrojích w1-28 (`WarehouseActivityLine.Table.al`, `WhseActRegister
   `Whse.-Activity-Register.Code` jen přidá `Activity Type` / `No.` / `Qty. to Handle (Base) <> 0` → zapíše se jen pár a
   bilance Take = Place se kontroluje jen na něm. Potvrzovací dialog přeskočí manuálně bindovaný subscriber na
   `OnBeforeConfirmRegister(var Line; var Result; var IsHandled)` (`Result := true; IsHandled := true`).
+- **Detail řádku otevřený s `SetRecFilter` na řádku Place zapíše jen Place** – `Yes/No` vezme filtry předaného záznamu (jen PK
+  Place) a spadne na bilanci *„Celkové základní množství k výběru 0 musí být rovno celkovému základnímu množství k vložení 6.“*
+  Detail, který registruje z `Rec`, otevírej s filtry dokladu (`Activity Type`, `No.`, případně zboží) a pár drž přes `Qty. to
+  Handle` (ostatní řádky 0), nebo předej filtr `"Line No." = Take|Place`. (2026-10-23, prod-ew-mobileBase-bc MobileOverallCheck.)
 - **Po částečné registraci standard sám vyplní `Qty. to Handle` na všech zbylých řádcích** (`AutofillQtyToHandle`), pokud
   hlavička nemá `Do Not Fill Qty. to Handle`; plně zapsané řádky a prázdnou hlavičku smaže (`Header.Get` = false → doklad hotový).
 - **Párování Take ↔ Place nemá v tabulce vazbu.** Standard (Create Pick / Create Inventory Pick/Movement) zakládá Take a hned za
@@ -952,3 +956,16 @@ Ověřeno ve zdrojích w1-28 (`WhseJnlRegisterLine`, `WMSManagement`, `Warehouse
 - Přepočet: `Unit of Measure Management.CalcBaseQty(ItemNo, Variant, UoM, Qty, QtyPer, RoundingPrecision)` (parametr se jmenuje
   `QtyBase`, ale je to množství v MJ — počítá `QtyBase * QtyPerUOM`), `CalcQtyFromBase(…)` (zaokrouhlí na 0,00001),
   `GetQtyPerUnitOfMeasure(Item, UoM)` vrací 1 pro základní i prázdnou MJ. Mezi dvěma MJ převáděj přes základní.
+
+### 5.x28 Nový řádek deníku zboží z kódu bez řádku k zkopírování (prázdný list) — `SetUpNewLine` a lokace až před zbožím
+
+Ověřeno v BC-DEV 28.5 (prod-ew-mobileBase-bc, první řádek deníku fyzické inventury ze čtečky, 2026-10-23):
+
+- Prázdný list nemá řádek, ze kterého by šly zkopírovat datum a číslo dokladu → `Init`, `"Journal Template Name"` /
+  `"Journal Batch Name"` a `SetUpNewLine(PrázdnýPoslední)`: vezme `WorkDate`, `PeekNextNo` z číselné řady listu, zdrojový kód
+  a kód důvodu (neexistující kombinace šablona / list = *„List deníku zboží Neexistuje …“*).
+- **`Validate("Location Code")` na řádku deníku zboží potřebuje číslo zboží** (*„Pole Číslo zboží musí mít hodnotu … Číslo
+  řádku=0“*) → lokaci jen přiřaď (jako u zkopírovaného řádku), pak `Validate("Item No.")` (výchozí přihrádka, dimenze včetně
+  lokace) a nakonec `Validate("Bin Code")` (relace přihrádky filtruje podle lokace řádku).
+- Řádek fyzické inventury založený mimo *Vypočítat zásoby* má `Qty. (Calculated)` 0 → když zboží v přihrádce už je, zaúčtuje se
+  celé napočítané množství jako kladná úprava. Rozhodni, jestli `Qty. (Calculated)` dopočítat z obsahu přihrádky.

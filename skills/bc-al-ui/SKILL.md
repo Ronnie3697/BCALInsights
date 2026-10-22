@@ -1,16 +1,15 @@
 ---
 name: bc-al-ui
 description: >-
-  BC/AL UI patterny stránek (sekce 4): RunModal vs Run, výběr na RoleCenter CardPart, OnDrillDown vs OnLookup,
-  ConfirmManagement default, factbox Rec.Reset maže SubPageLink, CaptionClass cache i '3,' popisek, expression control bez
-  přejmenování (AL0270), modify() cizí pageextension, smyčka aktualizace v OnAfterGet*Record, Visible =
-  Rec.pole v pageextension padá, MultiLine 3 řádky / RichContent / control add-in, page procedura se jménem
-  metody Rec (AL0604), List v LookupMode jen pro čtení; filtr partu z OnOpenPage zmizí; DelayedInsert =
-  prázdné SystemId; CurrPage.Update(false) v OnValidate zahodí hodnotu; ListPart přes RunModal pod TestPage;
-  stránka bez SourceTable (protected var / getter + výraz v SourceExpr); dlaždice na phone klientu (Brick /
-  DropDown / 5 controlů); událost add-inu ze schované stránky phone klientu se odloží a přehraje
-  (aria-hidden/inert); kostka „moje doklady" (User ID Filter), drill-down a řazení kostek. Načti u page,
-  pageextension, factboxů, partů, kostek, výběrů, captionů a viditelnosti.
+  BC/AL UI patterny stránek (sekce 4): RunModal vs Run, výběr na RoleCenter, OnDrillDown vs OnLookup, ConfirmManagement
+  default, factbox Rec.Reset maže SubPageLink, CaptionClass cache i '3,' popisek, expression control (AL0270), modify()
+  cizí pageextension, smyčka v OnAfterGet*Record, Visible = Rec.pole v pageextension, MultiLine / RichContent / control
+  add-in, procedura se jménem metody Rec (AL0604), LookupMode jen pro čtení, filtr partu z OnOpenPage, DelayedInsert =
+  prázdné SystemId, CurrPage.Update(false) v OnValidate, ListPart přes RunModal pod TestPage, stránka bez SourceTable;
+  phone klient: dlaždice (Brick / DropDown / 5 controlů, sloty), událost add-inu ze schované stránky (aria-hidden/inert),
+  klepnutí na řádek = náhled, CardPageId v režimu zobrazení, chyba OnValidate jen křížek, InstructionalText, Rec
+  prázdného listu z filtrů; kostky (User ID Filter, drill-down, řazení). Načti u page, pageextension, factboxů, partů,
+  kostek, výběrů, captionů a viditelnosti.
 user-invocable: true
 ---
 
