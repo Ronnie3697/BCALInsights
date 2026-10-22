@@ -439,6 +439,17 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
     parametr `PostingDate`, 0D = datum hlavičky prodejního dokladu). Test `UndoShipment_LinkedPurchaseShipped_…`: `SetRecFilter` +
     `SetHideDialog(true)` + `Run` (bez handleru), po undo `SalesHeader.Get` a znovu `PostSalesDocument(…, true, false)` → usage znovu na položku
     příjmu.
+  - **Prodejní vratková objednávka (Return Order) s *Získat účtované řádky pro stornování* (2026-10-22):** stejný copy hook dá řádku
+    kontrakt (+ EPEBS číslo řádku), ale **Job No. / Job Task No. nechá prázdné jako u objednávky** — `TestSalesLineJob` i `PostSalesLine`
+    vyžadují prázdné Job No. u všech typů kromě Invoice / Credit Memo a `Whse.-Sales Release` zakládá skladové požadavky jen pro řádky bez
+    Job No.; účtování Job No. doplní (`OnPostSalesLineOnBeforeUpdateSalesLineBeforePost` rozšířen o Return Order) a kontroly skipne přes
+    `IsJobNoFromContractPlanningLine`. Sale storno: `PostJobContractLine` u Return Order dělá `TestField("Job Contract Entry No.", 0)` →
+    IMEBS `OnBeforePostJobContractLine` (`IsHandled`) sám volá `PrepareJobLine` při `Invoice` s kopií řádku s číslem zaúčtovaného dobropisu
+    (jako u Order s číslem faktury); `Job Transfer Line` nemá pro Return Order větev množství → IMEBS `OnFromPlanningSalesLineToJnlLineOnBeforeInitAmounts`
+    `-Qty. to Invoice`; JPLI Posted Credit Memo −Qty (stejně jako Credit Memo); `JobLineChecked` i pro Return Order + Invoice. Storno spotřeby
+    z `OnAfterReturnRcptLineInsert` (vratková objednávka příjemku vratky dělá vždy), `Document No.` = číslo vratkové objednávky. Skladové filtry
+    (`Get Source Documents` Source Document *Sales Return Order*, `Whse.-Sales Release`) rozšířeny o Return Order, `GetJPLQuantity` bere otevřené
+    řádky vratkové objednávky jako uvolněné množství. Test `ReturnOrderFromPostedInvoice_…` (receive → usage −; invoice → Sale +, JPLI).
   - ⚠️ **Řádek faktury / dobropisu se smluvní položkou NEúčtuje položky zboží:** `Sales-Post.PostItemJnlLine` má `ShouldPostItemJnlLine :=
     not JobContractLine` (`JobContractLine` nastaví `PostJobContractLine` u Invoice / Credit Memo; u Order ho IMEBS `OnBeforePostJobContractLine`
     `IsHandled` nechá false). Projektová faktura z plánovacích řádků zboží nehýbe, ale dobropis Skip projektu zboží fyzicky vrací → bez položek
