@@ -2,7 +2,7 @@
 name: bc-al-ui
 description: >-
   BC/AL UI patterny stránek (sekce 4): RunModal vs Run, výběr na RoleCenter CardPart, OnDrillDown vs OnLookup,
-  ConfirmManagement default, factbox Rec.Reset maže SubPageLink, CaptionClass cache, expression control bez
+  ConfirmManagement default, factbox Rec.Reset maže SubPageLink, CaptionClass cache i '3,' popisek, expression control bez
   přejmenování (AL0270), modify() cizí pageextension, smyčka aktualizace v OnAfterGet*Record, Visible =
   Rec.pole v pageextension padá, MultiLine 3 řádky / RichContent / control add-in, page procedura se jménem
   metody Rec (AL0604), List v LookupMode jen pro čtení; filtr partu z OnOpenPage zmizí; DelayedInsert =

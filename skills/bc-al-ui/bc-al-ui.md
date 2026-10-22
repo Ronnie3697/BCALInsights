@@ -745,3 +745,18 @@ transakce a modální stránku v ní platforma neotevře (stejný mechanismus ja
 
 (2026-10-21, prod-ess-configurator-bc PBI 67238 — editor *Filtr dle parametrů* 63198: nový řádek → „…“ u hodnoty → textový vzorec;
 build 28.0.37.67238 na Alumistr BC-DEV spadl, 67239 s `Commit()` funguje.)
+
+---
+
+### 4.26 Phone klient: popisek pole podle hodnoty přes `CaptionClass = '3,' + výraz`; `Visible` pole nastav už v `OnOpenPage`
+
+- **Dynamický popisek:** pole nad proměnnou stránky s `CaptionClass = '3,' + ScanUoMMgt.GetScannedQtyCaption(ScannedUoM)` (oblast 3 =
+  text bez resolveru, label `Qty. in %1` → „Množství v %1") phone klient vykreslí jako „Množství v KS". `Caption` nech jako fallback
+  (a kvůli XLIFF). Čtečka 600 px má v polovičním sloupci gridu na popisek jen ~14 znaků: dvojice „Množství v naskenované MJ" +
+  „Naskenovaná MJ" vedle sebe se ořízla na „Množství v nas…" / „Naskenovaná…". Jedno pole s MJ v popisku je čitelné a nic nezabírá.
+- **`Visible = Proměnná` na poli** (ne na gridu/skupině) se vyhodnotí po `OnOpenPage`. Proměnná nastavená až v `OnAfterGetCurrRecord`
+  nechala pole skryté (dokud byla tatáž proměnná na `grid`, ukázal se). Detail otevřený přes `SetTableView` + `SetRecord` + `Run`:
+  v `OnOpenPage` udělej `if Rec.Find('=') then <spočítej proměnné>`.
+
+(2026-10-22, prod-ew-mobileBase-bc 66453 — množství v MJ naskenovaného odkazu na detailech vyskladnění, pohybů, příjemek a inventury;
+BC-DEV 28.5, phone klient.)

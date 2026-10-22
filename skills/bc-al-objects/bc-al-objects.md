@@ -925,3 +925,30 @@ Ověřeno ve zdrojích w1-28 (`WarehouseActivityLine.Table.al`, `WhseActRegister
   Take" pak ukáže na odštěpenou část s menším množstvím. Robustnější filtr: zboží, varianta, tracking, MJ,
   `"Whse. Document Line No."` / `"Source Line No."` a kontrola 1:1 (`Qty. Outstanding (Base)` Take = Place), jinak srozumitelná
   chyba „zpracuj v BC".
+
+### 5.x27 Jiná MJ než základní ve skladu bez řízeného zaskladnění — registrovat v základní MJ, množství přepočítat (MJ řádku neměnit)
+
+Ověřeno ve zdrojích w1-28 (`WhseJnlRegisterLine`, `WMSManagement`, `WarehouseActivityLine`, `WarehouseReceiptLine`, `ItemJournalLine`,
+`UnitofMeasureManagement`) a v BC-DEV (prod-ew-mobileBase-bc 66453 — MJ z naskenovaného odkazu na zboží, 2026-10-22):
+
+- **Lokace bez *Directed Put-away and Pick* drží Warehouse Entry i Bin Content vždy v základní MJ** (`InitWhseEntry`: `Quantity :=
+  "Qty. (Absolute, Base)" * Sign`, `GetBaseUOM`, qty per 1; `WMSMgt.InitWhseJnlLine` z deníku zboží a `Whse.-Activity-Register` dělají
+  totéž). **Past:** `InitWhseEntry` hledá cílový obsah `ToBinContent.Get(…, WhseJnlLine."Unit of Measure Code")` = v MJ **řádku** → vlastní
+  `Warehouse Journal Line` (Movement) v KS obsah v M nenajde, zavolá `InsertToBinContent` a v přihrádce, kde už zboží leží, spadne na
+  duplicitním klíči Bin Content. Kód, který registruje skladový deník přímo (`Codeunit.Run(Codeunit::"Whse. Jnl.-Register Line", …)` —
+  přesun / korekce na čtečce), musí na non-directed lokaci dát `Unit of Measure Code` = základní, `Qty. per Unit of Measure` = 1,
+  `Quantity` = `Qty. (Base)`. Max. množství z přihrádky ber z `Quantity (Base)` (filtr na základní MJ) a přepočti do MJ uživatele —
+  filtr Bin Content na KS nenajde nic.
+- **MJ řádků dokladů neměň, přepočti zadané množství do MJ řádku.** `Warehouse Activity Line."Unit of Measure Code"` (`Editable =
+  false`) z kódu přepočte qty per, ale **čísla nepřevede** (10 M → 10 KS); report 7314 *Whse. Change Unit of Measure* je jen na
+  subformu Warehouse Pick/Movement a `CheckUOM` u Take chce Bin Content v nové MJ → na non-directed lokaci spadne.
+  `"Qty. to Handle (Base)".OnValidate` nastaví `UseBaseQty := true`, který se na proměnné **neresetuje** (další `Validate("Qty. to
+  Handle")` na téže proměnné už base nepřepočítá) → validuj `"Qty. to Handle"` s množstvím v MJ řádku. `Warehouse Receipt Line` MJ
+  měnit nejde (bez OnValidate) a `"Qty. to Receive (Base)"` má `TestField("Qty. per Unit of Measure", 1)` → `Validate("Qty. to
+  Receive", …)`. Deník fyzické inventury: řádky z *Calculate Inventory* jsou v základní MJ a změna MJ končí `TestField("Phys.
+  Inventory", false)` (Validate(Quantity)) → napočítané KS převeď a zapiš do `"Qty. (Phys. Inventory)"`.
+- `Item Reference."Unit of Measure"` je součást PK, `Insert(true)` s prázdnou MJ doplní základní; standardní převzetí MJ z odkazu
+  (`ValidateItemJournalReferenceNo`): `if ItemReference."Unit of Measure" <> '' then Validate("Unit of Measure Code", …)`.
+- Přepočet: `Unit of Measure Management.CalcBaseQty(ItemNo, Variant, UoM, Qty, QtyPer, RoundingPrecision)` (parametr se jmenuje
+  `QtyBase`, ale je to množství v MJ — počítá `QtyBase * QtyPerUOM`), `CalcQtyFromBase(…)` (zaokrouhlí na 0,00001),
+  `GetQtyPerUnitOfMeasure(Item, UoM)` vrací 1 pro základní i prázdnou MJ. Mezi dvěma MJ převáděj přes základní.

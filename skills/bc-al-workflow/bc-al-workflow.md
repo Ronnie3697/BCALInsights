@@ -805,6 +805,16 @@ parametru pro textovou formuli.)
   Spolehlivě: `const a = iframe.contentDocument.activeElement; a.value = '<index>'; a.dispatchEvent(new Event('input',
   {bubbles:true})); a.dispatchEvent(new Event('change',{bubbles:true}))` → `Tab` → klik mimo řádek (uložení),
   hodnoty `<option>` jsou indexy enumu. Výsledek ověř screenshotem listu po zavření editace. (2026-10-16, BC-DEV Sonnentor.)
+- **Testovací data do sandboxu radši dočasnou appkou než klikáním** (se svolením k zápisu, viz konec 12.3). Malá appka mimo repo
+  (vlastní GUID, rozsah např. 99970–99979, bez závislostí) se stránkou s akcemi „1 kmenová data / 2 zásoby / 3 doklady", nahraná
+  `altool publishapp` (7.26 v `bc-al-build.md`): zboží + MJ + odkazy, kód sledování, deník zboží se SN/šaržemi (`Create Reserv.
+  Entry.CreateReservEntryFor` + `CreateEntry`, `Codeunit.Run(Codeunit::"Item Jnl.-Post Batch", …)` na napozicovaném řádku vlastního
+  listu), prodej → `Release Sales Document.PerformManualRelease` → `Get Source Doc. Outbound.CreateFromSalesOrderHideDialog` → report
+  `Whse.-Shipment - Create Pick` (`SetWhseShipmentLine`, `SetHideValidationDialog(true)`, `UseRequestPage(false)`), nákup →
+  `Get Source Doc. Inbound.CreateFromPurchOrderHideDialog`, skladový pohyb = `Warehouse Activity Header` + řádky Take/Place ručně
+  (`Validate` Item No. / Unit of Measure Code / Bin Code / Quantity) — bez číselné řady interních pohybů. Kód skládá doklady
+  deterministicky, za ~15 min místo hodiny klikání. Akci klikni **jednou**: při „zaseknutém" screenshotu jsem ji spustil podruhé
+  a doklady vznikly dvakrát. (2026-10-22, Alumistr BC-DEV, prod-ew-mobileBase-bc 66369/66453.)
 - **Ověření hlášení testera na jiném prostředí** (2026-10-06, Alumistr BC-TEST2 místo BC-TEST, PBI 65916):
   - **Nejdřív porovnej nainstalované appky obou prostředí** (`d365bc-admin` `get_installed_apps` pro každé env, jen čtení).
     BC-TEST2 měl hlavní appku jako *dev* build bez Pricing Matrix (PMALU + EPB), BC-TEST verzi z pipeline s ní. Pořizovací
