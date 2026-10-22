@@ -219,6 +219,22 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
 
 ### 5.x24 Spotřeba projektu z prodejní dodávky (IMEBS `CreateJobLedgerEntryFromSalesLine`): víc příjemek, víc položek zboží na příjemce, tracking
 
+- ⚠️ **`Job Jnl.-Post Line.CreateJobLedgEntry` volané přímo (mimo `Code`/`RunWithCheck`) dá položce `Entry No.` 0 při `Jobs
+  Setup."Use Legacy Posting"`** (w1-28: `if not JobsSetup.UseLegacyPosting() then NextEntryNo := JobLedgEntry.GetNextEntryNo()`;
+  s legacy účtováním plní `NextEntryNo` jen `Code` → `GetNextEntryNo` + `LockTable`). První položka v DB se s číslem 0 vloží, každá další
+  spadne na *„The record in table Project Ledger Entry already exists. … Entry No.='0'"* — v CI (BC 28.0.46665 cz, legacy = true) tak
+  prošel jen první test, který usage účtoval, a **všech 18 dalších** (i v jiné test codeunitě, data zůstávají díky AutoCommit) padlo stejnou
+  hláškou (build 29038, 2026-10-22); na BC-DEV / X-ESSENCE (sekvence) to nikdo neviděl. Fix v IMEBS: manuálně bindovaný subscriber
+  `Job Ledg. Entry No. IMEBS` (65134) na `Job Jnl.-Post Line.OnBeforeJobLedgEntryInsert(var JobLedgerEntry, JobJournalLine)` — když
+  `"Entry No." = 0`, dosadí `FindLast + 1` (`ReadIsolation UpdLock`); bind jen kolem `CreateJobLedgEntry` v `PostConsumption`. Vazba
+  `JobLinkUsage.ApplyUsage` i návratová hodnota berou číslo z téhož `var` recordu. Nový codeunit → doplnit do `Projects OBJ. IMEBS`.
+  Totéž hrozí každému, kdo `CreateJobLedgEntry` volá napřímo (konfigurátor, time sheets…) — v testech to odhalí až DRUHÝ zaúčtovaný usage
+  v jednom běhu codeunity.
+- ⚠️ **JPLI dobropisu z plánovacího řádku (standardní `Job Create-Invoice` se záporným řádkem):** `PostInvoiceContractLine` otevřený záznam
+  `Job Planning Line Invoice` typu Credit Memo sám převede na *Posted Credit Memo* (Document No. = zaúčtovaný dobropis, Line No. řádku) ještě
+  **před** `OnBeforeJobPlanningLineUpdateQtyToInvoice` — vlastní insert téhož typu pak spadne na duplicitní klíč (dřív IMEBS vkládal *Posted
+  Invoice*, klíč se nekryl a chyba se maskovala). Před vlastním insertem `Get` na posted klíč → exit. (Test `CrMemoAmount_PostedCreditMemo_…`,
+  tentýž build.)
 - **`Sales-Post.OnBeforePostJobContractLine` běží z `UpdateSalesLineBeforePost`, tj. PŘED `PostItemTrackingLine` /
   `PostItemLine`** (w1-28 `SalesPost.Codeunit.al`: `PostSalesLine` → `UpdateSalesLineBeforePost` → `PostJobContractLine`
   → … → `PostItemLine` → `InsertShipmentLine`). V tom subscriberu ještě neexistují položky zboží dodávky ani `Item Entry
