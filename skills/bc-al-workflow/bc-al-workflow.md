@@ -719,6 +719,32 @@ repeateru uživatel hlásil zmizení obou tabulek. Rozdíl potvrzen Word SaveAs2
 opraveny dvě vazby, regresní test selhal před opravou a prošel po ní i po buildu.
 Runtime potvrzení opravy v BC v době zápisu ještě chybí.)
 
+### 12.1g RDLC tablix (Excel export): přidání sloupců skriptem místo Report Builderu
+
+Velký RDLC layout (1,3 MB, 58 sloupců × 12 řádků, `ExportSalesQuote.Report.rdl` v cust-jiri-bc) se dá rozšířit o nové
+sloupce PowerShell skriptem nad `System.Xml.XmlDocument` (`PreserveWhitespace = $true`, uložit přes `XmlWriter` s
+`UTF8Encoding($true)` + `NewLineHandling None`, ať zůstane BOM i CRLF). Co o struktuře platí (ověřeno 2026-10-22):
+
+- **Jeden `<TablixColumn>` = jeden `<TablixMember>` v `TablixColumnHierarchy` = jedna `<TablixCell>` v KAŽDÉM
+  `<TablixRow>`.** Buňky překryté `<ColSpan>` předchozí buňky **v řádku zůstávají** jako prázdné `<TablixCell />` —
+  `grep -c '<TablixCell>'` je proto nepočítá a svádí k domněnce, že spanované buňky chybí. Počítej elementy XPathem.
+- Nový sloupec za sloupcem X: `TablixColumn` (šířka) + `TablixMember` (tady patří `<Visibility><Hidden>=Fields!Flag.Value
+  = "False"</Hidden>`, stejně jako u existujících přepínačů request page) + do každého řádku buňka za buňkou X. Když X
+  leží **uvnitř spanu** (hlavička skupiny „Jednotková cena" `ColSpan=4`), zvedni `ColSpan` vlastníka o 1 a vlož prázdnou
+  `<TablixCell />`; jinak klonuj sousední buňku (detail: buňku s podobným stylem, přejmenuj `Textbox Name` +
+  `rd:DefaultName` + `<Value>=Fields!Col.Value`; hlavička: `=Fields!Lbl.Value`; horní řádky firmy: klon s prázdnou
+  hodnotou). Názvy textboxů musí být unikátní v celém RDL (suffix `_R<řádek>`).
+- Skrytí starých sloupců při zapnutém přepínači = `Hidden` s `= "True"` na jejich `TablixMember`; Excel renderer skryté
+  sloupce vynechá úplně.
+- `<DataSets>` doplň o nové `Field` ručně (+ `XFormat` k Decimal sloupcům) — alc to při kompilaci stejně dopíše a
+  přeformátuje (7.1 v `bc-al-tools.md`), takže po kompilaci porovnej a nech verzi z alc.
+- Kontrola po skriptu: počet sloupců = členů hierarchie = buněk v každém řádku (u řádku se spany navíc součet spanů),
+  žádné duplicitní `Textbox Name`, soubor začíná BOM a má stejný počet CR jako LF. Pak zkompilovat.
+- PowerShell pasti: `"Row $r: …"` ve stringu je `$r:` = drive-qualified proměnná → ParserError, piš `${r}`; `[xml]`
+  cast přes `New-Object System.Xml.XmlDocument` + `.Load()` je nutný kvůli `PreserveWhitespace`.
+- Výhoda proti Report Builderu: diff je čitelný, změna je reprodukovatelná na identickém layoutu v sesterském repu
+  (CZ i W1 kopie byly binárně shodné → skript jednou, soubor zkopírovat).
+
 ### 12.2 Když nevíš, co pravidlo znamená — vyhledej
 
 Neopravuj warning naslepo přepsáním kódu. **Najdi popis pravidla:**
