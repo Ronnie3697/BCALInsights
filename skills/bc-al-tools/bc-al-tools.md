@@ -189,6 +189,11 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   čte `newline=''` a hledá vzory s `\n`, na CRLF souboru nic nenajde (assert na `count == 1` spadne) → po načtení
   `s = s.replace('\r\n', '\n')`, při zápisu vrať `\r\n`. Edit tool si s CRLF poradí sám. Skript s apostrofy a `\r`/`\n`
   piš do souboru (Write), ne do Bash heredocu / `python -c`. (2026-10-02, prod-ess-configurator-bc `VariantConfigEngineUnify`)
+- **Převod na CRLF přes `sed 's/\r$//; s/$/\r/'` na souboru bez koncového nového řádku** (`.al` často končí `}`) přidá na konec
+  osamocené `\r`. Git pak soubor nebere jako text (`git ls-files --eol -- f` ukáže `w/-text`) a `git diff --stat` hlásí změnu
+  celého souboru (1093 řádků místo 245). Převáděj v Pythonu `b.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n')` (konec souboru
+  zůstane, jak byl) a ověř `git ls-files --eol` = `w/crlf`. Heredoc v Bash toolu umí změnit zpětná lomítka v Python kódu
+  (`"\\n"` se nenašlo, assert spadl) → kód s `\n` / `\r` piš Write toolem. (2026-10-23, prod-em-kiosk-bc.)
 - **`.alpackages` prázdná (VS Code zrovna stahuje symboly / někdo ji vyčistil) → `AL1022` na
   všech dependencies.** Nečekej a nesahej na cizí cache: poskládej **dočasnou package cache ve
   scratchpadu z KOPIÍ** ze sibling rep (`ls C:/WorkTasks/*/.alpackages/*.app | grep <name>`) —

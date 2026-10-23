@@ -176,6 +176,12 @@ daného trans-unitu, ať nesou stejné `%n`:
 - Pak **rebuild** (label resolving je compile-time). Historické záznamy (např. řádky
   v audit logu) drží text z doby zápisu — rich verze naskočí až u nových.
 - Stejná past platí pro `Message`, `Confirm`, `FieldError`, `StrSubstNo` nad Labelem.
+- **Změna pořadí argumentů se starým `<target>` nespadne, jen prohodí hodnoty.** Label přepsaný z `'Operation started for:\Prod.
+  Order No.: %1\Line No.: %2\Operation No.: %3'` na `'Operation %1 of production order %2 (line %3) has been started.'` a volání
+  `Message(Lbl, OperationNo, ProdOrderNo, LineNo)` ukázalo v CZ klientu se starým targetem *Výrobní zakázka č.: 10, Číslo řádku:
+  101006, Číslo operace: 10000*. Pořadí kroků: upravit label → zkompilovat (vznikne `.g.xlf`) → synchronizovat `.cs-CZ.xlf` →
+  **zkompilovat znovu** a publikovat až tenhle build. Build z druhého kroku nese starý překlad, i když repo už je v pořádku.
+  (2026-10-23, prod-em-kiosk-bc, hláška START kiosku v BC-DEV.)
 - Zachyceno: prod-ess-dotykackaConnector-bc (červen 2026) — obohacení chybové hlášky
   o HTTP status z API se v CZ klientu neprojevilo, dokud se neupravil `<target>` v XLF.
 

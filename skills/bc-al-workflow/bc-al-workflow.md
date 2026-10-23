@@ -170,6 +170,11 @@ a projdi i světlý režim. Overlay s průhledností 0,9 tam nechá prosvítat t
   zůstane čitelný. Víc GIFů base64 v jedné stránce hlídej proti limitu artefaktu 16 MB. MP4 bez `ffmpeg` nevznikne.
 - Popisky akcí (`showActionLabels`) jsou anglicky z `action_summary` a vodoznak je logo Claude, do firemní příručky obojí vypni.
 
+**Ořez a zamaskování screenshotu bez Pillow:** když Python nemá `PIL`, poslouží PowerShell `System.Drawing` (skript s parametry,
+spouštěný `powershell -NoProfile -ExecutionPolicy Bypass -File crop.ps1 …`): ořez = `New-Object System.Drawing.Bitmap $W,$H` +
+`Graphics.DrawImage(img, destRect, srcRect, Pixel)`, zamaskování useknutého popisku = `Graphics.FillRectangle` bílým štětcem. Výřez
+seznamu bez sloupce *ID uživatele* udělej rovnou `zoom` regionem a jen zbytky textu na okraji přebarvi. (2026-10-23, prod-em-kiosk-bc.)
+
 ---
 
 ## 9. Před úpravou AL objektu — co si přečíst
@@ -640,6 +645,11 @@ parametru pro textovou formuli.)
   vrátíš novým `iframe.src` (po `Error` může v rámečku zůstat „Došlo k chybě… není žádná stránka" → taky nový src).
   Klepnutí na řádek listpartu v phone klientu otevře jen **náhled záznamu**; `OnDrillDown` pole se spustí až
   klepnutím na hodnotu v náhledu. (2026-09-29, BC-DEV, návody `prod-ew-mobileBase-bc/docs/guides`.)
+  Nový `iframe.src` se občas **napoprvé nenačte** (prázdný rámeček, `contentDocument.body.innerText` = `''`), druhý pokus s
+  `&v=<Date.now()>` projde. Před klepnutím vždy ověř text v rámečku, jinak klik trefí prázdno. Profil v URL
+  (`&profile=KIOSEK` u profilu založeného ručně v *Profily (role)*) funguje na desktopu i v rámečku `/phone?…`.
+  Před `zoom` se `save_to_disk` přesuň myš mimo výřez (`hover` do rohu), jinak je kurzor v obrázku.
+  (2026-10-23, prod-em-kiosk-bc, prezentace kiosku.)
 - **Zadávání dat klávesnicí v desktop BC (příprava testovacích dat):** BC zpracuje `Tab` asynchronně – `type` +
   hned `Tab` + `type` slije druhý text do prvního pole (kód přihrádky `PRIJEMPŘÍJMOVÁ ZÓNA`, název listu deníku).
   Postup: **klik přímo do buňky → `type` → wait 2 s → `Tab` → wait 2–3 s**, u prvního pole nového řádku (insert)
