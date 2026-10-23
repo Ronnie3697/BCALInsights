@@ -130,10 +130,14 @@ v příručce to zmiň. (2026-09-29, cust-alumistr-bc prezentace 66389/66397.)
 příručka měsíc psala „Rozcestník synchronizace Dotykačky“ (target `Property AboutTitle` = nadpis teaching tipu), stránka se
 přitom jmenuje *Synchronizace Dotykačky* a „Rozcestník“ uživatel nenajde. V XLIFF filtruj poznámku `Xliff Generator` na
 `- Property Caption` přímo u `Page …` (ne `Control`/`Action`). (2026-10-16, prod-ess-dotykackaConnector-bc.)
-**Příručka „pro laiky“** (přání uživatele 2026-10-16 – heslovitá verze typu „Kontroly: pobočka jen u jedné lokace, barvy
-#RRGGBB…“ byla nesrozumitelná): slovníček pojmů na začátku, u každého kroku věta *proč*, u nastavení sloupec „co když je
-prázdné“, propočítaný příklad, změny po review jako tabulka **Dřív / Teď / Co to znamená pro vás**. Tvrzení „prázdné pole =
-X“ ověř v kódu (pre-flight `TestField` = import vůbec nezačne, ne „účtenka selže“).
+**Příručka i prezentace „pro laiky“, žádné heslovité psaní** (přání uživatele 2026-10-16, prod-ess-dotykackaConnector-bc –
+heslovitá verze typu „Kontroly: pobočka jen u jedné lokace, barvy #RRGGBB…“ byla nesrozumitelná; zopakováno 2026-10-23 pro
+všechny HTML příručky a prezentace, prod-ew-mobileBase-bc 66453): piš **celými větami**, ne seznamem hesel. Slovníček pojmů na
+začátku, u každého kroku věta *proč*, u nastavení sloupec „co když je prázdné“, propočítaný příklad, změny po review jako
+tabulka **Dřív / Teď / Co to znamená pro vás**. Tvrzení „prázdné pole = X“ ověř v kódu (pre-flight `TestField` = import vůbec
+nezačne, ne „účtenka selže“). **Co konzultanti chválí a má zůstat** (zpětná vazba 2026-10-23): **testovací scénáře
+k odškrtání na konci** (konkrétní vstup a očekávaná hodnota v každém kroku) a **screenshoty z reálného prostředí** u každého
+kroku.
 
 **Playwright MCP na kontrolu vygenerovaného HTML:** `file://` blokuje stejně jako Claude in Chrome a screenshot uloží jen pod
 workspace (`<repo>/.playwright-mcp`, v Essence repech gitignored přes `.*`, po kontrole smaž). Lokální `python -m http.server`
