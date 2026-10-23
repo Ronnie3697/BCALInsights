@@ -544,6 +544,13 @@ GIVEN (s komentářem), nebo každý negativní případ do vlastního testu. Za
 `CheckNumericFilterValue` s `SourceParam.Get` → exit) — stejný test i
 v prod-ess-configurator-bc PR 9375.
 
+**Varianta: důkaz, že kód mezi kroky necommituje (atomické účtování).** `asserterror` na volání, které spadne až
+v druhém kroku (kiosk: výstup se zaúčtuje, kapacitní řádek pak spadne na konci před začátkem), a pak assert, že výsledek
+**prvního** kroku neexistuje (`RecordIsEmpty` na výstupních položkách zboží zakázky). Kdyby kód po prvním kroku commitoval,
+rollback skončí na tom commitu a položka zůstane. `Commit()` po GIVEN tu drží připravená data, aby šel po chybě ověřit i
+stav ostatních záznamů. Test ověří jen standardní cestu, commit v odběrateli jiné appky v kontejneru neodhalí.
+(2026-10-23, prod-em-kiosk-bc 61658, `PostStoppedOperation_PostsNothing_WhenCapacityLineFails`.)
+
 ### `Assert.ExpectedError` na `TestField` hlášce: caption pole může projít `CaptionClass`
 
 `SalesLine.TestField("Unit Price", 500)` nehlásí „Unit Price must be equal to…", ale

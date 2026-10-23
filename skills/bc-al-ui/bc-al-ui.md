@@ -10,7 +10,7 @@
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
 Obsahuje:
-- **4.** UI patterny (4.1–4.25)
+- **4.** UI patterny (4.1–4.28)
 
 ## 4. UI patterny
 
@@ -785,3 +785,14 @@ Ověřeno v BC-DEV 28.5, phone klient 600 × 900 (prod-ew-mobileBase-bc, revize 
   z otevření (šablona, list deníku), ne ale filtr nastavený až v `OnOpenPage` (lokace). `NewLine := Rec` pak dá řádek bez lokace →
   „Pole Kód přihrádky … nelze nalézt ve svázané tabulce“. Prázdnost testuj `Rec."Line No." = 0` / `IsEmpty`, ne filtrovaným polem;
   názvy si vezmi z filtrů (`Rec.GetFilter` + `Rec.GetRangeMin`) v `OnOpenPage`.
+
+### 4.28 Phone klient: `\` ve zprávě nezalomí řádek; neviditelné control add-iny uprostřed stránky dělají mezeru
+
+- **`Message` s řádky oddělenými `\`** (`'Operace zahájena pro:\Výrobní zakázka č.: %1\Číslo řádku: %2'`) vykreslí desktop jako
+  víc řádků, phone klient (BC 28.5, 600 × 900) jako jeden odstavec bez zalomení. Na kiosky a čtečky piš zprávu jako jednu
+  větu (`Operace %1 výrobní zakázky %2 byla zastavena a zaúčtována. Výstup: %3, zmetky: %4.`).
+- **Control add-iny bez vlastního obsahu** (čtečka `Scanner`, `SetFieldFocusAndBlur`) mezi skupinou polí a dlaždicemi akcí
+  zaberou na telefonu výšku svého iframu a mezi poli a dlaždicemi zůstane prázdné místo. Dej je v `area(Content)` až za
+  dlaždice jako poslední controly. Pozor, ne do sbalitelného FastTabu (4.23).
+
+(2026-10-23, prod-em-kiosk-bc 61658, Kiosk Start-Stop a dialog množství na phone klientu BC-DEV.)

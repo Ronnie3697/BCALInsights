@@ -317,3 +317,7 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   tranzitivní deps) se s alc 18 přeloží čistě — `Library - *` i `Assert` vidí, `AL0185` z bodu výše se tedy neprojeví vždy.
   Explicitní `Application Test Library` v test `app.json` přesto doporučuju (CI s jinou minor řadou může dopadnout jinak).
   (2026-10-21, cust-zlomek-bc, temp cache z artifactu `onprem/28.4.53241.0/cz`.)
+  Druhý případ (prod-em-kiosk-bc, stejné deps, cache 28.5.54151, alc 18): `Assert` a `Library - *` prošly, ale
+  **`Library - Variable Storage` hlásí `AL0185 … is missing`** (žije ve vlastní appce `Library Variable Storage`). Buď ji
+  přidej do test `app.json`, nebo hodnoty pro `ModalPageHandler` předej přes **globální proměnné test codeunity** (handler běží
+  ve stejné instanci jako test, stačí setter `SetDialogQuantities(...)`). (2026-10-23)

@@ -4,7 +4,8 @@
 > `bc-al-notes.md` (archiv `bc-al-notes.archived-2026-06-23.md`).
 > Načítej, když řešíš: vlastní pole na Sales/Purchase Header/Line a jejich cestu do archivu, účtovaných
 > dokladů, kopie dokladu a obnovy z archivu (TransferFields, Blob + CalcFields, částečné účtování a undo,
-> `Validate("No.")` → `Init()`), kontroly dokladu před účtováním a Job No. na dodávce vs. faktuře.
+> `Validate("No.")` → `Init()`), kontroly dokladu před účtováním a Job No. na dodávce vs. faktuře; výstup a kapacitu
+> výroby účtované z kódu (3.6l).
 >
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y". Obecné subscriber patterny
 > (3.1–3.4, 3.7–3.9) zůstávají v `bc-al-data.md`.
@@ -15,6 +16,7 @@ Obsahuje:
 - **3.6i** Report dokladu pro tělo emailu z vlastního kódu archivuje podruhé (`Mail Management` bind)
 - **3.6j** Programové účtování staršího dokladu: subscriber přepíše zúčtovací datum na WorkDate (Essence Distribution) — nastav WorkDate
 - **3.6k** Platba / refundace zákazníka z kódu přes `Gen. Journal Line`: zákazník s vlastním plátcem = Confirm → `SetHideValidation(true)`
+- **3.6l** Výstup a kapacita výroby z kódu: `Validate(Type)` maže `No.`, zmetky na výstupním řádku, tiché atomické účtování přes manuální bind `Item Jnl.-Post.OnBeforeCode`, `Increment Batch Name`
 
 ## 3. Event Subscribery — propagace polí (3.5–3.6f)
 
@@ -603,3 +605,38 @@ ship jen část řádků → `PostSalesDocument(SalesHeader, false, true)` musí
   pro všechny deníky včetně ručních — bez manuálního bindu nevhodné.
   (2026-10-20, prod-ess-dotykackaConnector-bc `Dotykacka Receipt Pay. DCEBS` — spadlý autotest; zdroje w1-28
   `GenJournalLine.Table.al`.)
+
+### 3.6l Výstup a kapacita výroby z kódu (deník výstupu): `Validate(Type)` maže `No.`, zmetky, tiché atomické účtování
+
+- **`Item Journal Line.Validate(Type)` volá `Validate("No.", '')`.** Kapacitní řádek napsaný jako `Validate(Type, "Work Center")` +
+  `Validate("Work Center No.", X)` proto skončí s prázdným `No.` a účtování spadne na *Pracovní centrum neexistuje. Číslo=''*.
+  Správně: `Validate(Type)` → `Validate("No.", <pracovní centrum>)`, což doplní `Work Center No.` a ostatní pole centra.
+  `Validate("Operation No.")` nastaví typ i číslo z řádku postupu samo. (prod-em-kiosk-bc Start-Stop: kapacita padala vždy a výstup,
+  zaúčtovaný předtím samostatným `Item Jnl.-Post` s commitem, zůstal zaúčtovaný napůl.)
+- **Zmetky patří na výstupní řádek operace:** `Scrap Quantity` + `Scrap Code` z tableextension `Mfg. Item Journal Line`.
+  `Scrap Code` v OnValidate chce `Type` Work / Machine Center, takže ho validuj až po `Operation No.`. Zaúčtují se do položky
+  kapacity (`Scrap Quantity`, `Scrap Code`) a do `Scrap Quantity` řádku postupu, položka zboží vzniká jen z `Output Quantity`.
+  **Řádek jen se zmetky (výstup 0) se zaúčtuje:** `EmptyLine()` chce prázdné `Item No.`, takže ho batch nevynechá. Vznikne položka
+  kapacity, položka zboží ne.
+- **Tiché atomické účtování výstupu i kapacity:** manuální subscriber (`EventSubscriberInstance = Manual`) na
+  `Item Jnl.-Post.OnBeforeCode(var ItemJournalLine; var HideDialog; var SuppressCommit; var IsHandled)` nastaví `HideDialog` a
+  `SuppressCommit` na `true`. Bind přes **lokální** proměnnou kolem obou `Codeunit.Run(Codeunit::"Item Jnl.-Post", Line)`, po chybě
+  se odbinduje sám. Bez toho se objeví Confirm *Chcete účtovat řádky deníku?* (default Ne), zpráva po zaúčtování a commit po
+  každém deníku. Ověřeno ve w1-28: všechny `Commit` v `Item Jnl.-Post Batch` jsou `if not SuppressCommit`,
+  `Item Jnl.-Post Line.PostSplitJnlLine` běží s `[CommitBehavior(CommitBehavior::Ignore)]`, automatická úprava nákladů
+  (`Inventory Adjustment Handler.MakeAutomaticInventoryAdjustment`) běží s `Online Adjustment`, takže `CheckAndCommit`
+  necommituje (`CommitAdjustedItems and not IsOnlineAdjmt`), a `Update (Item) Analysis View.UpdateAll` Commit nemá. Atomicitu
+  může porušit jen commit v odběrateli jiné appky.
+- **`Item Jnl.-Post` účtuje celý list deníku, ne jeden řádek** → pro automatiku vyhrazený list. S číselnou řadou listu by
+  `Document No.` musel sedět s řadou, takže list bez řady a jako `Document No.` číslo zakázky. Po zaúčtování výstupu nebo spotřeby
+  batch nový prázdný řádek nevkládá (podmínka `Entry Type not in [Consumption, Output]`). **Šablona s `Increment Batch Name`
+  + název listu končící číslicí:** po zaúčtování posledního řádku batch list smaže a založí `IncStr(název)`. Nastavení, které na
+  list ukazuje, pak míří na smazaný list. Pro automatiku dávej listy bez číslice na konci (`KIOSK`).
+- **`Stop Time` je v CZ „Doba prostoje“**, čas běhu je `Run Time`. Kapacita zaúčtovaná jako prostoj nemá náklad a v analýzách
+  vypadá jako prostoj.
+- Test atomicity: `Commit()` po GIVEN, `asserterror` s chybou v kapacitním řádku a assert, že výstupní položka neexistuje
+  (`bc-al-autotests.md`, sekce o `asserterror`). Kontejner CRONUS CZ může mít v GL Setup povolené účtovací období: datumy
+  testu stav z `WorkDate()`, nebo před účtováním k dnešku `LibraryERM.SetAllowPostingFromTo(0D, 0D)`.
+
+(2026-10-23, prod-em-kiosk-bc 61658, odvod zmetků na kiosku; zdroje w1-28 `ItemJournalLine.Table.al`, `ItemJnlPost.Codeunit.al`,
+`ItemJnlPostBatch.Codeunit.al`, `ItemJnlPostLine.Codeunit.al`, `InventoryAdjustment(Handler).Codeunit.al`, ověřeno v BC-DEV 28.5.)

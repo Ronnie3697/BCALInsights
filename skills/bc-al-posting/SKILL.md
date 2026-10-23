@@ -1,16 +1,15 @@
 ---
 name: bc-al-posting
 description: >-
-  BC/AL propagace vlastních polí do účtovaných dokladů, archivu a kopií (BC, sekce 3.5–3.6j):
-  Sales Line → Item Jnl. Line → ILE / Whse. Shipment Line, vlastní pole Sales/Purchase Header/Line se stejným
-  field ID na archive + posted tabulkách (TransferFields), total řádku při částečném účtování
-  (OnAfterInitFromSalesLine, undo dodávky), AutoFormatExpression GetCurrencyCode, Validate("No.") Init() past
-  (archive restore, Copy Document, RecreateSalesLines), OnAfterGetUnitCost, Blob pole hlavičky =
-  CalcFields + subscriber na přenosu (Sales-Post 4× OnBefore…TransferFields, archiv + obnova,
-  Quote → Order, Copy Document OnAfterCopySalesHeaderDone), délky Text (LC0044, PC0020), guard
-  OnModifyRecord jako invarianty, kontrola dokladu OnAfterCheckSalesDoc vs OnBeforeIsApprovedForPosting, Job No.
-  dodávka vs faktura, dvojí archivace při emailu (bind Mail Management), zúčtovací datum přepsané na WorkDate
-  při účtování z kódu (Essence Distribution). Načti u vlastních polí na dokladech, postingu, archivace,
+  BC/AL propagace vlastních polí do účtovaných dokladů, archivu a kopií + účtování z kódu (BC, 3.5–3.6l):
+  Sales Line → Item Jnl. Line → ILE / Whse. Shipment, stejné field ID na archive + posted tabulkách
+  (TransferFields), total řádku při částečném účtování a undo (OnAfterInitFromSalesLine), AutoFormatExpression
+  GetCurrencyCode, Validate("No.") Init() past (archive restore, Copy Document, RecreateSalesLines),
+  OnAfterGetUnitCost, Blob hlavičky = CalcFields + subscriber na přenosu (Sales-Post, archiv, Quote → Order,
+  Copy Document), délky Text (LC0044, PC0020), guard OnModifyRecord jako invarianty, OnAfterCheckSalesDoc vs
+  OnBeforeIsApprovedForPosting, Job No. dodávka vs faktura, dvojí archivace při emailu (Mail Management),
+  WorkDate při účtování z kódu, deník výstupu a kapacity výroby z kódu (Validate(Type) maže No., zmetky, tiché
+  atomické Item Jnl.-Post přes manuální bind OnBeforeCode). Načti u polí na dokladech, postingu, archivace,
   kopie a emailu dokladu.
 user-invocable: true
 ---
@@ -59,3 +58,5 @@ Vyčleněno z `bc-al-data.md` 2026-09-29, číslování 3.x je původní.
   stejnou v celé sadě tabulek (LC0044 = warning = CI fail).
 - **3.6d** Kontrola celého dokladu, která má platit i pro účtování z kódu a testy →
   `Sales-Post.OnAfterCheckSalesDoc`, ne `OnBeforeIsApprovedForPosting` (jen UI).
+- **3.6l** Deník výstupu z kódu: po `Validate(Type)` validuj `No.` (Type ho maže); více deníků bez dotazu
+  a v jedné transakci = manuální bind na `Item Jnl.-Post.OnBeforeCode` (`HideDialog`, `SuppressCommit`).
