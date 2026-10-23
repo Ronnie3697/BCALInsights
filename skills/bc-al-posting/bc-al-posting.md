@@ -615,7 +615,7 @@ ship jen část řádků → `PostSalesDocument(SalesHeader, false, true)` musí
   zaúčtovaný předtím samostatným `Item Jnl.-Post` s commitem, zůstal zaúčtovaný napůl.)
 - **Zmetky patří na výstupní řádek operace:** `Scrap Quantity` + `Scrap Code` z tableextension `Mfg. Item Journal Line`.
   `Scrap Code` v OnValidate chce `Type` Work / Machine Center, takže ho validuj až po `Operation No.`. Zaúčtují se do položky
-  kapacity (`Scrap Quantity`, `Scrap Code`) a do `Scrap Quantity` řádku postupu, položka zboží vzniká jen z `Output Quantity`.
+  kapacity (`Scrap Quantity`, `Scrap Code`), řádek postupu je ukáže ve FlowFieldu `Posted Scrap Quantity`. Položka zboží vzniká jen z `Output Quantity`.
   **Řádek jen se zmetky (výstup 0) se zaúčtuje:** `EmptyLine()` chce prázdné `Item No.`, takže ho batch nevynechá. Vznikne položka
   kapacity, položka zboží ne.
 - **Tiché atomické účtování výstupu i kapacity:** manuální subscriber (`EventSubscriberInstance = Manual`) na
