@@ -796,3 +796,25 @@ Ověřeno v BC-DEV 28.5, phone klient 600 × 900 (prod-ew-mobileBase-bc, revize 
   dlaždice jako poslední controly. Pozor, ne do sbalitelného FastTabu (4.23).
 
 (2026-10-23, prod-em-kiosk-bc 61658, Kiosk Start-Stop a dialog množství na phone klientu BC-DEV.)
+
+### 4.29 Phone klient: seznam dokladů → řádky → detail bez náhledu (karta hlavičky + ListPart s `CardPageId`); detail z partu dědí `SubPageView`
+
+Ověřeno v BC-DEV 28.5, phone klient (prod-ew-mobileBase-bc, pilot na vyskladnění, 2026-10-23):
+
+- `CardPageId` seznamu hlaviček (vyskladnění) musí vést na stránku nad **hlavičkou** – řádky jako `List` nad tabulkou řádků
+  tam nejdou. Řešení: řádky jako **ListPart na kartě hlavičky** (`SubPageLink` doklad, `SubPageView` např. `Action Type =
+  Place`) a ListPart má vlastní **`CardPageId` na detail řádku**. Ťuk na doklad → karta s řádky, ťuk na řádek partu → rovnou
+  detail, náhled záznamu (4.27) nikde.
+- Karta z `CardPageId` je v režimu zobrazení, ale `usercontrol` čtečky dál posílá `Scanned`, dlaždice (cuegroup akce) fungují a
+  pole na proměnných stránky jdou psát (4.27). Po akci, která mění řádky, `CurrPage.Update(false)` obnoví i part;
+  `RefreshOnActivate = true` obnoví kartu po návratu z detailu.
+- **Detail otevřený z ListPartu přes `CardPageId` dědí filtry partu včetně `SubPageView`** (v jiné filter group než 0).
+  Kód, který z `Rec` udělá `Copy(Rec)` a pak `SetRange(pole)` maže ve filter group 0, ten filtr neodstraní. Registrace skladové
+  aktivity z takového detailu viděla jen řádky Vložit: *„Celkové základní množství k výběru 0 musí být rovno celkovému
+  základnímu množství k vložení 1.“* Pro zpracování dokladu ber z `Rec` jen hodnoty (`Line := Rec;` + vlastní `SetRange` na
+  doklad), ne jeho filtry.
+- Detail otevřený ťuknutím leží **nad** kartou – po zápisu jen `CurrPage.Close()`. Znovu otevírat kartu (`Page.Run`) jen když ji
+  předtím zavřel kód (sken: zavřít řádky → detail), jinak je ve stacku dvakrát (příznak nastavený volajícím, např.
+  `SetReopenPickOnRegister(true)`). Když zápis smaže hlavičku (celý doklad zapsán), karta pod detailem se po návratu sama
+  zavře a uživatel skončí na seznamu – bez chyby.
+- Navigaci (stack stránek) testuj v čisté záložce `/phone?company=…`, ne v overlay iframu (`top.history`).
