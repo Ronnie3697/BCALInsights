@@ -619,6 +619,24 @@ Důsledky pro pageextension:
 Pravidlo: u čteček dávej odvozené údaje do **hlaviček** (pole ve skupinách). Seznamy rozšiřuj jen s vědomím, co se stane
 s dlaždicí, a ověř to v 600×900 (viz `ew-mobile-ui`). (2026-10-16, PBI 64732 — seznamy nakonec vynechány.)
 
+**Údaj na dlaždici bez nového sloupce = přidat ho do textu, který dlaždice už ukazuje** (2026-10-23, PBI 64732 fáze 2, ověřeno
+BC-DEV 28.5 phone klient):
+- **Textové pole z Bricku, které base stránka plní v `OnAfterGetRecord`** (EWM `Item Nos. EXEBS` = varianta; šarže; SČ na
+  *Warehouse Activity Line*, jen pro zobrazení, bez `Modify`): pageextension má vlastní `OnAfterGetRecord`, který běží **po** base
+  triggeru, a pole přepíše (`Rec."X" := CopyStr(…, 1, MaxStrLen(Rec."X"))`). Slot na dlaždici zůstane, žádná závislost na eventu base.
+  Část textu nahrazuj po oddělovači (`Text.Split('; ')` + porovnání s číslem šarže), ne `Replace` (šarže může být podřetězcem varianty).
+  `PC0037` na přiřazení je tu namístě (zobrazovací hodnota).
+- **Výraz přímo na stránce** (`field("Item No."; Mgt.GetItemNumbers(...))` nad *Bin Content Buffer*, režim 3) pageextension nepřebije
+  (`modify` mění jen properties, 4.6c) → do base appky **integrační event uvnitř formátovací procedury** (`OnGetItemNumbersOnAfterSetLotNoText(ItemNo,
+  VariantCode, LotNo, var LotNoText)`), subscriber v zákaznické appce. Jeden event pokryje všechny stránky, které proceduru volají, i budoucí.
+  Pozor na volající, kteří do procedury posílají prázdnou variantu (EWM *Item Card Subform*, *Bin Content Buffer*) — subscriber pak hledá
+  kartu šarže bez ohledu na variantu.
+- **`Tracking Specification` má Brick** (`Lot No.`, `Serial No.`, `Quantity (Base)`, `Package No.`, `Expiration Date`) → sloupec z
+  pageextension na partu nad ní (kiosk *Exp. Tracking Specif. KIEBS*) je vidět jen na desktopu, na telefonu ne. Šarži v temp záznamu
+  sledování přepisovat nejde (nese skutečné sledování) — řešení jen úpravou base stránky. Fieldgroupy ověř ze `SymbolReference.json`
+  Base App (`Tables[].FieldGroups`): *Item Journal Line* Brick (Item No., Description, Quantity, Document No., Document Date), *Reservation
+  Entry* DropDown, *Bin Content Buffer* žádný.
+
 **Doplnění 2026-10-19 (cust-sonnentor-bc Task 65223, číslo zásilky na kiosku):**
 - **`modify(<akce>)` na akci uvnitř `cuegroup` (dlaždice kiosku Send / Leave) = `warning AL0611: Modifying actions in
   CueGroups is not supported`** – s Essence `failOn warning` CI fail. Hook „před / po dlaždici“ z pageextension nejde;
