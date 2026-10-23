@@ -209,3 +209,15 @@ warning AL0479: There must be only one translation item for each ID.
 Zachyceno: cust-sonnentor-bc 2026-08-03 — merge masteru do feature větve zdvojil
 trans-unit `PageExtension 2228984703 - NamedType 3852263291` (`OnlyProdOrderComponentErr`);
 obě strany ho přidaly, každá na jinou pozici v souboru, git to spojil tiše.
+
+### 6.5 Zastaralý `.g.xlf` pod starým názvem appky = LC0091 „Missing translation … en-US" na nových labelech
+
+`Translations/` je v repu typicky s `**/*.g.xlf` v `.gitignore`, takže když se appka přejmenuje (nebo se složka zkopíruje
+z jiné appky), starý generovaný soubor (`SON CDS Sync.g.xlf`, `target-language="en-US"`) zůstane ležet lokálně vedle
+nového `<AppName>.g.xlf` a nikdy se nepřegeneruje. ALCops **LC0091** ho bere jako překladový soubor pro en-US a u každého
+labelu, který v něm chybí (= vše přidané po přejmenování), hlásí *Missing translation for 'X' in language(s): en-US* —
+vypadá to jako chybějící překlad, ale `.cs-CZ.xlf` je kompletní. Diagnóza: `grep -n original= Translations/*.xlf`
+(dva `.g.xlf` s různým názvem) + porovnání ID obou `.g.xlf`; chybějící ID sedí 1:1 na warningy. Fix: starý `.g.xlf`
+smazat (je ignorovaný, nikdo jiný ho nemá) a ručně vedený `.cs-CZ.xlf` přejmenovat na `<AppName>.cs-CZ.xlf` přes `git mv`
+(obsah beze změny; kompilátor bere všechny `.xlf` ve složce podle `target-language`, název je jen konvence).
+(2026-10-23, cust-soitron-bc CDS.W1, task 67287.)
