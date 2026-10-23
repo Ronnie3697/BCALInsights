@@ -77,7 +77,7 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   `/analyzer:` MSYS přepíše na cestu (`C:\Program Files\Git\analyzer;…`).
   Oprava: prefixni volání `MSYS2_ARG_CONV_EXCL="*"` (pak ale musí být
   všechny cesty plné Windows cesty, žádné `~`). Export platí pro **všechny** programy v tom
-  volání — `node skript.js /c/…` nebo `git -C /c/…` po `export MSYS2_ARG_CONV_EXCL="*"` dostanou `C:c…` (ENOENT) →
+  volání — `node skript.js /c/…` nebo `git -C /c/…` po `export MSYS2_ARG_CONV_EXCL="*"` dostanou `C:\c\…` (ENOENT) →
   node/git volej před exportem nebo v samostatném Bash volání. (2026-10-23, cust-ardo-bc 67245.)
   V AL 17 (`17.0.2273547`) je v `bin/win32` **jen `alc.exe`**, všechny Cop DLL (CodeCop, PTE, UICop, AppSourceCop,
   LinterCop, ALCops) jsou v `bin/Analyzers` — `/analyzer:bin/win32/...Cop.dll` končí `AL1006 Metadata file … could not
