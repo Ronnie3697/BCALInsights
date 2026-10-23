@@ -903,3 +903,8 @@ ED Item Sales Disponibility 28.0.0, Essence Shopify Connector 28.0.6 (závislost
   je pak vrací s `appType: "dev"`. Dev build blokuje PTE téže appky (AVS0109, 7.24).
 
 (2026-10-21, cust-zlomek-bc BC-DEV — ověření PBI 65654 / 65649 / 65149.)
+
+- **Vlastní profil (*Vytvořeno uživatelem*) s role centrem z dev appky** po jednom z dev publishů ukazoval na **Blank Role Center
+  (8999)** – úvodní stránka prázdná (desktop jen obrázek prázdného role centra, phone jen menu *Stránka / Systém*), stránky appky
+  otevřené přes URL fungovaly. Oprava: *Profily (role)* (9171) → profil → *ID centra rolí* zpět na stránku z appky. Po publishi
+  kontroluj úvodní stránku. (2026-10-23, prod-ew-mobileBase-bc BC-DEV, profil EW-MOBILE → 62202.)

@@ -818,3 +818,10 @@ Ověřeno v BC-DEV 28.5, phone klient (prod-ew-mobileBase-bc, pilot na vyskladn�
   `SetReopenPickOnRegister(true)`). Když zápis smaže hlavičku (celý doklad zapsán), karta pod detailem se po návratu sama
   zavře a uživatel skončí na seznamu – bez chyby.
 - Navigaci (stack stránek) testuj v čisté záložce `/phone?company=…`, ne v overlay iframu (`top.history`).
+- **Karta z `CardPageId`, která nejde editovat (`Editable = false` nebo `ModifyAllowed = false` na stránce), phone klient
+  neotevře** – ukáže místo ní náhled záznamu, i když na desktopu karta funguje. Needitovatelnost dej na pole (`Editable = false`).
+- **Přepínací karta** (když stávající stránku nechceš přestavět, nebo detail záleží na situaci): `CardPageId` seznamu = malá
+  karta nad stejnou tabulkou, v `OnAfterGetCurrRecord` (s příznakem jen jednou) `CurrPage.Close()` + `Page.Run` cílové stránky
+  (řádky dokladu, deník listu, detail řádku podle sledování / nastavení). Cíl otevřený z kódu je v **režimu úprav** (bez tužky)
+  a zůstává původní stránka včetně pageextension a eventů zákazníků. V DOM po přepínací kartě zůstane schovaný `.spa-view`,
+  Zpět ale vede rovnou na seznam. (prod-ew-mobileBase-bc: pohyby, příjemky, řádky příjemky, listy inventury.)
