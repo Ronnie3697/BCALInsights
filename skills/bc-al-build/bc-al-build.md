@@ -719,9 +719,15 @@ has apps installed by another run`** = v kontejneru zůstaly **nainstalované** 
 publikované). Běh skončí po ~3 min, `tests 0 s`, exit 1 a testy vůbec neběžely. Bash wrapper s `; echo "exit $?"` vrací 0,
 směrodatný je řádek `SUMMARY` v logu. Nejdřív zkontroluj, že starý běh nežije: `test-run.owner` v `…\Extensions\<kontejner>\`
 zůstává i po skončení procesu, tak ověř `tasklist /FI "PID eq <pid>"`; `run.log` jeho složky v `test-runs\` ukáže, co odinstaloval.
-Pak pusť běh do druhého kontejneru poolu (`-ContainerName bctest28b`), nebo zbytky odinstaluj (`Uninstall-NAVApp`, bez unpublish).
+Pak pusť běh do druhého kontejneru poolu (`-ContainerName bctest28b`), nebo zbytky odinstaluj **stejně jako úklid skriptu**:
+`Uninstall-NAVApp -DoNotSaveData -Force` **+ `Sync-NAVApp -Mode Clean -Force`** (bez unpublish), v jedné `Invoke-ScriptInBcContainer`
+relaci po `. Import-Helper.ps1`. ⚠️ Holý `Uninstall-NAVApp` nechá v databázi data staré verze a když je na feedu novější, další běh
+spadne na *„Cannot install the extension … 28.0.11.0 … because an earlier version was already installed. Run Start-NAVAppDataUpgrade“*
+— pak doběhni `Sync-NAVApp -Mode Clean` na všechny verze té appky (`Get-NAVAppInfo -Tenant default -TenantSpecificProperties`,
+`IsInstalled = False`) a pusť běh znovu.
 (2026-10-20, cust-sonnentor-bc: `bctest28` měl po včerejším „son“ běhu nainstalované Essence Shopify Connector 28.0.6.0, Essence
-Distribution Base a ED Item Sales Disponibility; v `bctest28b` 321/321.)
+Distribution Base a ED Item Sales Disponibility; v `bctest28b` 321/321. 2026-10-23 znovu v obou kontejnerech — `bctest28` tytéž tři,
+`bctest28b` navíc Warehouse Mobile Base 28.0.4.0 a EM Kiosk; holý uninstall → chyba Start-NAVAppDataUpgrade, po `Mode Clean` 346/346.)
 
 **Předpoklady a pasti (Windows 11, uživatel bez admina):**
 
