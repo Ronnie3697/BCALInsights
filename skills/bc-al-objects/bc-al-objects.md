@@ -969,3 +969,26 @@ Ověřeno v BC-DEV 28.5 (prod-ew-mobileBase-bc, první řádek deníku fyzické 
   lokace) a nakonec `Validate("Bin Code")` (relace přihrádky filtruje podle lokace řádku).
 - Řádek fyzické inventury založený mimo *Vypočítat zásoby* má `Qty. (Calculated)` 0 → když zboží v přihrádce už je, zaúčtuje se
   celé napočítané množství jako kladná úprava. Rozhodni, jestli `Qty. (Calculated)` dopočítat z obsahu přihrádky.
+
+### 5.x29 Vlastní pole řádku výrobního kusovníku → komponenta výrobní zakázky: dvě cesty vzniku komponenty, žádný `TransferFields`
+
+Ověřeno proti zdroji w1-25 (cust-ardo-bc PBI 67302 *Increase Qty. for Pick %*, 2026-10-23):
+
+- **Refresh / Create Prod. Order Lines** (`Calculate Prod. Order.TransferBOMProcessItem`): komponenta se skládá pole po poli
+  (`Validate("Item No.")`, `"Quantity per" :=`, `Validate("Scrap %")`, `Validate("Calculation Formula")` → Expected Quantity),
+  pak `OnTransferBOMProcessItemOnBeforeGetPlanningParameters(ProdOrderComp, ProdBOMLine, SKU)` (sem kopie vlastního pole),
+  `OnAfterTransferBOMComponent` → `Insert(true)` → **`OnAfterProdOrderCompInsert(var ProdOrderComp, ProdBOMLine)`** → `AutoReserve()`.
+  Úprava množství po vzniku komponenty patří do `OnAfterProdOrderCompInsert` + `Modify(false)`: Expected Quantity je finální, řádek
+  zakázky v DB, rezervace ještě neběžela (AutoReserve si vezme nové Remaining Qty.). Instance má `SetIgnoreErrors` a
+  `BlockDynamicTracking` podle volajícího.
+- **Plánovací sešit** jde jinudy: `Planning Line Management.CreatePlanningComponentFromProdBOM` založí `Planning Component`
+  (event **`OnBeforeInsertPlanningComponent(ReqLine, ProdBOMLine, PlanningComponent, …)`**), Carry Out pak
+  `Prod. Order Component.CopyFromPlanningComp` — **výčet polí, ne `TransferFields`** → vlastní pole z kusovníku se do zakázky
+  dostane jen přes vlastní pole na `Planning Component` (tableextension 99000829) + kopii v
+  `Carry Out Action.OnAfterTransferPlanningComp(var PlanningComponent, var ProdOrderComponent)`. Ten event běží **před `Insert`**
+  (řádek zakázky už v DB je, `TransferBOM` jde až po `ProdOrderLine.Insert`); `Validate` množství tam dělej se zapnutým
+  `BlockDynamicTracking(true)`, ať `VerifyQuantity` nesahá na rezervace neexistujícího záznamu.
+- Změna stavu zakázky kopíruje komponenty `TransferFields` → vlastní pole přejdou sama.
+- Test obou cest: refresh přes `LibraryManufacturing.CreateAndRefreshProductionOrder`; plánování = zboží Lot-for-Lot s kusovníkem
+  (`Validate("Replenishment System", "Prod. Order")`), prodejní objednávka 2 týdny dopředu, `LibraryPlanning.CalcRegenPlanForPlanWksh`,
+  assert `Accept Action Message`, `CarryOutActionMsgPlanWksh` (založí Firm Planned). Plánovací komponentu čti **před** carry out.

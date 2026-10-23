@@ -712,3 +712,15 @@ System Application 28.5):
   SetCurrentKey(Priority) / SetView / SetRange / IsEmpty nad šablonami. Vzor: cust-soitron-bc CDS.W1
   `CDS Management CWSOI.ResetCustomerConfigTemplates` (CUST_DOM SK / CUST_EU / CUST_EXP podle `ebs_countrycode`;
   task 67287, 2026-10-22).
+- **Produkt na řádku účtované faktury (POSTEDSALESLINE-INV) není field mapping, řeší ho kód — a tiše spadne na write-in.**
+  Mapování `Sales Invoice Line` → `CRM Invoicedetail` má jen Quantity / slevu / cenu / částky (`CRM Setup Defaults.
+  ResetSalesInvoiceLineInvoiceMapping`). `ProductId` dosadí `CRM Int. Table. Subscriber.UpdateCRMInvoiceDetailsBeforeInsertRecord`
+  → `InitializeCRMInvoiceLineWithProductDetails` → `FindCRMProductId`, a jen jednou při založení řádku (řádky faktury se posílají
+  synchronně z `UpdateCRMInvoiceAfterInsertRecord` hlavičky; modify cesta přepočítává jen částky, produkt už nikdy). Prázdný
+  GUID = řádek jako **write-in product** (`IsProductOverridden = true`, `ProductDescription = 'No. Description.'`), bez chyby:
+  (a) `Type` není Item ani Resource (G/L účet, poplatek, komentář), (b) `Sales & Receivables Setup."Write-in Product No."` =
+  číslo řádku, (c) zboží nespárované a **mimo BC filtr ITEM-PRODUCT** (standard `Blocked = false`), (d) žádné mapování
+  Item ↔ CRM Product (`FindMapping`). Nespárované zboží **uvnitř** filtru se naopak spáruje za běhu (`SynchRecordIfMappingExists`)
+  nebo shodí celou fakturu chybou. Řádek objednávky (SOLINE-ORDERDETAIL) má oproti tomu field mapping `No. → ProductId` přes
+  spárování při každé synchronizaci, proto tam produkt je a na faktuře ne. Dodatečné spárování zboží existující řádky faktury
+  v Dataverse nespraví — vazbu faktury zrušit a poslat znovu. (w1-28, cust-soitron-bc 2RING DEV, 2026-10-23.)

@@ -2,13 +2,13 @@
 name: bc-al-objects
 description: >-
   BC/AL specifické objekty a API (sekce 5): All Profile, Upgrade Tag, No. Series GetNextNo vs PeekNextNo,
-  kontrola Document No., Unix timestamp, NMEBS vazba SO↔VZ, al-mcp ByReference, atributy zboží, DateFormula,
+  kontrola Document No., Unix timestamp, NMEBS vazba SO↔VZ, atributy zboží, DateFormula,
   CaptionClass + Translation Helper, CZ↔EN terminologie, CZZ zálohy (vazba na objednávku, generovaný řádek
-  zálohy), duplicita IČ/DIČ zákazníka/dodavatele, Attached to Line No. (xRec, Init, CurrFieldNo),
+  zálohy), duplicita IČ/DIČ zákazníka/dodavatele, Attached to Line No.,
   VerifyOnInventory, Item Jnl. Line UoM qty-per, Auto Format, Item Charge Assignment, Job Queue z účtování /
-  recurring, camt.053 Data Exchange (merge, Regex), Retention Policy (OnRefreshAllowedTables), Bin Code řádků
-  SO/PO → Whse. Receipt/Shipment (OnAfterGetDefaultBin, Validate Bin Code = Message), přesun z kódu (Bin Code
-  Take, pár Take/Place, základní MJ bez řízeného zaskl.). Načti u číselných řad, výroby, Job Queue, bank. importu, přihrádek,
+  recurring, camt.053 Data Exchange (merge, Regex), Retention Policy (OnRefreshAllowedTables), Bin Code SO/PO →
+  Whse. doklady (OnAfterGetDefaultBin), přesun z kódu (Bin Code Take, pár Take/Place, základní MJ bez řízeného
+  zaskl.), pole kusovníku → komponenta VZ (OnAfterProdOrderCompInsert, Planning Component → Carry Out). Načti u číselných řad, výroby, Job Queue, bank. importu, přihrádek,
   skladových aktivit. (Shopify/HTTP → bc-al-integrations; projekty → bc-al-projects; šarže/SN →
   bc-al-tracking; HNO/HPO, sešit požadavků → bc-al-blanket.)
 user-invocable: true
