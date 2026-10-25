@@ -630,3 +630,14 @@ u Zlomka objednávka z nabídky přebírá číslo nabídky, takže objednávky 
 ne podle stáří. Klíč na `SystemCreatedAt` v tableextension nepřidáš (AL0423, 3.9); u filtrovaných seznamů (otevřené doklady) je
 řazení bez indexu zanedbatelné. **Test:** mezi založením dvou dokladů `Sleep(100)` (`SystemCreatedAt` má přesnost milisekund, dva
 inserty těsně po sobě můžou dostat stejný čas) a ověř, že později založený je v seznamu výš. (2026-10-21, cust-zlomek-bc PBI 65654.)
+
+### 2.11 Párování ručně psaného textu s kódem — `=` na Textu rozlišuje velikost písmen, porovnej i popis
+
+`=` mezi dvěma `Text` hodnotami v AL **rozlišuje velikost písmen** (`'dole' = 'DOLE'` je `false`); `Code` pole jsou vždy velkými
+písmeny, takže porovnání Code s Code to schová. Filtry na Text pole rozlišují velikost taky — bez ní jen s prefixem `@`
+(`SetFilter(Note, '@dole')`). Když se volný text, který někdo píše ručně (poznámka řádku kusovníku), páruje s kódem z číselníku,
+porovnej `UpperCase(DelChr(x, '<>', ' '))` na obou stranách — a **zkontroluj reálná data**: uživatelé tam často píšou **popis**,
+ne kód, a ten se může lišit i diakritikou (`nahoře` vs. kód `NAHORE` — `UpperCase` dá `NAHOŘE`, takže nesedí). Pak porovnávej
+s kódem **nebo** s popisem záznamu číselníku. Bez shody raději chyba se jménem kódu i popisu než tichý fallback na jiný řádek.
+(2026-10-25, cust-alumistr-bc 62959 — délka profilu z řádku alternativního kusovníku podle `Note ALU` = CNC pozice; na BC-TEST
+poznámky `dole` / `nahoře` = popisy pozic `DOLE` / `NAHORE`.)
