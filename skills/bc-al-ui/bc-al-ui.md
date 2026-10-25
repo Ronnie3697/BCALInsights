@@ -627,8 +627,12 @@ BC-DEV 28.5 phone klient):
   Část textu nahrazuj po oddělovači (`Text.Split('; ')` + porovnání s číslem šarže), ne `Replace` (šarže může být podřetězcem varianty).
   `PC0037` na přiřazení je tu namístě (zobrazovací hodnota).
 - **Výraz přímo na stránce** (`field("Item No."; Mgt.GetItemNumbers(...))` nad *Bin Content Buffer*, režim 3) pageextension nepřebije
-  (`modify` mění jen properties, 4.6c) → do base appky **integrační event uvnitř formátovací procedury** (`OnGetItemNumbersOnAfterSetLotNoText(ItemNo,
-  VariantCode, LotNo, var LotNoText)`), subscriber v zákaznické appce. Jeden event pokryje všechny stránky, které proceduru volají, i budoucí.
+  (`modify` mění jen properties, 4.6c) → do base appky **formátovací procedura s integračním eventem** (EWM `GetLotNoText` →
+  `OnAfterGetLotNoText(ItemNo, VariantCode, LotNo, var LotNoText)`), subscriber v zákaznické appce. Jeden event pokryje všechny stránky,
+  které proceduru volají, i budoucí. Samostatný control nad polem `Rec` (EWM *Bin Adj Subform* `"Lot No."`) převeď na výraz s touž
+  procedurou: **název controlu i `OnDrillDown` nech** (4.6b), doplň `Caption` (dřív šel z tabulky → nový trans-unit, překlad do `.cs-CZ.xlf`).
+  `Rec` se nemění, drill-down a výběr dostanou čistou hodnotu (ověřeno BC-DEV 2026-10-25). Výrazový control pojmenovaný jako pole tabulky
+  hlásí ALCops `PC0033` (duplicitní OData EntityName, jen *Upravit v Excelu*).
   Pozor na volající, kteří do procedury posílají prázdnou variantu (EWM *Item Card Subform*, *Bin Content Buffer*) — subscriber pak hledá
   kartu šarže bez ohledu na variantu.
 - **`Tracking Specification` má Brick** (`Lot No.`, `Serial No.`, `Quantity (Base)`, `Package No.`, `Expiration Date`) → sloupec z
