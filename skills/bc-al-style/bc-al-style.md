@@ -85,6 +85,25 @@ potřebují, aby **uživatel** měl grant přímo (proto Oper dostane např.
 `Reservation Entry = RIMD` napřímo). Při refactoru existujícího setu zachovej
 původní object name admin setu — přiřazení v Access Control vážou na Role ID.
 
+**⚠️ První skutečná tabulka v rozšíření = první chyba oprávnění u zákazníka.** Dokud appka
+nesla jen tableextensions a temporary tabulky, uživatelé její permission set nepotřebovali
+a nikdo jim ho nepřiřadil. Nová tabulka (i správně zařazená do vlastního READ/EDIT setu)
+pak skončí hláškou *Omlouváme se, ale aktuální oprávnění akci zabránila. (TableData … Read:
+<appka>)* — u uživatelů bez SUPER, typicky na **uživatelsky definované (tenant) sadě**
+složené z produktových setů, která sady zákaznické appky nezahrnuje. Oprava je v prostředí
+(zahrnout set appky do té tenant sady / přiřadit), ne v kódu: `Permissions` na codeunitě
+nepomůže (uživatel potřebuje aspoň nepřímé právo), `InherentPermissions` na tabulce by to
+obešlo, ale u návrhových dat je to špatný nástroj. Trvalé „samoobslužné" řešení =
+`permissionsetextension` na `D365 BUS PREMIUM` / `D365 BASIC` (konvence výš) — rozhodnutí
+pro zákazníka. Dávej **EDIT**, ne READ, když cesta po čtení i zapisuje (jinak chyba jen
+popojede o krok). **Diagnostika read-only:** `?table=2000000053` (Access Control: Role ID,
+Company, User Name, Scope 1 = tenant sada) — `&filter=` u `table=` nejde („RunTable má navíc
+neznámé parametry"), grid je virtualizovaný → DOM iframu se scrollováním; obsah tenant sady
+(zahrnuté sady) ukáže factbox na page 9802, `?table=2000000166` se ukázal prázdný. Matice
+page 9816 má jen 10 uživatelů na obrazovku. (2026-10-25, cust-zlomek-bc BC-TEST, tabulka
+52410 `SL Act. Taken Param COZLK`; nikdo bez SUPER neměl `Zlomek-* COZLK` ani `Zlomek-* ZLK`,
+tenant sada `ESS_EM_EDIT` zahrnuje jen COEBS + EM sady.)
+
 **⚠️ PTE0018 — base-app granty nesmí být PŘÍMO v setu, který jde do
 `permissionsetextension`.** PerTenantExtensionCop hlásí „permission set should
 not be included through a permission set extension because it includes
