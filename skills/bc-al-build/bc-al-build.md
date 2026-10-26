@@ -856,6 +856,10 @@ Configurator Ext 28.0.50.
   neodinstalovaly. Verze dev buildu musí být > nainstalované PTE (jen v kopii `app.json`, 7.8). Další release PTE z pipeline do
   téhož prostředí pak narazí na AVS0109 výš → dev build nejdřív odinstalovat. (2026-10-13, Alumistr BC-TEST2 po čerstvé kopii
   z TEST: Alumistr Configurator Extension PTE 28.0.55.0 → dev 28.0.55.1.)
+  **Update nad dev buildem = `altool publishapp` rovnou s `.app` z NuGetu** (CI build masteru, vnitřní verze `28.0.<build>.0` >
+  dev buildu): bez lokální kompilace, bez uninstallu, ~1 min, appka zůstane `appType: dev`. Předem ověř, že ostatní dev buildy
+  v prostředí (base, Configurator…) splní minima a mají všechny členy, které appka volá (CI ji kompiloval proti nejnovější verzi z feedu).
+  `altool.exe` je v `<ext>\bin\`, ne v `bin\win32\`. (2026-10-26, Alumistr BC-TEST2: Configurator Ext dev 28.0.55.1 → 28.0.69.0.)
 - **PTE z feature větve na sdílený TEST zamyká release z masteru.** Verze nad buildem masteru (`<build>.<rev+1>`, např.
   28.0.172.1 nad 28.0.172.0) projde a nic z masteru neubere, když větev master obsahuje (ověř `ci.sourceSha` buildu nainstalované
   verze přes `pipelines_build list buildNumber`). Nové tabulky a pole ale v masteru nejsou. Další release z masteru do téhož
