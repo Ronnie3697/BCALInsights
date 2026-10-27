@@ -1,17 +1,16 @@
 ---
 name: bc-al-projects
 description: >-
-  BC/AL projekty (Job / Job Task / Job Planning Line, 5.x17–5.x28): Gen. Prod. Posting Group řádku plánování
-  jako zdroj pravdy pro deník projektů, změna default dimenze projektu (xRec v OnAfterModifyEvent), Location
-  Code z Job / Job Task jen pro nové řádky, vazba budget ↔ billable Purch. Job Cont.Entry No.IMEBS, dimenze
-  řádku plánování do Job Journal Line (UpdateDimensions až po OnAfterCreateDim, Usage Link), návazné doklady
-  projektu (Job Planning Line Invoice, Job No. EPEBS), guardy Job Planning Line.OnDelete, undo nákupní příjemky
-  s projektem, spotřeba projektu z prodejní dodávky per šarže / SN / položka příjmu (OnAfterInsertShipmentLine),
-  nákupní dobropis / vratka u Skip projektu (kontrola spotřeby per tracking, Posting Preview JLE), spotřeba
-  projektu z deníku zboží (list Spotřeba projektů, Item Jnl.-Check Line / OnAfterPostItemJnlLine), kontrola
-  množství z řádků plánování / přespotřeba (standard zvedá Quantity sám a přeceňuje, Job Link Usage a
-  OnBeforeUpdateRemainingQuantityFromUse, Never / Confirm / Always / Keep Original, Σ při vydání dokladu).
-  Načti u plánovacích řádků, deníku projektů i zboží s projektem, návazných dokladů, příjemek, dodávek, vratek.
+  BC/AL projekty (Job / Job Task / Job Planning Line, 5.x17–5.x28): účto skupina řádku plánování do deníku
+  projektů, změna default dimenze projektu (xRec v OnAfterModifyEvent), Location Code z Job / Job Task jen pro
+  nové řádky, vazba budget ↔ billable Purch. Job Cont.Entry No.IMEBS, dimenze řádku plánování do Job Journal
+  Line (UpdateDimensions po OnAfterCreateDim, Usage Link), návazné doklady (Job Planning Line Invoice, Job No.
+  EPEBS), guardy Job Planning Line.OnDelete, undo nákupní příjemky s projektem, spotřeba projektu z prodejní
+  dodávky per šarže / SN / položka příjmu (OnAfterInsertShipmentLine), nákupní dobropis / vratka u Skip projektu
+  (kontrola per tracking), spotřeba z deníku zboží (list Spotřeba projektů, Item Jnl.-Check Line /
+  OnAfterPostItemJnlLine), kontrola množství z řádků plánování / přespotřeba (standard zvedá Quantity sám a
+  přeceňuje; Job Link Usage, OnBeforeUpdateRemainingQuantityFromUse; Never / Confirm / Always / Keep Original;
+  Σ při vydání dokladu). Načti u plánovacích řádků, deníku projektů i zboží s projektem, dokladů projektu.
 user-invocable: true
 ---
 
