@@ -345,6 +345,10 @@ Assert.ExpectedErrorCode('Dialog');
     Knihovna dá náhodnou cenu, takže `Validate("Unit Price", X)` + `Modify(true)`.
   - Řádek i hlavičku aktivuj **přímým přiřazením** `Status := Active` + `Modify(false)`, ne přes `Validate(Status)`.
   - Řádek ceníku s prázdnou `Variant Code` platí pro všechny varianty.
+  - **Sleva místo ceny:** `CreatePriceListLine(…, "Price Amount Type"::Discount, …)` + `Validate("Line Discount %", 5)`, aktivace
+    stejně. Řádek dokladu ji dostane při `Validate(Quantity)` i na TestPage; kontrolní test „běžné zboží po změně množství = 5 %“
+    ověří, že ceník v testu opravdu přeceňuje (jinak by assert „sleva přežila“ prošel naprázdno). (2026-10-27, prod-ess-configurator-bc
+    66392 `…OverPriceListDiscount`, prošlo v kontejneru.)
   - Zdrojáky MS knihoven: BCApps `src/Layers/W1/Tests/ApplicationTestLibrary/LibraryPriceCalculation.Codeunit.al`.
 
   (2026-10-16, prod-ess-configurator-bc `CL Override Tests COEBS.SplitKeepsCurrentLinePriceOfOriginalLineWithPriceList`, prošel

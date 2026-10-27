@@ -266,6 +266,17 @@ CannotBePosted` + `FullVoucherCycleWithReplacementKeepsValueAndExpiration`.)
   problém nemá (codeunit dělá `Rec.Copy(Item2)`). (2026-09-29, cust-alumistr-bc PR 9604 build 28526,
   `CreditMemoCopiedFromPostedInvoiceKeepsInvoicedPrice`; zdroj Base App 28.5 `CalculateLowLevelCode.Codeunit.al`, `MfgItem.TableExt.al`.)
 
+- **Délka komponenty z EM Cutting Plan přes skutečný refresh VZ** (`LibraryManufacturing.CreateAndRefreshProductionOrder`): Cutting Plan
+  při refreshi naplní `Qty. per Piece CUEBS` komponenty z řádku kusovníku a `Length` = `Qty. per Piece` × konstanta z typu délky MJ
+  vs. `Manufacturing Setup."Optimaliz. Length Type CUEBS"` (m → mm = 1000). Funkční recept: `Unit of Measure."Length Type CUEBS"`
+  (`m`) na nové MJ (komponenta dělá `TestField` na **Unit of Measure**, ne Item UoM — Item UoM ho má jen jako FlowField),
+  tu MJ jako základní MJ profilu (`CreateItemUnitOfMeasure(…, 1)` + `Validate("Base Unit of Measure")`) **před** založením řádku
+  kusovníku, na řádku `Validate("Qty. of Pcs. CUEBS", 1)` a pak `Validate("Qty. per Piece CUEBS", 2.5)`; Nastavení výroby `mm`
+  přes `LibrarySetupStorage.Save(Database::"Manufacturing Setup")` v suite initu + `Restore()` v `Initialize`. Výsledek
+  `Length` 2500 na komponentě. Testy s ručně vloženými komponentami tenhle řetězec (i nesloučení komponent stejného zboží
+  s jinou poznámkou) nevidí. (2026-10-27, cust-alumistr-bc 62959 `RefreshedProdOrderHasComponentOfProfilePerPositionWithLengthInSetupUnit`,
+  prošel v kontejneru.)
+
 ### Cyklický Production BOM v testech
 
 `ProdBOMHeader.Validate(Status, ProdBOMHeader.Status::Certified)` má vestavěnou cycle detection a vrátí error. Pro test cyklického BOM:
