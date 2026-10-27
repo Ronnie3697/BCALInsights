@@ -207,7 +207,10 @@ Dvě verze téže appky v jedné cache (stará `.alpackages` + nový build) = ne
 - **Test appka s testy za `#IF TESTS` a `"preprocessorSymbols": ["TESTS_Skip"]`** (prod-ef-replications-bc, commit „test skip"
   2026-05) se v CI přeloží na prázdno — nové testy piš pod stejný guard (konzistence s rozhodnutím repa) a lokálně je ověř
   kopií `test/` ve scratchpadu se symbolem přepnutým na `TESTS` (`sed` na `app.json` kopie); jinak se chyby v testech neukážou.
-  (2026-09-29, prod-ef-replications-bc, Send With Parent Record.)
+  (2026-09-29, prod-ef-replications-bc, Send With Parent Record.) Do cache kopie dej **čerstvý build hlavní appky**, ne
+  `test/.alpackages` — ta je stará a nová pole / procedury v ní nejsou (`AL0118 … does not exist`). Když má hlavní `app.json`
+  ve stromu nižší verzi, než test `app.json` u závislosti žádá (27.0.3.2 vs. 28.0.0.0 → `AL1022`), sniž v kopii verzi té
+  **závislosti** (`sed` podle čísla řádku, ne první výskyt `"version"` — to je verze test appky). (2026-10-27, parent chain.)
 
 
 - **alc 18 + `Tests-TestLibraries` 28.4.53241.53504: tranzitivní `Any` a `Business Foundation Test Libraries` v cache BÝT
