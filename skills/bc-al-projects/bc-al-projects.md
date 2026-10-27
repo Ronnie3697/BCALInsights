@@ -7,7 +7,7 @@
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
 Obsahuje:
-- **5.x17–5.x26** Projekty (5.x24: spotřeba projektu z prodejní dodávky per tracking a per položka příjmu, pořadí v Sales-Post; 5.x25: přecenění položek projektu; 5.x26: nákupní dobropis / vratka u Skip projektu)
+- **5.x17–5.x27** Projekty (5.x24: spotřeba projektu z prodejní dodávky per tracking a per položka příjmu, pořadí v Sales-Post; 5.x25: přecenění položek projektu; 5.x26: nákupní dobropis / vratka u Skip projektu; 5.x27: spotřeba projektu z deníku zboží)
 
 ### 5.x17 Job Planning Line `Gen. Prod. Posting Group` = zdroj pravdy pro deník projektů; změna default dimenze projektu
 
@@ -485,3 +485,62 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   - Testy `CreditMemoFromPostedInvoice_*`: dobropis z faktury v testu = `CopyDocumentMgt.SetProperties(false, false, false, false, true, true,
     false)` + `CopySalesInvLinesToDoc(CrMemoHeader, SalesInvoiceLine s filtrem Document No., LinesNotCopied, MissingExCostRevLink)` (stejně
     jako page 5850); částečná vratka = `Validate(Quantity, menší)` na zkopírovaném řádku. Kompilace čistá, běh až v CI.
+
+### 5.x27 Spotřeba projektu z deníku zboží (IMEBS `Item Jnl. Project Usage IMEBS`, list „Spotřeba projektů") — W1 bez CZ šablony pohybu zásob
+
+- **Zadání (2026-10-27, prod-ep-itemManagement-bc, větev `features/misc`):** list deníku zboží s příznakem `Project Consumption IMEBS`
+  (tableextension 65133 `Item Journal Batch`, jen šablony typu Item — `TestField(Type)`); řádek Výdej (`Negative Adjmt.`) zaúčtuje položku
+  projektu Usage s kladným množstvím, Příjem (`Positive Adjmt.`) Usage se záporným (storno), obojí `Ledger Entry No.` = položka zboží
+  korekce, Job No. / Job Task No. jdou do ILE i VE standardem (`Item Jnl.-Post Line` řádky ~2037 / 2612 je kopíruje vždy, žádná vlastní
+  práce). Původní požadavek „Šablona pohybu zásob projektů v nastavení" = CZ `Invt. Movement Template CZL` (Core Localization Pack for
+  Czech) — IMEBS je W1 appka bez CZ závislosti (`.alpackages` jen W1 + EPEBS) → místo šablony **dvě pole v `Essence Projects Setup EPEBS`:
+  `Neg. Adjmt. Gen. Bus. PG IMEBS` / `Pos. Adjmt. Gen. Bus. PG IMEBS`** (obecná obchodní účto skupina pro výdej / příjem; rozhodnutí
+  uživatele). Řádek ji dostane v `OnAfterSetupNewLine` (nový řádek flagovaného listu = Negative Adjmt. + skupina) a v `OnAfterValidateEvent
+  "Entry Type"`; před účtováním `TestField("Gen. Bus. Posting Group", <setup>)`.
+- **Izolace od dokladů:** všechno visí na `IsProjectConsumptionLine` = `Journal Template Name` + `Journal Batch Name` neprázdné + `Get`
+  listu + flag. Řádky deníku zboží z účtování dokladů (Sales-Post, Purch.-Post, undo, `CalledFromAdjustment`) mají šablonu/list prázdné →
+  nic se nespustí; stávající spotřeba z dodávek / dobropisů (5.x24–5.x26) nedotčena. Vlastní pole `Job Planning Line No. IMEBS` mimo
+  flagovaný list = `FieldError` při kontrole (jinde by se ignorovalo).
+- **Standardní pole `Item Journal Line."Job No."` (1000) a `"Job Task No."` (1001) nemají ani OnValidate, ani TableRelation** (w1-28:
+  jen Caption) a na page 40 `Item Journal` nejsou. Validace přes tableextension `modify("Job No.") { trigger OnAfterValidate() }` (Job.Get +
+  `TestBlocked`, změna maže úkol a řádek plánování, `CreateDimFromDefaultDim(FieldNo("Job No."))`), `modify("Job Task No.")` (Posting
+  typ); lookup na pageextension přes **page-field `TableRelation = Job` / `"Job Task"."Job Task No." where("Job No." = field("Job No."))`**
+  (property page fieldu, tabulkové pole se nemění). Default dimenze projektu na řádek přes `Item Journal Line.OnAfterInitDefaultDimensionSources`
+  (`DimensionManagement.AddDimSource(DefaultDimSource, Database::Job, "Job No.")`), dimenze úkolu projektu až na JLE
+  (`CreateDimSetFromJobTaskDim` + `GetCombinedDimensionSetID`, jako `Job Journal Line.UpdateDimensions`).
+- **Kontrola před účtováním = `Item Jnl.-Check Line.OnAfterCheckItemJnlLine(var ItemJnlLine, CalledFromInvtPutawayPick, CalledFromAdjustment)`**
+  (konec `RunCheck`, volá ji `Item Jnl.-Post Batch.CheckLines` i `Item Jnl.-Post Line.Code` → platí pro list i náhled účtování; `EmptyLine`
+  řádky event nedostanou). `Item Jnl.-Check Line` sám žádnou kontrolu projektu nemá. Kontroluje: Entry Type ∈ {Negative, Positive Adjmt.}
+  (`FieldError` s labelem „must be %1 or %2 in a batch with %3"), `Item Charge No.` = '', `Value Entry Type` Direct Cost, skupina ze setupu,
+  Job No. / Job Task No. (Job `TestBlocked` + **`TestField("Apply Usage Link", true)`** — bez usage linku nejde vázat na řádek plánování ani
+  zakládat nový), úkol typu Posting, vyplněný řádek plánování = Budget (`Schedule Line`) Item téhož zboží s Usage Link bez System-Created.
+- **Účtování = `Item Jnl.-Post Line.OnAfterPostItemJnlLine(var ItemJournalLine, ItemLedgerEntry = GlobalItemLedgEntry, …, CalledFromAdjustment,
+  …)`** — konec `PostItemJnlLine`, u řádku se sledováním běží per rozdělený řádek (SN / šarže) → jedna JLE na položku zboží, tracking přes
+  `JobJournalLine.CopyTrackingFromItemLedgEntry`. Guardy: `CalledFromAdjustment`, Entry Type, `Item Charge No.`, `ILE."Entry No." <> 0`,
+  `ILE.Quantity <> 0`, shoda `Item No.` + `Entry Type` s řádkem. JLE stejnou cestou jako `PostConsumption` (5.x24): `Job Journal Line` přiřazením
+  (bez šablony/listu), `Validate("Qty. per Unit of Measure")`, `Validate(Quantity, −ILE.Quantity v MJ řádku)` s bindem `Skip Job Whse Pick
+  Check IMEBS` (Validate(Quantity) → Validate("Job Planning Line No.") → whse pick check), pak **`Unit Cost (LCY)` := `ItemJournalLine."Unit
+  Cost"`** (per MJ řádku v LCY = náklad, se kterým jde VE; `Validate(Quantity)` ho přepsal kartou zboží), cena z řádku plánování, ruční přepočet
+  součtů (`UpdateTotalCost` + Total Price / Line Amount), `Source Code` = `Source Code Setup."Item Journal"`, `BindSubscription(Job Ledg. Entry
+  No. IMEBS)` + `CreateJobLedgEntry`. `"Line Type" := Budget` nastavit vždy — `MatchUsageUnspecified` s prázdným Line Type dává Confirm.
+- **Řádek plánování:** vyplněný → `Job Planning Line No.` na JJL → `MatchUsageSpecified`. Nevyplněný → **nový rozpočtový řádek založit sám
+  před JLE** (`InitJobPlanningLine` + Validate Job No. / Job Task No. / Line No. (`GetNextLineNo` z EPEBS) / Line Type Budget → `Insert(true)`
+  → Validate Planning Date / Type / No. / Variant / Location / Bin / UoM / Quantity (i záporné u storna) → `Modify(true)`, vzor
+  `CreatePurchaseJobPlanningLines`), pak účtovat s jeho číslem. Důvod: standardní `MatchUsageUnspecified` by spotřebu napasoval na existující
+  budget řádek stejného zboží (u Skip projektu rozpočtový řádek nákupu navázaný z billable řádku → dodávka by ho pak přespotřebovala a
+  `HandleMatchUsageSpecifiedJobPlanningLine` zvedl množství); `OnAfterFindMatchingJobPlanningLine(…, var JobPlanningLineFound)` **vystřelí jen
+  když standard nic nenašel** (`exit(true)` dřív), takže „vždy nový řádek" přes event nejde. Založený řádek je normální (ne System-Created) →
+  jde vybrat na dalším řádku; `Unit Cost (LCY)` z deníku do něj **nevaliduj** (`Job Planning Line."Unit Cost (LCY)".OnValidate` u zboží se
+  Standard costing = Error), cena / náklad zůstávají z karty (`Validate("No.")`). `CheckItemAvailable` řádku plánování se z kódu nespustí
+  (`CurrFieldNo <> CalledByFieldNo`). Storno (Positive Adjmt.) bez kontroly na dříve zaúčtovanou spotřebu — místo pro ni je komentář
+  v `PostProjectUsage` (porovnat s `Qty. Posted`).
+- ⚠️ `Job Journal Line.ValidateJobPlanningLineLink` (uvnitř Validate("Job Planning Line No.")): existuje-li v DB **jiný** řádek deníku projektů
+  na tentýž řádek plánování, dá Confirm (bez GUI `Error('')`) — platí i pro `PostConsumption` z dodávky; nerozebráno, jen zjištěno.
+- **Test appka:** `Item Jnl Usage Test IMEBS` (65139; test range rozšířen `from 65135`, hlavní appka má codeunity do 65135 — ID 65140–65149
+  byly všechny obsazené). `LibraryInventory.CreateItemJournalLine(…, EntryType, …)` dělá `Validate("Entry Type")` → skupina ze setupu
+  dorazí; `Validate("Job No.")` na Item Journal Line jde (tableextension trigger). General Posting Setup s inventory účty:
+  `LibraryERM.FindGeneralPostingSetupInvtFull` → skupina pro výdej; pro příjem kopie setupu pod novou `CreateGenBusPostingGroup` (přímé
+  přiřazení PK + `Insert(true)`), zboží `Validate("Gen. Prod. Posting Group", <z nalezeného setupu>)`. `LibrarySetupStorage.Save(Database::
+  "Essence Projects Setup EPEBS")` po Get-or-Insert. `SetUpNewLine(LastLine)` z testu funguje na `Init` řádku s validovanou šablonou / listem
+  (test defaultu Entry Type + skupiny). Chyby: `Assert.ExpectedTestFieldError(FieldCaption, '')` = „must have a value", s hodnotou =
+  „must be equal to". Kompilace čistá, běh v CI.
