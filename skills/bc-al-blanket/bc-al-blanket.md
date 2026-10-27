@@ -119,6 +119,19 @@ BC-TEST2 (Alumistr, split 10 ks se slevou 15 % → oba řádky 0 %) a ve zdrojá
 `UpdateUnitPriceByField`, `PriceCalculationV16.Codeunit.al` `ApplyDiscount`, `SalesLinePrice.Codeunit.al`
 `IsPriceUpdateNeeded`). (2026-10-06, prod-ess-configurator-bc PBI 66392, `Sales Line Split Mgt. COEBS`.)
 
+**Vzor „ruční sleva přežije ruční změnu množství"** (prod-ess-configurator-bc PBI 66392 znovuotevřeno, 2026-10-27):
+- `modify(Quantity)` v tableextension: `OnBeforeValidate` si uloží `Rec."Line Discount %"` do codeunitu v globální proměnné
+  tableextension (Before i After běží na téže instanci `Rec`), `OnAfterValidate` ji vrátí `Validate("Line Discount %")`.
+- Jen při `CurrFieldNo = FieldNo(Quantity)`: `Quantity` validované vnořeně z MJ / zboží / vazby HNO nese `CurrFieldNo` toho pole
+  (viz níže), kód má 0 — volající z kódu (split, přepsání z konfigurace) si slevu řeší sám.
+- Zdroj slevy `Rec` v `OnBeforeValidate`, ne `xRec`: na stránce je `xRec` stav před úpravou a slevu napsanou na tomtéž řádku těsně
+  před množstvím nemusí obsahovat (úvaha, ověří test na TestPage — zatím jen zkompilovaný).
+- `ValidateLineDiscountPercent` (w1-28) nemá bránu `Allow Line Disc.`, jen `TestJobPlanningLine` + `TestStatusOpen`.
+- Řádky, které rozšíření při změně zdroje **maže a zakládá znovu**, slevu ztratí s řádkem — přenést ji při znovuvytvoření (temp
+  buffer smazaných řádků před `DeleteAll`, párování typ + číslo + varianta + pořadí, aplikovat až po eventech, které řádek
+  přeceňují). Množstevní slevy z ceníku (minimální množství) se na takových řádcích přestanou přepočítávat — před volbou „vracet
+  vždy" ověř v ceníku zákazníka (stránka *Řádky ceníku* 7005, filtr `Line Discount %` <> 0, sloupec *Minimální množství*).
+
 ⚠️ **Ruční navázání přes `Blanket Order Line No.` spustí vnořené `Validate(Quantity)`.** Standardní `OnValidate` pole (Sales i
 Purchase Line, w1-28) po `TestField`ech volá `Validate("Variant Code" / "Location Code" / "Unit of Measure Code")` a UoM trigger
 končí `Validate(Quantity)` (prodej přes `UpdateQuantityFromUOMCode`) — teprve **potom** `Validate("Unit Price" / "Direct Unit Cost")`
