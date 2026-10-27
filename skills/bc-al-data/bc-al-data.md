@@ -389,6 +389,16 @@ begin
 end;
 ```
 
+**⚠️ Triggery tableextension běží jen při `Insert(true)` / `Modify(true)` / `Delete(true)`.** `OnBeforeModify` /
+`OnAfterModify` v tableextension jsou součást table triggerů, takže `Rec.Modify()` / `Modify(false)` z base kódu je
+přeskočí úplně. Logika, která se musí uplatnit při **každém** uložení (zachování příznaku proti zastaralé kopii recordu,
+kterou si drží zakládající kód), patří do subscriberu `OnBeforeModifyEvent` (má `var Rec`, `var xRec`, `RunTrigger`
+a volá se vždy). Příklad: `Mfg. Carry Out Action.InsertProdOrderLine` dělá `ProdOrderLine.Insert()` → převod vazby MTO
+(subscriber na `Reservation Entry` nastaví vlastní pole jinou instancí) → `ProdOrderLine.Modify()` bez triggerů — trigger
+v tableextension příznak nezachránil, VZ ze sešitu plánování ho neměla; z *Vytvořit VZ z prodeje* to fungovalo jen proto,
+že tam hlavička příznak má dřív, než vzniknou řádky. (2026-10-27, cust-sonnentor-bc 65215, test
+`PlanningWorksheetOrderCarriesPalletTracking` v CI.)
+
 **Kdy naopak použít event subscriber (`OnAfterInsertEvent` apod.):**
 
 - Když je logika cross-cutting nebo zasahuje do jiné domény (např. propagace

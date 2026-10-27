@@ -278,6 +278,10 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   vrací HTML (chybí scope Test), ale otevřený v přihlášeném Chromu (Claude in Chrome tab) vrátí JSON
   (`errorMessage`, `stackTrace`). `runId` je v logu kroku Publish Test Results. (2026-09-15)
   (2026-09-07, cust-alumistr-bc 65916, 2. kolo review)
+- **Text chyby spadlého testu bez Chromu: MCP `pipelines_build` s `action: get_status`** — v HTML build reportu (sekce Issues) je u každého
+  spadlého testu `##[error]` řádek `JménoTestu () : JménoTestu(,): error : Assert.AreEqual failed. Expected:<…> Actual:<…>. <message>`,
+  tedy celá hláška Assertu vč. vlastní zprávy. Chybí jen stack trace — ten pořád jen přes REST `Runs/<runId>/results`. Pořadí: `get_status`
+  první, REST až když potřebuješ řádek. (2026-10-27, cust-soitron-bc build 29103, `EUAccountGetsEUTemplate` — v labelu EU zemí chybělo `GR`.)
 - **Čtení CI logu: stejné `Document No.` v chybách několika testů za sebou = každý z nich spadl a odroloval se**
   (číselná řada se vrátila); prošlý test commitne a číslo posune. Runner úspěšné testy nevypisuje, ale z čísel dokladů
   v hláškách jde poznat, které testy mezi faily prošly (build 28149: „1003" u testů 3–5, „1005" od testu 9 = testy 6 a 8
