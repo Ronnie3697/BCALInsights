@@ -339,6 +339,11 @@ linky znovu. Každá validace spustí `ApplyDiscount` a `Line Discount %` spadne
 (5.x21 v `bc-al-blanket.md`). Od PBI 66392 (větev `66392_SplitLineDiscount`, 2026-10-06) si split slevu originálu
 pamatuje a na konci ji vrací **na obě linky** — i přes CL slevu z konfigurace (rozhodnutí: ručně přepsaná sleva musí
 přežít i split se stejnou konfigurací). Nový krok do splitu, který mění řádek přes `Validate`, dej **před** `RestoreLineDiscount`.
+**PBI 66392 znovuotevřeno 2026-10-27 (sleva po změně množství):** ruční změna množství konfigurovaného nebo vytvořeného řádku
+vrací slevu z doby před změnou (`Sales Line COEBS` `modify(Quantity)` → `Sales Line Config Mgt.KeepLineDiscountOnQuantityChange`,
+jen `CurrFieldNo = Quantity`); vytvořené řádky při přepočtu kvůli samotnému množství převezmou slevy smazaných
+(`RecalculateConfigCreatedLines(…; KeepLineDiscounts)`, akční sleva / vzorec vyhrává; platí i pro originální linku splitu). Vzor
+v 5.x21 `bc-al-blanket.md`. Větev `66392_QuantityChangeKeepsLineDiscount` (worktree `prod-ess-configurator-bc-66392`).
 
 Dialog kontext prodejního řádku **zná**: `SalesLineConfigMgt.HandleVariantCodeLookup`
 volá `VariantConfigurationPage.SetSalesLineContext(DocType, DocNo, LineNo)`
