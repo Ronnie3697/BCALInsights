@@ -869,6 +869,10 @@ Configurator Ext 28.0.50.
 - **PTE smí záviset na DEV appce** (MS Learn *Extension types and scope*) — PMALU / Configurator Ext jako PTE nad dev buildem
   Alumistr SE Extension prošly. Pozor: přesun / upgrade sandboxu odinstaluje DEV appky i PTE, které na nich závisí, a nový publish
   DEV buildu z VS Code může závislé PTE odinstalovat (tak na TEST2 zmizely PTE Alumistr appky z 26. 8.).
+  Protipříklad: `altool publishapp` (Synchronize) dev → dev se **stejným schématem** závislou PTE nechal nainstalovanou (2026-10-27,
+  TEST2: Essence Configurator dev 28.0.37.67241 → 28.0.38.66392, Alumistr Configurator Extension PTE 28.0.69.1 dál `installed`).
+  Před publishem ověř původ dev buildu (vlastní build z commitu X → `git diff X origin/master -- */src/table*`), po něm
+  `get_installed_apps` na závislé appky.
 
 ### 7.25 Závislosti do sdíleného kontejneru `containers.essencebs.com` jako Dev appky (dev endpoint, UserPassword)
 
