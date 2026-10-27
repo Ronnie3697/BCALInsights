@@ -904,6 +904,17 @@ ED Item Sales Disponibility 28.0.0, Essence Shopify Connector 28.0.6 (závislost
 - **Neúspěšný pokus balíček na serveru stejně zaregistruje** → opakování téhož `.app` hlásí *„A duplicate package ID is detected"*.
   Přelož znovu (každá kompilace = nové package ID) a publikuj s `--schemaupdatemode ForceSync` — **jen DEV**, zahodí data
   odebraných sloupců (7.18).
+- ⚠️ **Neúspěšný dev publish NAD jiným dev buildem téže appky umí nechat prostředí BEZ appky.** Sonnentor BC-DEV (2026-10-27,
+  dev 28.0.167.2 → 28.0.167.308, nainstalovaný závislý dev build `SON CDS Sync`): 1. pokus *„The Extension cannot be unpublished
+  because it is in use by the following tenants: …"* + *„Původní rozšíření byla obnovena"*, ale **závislou appku odinstaloval a
+  nevrátil**; 2. pokus (nová kompilace) starý build **odpublikoval**, schema sync pak spadl na *„Pole 'X' nelze nalézt. Odebrání polí
+  není povoleno."* (pole kolegy z neodmergované práce, v DB ze starého buildu) → nový build publikovaný, nenainstalovaný, starý pryč.
+  Proto **před publishem zkontroluj schéma**: `altool` na Synchronize nejdřív zkus jen když víš, že nainstalovaný build nemá pole navíc
+  (vlastní build / build masteru); cizí dev build v prostředí = zeptej se předem na ForceSync. Po každém pokusu ověř stav přes
+  automation `…/companies(<id>)/extensions` (`isInstalled`, `publishedAs`) — `get_installed_apps` (admin API) ukazuje jen nainstalované
+  a starý build v něm „zmizí" bez hlášky. Odinstalované závislé appky vrať `POST …/extensions(<packageId>)/Microsoft.NAV.install` (204).
+  Stažení symbolů z dev endpointu (`…/dev/packages?…&versionText=X`) vrací **nejnovější publikovaný** balíček, ne verzi X → obsah
+  odpublikovaného buildu už nezjistíš.
 - Příkaz (token z cache VS Code, bez interaktivního přihlášení, 7.2b v `bc-al-tools.md`): `altool.exe publishapp <app>
   --environmenttype Sandbox --environmentname <env> --tenant <tenantId> [--schemaupdatemode ForceSync]`; výstup filtruj
   `grep -v "^\[MSAL\]\|^\[LogMetrics"`, úspěch = `Success: The package … has been published`.
