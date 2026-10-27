@@ -523,6 +523,16 @@ Alumistr (větev `ProdOrderCompMergeNoteColor`): `Event Subscribers ALU` na `OnA
 řádek VZ čte přes `GetRangeMin` filtrů Status / Prod. Order No. / Prod. Order Line No., které base nastaví před voláním. Holý filtr
 na barvu kusovníku by shodné řádky bez barvy na barevné VZ nikdy nesloučil. Sčítání kusů při sloučení opravuje EM Cutting Plan.
 
+⚠️ **`Length` komponenty VZ = délka jednoho kusu v jednotce optimalizace z *Nastavení výroby*, a jen k okamžiku naplnění.**
+`Prod. Order Component CUEBS` (tableext ř. ~117) dává `Validate(Length, "Qty. per Piece CUEBS" × GetLengthTypeConstant(ItemUoM."Length
+Type CUEBS"))`; konstanta převádí typ délky MJ zboží na `Manufacturing Setup."Optimaliz. Length Type CUEBS"` (m→m 1, m→mm 1000,
+mm→m 0,001). Kdo chce délku v mm (CNC soubor), musí počítat s tím, že jednotku určuje setup, ne MJ. **Změna setupu stávající
+komponenty nepřepočítá** — přepočet běží jen s `Qty. per Piece`, takže VZ vzniklé před změnou drží starou jednotku, dokud se
+neaktualizují. Ověřeno čtením Alumistr BC-TEST 2026-10-27: setup `mm` od 2026-10-22 08:35 (`SystemModifiedAt`), MJ `M` profilu `m`,
+komponenty VZ z 2026-10-07 mají `Length` 3,5 / 4 (metry). Diagnostika: page inspector na komponentě (`Length (40)`, `SystemCreatedAt`)
+a na *Nastavení výroby* (`Optimaliz. Length Type CUEBS`, `SystemModifiedAt`) — sloupec *Délka* je v gridu komponent skrytý. Tisk CNC
+datové věty (COALU, 62959) bere od 2026-10-27 délku právě odsud (komponenta s `Note ALU` = pozice).
+
 ## C9. MJ z akčního řádku přepíše Pricing Matrix přes Parametr A/B (Alumistr)
 
 Base `InitNewSalesLineFromAction` MJ z `SL Action Line."Unit of Measure Code"` validuje správně (`ApplyItemSpecificFields`,
