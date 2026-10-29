@@ -277,6 +277,14 @@ CannotBePosted` + `FullVoucherCycleWithReplacementKeepsValueAndExpiration`.)
   s jinou poznámkou) nevidí. (2026-10-27, cust-alumistr-bc 62959 `RefreshedProdOrderHasComponentOfProfilePerPositionWithLengthInSetupUnit`,
   prošel v kontejneru.)
 
+- **`Item.Validate("Expiration Calculation", …)` padá na „The settings for expiration dates do not match on the item tracking
+  code and the item“**, pokud zboží nemá kód sledování s *Use Expiration Dates* (standardní OnValidate pole 5900, i pro
+  `LibraryInventory.CreateItem` bez sledování). Test fallbacku „expirace z Expiration Calculation bez řádků sledování“ hodnotu
+  přiřaď bez validace (`Evaluate(Item."Expiration Calculation", "<+1Y>")` + `Modify(true)` — `Modify(true)` OnValidate pole
+  nespouští), nebo dej zboží kód sledování s `Validate("Use Expiration Dates", true)`; u šaržového zboží ale vlastní logika
+  (Prod. Order Lot Mgt. SON) založí očekávané sledování výstupu s datem a fallback se pak netestuje. (2026-10-27,
+  cust-sonnentor-bc 65662, `ExpirationDateFallsBackToLotExpirationCalculation` v CI.)
+
 ### Cyklický Production BOM v testech
 
 `ProdBOMHeader.Validate(Status, ProdBOMHeader.Status::Certified)` má vestavěnou cycle detection a vrátí error. Pro test cyklického BOM:

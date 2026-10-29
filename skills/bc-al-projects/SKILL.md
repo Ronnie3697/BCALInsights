@@ -1,16 +1,16 @@
 ---
 name: bc-al-projects
 description: >-
-  BC/AL projekty (Job / Job Task / Job Planning Line, 5.x17–5.x27): Gen. Prod. Posting Group řádku plánování
-  jako zdroj pravdy pro deník projektů, změna default dimenze projektu (xRec v OnAfterModifyEvent), Location
-  Code z Job / Job Task jen pro nové řádky, vazba budget ↔ billable Purch. Job Cont.Entry No.IMEBS, dimenze
-  řádku plánování do Job Journal Line (UpdateDimensions až po OnAfterCreateDim, Usage Link), návazné doklady
-  projektu (Job Planning Line Invoice, Job No. EPEBS), guardy Job Planning Line.OnDelete, undo nákupní příjemky
-  s projektem, spotřeba projektu z prodejní dodávky per šarže / SN / položka příjmu (OnAfterInsertShipmentLine),
-  nákupní dobropis / vratka dodavateli u Skip projektu (kontrola spotřeby per tracking, Posting Preview JLE,
-  Get Posted Doc. Lines to Reverse), spotřeba projektu z deníku zboží (list Spotřeba projektů, Item Jnl.-Check
-  Line / OnAfterPostItemJnlLine, Job No. na Item Journal Line bez validace, nový rozpočtový řádek). Načti u
-  plánovacích řádků, deníku projektů i zboží s projektem, návazných dokladů, příjemek, dodávek a vratek projektu.
+  BC/AL projekty (Job / Job Task / Job Planning Line, 5.x17–5.x28): účto skupina řádku plánování do deníku
+  projektů, změna default dimenze projektu (xRec v OnAfterModifyEvent), Location Code z Job / Job Task jen pro
+  nové řádky, vazba budget ↔ billable Purch. Job Cont.Entry No.IMEBS, dimenze řádku plánování do Job Journal
+  Line (UpdateDimensions po OnAfterCreateDim), návazné doklady (Job Planning Line Invoice, Job No. EPEBS),
+  guardy Job Planning Line.OnDelete, undo nákupní příjemky s projektem, spotřeba projektu z prodejní
+  dodávky per šarže / SN / položka příjmu (OnAfterInsertShipmentLine), nákupní dobropis / vratka u Skip projektu
+  (kontrola per tracking), spotřeba z deníku zboží (list Spotřeba projektů, OnAfterPostItemJnlLine), kontrola
+  množství z řádků plánování / přespotřeba (standard zvedá Quantity sám a přeceňuje; Job Link Usage,
+  OnBeforeUpdateRemainingQuantityFromUse; Never / Confirm / Always / Keep Original; Σ při vydání dokladu).
+  Načti u plánovacích řádků, deníku projektů i zboží a dokladů projektu.
 user-invocable: true
 ---
 

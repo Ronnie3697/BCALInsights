@@ -694,3 +694,11 @@ namespaces, interfaces, `SecretText`, nedávných analyzer rules.
 
 ---
 
+
+### 1.17 CodeCop AA0139 u `var Text` parametru Base App s polem `Text[N]` — lokální proměnná + `CopyStr` zpět
+
+`MailManagement.ValidateEmailAddressField(Rec."Invoicing Email SOI")` (parametr `var EmailAddress: Text`, pole `Text[80]`)
+se zkompiluje, ale CodeCop hlásí **AA0139 „Possible overflow assigning 'Text' to 'Text[80]'"** (procedura do `var` zapisuje
+zpět — ořezaný text přes `DelChr`). Base App dělá v `Customer."E-Mail".OnValidate` totéž, jenže analyzery na ni neběží; s Essence
+`failOn warning` to shodí CI. Vzor: `Tmp: Text; Tmp := Rec.Pole; Proc(Tmp); Rec.Pole := CopyStr(Tmp, 1, MaxStrLen(Rec.Pole));`.
+Platí pro každý `var Text` / `var Code` parametr volaný s polem pevné délky. (2026-10-29, cust-soitron-bc 66200, lokální alc 17 + CodeCop.)

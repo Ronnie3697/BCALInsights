@@ -7,7 +7,7 @@
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
 Obsahuje:
-- **5.x17–5.x27** Projekty (5.x24: spotřeba projektu z prodejní dodávky per tracking a per položka příjmu, pořadí v Sales-Post; 5.x25: přecenění položek projektu; 5.x26: nákupní dobropis / vratka u Skip projektu; 5.x27: spotřeba projektu z deníku zboží)
+- **5.x17–5.x27** Projekty (5.x24: spotřeba projektu z prodejní dodávky per tracking a per položka příjmu, pořadí v Sales-Post; 5.x25: přecenění položek projektu; 5.x26: nákupní dobropis / vratka u Skip projektu; 5.x27: spotřeba projektu z deníku zboží; 5.x28: kontrola množství z řádků plánování — standard zvedá Quantity sám, hooky Job Link Usage / OnBeforeUpdateRemainingQuantityFromUse, Σ při vydání dokladu)
 
 ### 5.x17 Job Planning Line `Gen. Prod. Posting Group` = zdroj pravdy pro deník projektů; změna default dimenze projektu
 
@@ -544,3 +544,37 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   "Essence Projects Setup EPEBS")` po Get-or-Insert. `SetUpNewLine(LastLine)` z testu funguje na `Init` řádku s validovanou šablonou / listem
   (test defaultu Entry Type + skupiny). Chyby: `Assert.ExpectedTestFieldError(FieldCaption, '')` = „must have a value", s hodnotou =
   „must be equal to". Kompilace čistá, běh v CI.
+
+### 5.x28 Kontrola množství z řádků plánování (Essence Projects Setup Never / Confirm / Always / Keep Original) — standard zvedá množství sám
+
+- **Standard při přespotřebě navázaného řádku plánování zvedne `Quantity` SÁM, a to dvakrát nezávisle** (w1-28): `Job Link Usage.
+  HandleMatchUsageSpecifiedJobPlanningLine` (`Validate(Quantity, Σ)` když Total > Quantity) a `Job Planning Line.Use` →
+  `UpdateRemainingQuantityFromUse` (`Validate(Quantity, Q + Posted − Remaining)`, když Posted > Remaining). `Validate(Quantity)` z kódu
+  (`CurrFieldNo = 0`) přitom **znovu tahá cenu i náklad**: `RetrieveCostPrice(0)` přeskočí filtr podle pole a u Item vrátí true při změně
+  množství bez `BypassQtyValidation`, u Resource / G/L přes `IsQuantityChangedForPrice` (jen s extended price calc). To je ta „nežádoucí
+  změna částek" z reklamace Soitronu (task 67360). Hooky: `OnHandleMatchUsageSpecifiedJobPlanningLineOnBeforeUpdateQuantity(var JPL, JJL,
+  var UpdateQuantity)` vypne první zvednutí; **`Job Planning Line.OnBeforeUpdateRemainingQuantityFromUse(var JPL, xJPL, PostedQty, var
+  IsHandled)` chytí VŠECHNY cesty usage** (standard, TSEBS override `OnBeforeMatchUsageSpecified`, IMEBS `PostConsumption`, deník
+  projektů) — v `Use` je `Qty. Posted` už navýšené, Remaining ještě ne; po vlastním `Validate(Quantity)` dopočte `ControlUsageLink`
+  Remaining = Quantity − Qty. Posted, proto `IsHandled := true`, jinak standard zvedne podruhé. Keep Original = `Validate("Remaining Qty.",
+  Rem − Posted)` (záporné projde; `Qty. to Transfer to Journal` OnValidate hlídá jen Type Text). Ceny při zvednutí drží manuálně bindovaná
+  codeunit s `IsHandled` v `OnBeforeFindPriceAndDiscount` + `OnBeforeUpdateUnitCost` (`Plan. Line Price Guard EPEBS`); v posting cestě
+  před Validate `SetBypassQtyValidation(true)` jako standard (warehouse verify + CheckQuantityPosted).
+- **Kontrola při vydání dokladu:** `Release Purchase Document.OnBeforeReleasePurchaseDoc(var PurchaseHeader, PreviewMode, var
+  SkipCheckReleaseRestrictions, var IsHandled, SkipWhseRequestOperations)` / `Release Sales Document.OnBeforeReleaseSalesDoc(var SalesHeader,
+  PreviewMode, var IsHandled, …)` — běží i z `Purch.-Post` / `Sales-Post` (účtování otevřeného dokladu ho vydá), v náhledu `PreviewMode`
+  → bez Confirm. **Σ nákup = otevřené Purchase Line Order/Invoice (`Quantity (Base)` − `Qty. Invoiced (Base)`) − Credit Memo/Return Order
+  + Purch. Inv. Line − Purch. Cr. Memo Line (vše přes standardní `Job Planning Line No.`), NE `Qty. Posted`** — u Skip projektu nákup usage
+  neúčtuje a `Qty. Posted` je dodané množství (dalo by falešné překročení). Σ prodej = totéž přes `Job Contract Entry No.` (IMEBS); u Skip
+  projektu navíc budget řádek z `Purch. Job Cont.Entry No.IMEBS`: posted usage (`Quantity (Base)` − `Remaining Qty. (Base)`) + nedodané
+  otevřené objednávky kontraktu (`Quantity (Base)` − `Qty. Shipped (Base)`) — dodávka ho spotřebuje (5.x24).
+- **`Sales Line.TestJobPlanningLine`** (OnValidate Quantity / No. / UoM / Variant …) → `Job Post-Line.TestSalesLine` = Error „cannot be
+  changed" při `CurrFieldNo <> 0` → z UI se množství řádku s kontraktem změnit NEDÁ; z kódu (`Validate`, CurrFieldNo 0) projde. Prodejní
+  přespotřeba billable řádku je tak prakticky jen z integrací; reálně hrozí budget řádek Skip projektu (dodávka 12 proti plánu 10).
+- `ValuesAllowed = Never, Confirm, Always;` na enum poli tabulky funguje (alc 17, runtime 17) — pole Zboží bez „Keep Original". Default
+  enum 0 = Never → po nasazení je kontrola nejpřísnější, dokud se setup nenastaví (rozhodnutí: strictní default, oznámeno uživateli).
+- Testy bez dialogů: journal usage `LibraryJob.CreateJobJournalLineForPlan(JPL, UsageLineTypeBlank(), 1, JJL)` + `Validate("Job Planning
+  Line No.")` + `Validate(Quantity, X)` + `Job Jnl.-Post Line.RunWithCheck(JJL)`; release `LibraryPurchase.ReleasePurchaseDocument` /
+  `LibrarySales.ReleaseSalesDocument`; Confirm přes `[ConfirmHandler]` s odpovědí v globální proměnné; `LibrarySetupStorage.Save(Database::
+  "Essence Projects Setup EPEBS")` po Get-or-Insert. (2026-10-27, prod-ep-projectBase-bc `features/salesQuotes` `Plan. Line Qty. Check
+  EPEBS` + prod-ep-itemManagement-bc `features/misc` `Sales Plan. Qty. Check IMEBS`; kompilace čistá, běh v CI.)
