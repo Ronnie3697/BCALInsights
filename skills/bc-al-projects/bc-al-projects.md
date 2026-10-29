@@ -578,3 +578,35 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   `LibrarySales.ReleaseSalesDocument`; Confirm přes `[ConfirmHandler]` s odpovědí v globální proměnné; `LibrarySetupStorage.Save(Database::
   "Essence Projects Setup EPEBS")` po Get-or-Insert. (2026-10-27, prod-ep-projectBase-bc `features/salesQuotes` `Plan. Line Qty. Check
   EPEBS` + prod-ep-itemManagement-bc `features/misc` `Sales Plan. Qty. Check IMEBS`; kompilace čistá, běh v CI.)
+
+### 5.x29 Typ řádku na úkolu projektu (`Job Task."Line Type IMEBS"`) — jaké řádky plánování úkol přijme; QB tasky Soitronu
+
+- **IMEBS (prod-ep-itemManagement-bc `features/misc`, 2026-10-29):** tableextension 65135 `Job Task IMEBS`, pole `Line Type IMEBS`
+  = standardní enum `Job Planning Line Line Type` (Budget / Billable / Both Budget and Billable), `InitValue = "Both Budget and
+  Billable"` (nový ruční úkol nic neomezuje). Kontrola v `Job Planning Line IMEBS`: `OnBeforeInsert` + `OnBeforeModify` +
+  `modify("Line Type") OnAfterValidate` → `CheckJobTaskLineTypeIMEBS()` (`IsTemporary` / prázdný úkol / neexistující úkol = exit;
+  `JobTask.AllowsLineTypeIMEBS(LineType)` = Both nebo shoda). `OnValidate` pole na úkolu odmítne zúžení, když už má řádky jiného
+  typu. Pole na `Job Task Lines` (1002), `Job Task Lines Subform` (1001), `Job Task Card` (1003) — všechny mají control
+  `"Job Task Type"` pro `addafter`. Důsledek: `MatchUsageUnspecified` (System-Created budget řádek při usage bez vazby) na úkolu
+  Billable spadne při účtování — záměr (kontrola), ne bug. Testy v `Job SO Quantity Test IMEBS` (region Job Task Line Type).
+- **Existující řádky tabulky dostanou u nového enum pole hodnotu 0 = Budget, `InitValue` platí jen pro `Init()`** → upgrade
+  codeunit 65137 `Job Task Line Type Upg. IMEBS` (`Access = Internal`, jinak ALCops **AC0007**; subscriber
+  `OnGetPerCompanyUpgradeTags` uvnitř Upgrade codeunity alc 17 bere) volá per úkol `JobTask.UpdateLineTypeFromPlanningLinesIMEBS()`
+  (table metoda, ať jde testovat bez `internalsVisibleTo`): jen úkoly s hodnotou Budget → podle řádků (jen Budget → Budget, jen
+  Billable → Billable, mix / bez řádků → Both). **Install codeunit chybí záměrně — IMEBS range 65130–65149 je po tomhle plná**
+  (hlavní appka 65130–65137, testy 65138–65149, test range 65135–65149 sdílí namespace). Bez instalu nemá čerstvě nainstalovaná
+  firma tag nastavený (System App `Upgrade Tag Install` nastaví všechny tagy jen při instalaci System App a `Company-Initialize` /
+  `Company.OnAfterInsertEvent` jen u nové firmy — pro appku nainstalovanou do existující firmy to dělá jen její vlastní
+  `OnInstallAppPerCompany` → `UpgradeTag.SetAllUpgradeTags()`), takže při dalším upgradu by upgrade proběhl znovu → proto „sahej
+  jen na defaultní hodnotu a odvoď z řádků" (uživatelovy Billable / Both zůstanou, ztratí se jen explicitní Budget bez řádků →
+  Both). Až range někdo rozšíří, doplnit Install codeunit. Nový test codeunit taky nešel založit → testy do existujícího.
+- **Soitron (cust-soitron-bc `features/replications`):** `QB Buffer Processing Mgt. SOI.EnsureJobTask(JobNo, TaskNo, Description,
+  LineType)` dává nákladovému úkolu (`QB Cost Task Prefix`) Budget a výnosovému (`QB Revenue Task Prefix`) Billable; existující
+  úkol se nemění. `QB Buffer Validation Mgt. SOI.ValidateJobTaskLineTypes` v kontrole bufferu: existující nákladový úkol musí
+  povolit Budget a výnosový Billable (Aggregation řádek jen výnosový), jinak řádek `Error` s `TaskLineTypeLbl` — aby zpracování
+  nespadlo v půlce na kontrole řádku plánování. `CostTaskNo` / `RevenueTaskNo` zveřejněny (volají `LoadSetup()`). Testy
+  `QB Buffer Test SOI` (`ProcessBuffer_CreatedTasks_CarryLineTypeOfTheirSide`, `CheckBuffer_*TaskAllowsOnly*_SetsError`,
+  `ProcessBuffer_ExistingTasksAllowingBothLineTypes_…`). Kompilace IMEBS i Soitron čistá proti IMEBS buildu ze zdrojáku; EP Base
+  pro IMEBS `SalesPlanQtyCheck` (`Plan. Line Qty. Check EPEBS`) musel být taky zkompilovaný ze zdrojáku
+  (`prod-ep-projectBase-bc features/salesQuotes`, verze v kopii `app.json` zvednutá na 28.0.34.0, aby test appka IMEBS s minimem
+  28.0.24.0 prošla). Soitron závisí na IMEBS verzi s tímhle polem → IMEBS PR musí jít do feedu dřív než Soitron.
