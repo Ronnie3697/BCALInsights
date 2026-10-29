@@ -534,6 +534,17 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   Standard costing = Error), cena / náklad zůstávají z karty (`Validate("No.")`). `CheckItemAvailable` řádku plánování se z kódu nespustí
   (`CurrFieldNo <> CalledByFieldNo`). Storno (Positive Adjmt.) bez kontroly na dříve zaúčtovanou spotřebu — místo pro ni je komentář
   v `PostProjectUsage` (porovnat s `Qty. Posted`).
+- **Šarže = číslo projektu u sledovaného zboží (2026-10-29, tamtéž):** `Item Journal Line."Lot No."` (6501) `OnValidate` → `CheckItemTracking`:
+  **bez `Item Journal Batch."Item Tracking on Lines"` tracking z polí řádku tiše smaže** (`ClearTracking` + `ClearDates`), s ním hodí
+  `ItemTrackingExistsErr`, když řádek už má `Reservation Entry` (tracking zadaný přes 6510). Účtování dávky (`Item Jnl.-Post Batch.
+  UpdateItemTracking` → `ItemJournalLine.CreateItemTrackingLines`) položky z polí řádku založí až v `PostLines`. Proto flag `Project
+  Consumption IMEBS` při zapnutí sám dělá `Validate("Item Tracking on Lines", true)` a šarži plní `SetLotNoFromJob` (z `modify("Job No.")
+  OnAfterValidate`, `OnAfterValidateEvent "Item No."` / `"Entry Type"`): guard `ItemJnlLineReserve.ReservEntryExist` (ruční tracking vyhrává),
+  „vyžaduje šarži" = `Item Tracking Code."Lot Specific Tracking"` nebo per typ položky `"Lot Neg. Adjmt. Outb. Tracking"` (výdej) /
+  `"Lot Pos. Adjmt. Inb. Tracking"` (příjem); změna projektu smaže šarži rovnou staré (`= xRec."Job No."`), ručně zadanou jinou nechá.
+  `Lot No.` z ILE pak nese i JLE (`CopyTrackingFromItemLedgEntry`). Test: `LibraryItemTracking.CreateItemTrackingCode(Code, false, true)`
+  + zboží `Validate("Item Tracking Code")`, naskladnění `CreateItemJournalLineInItemTemplate` + `CreateItemJournalLineItemTracking(…, LotNo,
+  Qty)`; `LibraryItemTracking.CreateItemWithItemTrackingCode(Item, Code)` existuje (vrací No.).
 - ⚠️ `Job Journal Line.ValidateJobPlanningLineLink` (uvnitř Validate("Job Planning Line No.")): existuje-li v DB **jiný** řádek deníku projektů
   na tentýž řádek plánování, dá Confirm (bez GUI `Error('')`) — platí i pro `PostConsumption` z dodávky; nerozebráno, jen zjištěno.
 - **Test appka:** `Item Jnl Usage Test IMEBS` (65139; test range rozšířen `from 65135`, hlavní appka má codeunity do 65135 — ID 65140–65149
