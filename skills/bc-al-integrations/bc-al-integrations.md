@@ -692,6 +692,13 @@ System Application 28.5):
   Runtime workaround: `RecordRef.GetTable(SentEmail)` + `FieldRef.Value` (Access je jen compile-time) — funguje, ale je to
   obcházení záměru modulu; čti jen, nikdy nezapisuj, a drž to v jedné proceduře s komentářem. Pole: 2 `Message Id` (Guid),
   7 `Date Time Sent`, 13 `Sent From` (Text[250]). Subscriber běží v session Email Dispatcheru (background task), ne v UI.
+  **Lepší než RecordRef:** `Sent Email` má veřejné procedury `GetMessageId()` a `GetAccountId()` (w1-28, bez Access/Scope) →
+  `SentEmail.GetMessageId()` a zbytek přes codeunit `Email Message` (`Get`, `GetSubject`, `GetBody`, `IsBodyHTMLFormatted`,
+  `GetRecipients`); `Sent From` / `Date Time Sent` zůstávají jen přes RecordRef (ověřeno alc 17 + al-mcp, 2026-10-29).
+- **Vazba e-mailu na doklad / příležitost neparsuj z předmětu — je v tabulce `Email Related Record` (8909), která je Public**
+  (bez `Access`, jen `InherentPermissions = X`; tabledata R si dej do permission setu). Klíč `Email Message Id` + `Table Id` +
+  `System Id` (+ `Relation Type` Primary/Related, `Relation Origin`). Standardní odeslání prodejní nabídky e-mailem tam zapíše
+  `Sales Header` (36) jako Primary → `SalesHeader.GetBySystemId` → `"Opportunity No."`. (cust-sonnentor-bc 67411, 2026-10-29.)
 - `using System.Email;` v appce bez `namespace` = `warning AL0789` (direktivy se ignorují) → s Essence `failOn warning`
   shodí CI; buď celá appka na namespaces, nebo `using` vynech.
 - Pro notifikaci do Power Automate platí 11.6: `[ExternalBusinessEvent]` (preview, Dataverse + Virtual Table appka, Dataverse
