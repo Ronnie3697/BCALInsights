@@ -659,6 +659,21 @@ Z prod-ess-dotykackaConnector-bc, PBI 63075 (test Pavla Fily 2026-10-08, oprava 
   Skipped, nevratné). ⚠️ Při zavádění „ignore“ stavu zkontroluj navazující toky: `CheckCancelledReceiptPosted` pouštěl
   storno přeskočeného originálu dál bez vyrovnání → ignorovaný prodej by dostal dobropis; proto `GetSkipReason`
   přeskočí i storno přeskočené účtenky. (prod-ess-dotykackaConnector-bc, Sonnentor BC-TEST, 2026-10-20.)
+- **Volba v administraci ↔ pole API produktu – dokumentace API to neříká, ověř ve zdrojáku adminu.** Ověřeno
+  29. 10. 2026 (admin.dotykacka.cz 26.10.2): zaškrtávátko *Neaplikovat hromadné slevy* (detail produktu, záložka
+  *Ceny*; manuál: na produkt se nikdy nezapočítá sleva na celý účet) se vykresluje jako **`checked: !discountPermitted`**
+  → `discountPermitted: false` = zaškrtnuto (pozor, obrácená logika). *Při prodeji pod sklad* (záložka *Sklady*) =
+  `stockOverdraft`: `ALLOW` *Vždy povolit prodej*, `DISABLE` *Nikdy nepovolit prodej*, `WARN` *Zobrazit pouze
+  upozornění*. Postup bez zápisu do dat: přihlášený admin je React; v DevTools / JS projdi
+  `performance.getEntriesByType('resource')`, stáhni `*.js` a překlad `product.json`, najdi český popisek → klíč
+  (`disableGroupDiscounts`) → v bundlu kontext `t("product:<klíč>")` ukáže navázané pole. Síťové requesty adminu přes
+  Claude in Chrome vidět nejsou (data jdou mimo zachycené XHR) a výstup s úryvky bundlu filtr nástroje blokuje
+  („Cookie/query string data“) → ulož do `window.__x` a vypisuj očištěné (jen písmena/čísla). Nastavení produktu
+  konektor posílá při **každé** synchronizaci → ruční změna v adminu vydrží jen do dalšího běhu; per produkt jen eventem
+  (konektor `OnAfterBuildProductJson`).
+- **Poznámka:** order má `note` (≤ 1000) a order item `note` (poznámka k položce) — podle docs.api.dotypos.com, na
+  živých datech Sonnentoru zatím neviděno. Konektor předává celé JSON orderu / položky v eventech účtenky → rozšíření
+  si poznámku (např. číslo dárkového poukazu u položky „uplatnění poukazu“) přečte bez změny konektoru.
 
 ### 11.11 Email modul (System Application) z PTE — `Sent Email` má pole Internal, `Email Message` / `Email Recipient` jsou Internal tabulky
 
