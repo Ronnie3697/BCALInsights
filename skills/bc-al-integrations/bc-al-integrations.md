@@ -225,6 +225,28 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
   `Shpfy Metafield` OnAfterDelete se spustí po řádcích. Hromadné plnění hodnot metapolí / značek z dat BC (pole, atribut, dimenze,
   funkce, maska JSON) řeší produktová appka **Essence Shopify Connector (SCEBS)** – dokumentace a známé chyby
   `prod-ess-shopifyConnector-bc/docs/module/Essence Shopify Connector.md` (větev Dokumentace, 2026-10-01).
+- **Definice metapolí konektor načte jen prvních 50 na typ vlastníka, bez stránkování** (28.5, `releases/29.0` i `main`
+  k 2026-10-29): `Shpfy Metafield API.GetMetafieldDefinitions` → `metafieldDefinitions(ownerType: …, first: 50)` bez
+  `pageInfo` / `after` (v *Shopify Log Entries* je vidět přímo dotaz). Shopify řadí podle `sortKey` default `ID`,
+  `reverse: false` → přijde 50 **nejstarších** definic, cokoli založeného za padesátou do BC nikdy nedorazí.
+  - Sloty navíc žerou definice appek (`shopify--discovery--*`, `reviews`) a nepodporované typy: `ConvertToMetafieldType`
+    tiše přeskočí vše mimo enum `Shpfy Metafield Type` — **všechny `list.*`**, `rating`, `rich_text_field` (ani `main` je
+    nemá). Definici typu `list.*` BC nedostane ani se stránkováním.
+  - Uvolnit sloty v Shopify nejde rozumně: appkové definice nesmažeš, smazání vlastní zahodí hodnoty na všech produktech
+    a znovu založená definice dostane nové ID, tedy jde zase na konec.
+  - Obejití bez HTTP: `Shpfy Metafield` (30101) je public a export (`CreateMetafieldQuery` → `metafieldsSet`) potřebuje
+    jen ownerId + namespace + key + type + value. Záznam s `Id = 0` dostane v `OnInsert` záporné ID a vyexportuje se
+    stejně jako metapole přidané ručně na stránce *Metapole Shopify* (editovatelná jen při `Sync Item = To Shopify`
+    + `Can Update Shopify Products`). Plošně tedy chybějící `Shpfy Metafield` zakládat vlastním kódem z vlastní
+    konfigurace (SCEBS: z *Definic hodnot metapolí*), ne spoléhat na `GetMetafieldDefinitions`. Trvalá oprava = stránkování
+    v microsoft/BCApps.
+  - Druhý strop: `ProductById` / `VariantById` čtou `metafields(first: 50)` a `UpdateMetafieldsFromShopify` pak
+    `DeleteUnusedMetafields` smaže každé BC metapole vlastníka, které v odpovědi nebylo — při importu produktu (`Sync Item
+    = From Shopify`, `MapVariant` při importu objednávky, Add Item se shodou SKU) tak zmizí metapole nad 50 hodnot
+    produktu i ještě nevyexportovaná se záporným ID. Při exportu stejný strop (`ProductMetafieldIds`) jen způsobí
+    opakované posílání (upsert, neškodné).
+
+  (cust-sonnentor-bc, 77 produktových definic na dev shopu, nejnovější v BC chyběla; SCEBS report 63120, 2026-10-29.)
 
 ### 5.y3 Shopify Connector — vlastní GraphQL mutace z PTE = vlastní HttpClient, vlastní token i vlastní adresa shopu
 
