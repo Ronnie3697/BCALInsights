@@ -587,9 +587,15 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   `modify("Line Type") OnAfterValidate` → `CheckJobTaskLineTypeIMEBS()` (`IsTemporary` / prázdný úkol / neexistující úkol = exit;
   `JobTask.AllowsLineTypeIMEBS(LineType)` = Both nebo shoda). `OnValidate` pole na úkolu odmítne zúžení, když už má řádky jiného
   typu. Pole na `Job Task Lines` (1002), `Job Task Lines Subform` (1001), `Job Task Card` (1003) — všechny mají control
-  `"Job Task Type"` pro `addafter`. Důsledek: `MatchUsageUnspecified` (System-Created budget řádek při usage bez vazby) na úkolu
-  Billable spadne při účtování — záměr (kontrola), ne bug; stejně report `Job Create Sales Order IMEBS` s *Create purchase lines*
-  potřebuje úkol typu Budget / Both. Testy `Job Task Line Type Test IMEBS` (65179).
+  `"Job Task Type"` pro `addafter`. **Automatický budget řádek z usage bez vazby (`MatchUsageUnspecified` → `Job Post-Line.
+  InsertPlLineFromLedgEntry`) se na Billable úkolu NEblokuje, jen `Message`** (rozhodnutí uživatele 2026-10-29: účtování spotřeby
+  nesmí spadnout): `Job Transfer Line.FromJobLedgEntryToPlanningLine` dělá `Validate("Line Type")` (ř. 534, w1-28) **dřív** než
+  `"System-Created Entry" := true` (ř. 554) → kontrola ve `modify("Line Type") OnAfterValidate` jen při `CurrFieldNo =
+  FieldNo("Line Type")` (ruční zadání), kód se kontroluje až v `OnBeforeInsert` (System-Created → `Message` při `GuiAllowed`) /
+  `OnBeforeModify` (System-Created → tiše). Ruční `Validate("Line Type")` z kódu (QB, IMEBS) tak dostane chybu až při Insertu,
+  text stejný. Report `Job Create Sales Order IMEBS` s *Create purchase lines* potřebuje úkol typu Budget / Both. Testy `Job Task
+  Line Type Test IMEBS` (65179; usage bez řádku plánování: `LibraryJob.CreateJobJournalLineForType(UsageLineTypeSchedule(),
+  ResourceType(), JobTask, JJL)` + `Job Jnl.-Post Line.RunWithCheck` + `[MessageHandler]`, projekt `Apply Usage Link` = true).
 - **Existující řádky tabulky dostanou u nového enum pole hodnotu 0 = Budget, `InitValue` platí jen pro `Init()`** → upgrade
   codeunit 65137 `Job Task Line Type Upg. IMEBS` (`Access = Internal`, jinak ALCops **AC0007**; subscriber
   `OnGetPerCompanyUpgradeTags` uvnitř Upgrade codeunity alc 17 bere) volá per úkol `JobTask.UpdateLineTypeFromPlanningLinesIMEBS()`
