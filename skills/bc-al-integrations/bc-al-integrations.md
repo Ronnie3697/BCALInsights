@@ -240,6 +240,15 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
     + `Can Update Shopify Products`). Plošně tedy chybějící `Shpfy Metafield` zakládat vlastním kódem z vlastní
     konfigurace (SCEBS: z *Definic hodnot metapolí*), ne spoléhat na `GetMetafieldDefinitions`. Trvalá oprava = stránkování
     v microsoft/BCApps.
+  - Event na definice ani na rozšíření dotazu není. `first: 50` přepsat nejde: GraphQL eventy `Shpfy GraphQL Queries`
+    (`OnBeforeGetGrapQLInfo`, `OnAfterReplaceParameters`…) jsou `[InternalEvent]` (v BC 29 smazané). Jediný metapolový
+    event `Shpfy Product Events.OnBeforeUpdateProductMetafields(ProductId: BigInteger)` (`internal` + IntegrationEvent,
+    i na `main`) běží v `Shpfy Product Export.UpdateMetafields` těsně před `SyncMetafieldsToShopify` produktu a jeho variant
+    (jen produktový export s `Product Metafields To Shopify`, ne `Only Sync Price`) → místo pro založení / naplnění
+    chybějících `Shpfy Metafield` (shop přes `Shpfy Product.Get(ProductId)`), které konektor hned pošle.
+  - Hromadný export (`CreateOrUpdateMetafieldsInShopify`) Shopify ID zpět nezapisuje (jen jednotlivý `SyncMetafieldToShopify`
+    ze stránky). Metapole se záporným ID — i ta z `GetMetafieldDefinitions`, dotaz `legacyResourceId` nečte — tak nejsou
+    v `MetafieldIds` a jdou do `metafieldsSet` při **každém** syncu (upsert, funkčně OK, jen provoz).
   - Druhý strop: `ProductById` / `VariantById` čtou `metafields(first: 50)` a `UpdateMetafieldsFromShopify` pak
     `DeleteUnusedMetafields` smaže každé BC metapole vlastníka, které v odpovědi nebylo — při importu produktu (`Sync Item
     = From Shopify`, `MapVariant` při importu objednávky, Add Item se shodou SKU) tak zmizí metapole nad 50 hodnot
