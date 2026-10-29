@@ -211,6 +211,11 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   `Test-Repo.ps1`, 7.23 v `bc-al-build.md`) → do dočasné cache zkopíruj `.alpackages` **bez** staré verze té appky a
   přidej verzi odtud (dvě verze téže appky v cache = nejisté, kterou alc vezme). (2026-10-06, cust-sonnentor-bc:
   Essence Shopify Connector 28.0.0 v `.alpackages` vs. 28.0.6 v cache kontejneru, `ShpfyMetafieldMgmt.Codeunit.al`.)
+  **Totéž u sesterské appky téhož repa:** `AL0118 The name '"Invoicing Email SOI"' does not exist` při kompilaci CDS.W1
+  = symbol `Soitron Base W1_28.0.95.30.app` (v `.alpackages` i `Base.W1/app/`) je z 23. 10., pole přibylo později a
+  `.app` nikdo nepřegeneroval. Fix bez zásahu do repa: zkompiluj **kopii** sesterské appky ze scratchpadu
+  (`cp -r app.json *.json *.png src Translations`) do dočasné cache pod stejným názvem souboru a teprve pak závislou
+  appku; starou verzi z cache napřed smaž. (2026-10-29, cust-soitron-bc CDS.W1 ↔ Base.W1.)
 - **`alc.exe` při kompilaci PŘEPÍŠE `.docx` Word layouty reportů v `src/`** — kompilátor do
   layoutu regeneruje custom XML part s datasetem, takže i bez jediné změny v kódu vyleze
   po buildu `M ...Report.docx` (binární diff, typicky +1 kB). Není to tvoje změna —

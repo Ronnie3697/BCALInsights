@@ -717,6 +717,24 @@ System Application 28.5):
   tabulek (`Sales Header`/`CRM Salesorder`, `Sales Line`/`CRM Salesorderdetail`), testy s `RegisterTableConnection('@@test@@')`
   + `Integration Table Mapping.CreateRecord` nad proxy tabulkami bez Dataverse. (cust-soitron-bc CDS.W1
   `CDS Management CWSOI.SetSalesOrderMappingToPreferBCOnUpdateConflict`, 2RING DEV, 2026-10-22.)
+- **Objednávka z Power Apps má v BC dostat číslo Power Apps (`ordernumber`) a název objednávky (`name`) do vlastního pole.**
+  Standard SALESORDER-ORDER (w1-28 `ResetBidirectionalSalesOrderMapping`) mapuje `"Your Reference" ← OrderNumber`
+  (FromIntegrationTable) a `"No." → BusinessCentralOrderNumber` (ToIntegrationTable; po insertu v BC ho dopíše i
+  `CRM Int. Table. Subscriber.SetOrderNumberAndDocOccurenceNumber`), `Name` nemapuje vůbec — BC → PA ho plní
+  `SetCRMOrderName` v `OnBeforeInsertRecord` jménem zákazníka. **Field mapping `"No." ← OrderNumber` nedávej:** na už
+  spárované objednávce (založené v BC, číslo z řady ≠ `ordernumber`) by engine měnil PK při `Modify`. Správně subscriber
+  `Integration Rec. Synch. Invoke.OnBeforeInsertRecord(IntegrationTableMapping, SourceRecordRef, var DestinationRecordRef,
+  var InsertWithSystemId)` s guardem CRM Salesorder → Sales Header: `DestinationRecordRef.SetTable(SalesHeader)` →
+  `"No." := OrderNumber` → `GetTable` (vzor standardu `UpdateSalesOrderQuoteNo`). `Sales Header.OnInsert` (`InitInsert`) sáhne
+  na číselnou řadu jen při prázdném `"No."` (`NoSeries.TestManual` je až v OnValidate), řádky si hlavičku dohledají přes
+  spárování (`AddDocumentNoToSalesOrderLine`), engine spáruje přes `SystemId`. `OrderNumber` je Text[100] → při délce > 20
+  radši `Error` (padá jen ten záznam, hláška je v Integration Synch. Job Errors) než tiché `CopyStr`. Název: field mapping
+  `<vlastní Text[100]> ← Name` FromIntegrationTable stačí — delší text engine zkrátí sám (`Integration Record
+  Synch.TransferFieldData` → `Outlook Synch. Type Conv.EvaluateTextToFieldRef`, `PadStr` na délku pole; zdroj w1-28
+  `CRM/Outlook/OutlookSynchTypeConv.Codeunit.al`, ne `SynchEngine/`). Testy bez Dataverse: neinsertované recordy přes
+  `RecordRef.GetTable` + volání `internal` procedury, zkrácení přes engine jako v 11.8 (`Temp Integration Field Mapping`).
+  (cust-soitron-bc CDS.W1 `CDS Sync Logic CWSOI.SetSalesOrderNoFromPowerApps`, `CDS Management CWSOI.AddOrderNameFieldMapping`,
+  2RING DEV, 2026-10-29.)
 - **Víc konfiguračních šablon na jednom mapování (sloupec *Table Config Templates* na Integration Table Mappings) =
   tabulka `Table Config Template` (5325; pro Dataverse stranu `Int. Table Config Template` 5326), ne pole
   `Table Config Template Code` mapování.** Engine (`Integration Rec. Synch. Invoke.FindTableConfigTemplate`, w1-28) čte
