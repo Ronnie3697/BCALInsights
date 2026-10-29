@@ -588,18 +588,18 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   `JobTask.AllowsLineTypeIMEBS(LineType)` = Both nebo shoda). `OnValidate` pole na úkolu odmítne zúžení, když už má řádky jiného
   typu. Pole na `Job Task Lines` (1002), `Job Task Lines Subform` (1001), `Job Task Card` (1003) — všechny mají control
   `"Job Task Type"` pro `addafter`. Důsledek: `MatchUsageUnspecified` (System-Created budget řádek při usage bez vazby) na úkolu
-  Billable spadne při účtování — záměr (kontrola), ne bug. Testy v `Job SO Quantity Test IMEBS` (region Job Task Line Type).
+  Billable spadne při účtování — záměr (kontrola), ne bug; stejně report `Job Create Sales Order IMEBS` s *Create purchase lines*
+  potřebuje úkol typu Budget / Both. Testy `Job Task Line Type Test IMEBS` (65179).
 - **Existující řádky tabulky dostanou u nového enum pole hodnotu 0 = Budget, `InitValue` platí jen pro `Init()`** → upgrade
   codeunit 65137 `Job Task Line Type Upg. IMEBS` (`Access = Internal`, jinak ALCops **AC0007**; subscriber
   `OnGetPerCompanyUpgradeTags` uvnitř Upgrade codeunity alc 17 bere) volá per úkol `JobTask.UpdateLineTypeFromPlanningLinesIMEBS()`
   (table metoda, ať jde testovat bez `internalsVisibleTo`): jen úkoly s hodnotou Budget → podle řádků (jen Budget → Budget, jen
-  Billable → Billable, mix / bez řádků → Both). **Install codeunit chybí záměrně — IMEBS range 65130–65149 je po tomhle plná**
-  (hlavní appka 65130–65137, testy 65138–65149, test range 65135–65149 sdílí namespace). Bez instalu nemá čerstvě nainstalovaná
-  firma tag nastavený (System App `Upgrade Tag Install` nastaví všechny tagy jen při instalaci System App a `Company-Initialize` /
-  `Company.OnAfterInsertEvent` jen u nové firmy — pro appku nainstalovanou do existující firmy to dělá jen její vlastní
-  `OnInstallAppPerCompany` → `UpgradeTag.SetAllUpgradeTags()`), takže při dalším upgradu by upgrade proběhl znovu → proto „sahej
-  jen na defaultní hodnotu a odvoď z řádků" (uživatelovy Billable / Both zůstanou, ztratí se jen explicitní Budget bez řádků →
-  Both). Až range někdo rozšíří, doplnit Install codeunit. Nový test codeunit taky nešel založit → testy do existujícího.
+  Billable → Billable, mix / bez řádků → Both). Tag při čisté instalaci nastaví `Install IMEBS` (65160, `OnInstallAppPerCompany` →
+  `UpgradeTag.SetAllUpgradeTags()`) — **bez vlastního Install codeunitu tag nikdo nenastaví** (System App `Upgrade Tag Install`
+  jen při instalaci System App, `Company-Initialize` / `Company.OnAfterInsertEvent` jen u nové firmy) a při dalším upgradu by
+  data fix proběhl znovu nad daty se správným schématem. IMEBS range 65130–65149 byla tímhle úkolem plná (hlavní appka
+  65130–65137, testy 65138–65149 — test range sdílí namespace), uživatel přidal **65160–65179** (`idRanges` v app i test
+  `app.json`); Install = 65160, test codeunit = 65179 (testy od konce range).
 - **Soitron (cust-soitron-bc `features/replications`):** `QB Buffer Processing Mgt. SOI.EnsureJobTask(JobNo, TaskNo, Description,
   LineType)` dává nákladovému úkolu (`QB Cost Task Prefix`) Budget a výnosovému (`QB Revenue Task Prefix`) Billable; existující
   úkol se nemění. `QB Buffer Validation Mgt. SOI.ValidateJobTaskLineTypes` v kontrole bufferu: existující nákladový úkol musí
