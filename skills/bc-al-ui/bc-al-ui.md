@@ -847,3 +847,17 @@ Ověřeno v BC-DEV 28.5, phone klient (prod-ew-mobileBase-bc, pilot na vyskladn�
   (řádky dokladu, deník listu, detail řádku podle sledování / nastavení). Cíl otevřený z kódu je v **režimu úprav** (bez tužky)
   a zůstává původní stránka včetně pageextension a eventů zákazníků. V DOM po přepínací kartě zůstane schovaný `.spa-view`,
   Zpět ale vede rovnou na seznam. (prod-ew-mobileBase-bc: pohyby, příjemky, řádky příjemky, listy inventury.)
+
+### 4.30 Nevyplněné pole typu výčet ukazuje caption první hodnoty — `HideValue` podle vazebního pole
+
+Pole `Enum` nemá prázdný stav: nový záznam má ordinal 0, a když výčet nemá prázdnou hodnotu s ordinalem 0, stránka ukazuje její
+caption. Typicky `Enum "Sales Document Type"` vedle čísla dokladu: řádek bez dokladu ukazuje **„Nabídka"** (Quote = 0).
+Uživatel to čte jako „poukaz se uplatnil na nabídce".
+
+- Oprava na stránce, bez zásahu do tabulky: `HideValue = Rec."Sales Document No." = '';` na controlu typu. Výraz se
+  vyhodnocuje per řádek i v repeateru, hodnota zůstává ve filtrech a v datech, jen se nezobrazí.
+- Vlastní výčet navrhuj s prázdnou hodnotou `value(0; " ") { Caption = ' '; }`. Na standardní výčet (`Sales Document Type`,
+  `Purchase Document Type`) to nejde, tam pomůže jen `HideValue`.
+- Při prohlížení dat přes `?table=<id>` se hodnota zobrazí dál. `HideValue` platí jen pro stránku.
+
+(2026-10-30, cust-sonnentor-bc 63637, stránka 54810 *Dárkové poukazy objednávky Shopify*, sloupec *Typ prodejního dokladu*.)

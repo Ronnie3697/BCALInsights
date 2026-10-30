@@ -10,7 +10,7 @@ description: >-
   klepnutí na řádek = náhled, CardPageId v režimu zobrazení, ListPart s CardPageId (dědí
   SubPageView), chyba OnValidate jen křížek, InstructionalText, \ v Message,
   add-in mezera, Rec
-  prázdného listu z filtrů; kostky (User ID Filter, drill-down, pořadí). Načti u page, partů, kostek, výběrů, captionů a
+  prázdného listu z filtrů; nevyplněný výčet = caption první hodnoty (HideValue); kostky (User ID Filter, drill-down, pořadí). Načti u page, partů, kostek, výběrů, captionů a
   viditelnosti.
 user-invocable: true
 ---
