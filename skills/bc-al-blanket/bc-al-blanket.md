@@ -98,6 +98,14 @@ cesta vzniku řádku má jiný hook. Ověřeno ve zdrojích Base App 28.4 (cust-
   řádků. Akce sešitu *Merge with Lot Accumulation Period* (CZ „Sloučit s Obdobím kumulace dávky“, report 64247) slučuje podle
   zboží / lokace / varianty / MJ / data bez eventu na filtr → vlastní pole sloučených řádků se ztratí (zůstanou z prvního).
   (2026-10-30, cust-alumistr-bc PBI 67394 — Poznámka / Barva / Parametr A/B z komponent VZ chyběly v sešitu.)
+  **Ruční test reportu 64245 v sandboxu:** Nastavení výroby, záložka *MRP dozásobení Essence* — všechny čtyři *Výchozí šablona /
+  list sešitu plánování / požadavků* (`TestField`, prázdné v čerstvém prostředí) a záznam *Nastavení uživatele* pro přihlášeného
+  (`UserSetup.Get(UserId())`). *Ukládat chyby* na request page = dávkový režim (`HelpRunnerOREBS`), pro interaktivní cestu nech
+  vypnuté. Hláška *„Žádné řádky plánování nebyly navrženy.“* není chyba: komponenta se plánuje jen při `Inventory − prodej + nákup
+  − Qty. on Component Lines (všechny otevřené VZ) + … < Remaining Qty. (Base)` k datu potřeby. Zboží se zásobou z dřívějších
+  testovacích dat pokryje malou komponentu → zvedni *Množství za*. Nákupní zboží jde do šablony požadavků, výrobní do plánování.
+  Ve výsledné stránce *Řádky požadavků* (517) vlastní sloupce nejsou, akce *Zobrazit sešit* otevře 291 se vším. (2026-10-30,
+  Alumistr BC-DEV.)
 - Test knihovny BC 28: `Library - Planning` / `Library - Manufacturing` / `Library - Sales` jsou v **Application Test
   Library**, ne v Tests-TestLibraries (tam zbyla jen `Library - Manufacturing OnPrem`). Užitečné: `CalcRequisitionPlanForReqWkshAndGetLines(var ReqLine; var Item; From; To)`,
   `CarryOutReqWksh(var ReqLine; ExpirationDate; OrderDate; PostingDate; ExpectedReceiptDate; YourRef)`,

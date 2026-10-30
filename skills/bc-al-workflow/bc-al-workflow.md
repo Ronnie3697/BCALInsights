@@ -624,7 +624,15 @@ parametru pro textovou formuli.)
 - **Modální okna (editor e-mailu) mají malý viewport.** Maximalizační ikona pomůže jen částečně; obsah delší
   tabulky **vyparsuj z DOM** (`[...doc.querySelectorAll('table')]` → řádky) a vykresli ho v dokumentaci sám.
   `javascript_tool` vrací `[BLOCKED: Cookie/query string data]`, když výsledek obsahuje celé `innerHTML`
-  s URL a tokeny — vracej jen extrahovaná data (texty buněk), ne HTML.
+  s URL a tokeny — vracej jen extrahovaná data (texty buněk), ne HTML. Blokuje i obyčejný text ve tvaru
+  `Šířka=1200 ; Výška=800` (páry `klíč=hodnota` vypadají jako query string) → odděluj `->` nebo `|`, ne `=`.
+  Sloupce mřížky daleko vpravo BC nevykreslí (buňky v DOM nemají hodnotu, dokud nejsou ve výřezu) → nejdřív
+  `scrollLeft = scrollWidth` na prvcích s `scrollWidth > clientWidth`, pak screenshot / čtení.
+- **Upravit seznam (dialog editace listu): neklikej do prázdné plochy pod řádky.** Klik do volného řádku založí rozpracovaný
+  nový záznam; u *Komponenty výrobní zakázky* (99000818) otevřených přes URL filtr jen na `Prod. Order No.` (bez `Status`) hned
+  žluté *„Pole Číslo výrobní zakázky … obsahuje hodnotu (101010), kterou nelze nalézt ve svázané tabulce“* a zavření dialogu šipkou
+  zpět shodilo klienta na *„Došlo k chybě.“* (dřív uložené hodnoty zůstaly). Řádek opouštěj klikem do **jiného existujícího**
+  řádku, pak dialog zavři. (2026-10-30, Alumistr BC-DEV, test 67394.)
 - **Screenshot ve všech záložkách „timed out after 30000ms … renderer may be frozen“ a `screenX = -21333` = okno Chrome je
   minimalizované** (uživatel ho schoval / šel spát; skupina záložek běží v jeho okně, nová skupina taky). Minimalizované okno
   nekreslí; `resize_window` ani `window.focus()` ho neobnoví, `window.open` bez gesta se zablokuje (s gestem přes CDP klik vznikne
