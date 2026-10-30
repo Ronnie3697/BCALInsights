@@ -1,7 +1,7 @@
 ---
 name: bc-al-blanket
 description: >-
-  BC/AL hromadné objednávky, sešit požadavků a přepočet ceny (Business Central, sekce 5.x5, 5.x9, 5.x21):
+  BC/AL hromadné objednávky, sešit požadavků a přepočet ceny (BC, sekce 5.x5, 5.x9, 5.x21):
   hromadné nákupní / prodejní objednávky HNO/HPO (Blanket Order No. / Line No.) – vazba řádků NO/PO/sešitu,
   převzetí ceny a slevy (BlanketOrderIsRelated), ruční navázání = vnořený Validate(Quantity), změna varianty
   navázaného řádku, Recreate Purch/Sales Lines (TestField Blanket Order No. před přegenerováním,
@@ -9,7 +9,8 @@ description: >-
   Date při účtování); Requisition Line OnAfterGetDirectCost, Req. Wksh.-Make Order / Carry Out (dvojí
   započtení, CopyOrderDateFromPurchHeader na kopii), Calculate Plan bez dotazů (manual bind, report 699);
   přepočet ceny bez ceníku (IsPriceUpdateNeeded, ruční Line Discount % nepřežije); poptávka → Requisition
-  Line → Purchase Line a přenos vlastních polí (Order Planning, Get Sales Orders, Calculate Plan, NMEBS).
+  Line → Purchase Line a přenos vlastních polí (Order Planning, Get Sales Orders, Calculate Plan, NMEBS, EM MRP
+  Replenishment OREBS).
   Načti u HNO/HPO, sešitu požadavků, plánování a přecenění řádků dokladu.
 user-invocable: true
 ---

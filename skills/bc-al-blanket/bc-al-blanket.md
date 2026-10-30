@@ -84,6 +84,20 @@ cesta vzniku řádku má jiný hook. Ověřeno ve zdrojích Base App 28.4 (cust-
   `OnInsertRequisitionLineFromSalesLineOnBeforeRequisitionLineModify(var ReqLine; var SalesLine; var SalesHeader; var Item)`
   před `Modify(false)` přidán 2026-09-12 (větev `ReqLineFromSalesEvent`, čeká na release). Zdroj: sibling repo
   `prod-em-netMakeToOrder-bc`; NMEBS nemá žádné dependencies, takže závislost zákaznické appky na ní je levná.
+- **EM MRP Replenishment (OREBS)** je další modul, který řádek sešitu skládá **sám** a standardní cesty výše obchází:
+  reporty 64245 *Suggest Replenishment for Prod. Order* (CZ „Navrhni dozásobení pro výrobní zakázku“) a 64246 *… for Sales
+  Order* → `Manufacturing Mgmt. OREBS.CreateRequisitionLineFromProdOrderComponent` / `…FromSalesLine` (`Init` + Validate
+  Type / No. / Location / Bin / Quantity / Due Date / Dimension Set ID, vazba `Source Table No./Type/No./Line No./Ref. Line
+  No. OREBS`, `Insert(true)`). Hook pro vlastní pole poptávky = **`OnBeforeInsertNewRequisitionLineFromProdOrderComponent(var
+  NewRequisitionLine; var Item; var ProductionOrder; var ProdOrderLine; var ProdOrderComponent)`** / **`OnBeforeInsertNew
+  RequisitionLineFromSalesLine(var NewRequisitionLine; var Item; var SalesLine)`** — běží po všech Validate (`Validate("No.")`
+  už dal popis ze zboží, přiřazení v subscriberu vyhraje), obě jsou ve vydané 28.0.0.0, OREBS nemá dependencies. Test bez
+  reportu: přímo `PlanItemProdOrderComponent(Item, ToDate, false, false, false, ReqLine, ProdOrder, ProdOrderLine, Comp,
+  Template, Batch)` / `PlanItemSalesLine(...)` — `Item` musí mít `SetFilter("Date Filter", '..%1', ToDate)` (`CheckItemDateFilter`
+  jinak spadne); report sám chce OREBS šablony / listy v Manufacturing Setup a `User Setup` uživatele a v GUI otevírá stránku
+  řádků. Akce sešitu *Merge with Lot Accumulation Period* (CZ „Sloučit s Obdobím kumulace dávky“, report 64247) slučuje podle
+  zboží / lokace / varianty / MJ / data bez eventu na filtr → vlastní pole sloučených řádků se ztratí (zůstanou z prvního).
+  (2026-10-30, cust-alumistr-bc PBI 67394 — Poznámka / Barva / Parametr A/B z komponent VZ chyběly v sešitu.)
 - Test knihovny BC 28: `Library - Planning` / `Library - Manufacturing` / `Library - Sales` jsou v **Application Test
   Library**, ne v Tests-TestLibraries (tam zbyla jen `Library - Manufacturing OnPrem`). Užitečné: `CalcRequisitionPlanForReqWkshAndGetLines(var ReqLine; var Item; From; To)`,
   `CarryOutReqWksh(var ReqLine; ExpirationDate; OrderDate; PostingDate; ExpectedReceiptDate; YourRef)`,
