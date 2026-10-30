@@ -7,11 +7,9 @@ description: >-
   add-in, procedura se jménem metody Rec (AL0604), LookupMode jen pro čtení, filtr partu z OnOpenPage, DelayedInsert =
   prázdné SystemId, CurrPage.Update(false) v OnValidate, ListPart přes RunModal pod TestPage, stránka bez SourceTable;
   phone klient: dlaždice (Brick / DropDown / 5 controlů, sloty), událost add-inu ze schované stránky (aria-hidden/inert),
-  klepnutí na řádek = náhled, CardPageId v režimu zobrazení, ListPart s CardPageId (dědí
-  SubPageView), chyba OnValidate jen křížek, InstructionalText, \ v Message,
-  add-in mezera, Rec
-  prázdného listu z filtrů; nevyplněný výčet = caption první hodnoty (HideValue); kostky (User ID Filter, drill-down, pořadí). Načti u page, partů, kostek, výběrů, captionů a
-  viditelnosti.
+  klepnutí na řádek = náhled, CardPageId v režimu zobrazení, ListPart s CardPageId (dědí SubPageView), chyba OnValidate
+  jen křížek, InstructionalText, \ v Message, add-in mezera; Rec prázdného listu z filtrů; prázdný výčet (HideValue);
+  kostky (User ID Filter, drill-down, pořadí). Načti u page, partů, kostek a výběrů.
 user-invocable: true
 ---
 
