@@ -534,6 +534,17 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   Standard costing = Error), cena / náklad zůstávají z karty (`Validate("No.")`). `CheckItemAvailable` řádku plánování se z kódu nespustí
   (`CurrFieldNo <> CalledByFieldNo`). Storno (Positive Adjmt.) bez kontroly na dříve zaúčtovanou spotřebu — místo pro ni je komentář
   v `PostProjectUsage` (porovnat s `Qty. Posted`).
+- **Šarže = číslo projektu u sledovaného zboží (2026-10-29, tamtéž):** `Item Journal Line."Lot No."` (6501) `OnValidate` → `CheckItemTracking`:
+  **bez `Item Journal Batch."Item Tracking on Lines"` tracking z polí řádku tiše smaže** (`ClearTracking` + `ClearDates`), s ním hodí
+  `ItemTrackingExistsErr`, když řádek už má `Reservation Entry` (tracking zadaný přes 6510). Účtování dávky (`Item Jnl.-Post Batch.
+  UpdateItemTracking` → `ItemJournalLine.CreateItemTrackingLines`) položky z polí řádku založí až v `PostLines`. Proto flag `Project
+  Consumption IMEBS` při zapnutí sám dělá `Validate("Item Tracking on Lines", true)` a šarži plní `SetLotNoFromJob` (z `modify("Job No.")
+  OnAfterValidate`, `OnAfterValidateEvent "Item No."` / `"Entry Type"`): guard `ItemJnlLineReserve.ReservEntryExist` (ruční tracking vyhrává),
+  „vyžaduje šarži" = `Item Tracking Code."Lot Specific Tracking"` nebo per typ položky `"Lot Neg. Adjmt. Outb. Tracking"` (výdej) /
+  `"Lot Pos. Adjmt. Inb. Tracking"` (příjem); změna projektu smaže šarži rovnou staré (`= xRec."Job No."`), ručně zadanou jinou nechá.
+  `Lot No.` z ILE pak nese i JLE (`CopyTrackingFromItemLedgEntry`). Test: `LibraryItemTracking.CreateItemTrackingCode(Code, false, true)`
+  + zboží `Validate("Item Tracking Code")`, naskladnění `CreateItemJournalLineInItemTemplate` + `CreateItemJournalLineItemTracking(…, LotNo,
+  Qty)`; `LibraryItemTracking.CreateItemWithItemTrackingCode(Item, Code)` existuje (vrací No.).
 - ⚠️ `Job Journal Line.ValidateJobPlanningLineLink` (uvnitř Validate("Job Planning Line No.")): existuje-li v DB **jiný** řádek deníku projektů
   na tentýž řádek plánování, dá Confirm (bez GUI `Error('')`) — platí i pro `PostConsumption` z dodávky; nerozebráno, jen zjištěno.
 - **Test appka:** `Item Jnl Usage Test IMEBS` (65139; test range rozšířen `from 65135`, hlavní appka má codeunity do 65135 — ID 65140–65149
@@ -578,3 +589,41 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   `LibrarySales.ReleaseSalesDocument`; Confirm přes `[ConfirmHandler]` s odpovědí v globální proměnné; `LibrarySetupStorage.Save(Database::
   "Essence Projects Setup EPEBS")` po Get-or-Insert. (2026-10-27, prod-ep-projectBase-bc `features/salesQuotes` `Plan. Line Qty. Check
   EPEBS` + prod-ep-itemManagement-bc `features/misc` `Sales Plan. Qty. Check IMEBS`; kompilace čistá, běh v CI.)
+
+### 5.x29 Typ řádku na úkolu projektu (`Job Task."Line Type IMEBS"`) — jaké řádky plánování úkol přijme; QB tasky Soitronu
+
+- **IMEBS (prod-ep-itemManagement-bc `features/misc`, 2026-10-29):** tableextension 65135 `Job Task IMEBS`, pole `Line Type IMEBS`
+  = standardní enum `Job Planning Line Line Type` (Budget / Billable / Both Budget and Billable), `InitValue = "Both Budget and
+  Billable"` (nový ruční úkol nic neomezuje). Kontrola v `Job Planning Line IMEBS`: `OnBeforeInsert` + `OnBeforeModify` +
+  `modify("Line Type") OnAfterValidate` → `CheckJobTaskLineTypeIMEBS()` (`IsTemporary` / prázdný úkol / neexistující úkol = exit;
+  `JobTask.AllowsLineTypeIMEBS(LineType)` = Both nebo shoda). `OnValidate` pole na úkolu odmítne zúžení, když už má řádky jiného
+  typu. Pole na `Job Task Lines` (1002), `Job Task Lines Subform` (1001), `Job Task Card` (1003) — všechny mají control
+  `"Job Task Type"` pro `addafter`. **Automatický budget řádek z usage bez vazby (`MatchUsageUnspecified` → `Job Post-Line.
+  InsertPlLineFromLedgEntry`) se na Billable úkolu NEblokuje, jen `Message`** (rozhodnutí uživatele 2026-10-29: účtování spotřeby
+  nesmí spadnout): `Job Transfer Line.FromJobLedgEntryToPlanningLine` dělá `Validate("Line Type")` (ř. 534, w1-28) **dřív** než
+  `"System-Created Entry" := true` (ř. 554) → kontrola ve `modify("Line Type") OnAfterValidate` jen při `CurrFieldNo =
+  FieldNo("Line Type")` (ruční zadání), kód se kontroluje až v `OnBeforeInsert` (System-Created → `Message` při `GuiAllowed`) /
+  `OnBeforeModify` (System-Created → tiše). Ruční `Validate("Line Type")` z kódu (QB, IMEBS) tak dostane chybu až při Insertu,
+  text stejný. Report `Job Create Sales Order IMEBS` s *Create purchase lines* potřebuje úkol typu Budget / Both. Testy `Job Task
+  Line Type Test IMEBS` (65179; usage bez řádku plánování: `LibraryJob.CreateJobJournalLineForType(UsageLineTypeSchedule(),
+  ResourceType(), JobTask, JJL)` + `Job Jnl.-Post Line.RunWithCheck` + `[MessageHandler]`, projekt `Apply Usage Link` = true).
+- **Existující řádky tabulky dostanou u nového enum pole hodnotu 0 = Budget, `InitValue` platí jen pro `Init()`** → upgrade
+  codeunit 65137 `Job Task Line Type Upg. IMEBS` (`Access = Internal`, jinak ALCops **AC0007**; subscriber
+  `OnGetPerCompanyUpgradeTags` uvnitř Upgrade codeunity alc 17 bere) volá per úkol `JobTask.UpdateLineTypeFromPlanningLinesIMEBS()`
+  (table metoda, ať jde testovat bez `internalsVisibleTo`): jen úkoly s hodnotou Budget → podle řádků (jen Budget → Budget, jen
+  Billable → Billable, mix / bez řádků → Both). Tag při čisté instalaci nastaví `Install IMEBS` (65160, `OnInstallAppPerCompany` →
+  `UpgradeTag.SetAllUpgradeTags()`) — **bez vlastního Install codeunitu tag nikdo nenastaví** (System App `Upgrade Tag Install`
+  jen při instalaci System App, `Company-Initialize` / `Company.OnAfterInsertEvent` jen u nové firmy) a při dalším upgradu by
+  data fix proběhl znovu nad daty se správným schématem. IMEBS range 65130–65149 byla tímhle úkolem plná (hlavní appka
+  65130–65137, testy 65138–65149 — test range sdílí namespace), uživatel přidal **65160–65179** (`idRanges` v app i test
+  `app.json`); Install = 65160, test codeunit = 65179 (testy od konce range).
+- **Soitron (cust-soitron-bc `features/replications`):** `QB Buffer Processing Mgt. SOI.EnsureJobTask(JobNo, TaskNo, Description,
+  LineType)` dává nákladovému úkolu (`QB Cost Task Prefix`) Budget a výnosovému (`QB Revenue Task Prefix`) Billable; existující
+  úkol se nemění. `QB Buffer Validation Mgt. SOI.ValidateJobTaskLineTypes` v kontrole bufferu: existující nákladový úkol musí
+  povolit Budget a výnosový Billable (Aggregation řádek jen výnosový), jinak řádek `Error` s `TaskLineTypeLbl` — aby zpracování
+  nespadlo v půlce na kontrole řádku plánování. `CostTaskNo` / `RevenueTaskNo` zveřejněny (volají `LoadSetup()`). Testy
+  `QB Buffer Test SOI` (`ProcessBuffer_CreatedTasks_CarryLineTypeOfTheirSide`, `CheckBuffer_*TaskAllowsOnly*_SetsError`,
+  `ProcessBuffer_ExistingTasksAllowingBothLineTypes_…`). Kompilace IMEBS i Soitron čistá proti IMEBS buildu ze zdrojáku; EP Base
+  pro IMEBS `SalesPlanQtyCheck` (`Plan. Line Qty. Check EPEBS`) musel být taky zkompilovaný ze zdrojáku
+  (`prod-ep-projectBase-bc features/salesQuotes`, verze v kopii `app.json` zvednutá na 28.0.34.0, aby test appka IMEBS s minimem
+  28.0.24.0 prošla). Soitron závisí na IMEBS verzi s tímhle polem → IMEBS PR musí jít do feedu dřív než Soitron.
