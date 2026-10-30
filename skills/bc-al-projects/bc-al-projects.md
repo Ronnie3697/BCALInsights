@@ -545,6 +545,13 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   `Lot No.` z ILE pak nese i JLE (`CopyTrackingFromItemLedgEntry`). Test: `LibraryItemTracking.CreateItemTrackingCode(Code, false, true)`
   + zboží `Validate("Item Tracking Code")`, naskladnění `CreateItemJournalLineInItemTemplate` + `CreateItemJournalLineItemTracking(…, LotNo,
   Qty)`; `LibraryItemTracking.CreateItemWithItemTrackingCode(Item, Code)` existuje (vrací No.).
+- **Úkol projektu na řádku deníku zboží = jen nákupní (2026-10-30, tamtéž):** `Job Task."Line Type IMEBS"` (65130, enum `Job Planning Line
+  Line Type`, Budget / Billable / Both, default Both — uživatelův návrh téže větve) omezuje typ plánovacích řádků úkolu; spotřeba z deníku
+  zboží smí jen na úkol `Line Type IMEBS = Budget` („nákupní“; Both záměrně vyloučeno dle zadání). Lookup na page fieldu
+  `TableRelation = "Job Task"."Job Task No." where("Job No." = field("Job No."), "Line Type IMEBS" = const(Budget))`, tvrdá kontrola
+  `TestField("Line Type IMEBS", Budget)` v `ValidateJobTaskNo` i v kontrole před účtováním (`CheckJobTask`). Výběr řádku plánování zůstává
+  bez filtru na typ úkolu (jen Budget / Both řádky s Usage Link). Testy musí úkol zakládat s `Validate("Line Type IMEBS", Budget)` —
+  `LibraryJob.CreateJobTask` dá InitValue Both a validace řádku by spadla.
 - ⚠️ `Job Journal Line.ValidateJobPlanningLineLink` (uvnitř Validate("Job Planning Line No.")): existuje-li v DB **jiný** řádek deníku projektů
   na tentýž řádek plánování, dá Confirm (bez GUI `Error('')`) — platí i pro `PostConsumption` z dodávky; nerozebráno, jen zjištěno.
 - **Test appka:** `Item Jnl Usage Test IMEBS` (65139; test range rozšířen `from 65135`, hlavní appka má codeunity do 65135 — ID 65140–65149
