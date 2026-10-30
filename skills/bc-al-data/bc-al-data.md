@@ -619,6 +619,17 @@ metody na tabulku. (2026-06, `prod-em-operOutputChaining-bc`, BC28.)
 
 (2026-10-19, cust-sonnentor-bc Task 66948)
 
+### 3.11 `var` record z eventu nepřepisuj, když hledáš jiný záznam — lokální proměnná
+
+Subscriber dostane `var SalesLine` od publishera (např. `Shpfy Order Events.OnAfterCreateItemSalesLine`) a zjistí, že to
+není řádek, který potřebuje (jiné rozšíření si řádek založilo samo). Lákavé je `SalesLine.Reset(); SalesLine.SetRange(…);
+SalesLine.FindFirst()` přímo na parametru — tím ale publisherovi **podstrčíš jiný záznam** a **necháš na něm filtry**: další
+subscribery téhož eventu i navazující kód publishera (u Shopify konektoru `OnBeforeCreateShippingCostSalesLine`) pak pracují
+s cizím řádkem nebo s filtrem, o kterém nevědí. Hledaný záznam čti a měň v **lokální** proměnné; `var` parametr měň jen
+tehdy, když je to opravdu záznam, který publisher předal (a pak „in place", ať jeho kopie v paměti neztratí změnu). Test:
+po volání subscriberu ověř, že předaný record má pořád své `Line No.` a `GetFilters() = ''`. (2026-10-30, cust-sonnentor-bc
+PBI 63637, code review uplatnění poukazů v Shopify objednávce.)
+
 ---
 
 ### 2.9 `Get` / `Find` na temporary recordu čte TEMP tabulku, ne DB — načti reálnou instancí a přiřaď
