@@ -370,6 +370,16 @@ Assert.ExpectedErrorCode('Dialog');
   v cust-sonnentor-bc); přes `Validate` jen s `LibraryItemTracking.CreateItemTrackingCode` a `"Use Expiration Dates" := true`
   na zboží. Totéž platí pro `Item Category`/`Item` DateFormula pole bez vlastní validace — `Evaluate` do pole s `<…>` zápisem
   je nezávislý na jazyku session. (2026-10-16, cust-sonnentor-bc `TestProductReport`, trvanlivost Product Specification.)
+- **Zboží typu *Služba* neprodáš v testu přes deník zboží.** `Item Journal Line."Item No."` OnValidate volá
+  `ValidateTypeWithItemNo` (w1-28): služba → `Item.TestField(Type, Item.Type::Inventory)`, *Non-Inventory* projde jen u spotřeby.
+  Helper typu `PostItemJournalSale` (rychlý „prodej“ přes `LibraryInventory.CreateItemJournalLineInItemTemplate`) tedy se
+  `LibraryInventory.CreateServiceTypeItem` spadne a s ním každý test, který ho používá. `Sales-Post` naopak položku zboží
+  pro službu založí (`PostItemLine` → `PostItemJnlLine` plní řádek deníku přiřazením, bez `Validate("Item No.")`), takže
+  prodej přes zaúčtovanou fakturu funguje. Služba v testu = prodávat fakturou; když helper deníku zůstane, zboží
+  nech *Zásoby* a typ přepni až po prodeji přímým přiřazením (`Item.Type := Item.Type::Service; Modify(false)`,
+  `Validate(Type)` s existujícími položkami neprojde). Zachyceno ze zdroje před pushem (2026-10-30, cust-sonnentor-bc 63637,
+  review „poukaz je v produkci služba“: `Test Shpfy Voucher Redeem SON` prodává poukaz deníkem, `Test Dotykacka Vouchers SON` fakturou).
+
 ## `TestPermissions` — kdy co
 
 > ⚠️ **Default je `Restrictive`, NE `Disabled`!** Když property vynecháš, test
