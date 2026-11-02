@@ -795,6 +795,16 @@ System Application 28.5):
   nebo shodí celou fakturu chybou. Řádek objednávky (SOLINE-ORDERDETAIL) má oproti tomu field mapping `No. → ProductId` přes
   spárování při každé synchronizaci, proto tam produkt je a na faktuře ne. Dodatečné spárování zboží existující řádky faktury
   v Dataverse nespraví — vazbu faktury zrušit a poslat znovu. (w1-28, cust-soitron-bc 2RING DEV, 2026-10-23.)
+- **Účtovaná faktura (POSTEDSALESINV-INV) kontroluje *Relationship Type* účtu, i když obousměrná synchronizace objednávek
+  ne.** `CRM Int. Table. Subscriber.UpdateCRMInvoiceBeforeInsertRecord` najde objednávku Power Apps podle `"Your Reference"`
+  (= `ordernumber`) a volá `CRM Sales Order to Sales Order.GetCoupledCustomer` → `GetCRMAccountOfCRMSalesOrder`, která
+  při `CustomerTypeCode <> Customer` hodí *„The sales order cannot be created. The selected type of the <název účtu>
+  Dataverse account is not customer.“* (název účtu je v hlášce na místě %2, i když zní jako typ). Mapování SALESORDER-ORDER
+  přenáší zákazníka field mappingem a typ nehlídá, takže objednávka se synchronizuje a padá až faktura po účtování.
+  Když integrace Relationship Type nepoužívá: subscriber `OnBeforeGetCRMAccountOfCRMSalesOrder(CRMSalesorder, var CRMAccount,
+  var Result, var IsHandled)` pro `CustomerIdType = account` → `Result := CRMAccount.Get(CustomerId)`, `IsHandled := true`
+  (kontakt nech standardu). Jinak opravit data: nastavit účtu v Power Apps *Relationship Type = Customer*. (cust-soitron-bc
+  CDS.W1 `CDS Sync Logic CWSOI.GetAccountOfPowerAppsOrder`, 2RING, 2026-11-02.)
 - **Subscriber „po změně záznamu v BC hned probuď sync“ přes `Dataverse Entity Change` je bez mapování mrtvý kód, který
   jen plní tabulku.** `Dataverse Entity Change.OnInsert` (w1-28 `Integration/Dataverse/DataverseEntityChange.Table.al`)
   najde CRM proxy tabulky s `ExternalName` = `"Entity Name"` a pro každé `Integration Table Mapping` typu Dataverse nad nimi
