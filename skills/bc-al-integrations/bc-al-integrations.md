@@ -795,3 +795,10 @@ System Application 28.5):
   nebo shodí celou fakturu chybou. Řádek objednávky (SOLINE-ORDERDETAIL) má oproti tomu field mapping `No. → ProductId` přes
   spárování při každé synchronizaci, proto tam produkt je a na faktuře ne. Dodatečné spárování zboží existující řádky faktury
   v Dataverse nespraví — vazbu faktury zrušit a poslat znovu. (w1-28, cust-soitron-bc 2RING DEV, 2026-10-23.)
+- **Subscriber „po změně záznamu v BC hned probuď sync“ přes `Dataverse Entity Change` je bez mapování mrtvý kód, který
+  jen plní tabulku.** `Dataverse Entity Change.OnInsert` (w1-28 `Integration/Dataverse/DataverseEntityChange.Table.al`)
+  najde CRM proxy tabulky s `ExternalName` = `"Entity Name"` a pro každé `Integration Table Mapping` typu Dataverse nad nimi
+  s `Direction <> ToIntegrationTable` zavolá `CRM Integration Management.ReactivateJobForTable`; žádné mapování = žádná akce,
+  řádek ale zůstane. Když mapování entity (CONTACT…) odebíráš podle typu firmy, odeber / guardni i subscribery
+  `OnAfterInsertEvent` / `OnAfterModifyEvent`, které pro ni entity change vkládají (vzor guard `SynchronizesProjects()` u
+  Job v cust-soitron-bc `CDS Management CWSOI`). (2026-10-30, cust-soitron-bc CDS.W1, CONTACT odebrán i ve 2Ring.)
