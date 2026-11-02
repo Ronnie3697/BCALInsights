@@ -249,8 +249,15 @@ posted/archive tabulkách (3.6) tenhle problém neřeší, protože jde o cesty,
 | Cesta                                              | Kde                                                                                  | Hook pro obnovu vlastních polí                                                                              |
 | -------------------------------------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
 | **Restore z archivu**                              | `ArchiveManagement.RestoreSalesLines`: `TransferFields(Archive)` + `Insert` + `Validate("No.")` + Validate Variant/UoM/Qty/Unit Price | `OnAfterTransferFromArchToSalesLine(var SalesLine; var SalesLineArchive)` — běží po validacích, před `Modify(true)`; prosté přiřazení z archivu |
-| **Copy Document s Recalculate Lines**              | `Copy Document Mgt.CopySalesDocLine`: `ToSalesLine.Init()` + `Validate("No.")` + `Validate(UoM)` (bez recalc je `ToSalesLine := FromSalesLine` → OK) | `OnBeforeInsertToSalesLine(var ToSalesLine; var FromSalesLine; FromDocType; RecalcLines; …)` — kopírovat jen když `RecalculateLines` |
-| **RecreateSalesLines** (změna Sell-to apod.)       | `Sales Header.CreateSalesLine`: Validate Type/No./UoM/Variant/Qty                    | `OnBeforeSalesLineInsert(var SalesLine; var TempSalesLine; SalesHeader)` — Temp nese původní hodnoty         |
+| **Copy Document s Recalculate Lines**              | `Copy Document Mgt.CopySalesDocLine`: `ToSalesLine.Init()` + `Validate("No.")` + `Validate(UoM)` (bez recalc je `ToSalesLine := FromSalesLine` → OK) | `OnBeforeInsertToSalesLine(var ToSalesLine; var FromSalesLine; FromDocType; RecalcLines; …)` — přiřazuj **bez podmínky** (viz níže) |
+| **Copy Document z archivu** (Arch. Quote / Order…) | `Copy Document Mgt.CopyArchSalesLine` — vlastní cesta: s recalc `Init()` + `RecalculateSalesLine`, bez něj `TransferFields(Archive)`; `OnBeforeInsertToSalesLine` tu **neběží** | `OnCopyArchSalesLineOnBeforeToSalesLineInsert(var ToSalesLine; FromSalesLineArchive; RecalculateLines; …)` — těsně před `Insert` v obou větvích |
+| **RecreateSalesLines** (změna Sell-to apod.)       | `Sales Header.CreateSalesLine`: Validate Type/No./UoM/Variant/Qty                    | `OnBeforeSalesLineInsert(var SalesLine; var TempSalesLine: … temporary; SalesHeader)` — Temp nese původní hodnoty; běží i pro řádky bez `No.` (poznámky) |
+
+**Copy Document: nepodmiňuj přiřazení `RecalcLines`.** Base inituje řádek při `RecalculateLines and not FromSalesLine."System-Created
+Entry"` (`ShouldInitToSalesLine`, BC 28.4), jinak dělá `ToSalesLine := FromSalesLine` — přiřazení z `FromSalesLine` je tam bez efektu,
+takže nepodmíněné přiřazení je správně ve všech větvích a nemusíš zrcadlit guard base. Zdroj kopie z posted dokladu je dočasný
+`FromSalesLine` po `TransferFields` z posted řádku, takže shodné ID pole (3.6) stačí i tam. (2026-11-02, cust-zlomek-bc 66431
+code review, `Sales Mgt. ZLK.RestorePosition`; zdroj Base App 28.4.53241 `CopyDocumentMgt.Codeunit.al` ř. ~1600 a ~6135.)
 
 Cesty, které jsou OK bez subscriberu: Quote → Order, Blanket → Order, Get Shipment Lines, Get Posted Doc Lines to
 Reverse, Undo Shipment (přiřazení recordu / `TransferFields` z posted). Sdílený helper `Reapply<Fields>(var SalesLine; …)`
