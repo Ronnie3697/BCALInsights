@@ -634,3 +634,20 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   pro IMEBS `SalesPlanQtyCheck` (`Plan. Line Qty. Check EPEBS`) musel být taky zkompilovaný ze zdrojáku
   (`prod-ep-projectBase-bc features/salesQuotes`, verze v kopii `app.json` zvednutá na 28.0.34.0, aby test appka IMEBS s minimem
   28.0.24.0 prošla). Soitron závisí na IMEBS verzi s tímhle polem → IMEBS PR musí jít do feedu dřív než Soitron.
+
+### 5.x30 Částky řádku plánování z kódu: `Total Cost` nemá OnValidate, `Line Amount` jde do slevy (w1-28)
+
+- **`Job Planning Line."Total Cost"` (1003) je `Editable = false` a BEZ OnValidate** (stejně `Total Price` 1005) — „nastav celkové
+  náklady řádku" z kódu = `Validate("Unit Cost", Total / Quantity)` (zaokrouhli na `Currency."Unit-Amount Rounding Precision"`,
+  `InitRoundingPrecision()` pro LCY); `UpdateAllAmounts` pak `Total Cost := Round(Unit Cost × Quantity)`. `Validate("Unit Cost")`
+  z kódu (`CurrFieldNo = 0`, xRec = stav před Validate) cenu z karty znovu NEtahá (`RetrieveCostPrice` chce změnu No./Qty/
+  Location/Variant/UoM) — ale `HandleCostFactor` u zboží s *Price/Profit Calculation = Price=Cost+Profit* přepíše `Unit Price`,
+  proto cenu validuj až po nákladu.
+- **`Validate("Line Amount", X)`** (`UpdateAmountsAndDiscounts`, větev „Line Amount změněno, Line Discount Amount ne"): `Unit
+  Price` zůstává, rozdíl `Total Price − X` jde do `Line Discount Amount` / `%`. Chceš-li přepočítat jednotkovou cenu, dělej
+  `Validate("Unit Price", X / Quantity)` a `Validate("Line Amount", X)` až na dorovnání zaokrouhlení. `Quantity = 0` → nic
+  nepřepočítávej (dělení nulou, amounts jsou stejně 0).
+- Vzor „rezerva ↔ čerpající řádky": částky skutečně odečtené z rezervy drž na čerpajícím řádku (`Reserve Consumed Cost/Amount`),
+  deltu dorovnávej v `OnBeforeInsert` / `OnBeforeModify` tableextension (pole přiřazená tam se zapíšou s operací, žádný
+  další Modify), vracení v `OnBeforeDelete`. Odmítnutý Confirm = explicitní `Error(label)` (konvence Soitron).
+  (2026-11-02, cust-soitron-bc PBI 67428 `Project Reserve Mgt. SOI`, testy `Project Reserve Test SOI`; kompilace čistá, běh v CI.)
