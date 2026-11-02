@@ -589,6 +589,11 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
 - **`Sales Line.TestJobPlanningLine`** (OnValidate Quantity / No. / UoM / Variant …) → `Job Post-Line.TestSalesLine` = Error „cannot be
   changed" při `CurrFieldNo <> 0` → z UI se množství řádku s kontraktem změnit NEDÁ; z kódu (`Validate`, CurrFieldNo 0) projde. Prodejní
   přespotřeba billable řádku je tak prakticky jen z integrací; reálně hrozí budget řádek Skip projektu (dodávka 12 proti plánu 10).
+  ⚠️ **Budget řádek Skip projektu kontroluj jen u ZBOŽÍ** — IMEBS spotřeba z dodávky jde per položka zboží (`SalesShptLine.Type = Item`),
+  budget řádek zdroje plní výkazy práce / deník projektů. První verze sčítala u zdroje už zaúčtovanou usage (10 z výkazů) + nedodané
+  množství objednávky (10) = 20 proti plánu 10 a *Create Warehouse Shipment* (vydání dokladu) padal s Never i u zdroje, který
+  skladovou dodávku vůbec nepotřebuje (X-ESSENCE SO 101182, PR01260, 2026-11-02). Fix: `Type <> Item → exit` + test
+  `ReleaseOrder_SkipProject_ResourceLinkedBudgetAbovePlan_Never_Releases`.
 - `ValuesAllowed = Never, Confirm, Always;` na enum poli tabulky funguje (alc 17, runtime 17) — pole Zboží bez „Keep Original". Default
   enum 0 = Never → po nasazení je kontrola nejpřísnější, dokud se setup nenastaví (rozhodnutí: strictní default, oznámeno uživateli).
 - Testy bez dialogů: journal usage `LibraryJob.CreateJobJournalLineForPlan(JPL, UsageLineTypeBlank(), 1, JJL)` + `Validate("Job Planning
