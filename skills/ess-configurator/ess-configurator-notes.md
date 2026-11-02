@@ -538,6 +538,18 @@ komponenty VZ z 2026-10-07 mají `Length` 3,5 / 4 (metry). Diagnostika: page ins
 a na *Nastavení výroby* (`Optimaliz. Length Type CUEBS`, `SystemModifiedAt`) — sloupec *Délka* je v gridu komponent skrytý. Tisk CNC
 datové věty (COALU, 62959) bere od 2026-10-27 délku právě odsud (komponenta s `Note ALU` = pozice).
 
+⚠️ **EM Cutting Plan od PR 9737 (#66996, master 2026-10-14, 28.0.6.1) počítá plochu na komponentě VZ dvakrát.**
+`Prod. Order Component CUEBS.CalcQtyFieldsCUEBS` dřív nastavoval `Quantity per := Qty. of Pcs.` (kusy) a `Qty. per Unit of Measure :=
+Qty. per Piece` (m² na kus). Nově dává `Quantity per := Qty. of Pcs. × Qty. per Piece` (m² celkem), ale `Qty. per Unit of Measure` nechal
+na m² na kus, takže `Expected Qty. (Base)` = m² × m²/kus. K tomu `Item."Rounding Precision" = 1` (sklo v M2) zaokrouhlí `Expected
+Quantity` **nahoru na celé m²** (`RoundExpectedQuantity`) → 2 ks × 1,455 m²: `Quantity per` 2,91 → `Expected Quantity` 3 → báze
+3 × 1,455 = **4,365 m²** místo 2,91. U 1 ks pod 1 m² to vyjde správně (ceil(0,982) = 1 → 0,982), proto se to schová. Špatná báze teče
+do dostupnosti, MRP, spotřeby, nákladu i do sešitu požadavků: EM MRP Replenishment (OREBS) bere `Remaining Qty. (Base)` komponenty
+(`min(nedostatek, Remaining Qty. (Base))`) a zapíše ho do `Quantity` řádku sešitu v základní MJ. Starší VZ (model „kusy") mají
+`Quantity per` = `Qty. of Pcs.` a bázi správnou. Diagnostika: inspektor na komponentě (`Quantity per`, `Qty. per Unit of Measure`,
+`Expected Quantity`, `Expected Qty. (Base)`, `Qty. of Pcs. / Qty. per Piece CUEBS`) proti řádku kusovníku a `Rounding Precision` na
+kartě zboží. Oprava patří do prod-em-cuttingPlan-bc. (2026-11-02, Alumistr BC-TEST2, VZ 25-0000619, EM Cutting Plan Dev 28.0.6.1.)
+
 ## C9. MJ z akčního řádku přepíše Pricing Matrix přes Parametr A/B (Alumistr)
 
 Base `InitNewSalesLineFromAction` MJ z `SL Action Line."Unit of Measure Code"` validuje správně (`ApplyItemSpecificFields`,
