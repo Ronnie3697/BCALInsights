@@ -543,12 +543,17 @@ datové věty (COALU, 62959) bere od 2026-10-27 délku právě odsud (komponenta
 Qty. per Piece` (m² na kus). Nově dává `Quantity per := Qty. of Pcs. × Qty. per Piece` (m² celkem), ale `Qty. per Unit of Measure` nechal
 na m² na kus, takže `Expected Qty. (Base)` = m² × m²/kus. K tomu `Item."Rounding Precision" = 1` (sklo v M2) zaokrouhlí `Expected
 Quantity` **nahoru na celé m²** (`RoundExpectedQuantity`) → 2 ks × 1,455 m²: `Quantity per` 2,91 → `Expected Quantity` 3 → báze
-3 × 1,455 = **4,365 m²** místo 2,91. U 1 ks pod 1 m² to vyjde správně (ceil(0,982) = 1 → 0,982), proto se to schová. Špatná báze teče
+3 × 1,455 = **4,365 m²** místo 2,91. U 1 ks pod 1 m² to vyjde náhodou správně (ceil(0,982) = 1 → 0,982), proto se to schová; 1 ks nad
+1 m² už ne (`Quantity per` 1,486 → `Expected Quantity` 2 → báze 2,972). Špatná báze teče
 do dostupnosti, MRP, spotřeby, nákladu i do sešitu požadavků: EM MRP Replenishment (OREBS) bere `Remaining Qty. (Base)` komponenty
 (`min(nedostatek, Remaining Qty. (Base))`) a zapíše ho do `Quantity` řádku sešitu v základní MJ. Starší VZ (model „kusy") mají
 `Quantity per` = `Qty. of Pcs.` a bázi správnou. Diagnostika: inspektor na komponentě (`Quantity per`, `Qty. per Unit of Measure`,
 `Expected Quantity`, `Expected Qty. (Base)`, `Qty. of Pcs. / Qty. per Piece CUEBS`) proti řádku kusovníku a `Rounding Precision` na
-kartě zboží. Oprava patří do prod-em-cuttingPlan-bc. (2026-11-02, Alumistr BC-TEST2, VZ 25-0000619, EM Cutting Plan Dev 28.0.6.1.)
+kartě zboží. Vodítko: na tomtéž řádku komponenty si oba „základní" sloupce odporují — `Quantity (Base)` = `Quantity per` (správně;
+zřejmě spočítané s faktorem 1, protože `CalcQtyFieldsCUEBS` validuje `Quantity per` dřív než `Qty. per Unit of Measure`), `Expected` / `Remaining Qty. (Base)` = zaokrouhlené
+`Expected Quantity` × m²/kus. Do sešitu jde to druhé. Oprava patří do prod-em-cuttingPlan-bc. (2026-11-02, Alumistr BC-TEST2 VZ
+25-0000619 s EM Cutting Plan Dev 28.0.6.1; potvrzeno na BC-TEST VZ 25-0000630 s PTE 28.0.8.0: 1 / 1 / 2 ks à 1,686 / 1,486 / 1,486 m²
+→ sešit 3,372 / 2,972 / 4,458 místo 1,686 / 1,486 / 2,972.)
 
 ## C9. MJ z akčního řádku přepíše Pricing Matrix přes Parametr A/B (Alumistr)
 
