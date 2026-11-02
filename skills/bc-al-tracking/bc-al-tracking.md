@@ -16,6 +16,8 @@ Obsahuje:
 - **5.x17** `Reservation Entry."Entry No."` je AutoIncrement — `"Entry No." := 0` před Insert, nikdy FindLast + 1
 - **5.x18** dobropis / vratka s `Appl.-from Item Entry` z kódu — SQNR se mění až při účtování, slučování šarží při účtování
 - **5.x23** tracking filtry `SetTrackingFilterFrom…` v base = jen SN + Lot (Package přes event); `Item Tracking Setup` je temp (AA0073)
+- **5.x24** hromadný výběr SN v *Vybrat položky* (Item Tracking Summary 6500) akcí v pageextension; import SN z Excelu na
+  nákup / skladovou příjemku (tracking příjemky žije na řádku NO); přejmenování Warranty Date / Package No.
 
 ## 5. Specifické objekty a API — Item Tracking
 
@@ -389,3 +391,49 @@ cust-soitron-bc (`Job Lot Tracking Mgt. SOI`, 2026-10-07): u SN zboží auto-ř�
 - **`Item Tracking Setup` (6565) je `TableType = Temporary`** → proměnná musí mít prefix `Temp` (CodeCop **AA0073**
   „The name of temporary variable … must be prefixed with Temp"), i když ji jen plníš a předáváš do `Library - Item
   Tracking.InsertItemTracking` / `GetItemTrackingSetup`. Stejně `Entry Summary` (338).
+
+### 5.x24 Hromadný výběr SN v *Vybrat položky* (Item Tracking Summary 6500); import SN z Excelu na nákup / příjemku; přejmenování Warranty Date a Package No.
+
+**Výběr víc SN najednou (prodej, skladová výdejka) = akce v pageextension na 6500, ne vlastní stránka.** Standardní *Vybrat
+položky* (`Select Entries` na 6510, `Visible = FunctionsDemandVisible`) otevře 6500 přes `Item Tracking Data
+Collection.SelectMultipleTrackingNo` a po `LookupOK` z řádků se `Selected Quantity <> 0` sám založí řádky sledování
+(`AddSelectedTrackingToDataSet`) — dostupnost, přihrádky i řádky výdejky tedy zůstanou standardní. Okno ale chce vyplnit
+*Vybrané množství* řádek po řádku a předvybere FEFO (`AutoSelectTrackingNo`). Pageextension přidá akci „Vybrat označené
+řádky": `TempMarked.Copy(Rec, true)` + `CurrPage.SetSelectionFilter(TempMarked)` → všem řádkům `Selected Quantity := 0`
+(kopie s `Reset`, `ModifyAll`), označeným dostupné množství (stejné pravidlo jako `AutoSelectTrackingNo`: `Total Available
+Quantity`, u `Bin Active` min s `QtyAvailableToSelectFromBin()`, minus `Non-specific Reserved Qty.`).
+- `MaxQuantity` (kolik zbývá definovat na řádku dokladu) je na 6500 **privátní** → zachyť ho v SingleInstance codeunitě
+  subscriberem `Item Tracking Data Collection.OnSelectMultipleTrackingNoOnBeforeSetSources(…; var MaxQuantity)` (`Abs`,
+  okno má vždy kladné) a při překročení vyhoď chybu.
+- `SelectedQuantityEditable` (protected var) = selection mode → `Visible` akce; `SelectedQuantityOnAfterValidate()` je
+  **protected procedure** → po změně ji zavolej, přepočte patičku *Vybráno / Nedefinováno*. Předtím `if Rec.Find('=') then;`,
+  jinak její `Rec.Modify()` zapíše zastaralý buffer aktuálního řádku přes sdílenou temp tabulku.
+- **Stránka bez akcí (`actions { }` bez area) v pageextension:** `area(Processing)` = `AL0104` / `AL0198`, ale
+  **`addfirst(Processing)` / `addfirst(Promoted)` se přeloží** (alc 17, 6500). V klientu zatím neověřeno.
+- Neplést s 5.x (filtrovat / obohatit nabídku šarží v 6500 nejde — `Entry Summary` nemá Item No., buffer z eventu není
+  `var`); měnit `Selected Quantity` existujících řádků jde.
+- Test: TestPage neumí označit víc řádků (`SetSelectionFilter` = aktuální řádek) → logiku dej do codeunity s procedurou
+  `(var TempEntrySummary; var TempMarked; MaxQuantity)` a testuj nad temp `Entry Summary`; E2E přes `SalesLine.
+  OpenItemTrackingLines()` → handler 6510 `"Select Entries".Invoke()` → handler 6500 `Filter.SetFilter("Serial No.", …)` +
+  `First()` + akce + `OK()` — ověří, že předvýběr FEFO nahradil označený SN.
+
+**Import SN z Excelu na nákupní objednávku a skladovou příjemku:**
+- Sledování skladové příjemky žije v `Reservation Entry` **zdrojového nákupního řádku** (6510 z příjemky se otevírá nad
+  Purchase Line) → import na příjemku píše na řádek NO, jen s kapacitou `Qty. Outstanding (Base)` řádků příjemky.
+- „Na NO jen množství, které ještě není na příjemce": `Purchase Line."Whse. Outstanding Qty. (Base)"` (FlowField = Σ
+  `Qty. Outstanding (Base)` řádků příjemky). Sledování nejde rozdělit na část NO / příjemky, takže kapacita NO =
+  `Outstanding Qty. (Base)` − max(Whse. Outstanding, už sledované), příjemky = min(řádky příjemky, Outstanding − sledované).
+- Zápis: `Create Reserv. Entry.CreateReservEntryFor(…, QtyPerUoM, 0, 1, From)` (Quantity 0 → dopočte z base) +
+  `SetDates(Warranty, Expiration)` + `CreateEntry(…, Surplus)`, **nová instance codeunity na každou položku**.
+  `Expiration Date` jen když kód sledování má `Use Expiration Dates` (stránka ji jinak blokuje). Kontrola duplicity SN:
+  `Reservation Entry` (Item + SN, `Positive`) + otevřená kladná ILE — opakovaný import pak nic nezdvojí.
+- Excel Buffer: datum v buňce bez formátu data přijde jako číslo dne (`DMY2Date(30, 12, 1899) + n`), s formátem jako text
+  v locale session; `SelectSheetsNameStream` čte stream → workbook otevři z druhého streamu téže `Temp Blob`.
+
+**Přejmenování standardních polí sledování:** `tableextension` → `modify("Warranty Date") { Caption = …; ToolTip = …; }`
+se přeloží (Tracking Specification, Reservation Entry, Item Ledger Entry; vznikne trans-unit `TableExtension … - Change …`).
+`Package No.` přejmenuj **nastavením**, ne kódem: pole mají `CaptionClass = '6,1'` a popisek bere `Inventory Setup."Package
+Caption"` (Text[30], jen jeden jazyk). Warranty Date je na 6510 `Visible = false` → `modify("Warranty Date") { Visible = true; }`.
+(2026-11-02, cust-soitron-bc — `Serial No. Import Mgt. SOI`, `Serial No. Selection Mgt. SOI`, `Item Tracking Summary SOI`;
+zdroj w1-28 `ItemTrackingSummary.Page.al`, `ItemTrackingDataCollection.Codeunit.al`, `CreateReservEntry.Codeunit.al`; jen
+kompilace, testy zatím neběžely.)
