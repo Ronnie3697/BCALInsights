@@ -112,6 +112,9 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   `bc-al-workflow.md`) z výpisu zmizí. (Ověřeno 2026-09-15, cust-zlomek-bc, alc 18.0 — dřívější
   poznámka „žádný CLI přepínač to nepovoluje" byla chybná.)
   **Funguje i na alc 17.0.34**, i když ho `alc.exe /?` nevypisuje (přepínač je skrytý, ne chybějící). (2026-09-22, cust-soitron-bc)
+  ⚠️ **alc z AL extension `18.0.2732683` ho ignoruje:** s `/enableexternalrulesets` před i za `/ruleset:` končí `AL1033 … because
+  external rulesets are not allowed` (jiná hláška než TLS problém níž) a nic se nezkontroluje. Postup pak stejný jako při TLS chybě:
+  lokální kopie rulesetu bez `includedRuleSets` + pravidla skrytá v essence-default. (2026-11-02, cust-zlomek-bc 66431.)
   ⚠️ **Když blob s rulesetem neprojde TLS** (2026-10-14: `essencefiles.blob.core.windows.net` → `SEC_E_UNTRUSTED_ROOT` z curl
   i PowerShellu, alc `AL1033 … Could not load the rule set file`), kompilace z CLI s repo rulesetem skončí jen tou chybou —
   žádný kód se nezkontroluje. Obejdi to lokální kopií: repo ruleset **bez `includedRuleSets`** + pravidla, která
@@ -203,6 +206,14 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   CZ packy stejné minor řady; starší CZ pack pod novější `Application` umbrellou nevadí,
   obráceně ano — 7.19 v `bc-al-build.md`) + Essence appky z `prod-*/.alpackages` nebo
   `prod-*/app/*.app`, a `/packagecachepath` nasměruj tam. (2026-09-02, cust-zlomek-bc)
+  **Nejspolehlivější zdroj celé MS řady = artifact cache lokálního testovacího kontejneru** (plní ji BcContainerHelper,
+  verze = kontejner): `C:\bcartifacts.cache\onprem\<verze>\cz\Applications\*\Source\*.app` (všechny CZ packy vč. Cash Desk,
+  Banking Documents, EU 3-Party Trade Purchase, které v sibling `.alpackages` často chybí nebo jsou z jiné minor řady),
+  `platform\ModernDev\PFiles\Microsoft Dynamics NAV\<major>0\AL Development Environment\System.app` (symbol `System`) a pro
+  test appku `cz\Applications\TestFramework\…` (Test Runner, Any, Library Assert, Permissions Mock, Variable Storage),
+  `Application Test Library\Source`, `BaseApp\Test\Microsoft_Tests-TestLibraries.app`, `BusinessFoundation\Test`,
+  `System Application\Test\…Test Library.app`. Essence závislosti z `dependency-cache` téhož kontejneru (níže). Zkopíruj
+  `find … -path "*/Source/*.app"` naplocho do scratchpadu (bez Demo Data / Test podsložek). (2026-11-02, cust-zlomek-bc 66431.)
 - **`AL0282` / `AL0284` na event subscriberu do Essence appky („member … parameter 'X' is not found", „type of the
   parameter … does not match") při kompilaci zeleného masteru = zastaralý symbol v `.alpackages`**, ne chyba kódu.
   `.alpackages` drží Essence appky často jako `…_28.0.0.0.app` z doby založení repa, kód masteru už volá eventy
