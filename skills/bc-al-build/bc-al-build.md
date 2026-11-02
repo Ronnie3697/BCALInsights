@@ -919,6 +919,12 @@ ED Item Sales Disponibility 28.0.0, Essence Shopify Connector 28.0.6 (závislost
   a starý build v něm „zmizí" bez hlášky. Odinstalované závislé appky vrať `POST …/extensions(<packageId>)/Microsoft.NAV.install` (204).
   Stažení symbolů z dev endpointu (`…/dev/packages?…&versionText=X`) vrací **nejnovější publikovaný** balíček, ne verzi X → obsah
   odpublikovaného buildu už nezjistíš.
+  **Dev build neznámého původu → porovnej symboly, než publikuješ.** Token z `d365bc-admin get_microsoft_entra_id_token` (aud
+  `api.businesscentral.dynamics.com`) projde i na dev endpoint: `curl -4 -H @hdr "https://api.businesscentral.dynamics.com/v2.0/<tenant>/<env>/dev/packages?publisher=…&appName=…&versionText=<nainstalovaná>&appId=<guid>"`
+  vrátí symbol nainstalovaného buildu (`Version` v `NavxManifest.xml` ověř, viz výš). Python diff `SymbolReference.json` (rekurzivně
+  `Namespaces[]`): pole `Tables` / `TableExtensions` (Id, Name, typ) a `Methods` všech objektů (jméno + počet parametrů) proti čerstvému
+  buildu. Nic navíc na straně prostředí = Synchronize projde a závislé PTE zůstanou nainstalované. (2026-11-02, Alumistr BC-TEST2: base dev
+  28.0.55.1 bez známého commitu → 28.0.55.67394 z masteru, diff 0/0, PMALU / CDS / COALU PTE dál `installed`.)
 - Příkaz (token z cache VS Code, bez interaktivního přihlášení, 7.2b v `bc-al-tools.md`): `altool.exe publishapp <app>
   --environmenttype Sandbox --environmentname <env> --tenant <tenantId> [--schemaupdatemode ForceSync]`; výstup filtruj
   `grep -v "^\[MSAL\]\|^\[LogMetrics"`, úspěch = `Success: The package … has been published`.
