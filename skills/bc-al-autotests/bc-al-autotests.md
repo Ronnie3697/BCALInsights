@@ -359,6 +359,13 @@ Assert.ExpectedErrorCode('Dialog');
   navázanou usage hlásí `Expected 1, Actual 0` s cizím `Ledger Entry No.` — v hlášce jsou vidět jen filtry assertu, ne příčina.
   Lokálně to projde, dokud test helpery nekombinuje; chytil až CI (build 29039, prod-ep-itemManagement-bc). Filtry zužující množinu
   (`Quantity > 0` u příjmů, když existují i vratky stejného `Entry Type`) dávej do helperu hned. (2026-10-22)
+- **`LibraryInventory.CreateItemJournalLineInItemTemplate` / `SelectItemJournalBatchName` bere PRVNÍ list šablony (`FindFirst`)**,
+  ne „svůj" list. List, který dřívější test téhož codeunitu založil přes `CreateItemJournalBatch` (náhodné jméno `GU00000xxx`
+  z `GenerateGUID` se řadí před výchozí list CI firmy) a přepnul do zvláštního režimu (IMEBS *Project Consumption* = řádek musí
+  mít projekt), zůstane v DB (AutoCommit) a od druhého testu ho knihovna vybere pro obyčejný příjem na sklad → každý další test,
+  který naskladňuje, padá hned v GIVEN (první projde, testy bez naskladnění taky). Příjem na sklad dělej do vlastního listu:
+  `CreateItemJournalBatch` + `CreateItemJournalLine(…, Template, Batch, "Positive Adjmt.", ItemNo, Qty)` + `PostItemJournalLine`.
+  (2026-11-03, prod-ep-itemManagement-bc build 29230, `Item Jnl Usage Test IMEBS`, 9 z 13 testů.)
 - **CodeCop `AA0181` + `AA0175` na `Find('=')` uvnitř `Assert.IsTrue/IsFalse`** („Find only with Next", „queries the database but
   does not use the queried record") — oba warning → s `failOn warning` CI fail. Existenci záznamu assertuj `Rec.SetRecFilter()` +
   `Assert.RecordIsNotEmpty(Rec)` / `RecordIsEmpty(Rec)` (funguje i po `Delete`, PK v proměnné zůstává), refresh hodnot přes
