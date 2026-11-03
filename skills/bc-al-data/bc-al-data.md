@@ -662,3 +662,22 @@ ne kód, a ten se může lišit i diakritikou (`nahoře` vs. kód `NAHORE` — `
 s kódem **nebo** s popisem záznamu číselníku. Bez shody raději chyba se jménem kódu i popisu než tichý fallback na jiný řádek.
 (2026-10-25, cust-alumistr-bc 62959 — délka profilu z řádku alternativního kusovníku podle `Note ALU` = CNC pozice; na BC-TEST
 poznámky `dole` / `nahoře` = popisy pozic `DOLE` / `NAHORE`.)
+
+### 2.12 Konfigurovatelné pole přes `RecordRef` / `FieldRef` jako text — jeden kanonický tvar pro zápis i čtení
+
+Když setup dovolí vybrat **libovolné pole** tabulky (osa cenové matice, klíč párování) a hodnota se drží jako `Code`/`Text`:
+- **Čtení a zápis musí dát stejný text.** Option/Enum: `FldRef.Value` je ordinal; `GetEnumValueName` (jazykově nezávislý) ≠
+  `GetEnumValueCaption` (jazyk session) ≠ číslo. Zápis, který přijme popisek nebo číslo, a čtení, které vrací název, se nikdy
+  nepotkají → duplicitní záznamy, tiché fallbacky. Totéž Boolean `'1'` vs `TRUE`, GUID bez / se `{}`, varianty DateTime.
+  **Kanonizace:** vstup zapiš do dočasného záznamu `RecRef.Open(Database::X, true)` přes `FldRef.Value(v)` (bez `Validate`, bez
+  DB) a přečti ho zpátky **stejnou funkcí, jakou čteš data**. Použij na všech vstupech: hledání, zakládání, import, `OnValidate`
+  polí na řádcích.
+- **Zápis s `FldRef.Validate`** → po zápisu přečti hodnotu zpět a porovnej s kanonickou; validace pole ji může zaokrouhlit nebo
+  nahradit (záznam by pak ležel jinde, než má).
+- **Pole z jiné appky může zmizet** (odinstalace, `Removed`): `RecRef.FieldExist(No)` při **čtení** → prázdná hodnota (proces běží
+  dál), chyba jen při **zápisu**. Error při čtení zablokuje zadávání dokladů.
+- **Nabídka polí v setupu:** `Field.Class = Normal`, `Enabled`, `ObsoleteState = No`, bez PK a systémových polí (`No. < 2000000000`),
+  bez typů bez rozumného textu (`BLOB`, `Media`, `MediaSet`, `RecordID`, `TableFilter`, `Binary`, `Duration`) a
+  `Len <= <délka cílového kódu>` — delší text by se uřízl a dvě hodnoty se stejným začátkem by splynuly. Filtr na `"No."` v helperu
+  dej do vlastní `FilterGroup` (2.6c).
+(2026-11-03, prod-epb-pricingMatrix-bc PBI 67458 — Parametr A/B jako Code[50], osa = libovolné pole Item Unit of Measure.)

@@ -566,6 +566,13 @@ naopak: `Evaluate(Dec, '4,5')` → **45** (čárka = tisíce), žádná chyba, j
   na `1200` fajn, na CZ text s čárkou ne). Robustní vzor pro import: nejdřív locale `Evaluate`, až při
   neúspěchu (textová buňka zadaná ručně s druhým oddělovačem) `DelChr` mezer/NBSP + `,`→`.` + `Evaluate(…, 9)`.
   (2026-09-01, prod-epb-pricingMatrix-bc, code review importu matice.)
+- **Pozor, „nejdřív locale `Evaluate`" má díru: v en-US session `Evaluate(Dec, '62,5')` vrátí `true` a 625** (čárka = tisíce),
+  takže ručně psaná česká hodnota tiše změní řád. Locale výsledek ber **jen když `Format(Number)` dá přesně stejný text**
+  (ořezaný o mezery na krajích): `'1,200'` v en-US → 1200 → `'1,200'` ✔, `'62,5'` v en-US → 625 → `'625'` ✘ → jazykově
+  nezávislá pravidla (mezery = tisíce, s tečkou i čárkou je desetinný poslední oddělovač, samotná čárka desetinná, pak
+  `Evaluate(…, 9)`). Zbývá jediný nejednoznačný případ: `'1,200'` z anglického exportu importovaný v **české** session = 1,2.
+  Test nezávislý na locale runneru: hlavička `Format(2400)` musí dát 2400. (2026-11-03, prod-epb-pricingMatrix-bc PBI 67458 —
+  hlavičky matice v Excelu; v kontejneru en-US padal import `62,5` jako 625.)
 
 ### 1.15 AL **umí** přetěžování procedur (overloading) — rozlišuje podle typů parametrů, ne podle názvů
 
