@@ -564,6 +564,16 @@ GIVEN (s komentářem), nebo každý negativní případ do vlastního testu. Za
 2026-08-27, cust-alumistr-bc build 27980 (`FilterValueCodesRejectsNonNumeric…`,
 `CheckNumericFilterValue` s `SourceParam.Get` → exit) — stejný test i
 v prod-ess-configurator-bc PR 9375.
+Podruhé 2026-11-03 (prod-ep-itemManagement-bc build 29232, `Item Jnl Usage Test IMEBS.TaskOfOtherLineType_CannotBeSelectedNorPosted`):
+první `asserterror Rec.Validate(...)` odroloval i řádek deníku a úkoly, druhý `asserterror PostBatch` pak padl na jiné chybě.
+
+**Negativní test na `Validate` pole s `TableRelation` z kódu chytí chybu RELACE, ne `TestField` z triggeru.** Runtime
+kontroluje `TableRelation` (včetně `where(...)` filtrů) při `Validate` dřív, než se spustí `OnValidate` — hodnota mimo relaci
+(plánovací řádek jiného zboží u pole s `"No." = field("Item No.")`) skončí *„The field X of table Y contains a value (…) that
+cannot be found in the related table (Z)."* a `Assert.ExpectedTestFieldError(...)` nesedí (3.3 v `bc-al-data.md`). Testuj
+`Assert.ExpectedError('cannot be found in the related table')` a vlastní `TestField` kontrolu ověř cestou, která relaci obejde
+(přímé přiřazení + `Modify(false)` → `asserterror` účtování), s `Commit()` po GIVEN kvůli dvěma `asserterror`.
+(2026-11-03, tamtéž, `PlanningLineOfOtherItem_CannotBeSelectedNorPosted`.)
 
 **Varianta: důkaz, že kód mezi kroky necommituje (atomické účtování).** `asserterror` na volání, které spadne až
 v druhém kroku (kiosk: výstup se zaúčtuje, kapacitní řádek pak spadne na konci před začátkem), a pak assert, že výsledek
