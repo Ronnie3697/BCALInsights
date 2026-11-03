@@ -415,7 +415,16 @@ specified at startup. Use the al_addproject tool"; na AL 17 Petr hlásil, že be
   se zvednutou verzí (jen `app.json` kopie, verze v repu se nemění — 7.8) a publikuj tu. Ověř předem, že appka nemá
   upgrade / install codeunity (dev publish vyšší verze spustí upgrade). (2026-10-06, cust-sonnentor-bc → BC-DEV.)
 - **„1 skipped" + EXIT 0 = test codeunit v prostředí NEEXISTUJE** (`Test codeunit with ID … not found`) —
-  server hlásí úspěch, čti text zprávy.
+  server hlásí úspěch, čti text zprávy. Obecně: `al_run_tests` / `altool runtests` umí vrátit úspěch i při chybě běhu —
+  rozhoduje text výsledku (počty passed / failed / skipped a hlášky), nikdy jen `succeeded` / exit kód.
+- ⚠️ **Testy v SaaS sandboxu jen výjimečně, na výslovný pokyn uživatele.** Standard je lokální testovací kontejner (7.23
+  v `bc-al-build.md`) — po vyžádaném push a kdykoli uživatel řekne; sandbox je doplněk, ne náhrada. Že to jde: Alumistr BC-DEV
+  (2026-11-03) má MS test toolkit nainstalovaný jako `Global` (Test Runner, Library Assert, Any, Library Variable Storage,
+  `Application Test Library`, Business Foundation Test Libraries) — **bez** `Tests-TestLibraries` a `System Application Test
+  Library`, takže test appka s těmi závislostmi se tam nenainstaluje; pro běh v sandboxu kopie test appky (ve scratchpadu) se
+  závislostí na `Application Test Library` místo `Tests-TestLibraries` (BC 28: `Library - *` žijí tam). Postup: `altool
+  publishapp` hlavní appky + test appky (dev), pak `altool runtests <id> --environmenttype Sandbox --environmentname <env>
+  --tenant <tenantId> --company <firma> --raw`. (2026-11-03, prod-epb-pricingMatrix-bc PBI 67458.)
 - Server nic nenasazuje: v prostředí musí být **test toolkit** (Test Runner + `Tests-TestLibraries` +
   `System Application Test Library`, tzn. i `Permissions Mock`) **a** hlavní i test appka. Na **SaaS
   sandboxu** MS test toolkit **nejde** nahrát přes dev endpoint (`altool publishapp` → „vydavatel je
