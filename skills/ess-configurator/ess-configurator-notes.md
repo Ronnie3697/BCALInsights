@@ -35,6 +35,7 @@
 - [C12. Strom podmínek parametru — zastaralé `Root Condition No.` (Zlomek)](#c12-strom-podmínek-parametru--zastaralé-root-condition-no-zlomek)
 - [C15. Strom podmínek ze struktury (66845) a nerecyklovaná čísla parametrů (66711)](#c15-strom-podmínek-ze-struktury-66845-a-nerecyklovaná-čísla-parametrů-66711)
 - [C16. Kopírovat hodnotu z parametru jiného typu a filtr Vyhledání hodnotou parametru](#c16-kopírovat-hodnotu-z-parametru-jiného-typu-a-filtr-vyhledání-hodnotou-parametru)
+- [C17. Číslo z parametru pro všechny typy řádků akce prodejního řádku (67541)](#c17-číslo-z-parametru-pro-všechny-typy-řádků-akce-prodejního-řádku-67541)
 
 ---
 
@@ -966,3 +967,13 @@ zdroje prod-ess-configurator-bc master, COEBS 28.0.22.0.)
 - Ověřeno na Alumistr BC-DEV (dev 28.0.37.67239, A00005 / nabídka 1006): duplicita v obou směrech, PROFIL → CENA a znovu
   po změně, filtr atributů `Barva = {BARVA_TXT:Value}` (Červený / Modrý / `Červený|Modrý`), odmítnutí hodnoty mimo filtr.
   Editor potřeboval `Commit()` před `RunModal` (4.25 v `bc-al-ui.md`).
+
+## C17. Číslo z parametru pro všechny typy řádků akce prodejního řádku (67541)
+
+> Task 67541 (2026-11-03, worktree `prod-ess-configurator-bc-67541`, větev `67541_NoFromParameter`, ověřeno na Zlomek BC-DEV2 PTE 28.0.99.3).
+
+- Pole 50 `Item From Parameter` na `SL Action Line COEBS` (caption *Číslo z parametru*) platí pro všechny typy kromě poznámky. AL název zůstal (COZLK `Nested Config Mgt.`, API `itemFromParameterLineNumber`). Runtime (`CreateNewSalesLines` / `InitNewSalesLineFromAction`) byl na typu nezávislý už dřív. Kopie a reference parametru taky.
+- Převod typ → tabulka + pole `No.` je `SL Action Line.GetNoSourceTable`, kontrola parametru `GetNoFromParameterError` (prázdný text = pasuje; Vyhledání v tabulce + tabulka + zdrojové pole `No.`), lookup `SetNoFromParameterFilters` / `LookupNoFromParameter`. Kontrola při aktivaci (`CheckSLLinesHaveItemNo`) navíc hlásí smazaný parametr a parametr změněný po navázání.
+- ⚠️ **Stránka 63183 zobrazuje *Popis* / *Popis 2* přes výrazové proměnné** (`DescriptionExpressionText`, kvůli textovým vzorcům). Když tabulkový trigger popis změní (výběr parametru maže `No.` + popisy, změna typu, zadání čísla), stránka dál ukazuje starý text, dokud se řádek znovu nenačte. DB je správně. Každý page trigger, který mění číslo / parametr / typ, musí volat `UpdateDescriptionExpressions` (u 67541 `RefreshAfterNoSourceChange`). Chytil to až průchod v BC, testy ne.
+- `TableRelation` pole 50 (jen parametry *Vyhledání v tabulce*) se vyhodnotí před `OnValidate` — ruční zadání čísla parametru jiného typu skončí standardní chybou relace, vlastní hláška „není typu Vyhledání v tabulce“ jen při aktivaci.
+- Testovací data na Zlomek BC-DEV2 (ZLOMEK): zboží ZB00047, zdroj CLAUDE67541 (ZDR00001 nemá obecnou účto skupinu → standardní chyba BC na řádku zdroje), CONF0000074 / CONF0000075, objednávka O000022.
