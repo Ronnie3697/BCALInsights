@@ -1,12 +1,12 @@
 ---
 name: bc-al-build
 description: >-
-  BC/AL dependencies, CI build a deploy z praxe (Business Central, AL, Essence pipeline, sekce 7.11–7.26):
+  BC/AL dependencies, CI build a deploy z praxe (Business Central, Essence pipeline, 7.11–7.26):
   NuGet v2-0 (MajorMinor + LatestMatching; dedupe minim per GUID → stejná verze deps ve všech app.json),
   symboly test frameworku z MSSymbols feedu, CZ packy od BC 28 pod ID s .cz. infixem, Compile AL Apps bez
   ##[error] (PTE0012), kolize object ID po merge (rozhodují nasazená data), major bump checklist (app.json,
   BC_ARTIFACT), faily testů shazují build, squash merge → falešné konflikty, Subcontracting ≥ 28.3 (falešné
-  AL0118/AL0132), Deploy Staging sync_mode 'Add' / ForceSync maže data / obsolete dvoufázově, smíchané řady MS
+  AL0118/AL0132), Deploy Staging sync 'Add' / ForceSync maže data / obsolete dvoufázově, změna typu pole v ostré appce (nová pole + DataTransfer), smíchané řady MS
   symbolů (AL0132 bez AL1022), release SaaS (altool .NET 10, 409 = souběžný deploy), test kontejner (Docker),
   ruční PTE upload (AVS0109), Dev publish deps do kontejneru containers.essencebs.com (dev endpoint), dev
   publish altool do SaaS sandboxu (osiřelá data, duplicate package ID, ForceSync). Načti při CI/build/release

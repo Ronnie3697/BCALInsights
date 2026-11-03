@@ -517,6 +517,18 @@ nejde sync mode nastavit** (literál, ani variable trik nefunguje).
   provozu patří před destruktivní změnu obsolete fáze + migrace, ne ForceSync.
   (Zachyceno 2026-08-05, prod-epb-pricingMatrix-bc build 27692 — odstranění
   Width/Height PMEBS při parametrizaci os; zákazník nebyl live → ForceSync OK.)
+- **Změna typu pole u appky v ostrém provozu (Decimal → Code[50]) bez ztráty dat – ověřeno na SaaS:** typ pole na
+  stejném ID je destruktivní (Add ho odmítne, ForceSync zahodí hodnoty). Postup: **nová pole s novými ID** (na všech
+  tabulkách, kudy jde `TransferFields`, se stejným ID), stará pole **nepřejmenovávat** (rename = riziko „Removing fields is not
+  allowed"), jen `ObsoleteState = Pending` + Reason/Tag; odebrání `CaptionClass` / triggerů / změna `Caption` u starého pole
+  Synchronize projde. Klíč nad starými poli nech (reference pod `#pragma warning disable AL0432`). Převod v Upgrade codeunitu
+  per tabulka a **per rozdílná hodnota** jedním `DataTransfer` (typy se nekonvertují, proto `AddConstantValue(<převedená
+  hodnota>)` + `AddSourceFilter(<staré pole>, '=%1', X)` + `AddSourceFilter(<nové pole>, '=%1', '')` – jen nepřevedené řádky),
+  `UpdateAuditFields(false)` (format change nemění SystemModifiedAt/By – delta syncy), smyčka `RecRef.FindFirst` přes filtr
+  „staré <> 0 a nové = ''“ s pojistkou proti zacyklení (seznam už převedených hodnot). K tomu Install codeunit
+  `UpgradeTag.SetAllUpgradeTags()` a `OnGetPerCompanyUpgradeTags` v samostatné normální codeunitě. Ověřeno 2026-11-03 na
+  Zlomek BC-DEV: EPB Pricing Matrix 28.0.6.0 + data → dev publish 28.0.7.3 (Synchronize) → MJ i řádky sešitu cen mají kódy.
+  Závislé appky se stejným jménem pole pak nekompilují (AL0133 na typu) – nasazovat společně (prod-epb-pricingMatrix-bc PBI 67458).
 
 ### 7.19 Smíchané verze MS symbolů v `.alpackages` → falešné AL0132 na polích lokalizace (bez AL1022)
 
@@ -908,6 +920,9 @@ ED Item Sales Disponibility 28.0.0, Essence Shopify Connector 28.0.6 (závislost
 - **Neúspěšný pokus balíček na serveru stejně zaregistruje** → opakování téhož `.app` hlásí *„A duplicate package ID is detected"*.
   Přelož znovu (každá kompilace = nové package ID) a publikuj s `--schemaupdatemode ForceSync` — **jen DEV**, zahodí data
   odebraných sloupců (7.18).
+- **„A duplicate package ID is detected" i u úspěšného publishe do JINÉHO tenantu:** tentýž `.app` (stejné package ID)
+  publikovaný do Alumistr BC-DEV a pak do Zlomek BC-DEV druhý publish odmítl. Pro každé prostředí přelož zvlášť (nové
+  package ID), verze může zůstat stejná. (2026-11-03, PBI 67458.)
 - ⚠️ **Neúspěšný dev publish NAD jiným dev buildem téže appky umí nechat prostředí BEZ appky.** Sonnentor BC-DEV (2026-10-27,
   dev 28.0.167.2 → 28.0.167.308, nainstalovaný závislý dev build `SON CDS Sync`): 1. pokus *„The Extension cannot be unpublished
   because it is in use by the following tenants: …"* + *„Původní rozšíření byla obnovena"*, ale **závislou appku odinstaloval a

@@ -744,6 +744,19 @@ parametru pro textovou formuli.)
   `mcp__claude-in-chrome__computer` / `form_input` v `settings.json`; **nenastavuj ho sám**, nech to
   na uživateli. Po nafocení po sobě testovací data ukliď, pokud se uživatel nedomluví jinak.
 
+**Claude in Chrome – upload souboru do BC dialogu (import z Excelu) a čtení staženého xlsx** (2026-11-03, PBI 67458):
+- `file_upload` ani `find`/`read_page` nevidí do iframu web klienta (`iframe.designer-client-frame`). Soubor jde vložit JS:
+  base64 obsahu → `Uint8Array` → `new File(...)` → `DataTransfer` → `input[type=file].files` v `contentDocument` iframu +
+  `dispatchEvent(new Event('change', {bubbles:true}))`. BC dialog „Import souboru aplikace Excel“ pak soubor přijme (název
+  sešitu se načte). Base64 přečti Read toolem ze souboru ve scratchpadu a vlož do skriptu.
+- Export z BC stáhne Chrome do `~/Downloads` jako `Book1 (n).xlsx`. Bez `openpyxl` stačí `zipfile` + `xml.etree`
+  (sharedStrings + `inlineStr` buněk); Excel Buffer píše buňky jako `inlineStr`.
+- Upravený sešit vyrob přepsáním `xl/worksheets/sheet1.xml` v exportu (šablona stylů, komentářů a relací zůstane).
+- Výběr hodnoty v `select` (Option pole na request page): JS `selectedIndex` + `input`/`change` event; dropdown lookup
+  pole zavírej klikem na řádek, Escape / klik vedle ho někdy nechá viset.
+- Grid s ~180 sloupci (řádky prodejní objednávky) nedostaneš na konec scrollem ani Tabem rozumně – pole na konci ověřuj
+  přes tabulku (`?table=<id>`, sloupce i obsolete polí) nebo jinou stránku, kde jsou blíž začátku.
+
 ### 12.4 Essence build — ruleset per projekt konvencí
 
 Essence BC build (`azure-pipelines.yml` → template `ALBuildPipeline2.yml` →
