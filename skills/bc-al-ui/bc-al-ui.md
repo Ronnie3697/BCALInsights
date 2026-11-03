@@ -131,6 +131,10 @@ klient dál ukazuje staré captiony — nepomůže zavřít/otevřít stránku. 
 **Ctrl+F5** (hard refresh) nebo odhlásit/přihlásit. Při ladění „proč se caption
 nezměnil" nejdřív vyluč cache a per-company setup, až pak hledej bug v kódu.
 (Ověřeno 2026-08, Zlomek 62464 / PMEBS parametry A/B.)
+**Poznávací znak cache:** `Visible` z `OnOpenPage` už odpovídá novému setupu, caption ještě starému. Tuhle kombinaci
+kód sám vyrobit nemůže. Příklad: sloupce `Parameter A/B PMEBS` na *Item Units of Measure* jsou vidět (přepínač
+*Použít pole parametrů na MJ* je zapnutý), ale nesou „Šířka/Výška", tedy fallback z doby, kdy přepínač byl vypnutý
+a názvy prázdné. Ctrl+F5 ukázal nastavené názvy. (2026-11-03, Alumistr BC-TEST2.)
 
 ### 4.6b Přeměna pole na „expression" control — název controlu NEMĚŇ
 
