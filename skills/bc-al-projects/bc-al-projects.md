@@ -662,7 +662,11 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   řádku, čerpáno + zůstatek rezervy)) a nepokrytý zbytek (`Reserve Shortfall` = částka − čerpáno). Evidovat „čerpáno = celá částka
   řádku" a rezervu jen ořezávat na 0 je chyba: po snížení částky přečerpaného řádku se vrací peníze, které rezerva nikdy nedala
   (reklamace Soitron 2026-11-03: rezerva 1 600, řádek 4 500 → 0, snížení na 3 000 vrátilo 1 500). „Uloženo bez změny částek"
-  poznáš z částka = čerpáno + nepokryto, netřeba xRec. Guard „rezervu s vazbami nejde smazat" blokuje `DeleteAll(true)`
+  poznáš z částka = čerpáno + nepokryto, netřeba xRec. **Každý přírůstek rezervy** (odpojení, přepojení, snížení částky, smazání
+  čerpajícího řádku) hned rozdej ostatním propojeným řádkům s nepokrytou částí (v pořadí Line No., měněný řádek vynech —
+  jeho hodnoty žijí v paměti, v DB jsou staré); jinak po přepojení řádku A na jinou rezervu má rezerva zpět celou částku A,
+  ale přečerpaný řádek B si nic nedobere a rezerva je o jeho nepokrytou část vyšší (reklamace Soitron 2026-11-03: 2 880
+  místo 1 950). Rozdělení rezervu jen snižuje, takže se nic nešíří dál. Guard „rezervu s vazbami nejde smazat" blokuje `DeleteAll(true)`
   (smazání projektu, přegenerování QB) — řádky se mažou v pořadí PK a rezerva je první → místo Error vazby tiše zrušit.
   Částky skutečně odečtené z rezervy drž na čerpajícím řádku,
   deltu dorovnávej v `OnBeforeInsert` / `OnBeforeModify` tableextension (pole přiřazená tam se zapíšou s operací, žádný
