@@ -18,6 +18,8 @@ Obsahuje:
 - **5.x23** tracking filtry `SetTrackingFilterFrom…` v base = jen SN + Lot (Package přes event); `Item Tracking Setup` je temp (AA0073)
 - **5.x24** hromadný výběr SN v *Vybrat položky* (Item Tracking Summary 6500) akcí v pageextension; import SN z Excelu na
   nákup / skladovou příjemku (tracking příjemky žije na řádku NO); přejmenování Warranty Date / Package No.
+- **5.x25** zápis / odebrání SN na řádku dokladu z kódu standardní cestou — `Item Tracking Lines.RegisterItemTrackingLines`
+  s delty, `SetBlockCommit`, částečně dodaný řádek; seznam problémů přes temp `Error Message`
 
 ## 5. Specifické objekty a API — Item Tracking
 
@@ -437,3 +439,35 @@ Caption"` (Text[30], jen jeden jazyk). Warranty Date je na 6510 `Visible = false
 (2026-11-02, cust-soitron-bc — `Serial No. Import Mgt. SOI`, `Serial No. Selection Mgt. SOI`, `Item Tracking Summary SOI`;
 zdroj w1-28 `ItemTrackingSummary.Page.al`, `ItemTrackingDataCollection.Codeunit.al`, `CreateReservEntry.Codeunit.al`; jen
 kompilace, testy zatím neběžely.)
+
+### 5.x25 Zápis / odebrání SN na řádku dokladu z kódu standardní cestou — `Item Tracking Lines.RegisterItemTrackingLines` s delty
+
+Když zadání chce „standardní funkce BC, žádný přímý INSERT do sledování" (import SN, přenos SN z pole řádku), je tou funkcí
+**neotevřená stránka 6510** — totéž volá standard při synchronizaci sledování ze skladu (`Item Tracking Management.
+SynchronizeItemTracking2` se zápornými delty, `RegisterNewItemTrackingLines`). Oproti `Create Reserv. Entry` (5.x24) řeší sama
+stav položek, rezervace / vazby na VZ i odebrání.
+
+- Zdroj: `Sales Line-Reserve.InitFromSalesLine(SourceTrackingSpecification, SalesLine)` (public; množství, handled, source pole) +
+  temp `Tracking Specification` s `Entry No.`, `Serial No.` (Lot / Package) a `Quantity (Base)` = **delta** vůči stávajícímu řádku
+  stejného sledování: +1 SN přidá, −1 odebere (existující řádek → `Validate("Quantity (Base)", stávající + delta)` = 0 →
+  `WriteToDatabase` ho zpracuje jako snížení). Znaménko jako množství řádku (u prodeje kladné, jinak `CheckItemTrackingLine`).
+  `ItemTrackingLines.RegisterItemTrackingLines(SourceTrackingSpecification, SalesLine."Shipment Date", TempTrackingSpecification)`.
+- **`ItemTrackingLines.SetBlockCommit(true)`** — bez toho `WriteToDatabase` na konci commituje (po každém řádku dokladu). S blokem
+  běží víc řádků v jedné transakci a chyba vrátí všechno; `if Codeunit.Run` per řádek pak netřeba (vyžadoval by zavřenou transakci).
+- Stránku drž jako **lokální proměnnou** procedury volané per řádek (nová instance). `RegisterItemTrackingLines` prochází celý temp
+  buffer (`Reset` + `Find('-')`), takže buffer per řádek vyprázdni.
+- Stav položek dá `SetSourceSpec` sám (`IsOrderNetworkEntity`: objednávka Surplus, nabídka Prospect — 5.x2b); SN se nejdřív přidává
+  do prázdných rezervačních položek řádku (`ReservEngineMgt.AddItemTrackingToTempRecSet`) → vazba na rezervaci / VZ zůstane. Bez
+  otevřené stránky nejsou dotazy na dostupnost ani okna. Přesledování nad `Quantity (Base)` řádku = chyba Text014.
+- ⚠️ **Částečně dodaný řádek:** nový řádek sledování vzniká `TransferFields(SourceTrackingSpecification)` → nese `Quantity Handled
+  (Base)` celého řádku a `Validate("Quantity (Base)", 1)` spadne na FieldError (|1| < handled). Takový řádek z kódu neměň (vlastní
+  kontrola předem), dodaná SN nikdy neodebírej. Stávající SN řádku pro výpočet delt ber z 337 ve všech stavech + dodaná z ILE
+  (u Zlomku `Item Tracking Mgt. ZLK.CollectForSalesLine`).
+- **Seznam problémů před zápisem:** temp `Error Message` → `TempErrorMessage.LogMessage(SalesLine, SalesLine.FieldNo(Pole),
+  TempErrorMessage."Message Type"::Error, Text)` (Record ID = řádek, stejná hláška se nezdvojí) a pak
+  `TempErrorMessage.ShowErrorMessages(false)` (stránka *Error Messages*, nemodálně; `true` = navíc `Error('')`). Logiku dej do
+  procedury s `var TempErrorMessage` a testy assertuj nad bufferem bez UI.
+
+(2026-11-03, cust-zlomek-bc 66431 `Position Tracking Mgt. ZLK`; zdroj w1-28 `ItemTrackingLines.Page.al` — `RegisterItemTrackingLines`,
+`WriteToDatabase`, `RegisterChange` —, `ItemTrackingManagement.Codeunit.al`, `TrackingSpecification.Table.al`, `ErrorMessage.Table.al`;
+jen kompilace, testy `Position Tracking Tests ZLK` zatím neběžely.)

@@ -284,6 +284,14 @@ vlastní pole samo. Code-review nález „změna typu nechá viset staré vlastn
 přiřazení `Type`/`No.` z kódu Init nespustí, proto guard `Type <> Item or No. = '' → Clear` v přepočtu stejně drž
 (levné, chování pak nezávisí na base Init). (2026-09-10, cust-alumistr-bc 65916, `SK Branch Mgt. ALU`.)
 
+**Ručně zadané vlastní pole řádku, které má změnu zboží / typu přežít** (např. Pozice — patří řádku, ne zboží): eventy hned
+po `Init()` — `Sales Line.OnValidateNoOnCopyFromTempSalesLine(var SalesLine; var TempSalesLine: … temporary; xSalesLine;
+CurrentFieldNo)` (po zkopírování `Type` + `No.`, ještě před `ShouldStopValidation`, takže i při vymazání `No.`) a
+`OnValidateTypeOnCopyFromTempSalesLine(var SalesLine; var TempSalesLine: … temporary)`; `TempSalesLine` = řádek před `Init()`.
+`Validate("Variant Code")` `Init()` nedělá. Jedna obnova (`SalesLine.Pole := TempSalesLine.Pole`) pak kryje změnu zboží z UI,
+z konfigurátoru i z kódu. (2026-11-03, cust-zlomek-bc 66431 `Sales Mgt. ZLK`; zdroj w1-28 `SalesLine.Table.al`, jen kompilace,
+testy `Sales Line Position Tests ZLK` zatím neběžely.)
+
 **`Validate("Unit of Measure Code")` a `Validate("Variant Code")` na Sales Line PŘEPÍŠOU `Description` i `Description 2`.** Oba triggery volají
 `Item Reference Management.EnterSalesItemReference`, který u řádku zboží znovu naplní texty z Item Reference / Item Variant / Item
 (+ `GetItemTranslation`) — ověřeno v Base App 28.4. Vlastní texty (z konfigurátoru, importu…) proto přiřazuj **až po** validaci
