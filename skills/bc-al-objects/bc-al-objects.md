@@ -961,3 +961,12 @@ Ověřeno proti zdroji w1-25 (cust-ardo-bc PBI 67302 *Increase Qty. for Pick %*,
 - Test obou cest: refresh přes `LibraryManufacturing.CreateAndRefreshProductionOrder`; plánování = zboží Lot-for-Lot s kusovníkem
   (`Validate("Replenishment System", "Prod. Order")`), prodejní objednávka 2 týdny dopředu, `LibraryPlanning.CalcRegenPlanForPlanWksh`,
   assert `Accept Action Message`, `CarryOutActionMsgPlanWksh` (založí Firm Planned). Plánovací komponentu čti **před** carry out.
+- **Navýšení množství komponenty (procento „víc k vyskladnění“) nikdy přes přepis `Quantity per`.** První verze 67302 šla přes
+  vlastní pole *Quantity to Consume*, jehož validace přepisuje `Quantity per := QtyToConsume / množství řádku` — zákazník to
+  v DEVu hned odmítl (poměr 0,12 → 0,144 „mění recepturu“). Správně: navýšení dát do `Prod. Order Component.OnAfterProdOrderNeeds`
+  (`NeededQty *= 1 + % / 100`), base pak počítá `Expected Quantity = Quantity per × ProdOrderNeeds()` při vzniku i při každém
+  přepočtu (změna množství řádku → `UpdateProdOrderComp` → `Validate("Quantity per")`; Scrap %, Routing Link Code, Calculation
+  Formula → `UpdateExpectedQuantity`), `Quantity per` zůstává z kusovníku. Odvozená pole (Quantity to Consume, Planned Quantity)
+  plnit přímým přiřazením v hooku `OnValidateExpectedQuantityOnAfterCalcActConsumptionQty`, ne `Validate`. Pozor na pořadí v refreshi:
+  vlastní pole se kopíruje až v `OnTransferBOMProcessItemOnBeforeGetPlanningParameters`, tedy **po** výpočtu Expected Quantity →
+  v `OnAfterProdOrderCompInsert` znovu `Validate("Quantity per")`. (2026-11-03, cust-ardo-bc 67302, zákazník odmítl v1.)
