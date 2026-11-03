@@ -566,46 +566,49 @@ sloupce PowerShell skriptem nad `System.Xml.XmlDocument` (`PreserveWhitespace = 
 - Výhoda proti Report Builderu: diff je čitelný, změna je reprodukovatelná na identickém layoutu v sesterském repu
   (CZ i W1 kopie byly binárně shodné → skript jednou, soubor zkopírovat).
 
-### 12.1h RDLC layout reportextension na serveru: BC při instalaci přegeneruje `<DataSets>` a kopii drží, dokud se bajty layoutu nezmění
+### 12.1h RDLC layout reportextension: `alc` při kompilaci přegeneruje `<DataSets>` podle symbolů — CI s jinou verzí vendora vyrobí rozbitý layout
 
 **Symptom:** tisk padá na *„Rendering output for the report failed … The Value expression for the text box 'Textbox62'
 refers to the field 'Prepaymen_Vat_Date'. Report item expressions can only refer to fields within the current dataset
-scope…"* — ale jen u layoutu z `rendering { layout(...) }` našeho reportextension. Built-in layout vendora funguje
-a **tentýž soubor z repa nahraný jako uživatelský layout funguje taky**. Přidání prázdného řádku do `.al` a nová
-verze appky nic nezmění. (cust-smartwings-bc PL Core, *ITI Sales - Invoice PSW* na PL Test, 2026-11-03.)
+scope…"* — jen u layoutu z `rendering { layout(...) }` našeho reportextension. Built-in layout vendora funguje
+a **tentýž rdlc z repa nahraný jako uživatelský layout funguje taky**; export layoutu rozšíření ze serveru se od repa liší
+jen v `<DataSets>` (pole chybí / přibyla). Nová verze appky ani změna bajtů rdlc nepomůže. (cust-smartwings-bc PL Core,
+*ITI Sales - Invoice PSW* na PL Test, 2026-11-03.)
 
-**Mechanismus (ověřeno):**
-- Layout uvnitř `.app` je bajt po bajtu stejný jako v repu (sha256 shodný u všech buildů 27.0.0 → 27.0.60) —
-  alc layout reportextension nepřepisuje (na rozdíl od layoutů `report` objektu, 7.1 v `bc-al-tools.md`).
-- Export téhož layoutu ze stránky *Report Layouts* se liší **jen v `<DataSets>`**: BC při instalaci appky dataset
-  layoutu rozšíření přegeneruje podle datasetu reportu *v tu chvíli* (base + všechna rozšíření) — nová pole dopíše,
-  zaniklá smaže, výrazy v textboxech nechá → textbox ukazuje na pole, které v `<Fields>` není = chyba výše.
-- Tuhle přegenerovanou kopii BC **drží a nepřepočítá při další verzi appky, dokud se nezmění obsah rdlc** (hypotéza
-  „hash layoutu", potvrzuje ji chování: 27.0.18 → 27.0.60 se stejným souborem = stejná stará kopie).
-- Built-in layouty vendora (`report` objekt) ani uživatelské layouty BC nepřegenerovává; pole definované v RDL, které
-  v datech není, se tiskne prázdné bez chyby — proto „ITI layout funguje" nic neříká o datasetu.
-- Na PL Test byla ITI Polish Localization **10.13.0.5** (sloupec `Prepaymen_Vat_Date` má), ale uložený dataset
-  odpovídal ITI **10.16** (sloupec pryč, místo něj `Prepayment_NSeI_No` + labely `NSeIDocumentNoLbl`,
-  `Prepayment_NSeI_Document_NoLbl`) → kopie vznikla, když na prostředí / v obnovené DB běžela novější ITI.
+**Mechanismus (ověřeno experimentem i logem CI):**
+- **`alc` při kompilaci přepíše `<DataSets>` RDLC layoutu reportextension** (stejně jako u `report`, 7.1 v `bc-al-tools.md`)
+  podle datasetu base reportu **ze symbolů v package cache** + sloupců rozšíření: chybějící `Field` doplní, neexistující
+  smaže, výrazy v textboxech nechá. Přepíše **i zdrojový soubor v `src/`** (sonda: bogus `Field` zmizel, odebraný se vrátil,
+  307 → 290 polí; alc 17.0.2273547). Když symboly odpovídají layoutu, soubor zůstane bajt po bajtu stejný — proto lokální
+  build „nic nemění" a vypadá to, že alc layout nesahá.
+- Export z *Report Layouts* je přesně obsah `.app`; server nic nepřegenerovává. Uživatelský layout (nahraný soubor) nikdo
+  nepřepisuje, a pole definované v RDL, které v datech není, se tiskne prázdné bez chyby — proto „ITI layout funguje"
+  nic neříká o datasetu.
+- **CI (Essence v2-0, Download Dependencies from NuGet)** stáhlo pro `Polish Localization 10.8.0.0` verzi 10.8.3.3, ale
+  tranzitivní závislost **Electronic Banking Extension PL 7.6.0.1** (SuggestPayments.PL) přitáhla do `.dependencies`
+  i **Polish Localization 10.16.0.5** (+ Electronic Banking Base App 6.0.2.6). V package cache leží obě verze, alc bere
+  nejvyšší → Core PL se kompiluje proti 10.16, kde ITI sloupec `Prepaymen_Vat_Date` (dataitem `PreviousPrepmt`) zrušilo
+  a nahradilo `Prepayment_NSeI_No` (+ labely `NSeIDocumentNoLbl`, `Prepayment_NSeI_Document_NoLbl`). Na serveru je ITI
+  10.13.0.5, které sloupec má → build z CI padá, lokální build (symboly 10.13) by fungoval.
 
-**Diagnostický postup (opakovatelný):**
-1. Layout z `.app`: soubor = 40 B hlavička `NAVX` + ZIP → v PowerShellu najdi offset `PK\x03\x04`, `ZipArchive`
-   nad `MemoryStream`, entry `layout/src/reportextension/<soubor>.rdlc`; porovnej sha256 s repem.
-2. Export ze serveru (*Report Layouts → Export*) a `diff` proti repu po `tr -d '\r'`; `comm` nad seznamy
-   `<Field Name=…>`. Liší-li se jen `<DataSets>`, je to přegenerovaný dataset serveru.
-3. Který vendorův sloupec v které verzi existuje: NuGet `.app` vendora bývá šifrovaný (`NAVX.NEA`, žádný ZIP,
-   al-mcp ho nenačte) → **sonda kompilací**: reportextension `add(<dataitem>) { column(<jméno>; 1) { } }` proti
-   symbolům; `AL0155 … already defined … by the extension 'X (verze)'` = sloupec existuje, neexistující jméno projde.
-   Sonda přes label (`Prepaymen_Vat_DateLbl`) je neprůkazná — vendor proměnnou nechá a změní jen sloupec
-   (`AL0161` = existuje, ale protected; `AL0118` = neexistuje).
-4. Datasety jiných verzí vendora jsou vidět v přegenerovaných layoutech jiných zákaznických rep v ADO
-   (`search_code` na jméno sloupce; cust-trafinOil-bc `app_pl` = ITI 10.16).
+**Diagnostický postup:**
+1. Layout z `.app`: 40 B hlavička `NAVX` + ZIP (`grep -obUa -F $'PK\x03\x04'` s `LC_ALL=C`, `tail -c +N`, `unzip`;
+   nebo PowerShell `ZipArchive`), sha256 proti repu; export ze serveru → `diff` po `tr -d '\r'`, `comm` nad `<Field Name=…>`.
+2. Log kroku *Download Dependencies from NuGet*: řádky `requesting '[x,y)'` a `Copying … to .dependencies` — hledej
+   **dvě verze téže appky**; `Compile AL Apps` ukáže `AL Compiler version` (CI 16.4 ≠ lokální 17/18).
+3. Který sloupec v které verzi vendora existuje: NuGet `.app` bývá šifrovaný (`NAVX.NEA`, bez ZIP, al-mcp ho nenačte) →
+   **sonda kompilací** `add(<dataitem>) { column(<jméno>; 1) { } }` proti symbolům: `AL0155 … already defined … by the
+   extension 'X (verze)'` = existuje, neznámé jméno projde. Sonda přes label je neprůkazná (vendor nechá proměnnou, změní
+   sloupec; `AL0161` = existuje/protected, `AL0118` = neexistuje). Datasety jiných verzí jsou vidět v layoutech jiných
+   zákaznických rep v ADO (`search_code` na jméno sloupce; cust-trafinOil-bc `app_pl` = ITI 10.16).
+4. MCP `pipelines_artifact download` vrací prázdný soubor — artefakt stáhni ručně z ADO, nebo zkompiluj lokálně
+   se stejnými symboly.
 
-**Oprava:** změnit obsah rdlc (např. `<Description>…</Description>` pod `<AutoRefresh>`), aby BC layout při instalaci
-zpracovalo znovu proti aktuálnímu datasetu; kdyby to nestačilo, uninstall + unpublish všech verzí appky a publish
-znovu. Dlouhodobě: ITI ≥ 10.14 (10.16 ověřeno) sloupec `Prepaymen_Vat_Date` v `PreviousPrepmt` zrušilo → layout, který
-ho referencuje, po upgradu ITI spadne legitimně; datum zálohy pak tisknout z vlastního sloupce (vlastní temp
-`Sales Line` naplněný veřejnou `ITI Sales Prepayment Mgt.CollectPrevPrepmts`, stejná signatura v 10.13 ověřena).
+**Oprava:** (a) layout nesmí referencovat sloupec, který v jedné z verzí vendora chybí → vlastní column v reportextension
+(`add(PreviousPrepmt) { column(PrepaymentVatDatePSW; …) }` z vlastního temp `Sales Line` naplněného veřejnou
+`ITI Sales Prepayment Mgt.CollectPrevPrepmts`, signatura v 10.13 ověřena) a textbox na něj; (b) nebo sjednotit verzi
+vendora v CI s nasazenou (pin závislosti, která tahá novější verzi; `.dependencies` nesmí obsahovat dvě verze) — křehké,
+každý další bump to rozbije. Po (a) se přegenerovaný `<DataSets>` liší jen o pole, na která layout neukazuje = neškodné.
 
 ### 12.2 Když nevíš, co pravidlo znamená — vyhledej
 

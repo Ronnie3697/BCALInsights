@@ -5,7 +5,7 @@ description: >-
   HTML se screenshoty (base64, focení BC přes Claude in Chrome, timeout screenshotu, inline chyba pole); co
   číst před editem (hlavička, app.json, .alpackages = binární ZIP → al-mcp, permission set); Word layouty
   (repeater w15:dataBinding, štítky skriptem, barcode fonty, GS1-128 / FNC1), RDLC tablix sloupce skriptem
-  (TablixCell = sloupec, ColSpan, Hidden), layout reportextension na serveru (BC při instalaci přegeneruje `<DataSets>`, „refers to the field" = stará kopie, sonda sloupce AL0155); build a analyzery AA/CA/PTE/LC
+  (TablixCell = sloupec, ColSpan, Hidden), layout reportextension (alc při kompilaci přegeneruje `<DataSets>` ze symbolů, CI s jinou verzí vendora → „refers to the field", sonda sloupce AL0155); build a analyzery AA/CA/PTE/LC
   (verifikace všech dotčených appek, failOn warning), XML doc komentáře (LC0072, & = AL0640), runtime errory
   bez spekulačních smyček, Essence ruleset per projekt (*Ruleset*.json vedle app.json). Načti u
   dokumentace ticketu, příručky, před netriviálním editem, u warningů a analyzerů. (XLIFF / překlady →

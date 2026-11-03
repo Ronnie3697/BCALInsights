@@ -239,7 +239,9 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   přeformátuje XML (jednořádkové elementy rozepíše s odsazením). Po kompilaci reportu s víc layouty tak v `git
   status` svítí i layout, na který jsi nesáhl (`ExportSalesQuote.Report2.rdl` = „Previous layout") → `git checkout --`
   na něj; u vlastního upraveného `.rdl` je alc normalizace neškodná (nech ji, repo pak sedí s tím, co generuje
-  kompilátor). (2026-10-22, cust-jiri-bc / cust-jiri-w1-bc, akční cena v exportu nabídky.)
+  kompilátor). (2026-10-22, cust-jiri-bc / cust-jiri-w1-bc, akční cena v exportu nabídky.) **Platí i pro layouty
+  `reportextension`** — a protože se dataset bere ze symbolů v package cache, CI s jinou verzí base appky (dvě verze
+  v `.dependencies`, vítězí nejvyšší) vyrobí layout s jiným `<DataSets>` než lokální build → 12.1h v `bc-al-workflow.md`.
 
 ### 7.2 Čtení symbolů z `.alpackages` — al-mcp-server
 
