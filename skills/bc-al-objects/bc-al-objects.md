@@ -3,7 +3,7 @@
 > Část rozděleného `bc-al-notes.md` (rozsekáno 2026-06-23; archiv: `bc-al-notes.archived-2026-06-23.md`).
 > Shopify Connector (5.y2) a SaaS/Cloud gotchas (sekce 11) vyčleněny 2026-09-08 do `bc-al-integrations.md`.
 > Načítej, když řešíš: No. Series, Upgrade Tag, All Profile, NMEBS vazba SO↔VZ,
-> Unix timestamp, atributy zboží, DateFormula, CaptionClass/Translation Helper, CZ↔EN terminologie, CZZ zálohy, Attached to Line No. /
+> Unix timestamp, atributy zboží, DateFormula, CaptionClass/Translation Helper, CZ↔EN terminologie, Attached to Line No. /
 > parent↔child řádky, VerifyOnInventory, Auto Format / částky v textu, Retention Policy pro vlastní logy (5.x24).
 >
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
@@ -11,6 +11,8 @@
 > **Item Tracking** (5.x, 5.x2, 5.x2b, 5.x15) má od 2026-10-07 vlastní soubor `bc-al-tracking.md` (skill `bc-al-tracking`).
 > **Hromadné objednávky HNO/HPO, Requisition Line a přepočet ceny bez ceníku** (5.x5, 5.x9, 5.x21) mají od 2026-10-19 vlastní soubor
 > `bc-al-blanket.md` (skill `bc-al-blanket`).
+> **CZZ zálohy** (5.z3, 5.z5, 5.z7 — vazba na doklad, generovaný řádek zálohy, platba zálohy a účto skupina) mají od 2026-11-03
+> vlastní soubor `bc-al-advance-cz.md` (skill `bc-al-advance-cz`).
 
 Obsahuje:
 - **5.** Specifické objekty a API (bez 5.y2 Shopify → `bc-al-integrations.md`)
@@ -433,43 +435,10 @@ appky nebo do CZ lokalizační větve `cz-<major>` repa
 `StefanMaron/MSDyn365BC.Code.History` (viz 7.3).
 
 
-### 5.z3 CZZ Advance Payments — vazba záloha↔objednávka a scoped guard přes manual bind
+### 5.z3, 5.z5 → vyčleněno do `bc-al-advance-cz.md`
 
-Poznatky z EF Advance CZ (WI 63636, 2026-08):
-
-- **Vazbu zálohy na doklad drží `Advance Letter Application CZZ` (31007)** (PK: Letter
-  Type, Letter No., Document Type, Document No.), ne pole na hlavičce zálohy. Pole
-  `"Order No."` na `Sales Adv. Letter Header CZZ` je jen zrcadlo: `OnDelete` tabulky
-  31007 ho **vymaže (i `"Posting Description"`) a standard ho při novém propojení
-  NIKDY neobnoví** — extension logika postavená na `Order No.` po unlink+relink tiše
-  přestane fungovat. Obnovu je nutné dopsat subscriberem na `OnAfterInsertEvent` 31007.
-- **Uživatelské odpojení** jde přes dialog `LinkAdvanceLetter` (page 31175 „Advance
-  Letter Appl. Edit CZZ", volá `SalesAdvLetterManagementCZZ.LinkAdvanceLetter`) —
-  chybějící řádky po LookupOK se mažou `Delete(true)` **bez IsHandled eventu**.
-  Tatáž tabulka se ale maže i systémově (`SalesPostHandlerCZZ` po vyfakturování,
-  `SalesAdvLetterPostCZZ` při Close, ApplyChanges při usage) — plošný subscriber na
-  `OnBeforeDeleteEvent` by rozbil účtování.
-- **Pattern „scoped guard": codeunit s `EventSubscriberInstance = Manual`** a
-  subscriberem na `OnBeforeDeleteEvent` + na page nahradit standardní akci vlastní,
-  která udělá `BindSubscription(Guard)` → volání standardní logiky → `Unbind`.
-  Kontrola tak platí přesně pro interaktivní dialog a systémové cesty nevidí.
-  Lokální codeunit proměnná v OnAction drží subscription po dobu volání. V guardu
-  nezapomenout `IsTemporary()` exit (dialog pracuje s temp buffery téže tabulky).
-
-### 5.z5 CZZ `Create Sales Adv. Letter CZZ` (report 31012) — kde upravit generovaný řádek zálohy
-
-- **`OnCreateAdvanceLetterLineOnBeforeInsert(var SalesAdvLetterLineCZZ; SalesAdvLetterHeaderCZZ)`** běží těsně před `Insert(true)`
-  každého generovaného řádku, v obou režimech (seskupení podle DPH i *Navrhnout podle řádku*). Správné místo pro úpravu řádku (např.
-  `Description` podle DPH skupiny); subscriber na `OnInsert` tabulky by přepsal i ručně pořízené řádky na kartě zálohy.
-- `UpdateAmounts` dělá před eventem `TestField("VAT Prod. Posting Group")` → generovaný řádek **nikdy nemá prázdnou** DPH skupinu
-  zboží (větev „prázdná skupina" testuj přímo na proceduře, report ji nevyrobí).
-- `Sales Adv. Letter Line CZZ.Description` je **Text[100]** → delší text ze setupu `CopyStr(…, 1, MaxStrLen(Description))`.
-- Report na konci položí Confirm *„Chcete otevřít vytvořenou zálohu?"* → v testu `[ConfirmHandler]` (Reply false). Z prodejní
-  objednávky: *Akce → Záloha → Vytvořit zálohovou fakturu…* (request page *Vytvořit prodejní zálohu*: Kód zálohy, Záloha %,
-  Částka zálohy, Navrhnout podle řádku; to poslední jde zapnout jen na request page → test s `RequestPageHandler`, viz
-  „Report s request page v testu po zápisech" v `bc-al-autotests.md`).
-
-(2026-10-21, cust-zlomek-bc PBI 65149, zdroj cz-28, ověřeno v BC-DEV 28.5.)
+CZZ zálohy (vazba záloha ↔ doklad a scoped guard, generovaný řádek zálohy z reportu 31012, účto skupina zákazníka /
+dodavatele při platbě zálohy) žijí od 2026-11-03 ve skillu `bc-al-advance-cz` (soubor `bc-al-advance-cz.md`). Číslování zůstalo.
 
 ### 5.z6 Duplicita IČ / DIČ zákazníka a dodavatele — kde standard jen varuje a jak ji tvrdě zablokovat
 
