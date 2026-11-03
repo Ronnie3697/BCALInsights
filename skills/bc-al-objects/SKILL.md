@@ -3,14 +3,13 @@ name: bc-al-objects
 description: >-
   BC/AL specifické objekty a API (sekce 5): All Profile, Upgrade Tag, No. Series GetNextNo vs PeekNextNo,
   kontrola Document No., Unix timestamp, NMEBS vazba SO↔VZ, atributy zboží, DateFormula,
-  CaptionClass + Translation Helper, CZ↔EN terminologie, CZZ zálohy (vazba na objednávku, generovaný řádek
-  zálohy), duplicita IČ/DIČ zákazníka/dodavatele, Attached to Line No.,
+  CaptionClass + Translation Helper, CZ↔EN terminologie, duplicita IČ/DIČ zákazníka/dodavatele, Attached to Line No.,
   VerifyOnInventory, Item Jnl. Line UoM qty-per, Auto Format, Item Charge Assignment, Job Queue z účtování /
   recurring, camt.053 Data Exchange (merge, Regex), Retention Policy (OnRefreshAllowedTables), Bin Code SO/PO →
   Whse. doklady (OnAfterGetDefaultBin), přesun z kódu (Bin Code Take, pár Take/Place, základní MJ bez řízeného
   zaskl.), pole kusovníku → komponenta VZ (OnAfterProdOrderCompInsert, Planning Component → Carry Out). Načti u číselných řad, výroby, Job Queue, bank. importu, přihrádek,
   skladových aktivit. (Shopify/HTTP → bc-al-integrations; projekty → bc-al-projects; šarže/SN →
-  bc-al-tracking; HNO/HPO, sešit požadavků → bc-al-blanket.)
+  bc-al-tracking; HNO/HPO, sešit požadavků → bc-al-blanket; CZZ zálohy → bc-al-advance-cz.)
 user-invocable: true
 ---
 
@@ -33,7 +32,8 @@ cesty) a příklady jsou v souboru.
 3. Sousední témata: Shopify Connector, HttpClient/SecretText na SaaS, Power
    Automate → `bc-al-integrations` (5.y2, 11); projekty / Job Planning Line → `bc-al-projects` (5.x17–5.x20); Item Tracking
    (šarže, SN, Item Tracking Lines, Reservation Entry) → `bc-al-tracking` (5.x, 5.x2, 5.x2b, 5.x15); hromadné objednávky
-   HNO/HPO, Requisition Line / sešit požadavků a přepočet ceny bez ceníku → `bc-al-blanket` (5.x5, 5.x9, 5.x21); subscribery a propagace polí →
+   HNO/HPO, Requisition Line / sešit požadavků a přepočet ceny bez ceníku → `bc-al-blanket` (5.x5, 5.x9, 5.x21); CZZ zálohy
+   (vazba na doklad, generovaný řádek, platba a účto skupina) → `bc-al-advance-cz` (5.z3, 5.z5, 5.z7); subscribery a propagace polí →
    `bc-al-data`; Cloud target patterny obecně → `bc-al-style` (10); ověření
    signatur z .app → `bc-al-tools` (7.2, 7.6).
 
@@ -67,9 +67,8 @@ cesty) a příklady jsou v souboru.
   Helper` (53), ne holý `GlobalLanguage()` (LC0022).
 - **5.z4** CZ ↔ EN termíny podle tabulky v souboru (Zboží = Item, Přihrádka =
   Bin, Šarže = Lot, Montáž = Assembly…), ne doslovný překlad ze slovníku.
-- **5.z3** CZZ: vazba záloha ↔ doklad v `Advance Letter Application CZZ`;
-  scoped guard přes `EventSubscriberInstance = Manual` + `BindSubscription`;
-  v guardu `IsTemporary()` exit (dialog jede nad temp buffery téže tabulky).
+- **5.z3 / 5.z5 / 5.z7** CZZ zálohy (vazba na doklad, generovaný řádek zálohy, platba zálohy a účto skupina) → skill
+  `bc-al-advance-cz` (vyčleněno 2026-11-03).
 - **5.x4** `Attached to Line No.` (80): posting bez kontroly, kaskádní delete
   a delete při změně `No.` hlavního řádku (jen ze subformu). Vlastní
   parent↔child: přepočet dětí v `OnAfterModify` (`Rec` vs `xRec`, bez Modify

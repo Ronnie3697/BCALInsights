@@ -282,6 +282,12 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   spadlého testu `##[error]` řádek `JménoTestu () : JménoTestu(,): error : Assert.AreEqual failed. Expected:<…> Actual:<…>. <message>`,
   tedy celá hláška Assertu vč. vlastní zprávy. Chybí jen stack trace — ten pořád jen přes REST `Runs/<runId>/results`. Pořadí: `get_status`
   první, REST až když potřebuješ řádek. (2026-10-27, cust-soitron-bc build 29103, `EUAccountGetsEUTemplate` — v labelu EU zemí chybělo `GR`.)
+  ⚠️ **Neplatí vždy:** build 29230 (prod-ep-itemManagement-bc, 2026-11-03) měl v HTML reportu jen souhrnné „There are one or more
+  test failures…", log kroku *Run Tests in container* jen `Testfunction … Failure (0.04 seconds)` a MCP
+  `testplan_show_test_results_from_build_id` jen id/outcome. Bez Chromu zbývá rozbor z kódu: trvání (30–60 ms = pád v GIVEN,
+  stovky ms = došlo k WHEN), který helper mají spadlé testy společný a které testy mezi nimi prošly (tady: každý test po prvním,
+  který naskladňoval → `SelectItemJournalBatchName` v `bc-al-autotests.md`). Zdrojáky MS knihoven pro takový rozbor:
+  `raw.githubusercontent.com/microsoft/BCApps/main/src/Layers/W1/Tests/ApplicationTestLibrary/<Library>.Codeunit.al` (curl projde).
 - **Čtení CI logu: stejné `Document No.` v chybách několika testů za sebou = každý z nich spadl a odroloval se**
   (číselná řada se vrátila); prošlý test commitne a číslo posune. Runner úspěšné testy nevypisuje, ale z čísel dokladů
   v hláškách jde poznat, které testy mezi faily prošly (build 28149: „1003" u testů 3–5, „1005" od testu 9 = testy 6 a 8

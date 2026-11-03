@@ -22,6 +22,7 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
 | `bc-al-objects.md` | specifické objekty/API — No. Series, Attached to Line No., Job Queue… (sekce 5) |
 | `bc-al-blanket.md` | hromadné objednávky HNO/HPO (vazba řádků, převzetí ceny, Recreate lines, změny z hlavičky), Requisition Line / Carry Out / Calculate Plan, poptávka → sešit požadavků → NO, přepočet ceny bez ceníku (sekce 5.x5, 5.x9, 5.x21) |
 | `bc-al-tracking.md` | Item Tracking — šarže / SN: Item Tracking Lines (6510) a její eventy, předvyplnění šarže, Reservation Entry vs Tracking Specification, source pole VZ, tracking na nabídce a na fakturačním řádku z dodávky (sekce 5.x, 5.x2, 5.x2b, 5.x15) |
+| `bc-al-advance-cz.md` | CZZ zálohy — vazba záloha ↔ doklad a scoped guard, generovaný řádek zálohy z reportu 31012, platba zálohy a účto skupina zákazníka / dodavatele (šablona vs. karta, propojení / odpojení z položek) (sekce 5.z3, 5.z5, 5.z7; vyčleněno 2026-11-03) |
 | `bc-al-projects.md` | projekty — Job Planning Line: účto skupina a dimenze do deníku projektů, Location Code, vazba budget ↔ billable, návazné doklady projektu, guardy `OnDelete` (sekce 5.x17–5.x20) |
 | `bc-al-integrations.md` | Shopify Connector, HttpClient na SaaS, SecretText/Isolated Storage, Business Events / Power Automate, vlastní API page pro zápis, Dataverse/CDS sync (5.y2, sekce 11) |
 | `bc-al-workflow.md` | dokumentace vč. uživatelské příručky, co číst před editem, verifikace a analyzery (sekce 8, 9, 12) |
@@ -57,6 +58,7 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
   5.x, 5.x2, 5.x2b, 5.x15 (Item Tracking) → `bc-al-tracking.md` (2026-10-07, `bc-al-objects.md` by znovu přesáhl 1000 řádků).
   5.x5, 5.x9, 5.x21 (hromadné objednávky, sešit požadavků, přepočet ceny) → `bc-al-blanket.md` (2026-10-19, `bc-al-objects.md` přesáhl 1000 řádků).
   Sekce 6 (lokalizace, XLIFF) → `bc-al-xliff.md` (2026-10-22, `bc-al-workflow.md` přesáhl 1000 řádků).
+  5.z3, 5.z5 (+ nová 5.z7, CZZ zálohy) → `bc-al-advance-cz.md` (2026-11-03, `bc-al-objects.md` by přesáhl 1000 řádků).
   Test appka jako projekt (app.json, ruleset, symboly, kompilace, běh, CI) → `bc-al-autotests-infra.md` a doménové
   gotchas (projekty, doklady, Job Queue, výroba) → `bc-al-autotests-domains.md` (2026-10-09, `bc-al-autotests.md`
   znovu přesáhl 1000 řádků / 77 KB).
@@ -318,6 +320,7 @@ stabilních pravidel. **Notes soubory zůstávají zdrojem pravdy.**
 | `bc-al-objects` | `bc-al-objects.md` | No. Series, Attached to Line No., Job Queue… |
 | `bc-al-blanket` | `bc-al-blanket.md` | hromadné objednávky HNO/HPO, Requisition Line / Carry Out / Calculate Plan, přepočet ceny bez ceníku |
 | `bc-al-tracking` | `bc-al-tracking.md` | Item Tracking Lines (6510) a eventy, šarže = projekt, Reservation Entry, Prospect vs Surplus |
+| `bc-al-advance-cz` | `bc-al-advance-cz.md` | CZZ zálohy — vazba na doklad, generovaný řádek, platba zálohy a účto skupina, propojení / odpojení |
 | `bc-al-projects` | `bc-al-projects.md` | Job Planning Line, deník projektů, návazné doklady projektu, mazání plánovacích řádků |
 | `bc-al-integrations` | `bc-al-integrations.md` | Shopify Connector, HttpClient/SecretText na SaaS, Power Automate, Dataverse sync |
 | `bc-al-workflow` | `bc-al-workflow.md` | dokumentace + uživatelská příručka, analyzery, ruleset |

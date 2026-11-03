@@ -180,6 +180,20 @@ NEmodifikuje). Směr částky: odchozí platba dodavateli z výpisu má na řád
   doklad vydá, ale další `Post` to nevadí; reopen je nutný jen pro změnu řádku). Zboží z `LibraryInventory.CreateItem` má
   `Reserve = Optional`, takže auto-rezervace IMEBS (`Reserve::Always`) v testech nehraje. (2026-10-19,
   prod-ep-itemManagement-bc `Purch. Consumption Test IMEBS`, kompilace čistá, běh až v CI.)
+- **`LibraryJob.CreateJobPlanningLine` dělá `Insert(true)` PŘED `Validate("Line Type")`** (BCApps `LibraryJob.Codeunit.al`:
+  Job No. → Job Task No. → Line No. → `Insert` → Planning Date → Line Type → Type → No. → Quantity → `Modify`). Vlastní guard
+  v `Job Planning Line.OnBeforeInsert`, který kontroluje `"Line Type"` proti úkolu (IMEBS `Line Type IMEBS`), tak vidí **výchozí
+  Budget**, ne typ, který test chtěl — řádek Billable na úkolu „jen Billable" knihovna nezaloží vůbec a negativní test „Budget na
+  Billable úkolu" projde ze špatného důvodu. Řádky pro úkoly s omezením zakládej vlastním helperem s `Validate("Line Type")` před
+  `Insert(true)` (jak to dělá produkční kód), knihovnu nech úkolům bez omezení. Knihovna navíc nechá na proměnné filtry
+  `SetRange("Job No." / "Job Task No.")`. (2026-11-03, prod-ep-itemManagement-bc build 29230, `Job Task Line Type Test IMEBS`.)
+- **Kontrola jen v `OnBeforeModify` (cesta z kódu, `CurrFieldNo = 0`) → negativní test musí volat i `Modify(true)`** — samotný
+  `asserterror Rec.Validate(pole, x)` nespadne („An error was expected inside an ASSERTERROR statement"); piš
+  `asserterror begin Rec.Validate(…); Rec.Modify(true); end;`. (tamtéž, `ChangeLineOfBudgetTaskToBillable_Fails`.)
+- **Prodejní řádek vygenerovaný z plánovacího řádku typu Zdroj je `Type::Resource`** (IMEBS `GenerateSalesOrderJobLines` kopíruje typ) —
+  helper, který řádek dokladu hledá `SetRange(Type, Item)` + `FindFirst`, u zdrojového scénáře spadne na „The Sales Line does not
+  exist". Hledej podle `"Job Contract Entry No."` plánovacího řádku + `Assert.RecordCount(SalesLine, 1)`. (tamtéž,
+  `Sales Plan Qty Chk Test IMEBS.ReleaseOrder_SkipProject_ResourceLinkedBudgetAbovePlan_Never_Releases`.)
 
 ## Prodejní a nákupní doklady
 

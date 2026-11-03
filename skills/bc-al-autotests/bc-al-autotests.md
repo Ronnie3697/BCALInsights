@@ -359,6 +359,13 @@ Assert.ExpectedErrorCode('Dialog');
   navázanou usage hlásí `Expected 1, Actual 0` s cizím `Ledger Entry No.` — v hlášce jsou vidět jen filtry assertu, ne příčina.
   Lokálně to projde, dokud test helpery nekombinuje; chytil až CI (build 29039, prod-ep-itemManagement-bc). Filtry zužující množinu
   (`Quantity > 0` u příjmů, když existují i vratky stejného `Entry Type`) dávej do helperu hned. (2026-10-22)
+- **`LibraryInventory.CreateItemJournalLineInItemTemplate` / `SelectItemJournalBatchName` bere PRVNÍ list šablony (`FindFirst`)**,
+  ne „svůj" list. List, který dřívější test téhož codeunitu založil přes `CreateItemJournalBatch` (náhodné jméno `GU00000xxx`
+  z `GenerateGUID` se řadí před výchozí list CI firmy) a přepnul do zvláštního režimu (IMEBS *Project Consumption* = řádek musí
+  mít projekt), zůstane v DB (AutoCommit) a od druhého testu ho knihovna vybere pro obyčejný příjem na sklad → každý další test,
+  který naskladňuje, padá hned v GIVEN (první projde, testy bez naskladnění taky). Příjem na sklad dělej do vlastního listu:
+  `CreateItemJournalBatch` + `CreateItemJournalLine(…, Template, Batch, "Positive Adjmt.", ItemNo, Qty)` + `PostItemJournalLine`.
+  (2026-11-03, prod-ep-itemManagement-bc build 29230, `Item Jnl Usage Test IMEBS`, 9 z 13 testů.)
 - **CodeCop `AA0181` + `AA0175` na `Find('=')` uvnitř `Assert.IsTrue/IsFalse`** („Find only with Next", „queries the database but
   does not use the queried record") — oba warning → s `failOn warning` CI fail. Existenci záznamu assertuj `Rec.SetRecFilter()` +
   `Assert.RecordIsNotEmpty(Rec)` / `RecordIsEmpty(Rec)` (funguje i po `Delete`, PK v proměnné zůstává), refresh hodnot přes
@@ -557,6 +564,16 @@ GIVEN (s komentářem), nebo každý negativní případ do vlastního testu. Za
 2026-08-27, cust-alumistr-bc build 27980 (`FilterValueCodesRejectsNonNumeric…`,
 `CheckNumericFilterValue` s `SourceParam.Get` → exit) — stejný test i
 v prod-ess-configurator-bc PR 9375.
+Podruhé 2026-11-03 (prod-ep-itemManagement-bc build 29232, `Item Jnl Usage Test IMEBS.TaskOfOtherLineType_CannotBeSelectedNorPosted`):
+první `asserterror Rec.Validate(...)` odroloval i řádek deníku a úkoly, druhý `asserterror PostBatch` pak padl na jiné chybě.
+
+**Negativní test na `Validate` pole s `TableRelation` z kódu chytí chybu RELACE, ne `TestField` z triggeru.** Runtime
+kontroluje `TableRelation` (včetně `where(...)` filtrů) při `Validate` dřív, než se spustí `OnValidate` — hodnota mimo relaci
+(plánovací řádek jiného zboží u pole s `"No." = field("Item No.")`) skončí *„The field X of table Y contains a value (…) that
+cannot be found in the related table (Z)."* a `Assert.ExpectedTestFieldError(...)` nesedí (3.3 v `bc-al-data.md`). Testuj
+`Assert.ExpectedError('cannot be found in the related table')` a vlastní `TestField` kontrolu ověř cestou, která relaci obejde
+(přímé přiřazení + `Modify(false)` → `asserterror` účtování), s `Commit()` po GIVEN kvůli dvěma `asserterror`.
+(2026-11-03, tamtéž, `PlanningLineOfOtherItem_CannotBeSelectedNorPosted`.)
 
 **Varianta: důkaz, že kód mezi kroky necommituje (atomické účtování).** `asserterror` na volání, které spadne až
 v druhém kroku (kiosk: výstup se zaúčtuje, kapacitní řádek pak spadne na konci před začátkem), a pak assert, že výsledek
