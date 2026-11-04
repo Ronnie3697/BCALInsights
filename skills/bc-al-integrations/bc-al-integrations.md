@@ -881,3 +881,42 @@ System Application 28.5):
   přes `CRM Salesorder.Insert(false)` v test připojení `@@test@@`. (cust-soitron-bc CDS.W1 `CDS Sync Logic
   CWSOI.SetBCLinkOfPowerAppsOrder` / `WriteBCLinkToPowerAppsOrder`, task 67561, 2026-11-04; alc 17 + testy jen
   lokálně přeložené.)
+- **Stavy obousměrné synchronizace objednávek (BC 28): status objednávky v BC řídí z vlastního kódu jedině hook
+  `CRM Int. Table. Subscriber.OnChangeSalesOrderStatusOnBeforeCompareStatus(var SalesHeader, var NewStatus)`, stav `Invoiced`
+  standard v obousměrném režimu nikdy nenastaví a otevřené objednávky do PA vůbec neposílá.**
+  - Standard po insertu i modify z PA objednávku **vydá** (`SetSalesOrderStatus` → Released, Open jen u záloh); u nezměněné PA
+    objednávky (`OnAfterUnchangedRecordHandled` / `OnBeforeIgnoreUnchangedRecordHandled`, typicky echo vlastního zápisu BC → PA)
+    ji nejdřív `ChangeSalesOrderStatus(Open)` plain `Modify` otevře a pak znovu vydá; před přenosem polí z PA dá do bufferu
+    `Status := Open` (`OnBeforeTransferRecordFields`). Obě místa volají hook → `NewStatus := SalesHeader.Status` (DB stav přes
+    `GetBySystemId`) = sync z PA stav **nikdy nemění**: nová objednávka zůstane Open, echo vydanou neotevře. Jen skutečná
+    změna mapovaného pole v PA nechá vydanou objednávku Open (engine ji přepsal), uživatel vydá znovu.
+  - **BC filtr mapování SALESORDER-ORDER je `Document Type = Order, Status = Released`** → otevřená objednávka se do PA
+    neposílá, dokud ji nevydáš (Reopen tam nedojde, vlastní pole z `OnAfterTransferRecordFields` taky ne). Úprava
+    v subscriberu `OnResetBidirectionalSalesOrderMappingOnAfterInsertFieldsMapping`: `SalesHeader.SetView(GetTableFilter())`
+    → `SetRange(Status)` → `SetTableFilter(GetTableFilterFromView(...))`; existující mapování se změní až po *Use Default
+    Synchronization Setup*. Důsledek: každá změna otevřené objednávky jde do PA (BC wins), nová BC objednávka vznikne v PA
+    hned (se `Synch. Only Coupled Records` = false).
+  - **`statecode = Invoiced`:** `CRM Sales Document Posting Mgt.PostCRMSalesDocumentOnAfterPostSalesDoc` při
+    `IsBidirectionalSalesOrderIntEnabled` hned končí a plně vyfakturovanou objednávku účtování smaže (vazba zůstane jen
+    s `Archived Sales Order`, sync ji ignoruje) → vlastní pár subscriberů: `Sales-Post.OnBeforeDeleteAfterPosting`
+    (`EverythingInvoiced`; `CRM Integration Record.FindIDFromRecordID` funguje jen dokud záznam existuje → `SystemId` + CRM ID
+    do globálů codeunity, statické subscribery sdílejí instanci per session, stejný vzor jako standard) +
+    `Sales-Post.OnAfterPostSalesDoc` (běží **po** `Commit`; `PreviewMode` skip, shoda `SystemId` proti náhledu, pak
+    `Codeunit.Run(Codeunit::"CRM Integration Management")` zaregistruje CRM spojení v session uživatele,
+    `StateCode`/`StatusCode := Invoiced`, `Modify(false)` — hodnoty jako standard v jednosměrném režimu). Chyba Dataverse
+    přijde uživateli až po zaúčtování; `TryFunction` kolem zápisu nejde (DB zápis). Částečná faktura objednávku nemaže → nic.
+  - Okamžitý sync po Release / Reopen: `Dataverse Entity Change."Entity Name" := 'salesorder'` + `Insert(true)` z
+    `Release Sales Document.OnAfterReleaseSalesDoc` / `OnAfterReopenSalesDoc` (`OnInsert` reaktivuje job jen při
+    `CDS Connection Setup."Is Enabled"` a mapování `Type = Dataverse`; bez mapování řádky jen přibývají → guard
+    `IsBidirectionalSalesOrderIntEnabled`).
+  - Testy bez Dataverse: vazba přes `CRM Integration Record.InsertRecord(CRMID, SystemId, TableId)` (`CoupleRecordIdToCRMID`
+    navíc hlídá duplicitní vazbu), `CRM Salesorder.Insert(false)` v `@@test@@`, `Sales Header.Delete(false)` simuluje smazání
+    účtováním. CodeCop **AA0214** („should be modified before saving") na `Get` → `SetTableFilter` → `Modify(false)` vyskočí
+    v test appce (v hlavní appce stejný vzor ne) → `#pragma warning disable AA0214` s komentářem kolem `Modify`.
+    alc 17 bere **opakovaný `/packagecachepath:`** (dva parametry místo seznamu s čárkou); test cache = MS 28.5 sada
+    (`Microsoft_Tests-TestLibraries_28.5.54151.54365` a spol. z dřívějšího soitron scratchpadu `testcache/`) + build hlavní
+    appky s verzí **vyšší** než stará kopie v `.alpackages` (kopie `app/` ve scratchpadu s `"version": "28.0.999.0"`), jinak
+    alc vezme starou.
+  (cust-soitron-bc CDS.W1 `CDS Sync Logic CWSOI.KeepSalesOrderStatus` / `RememberInvoicedSalesOrder` /
+  `SetPowerAppsOrderInvoiced`, `CDS Management CWSOI.IncludeOpenSalesOrdersInMapping` / `WakeUpSalesOrderSynchronization`,
+  task 67561, 2026-11-04; alc 17 + testy jen lokálně přeložené.)
