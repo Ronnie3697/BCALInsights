@@ -850,3 +850,15 @@ System Application 28.5):
   Ve zákaznické vrstvě, která standardní mapování maže podle typu firmy, stačí `PLHEADER-PRICE` / `PLLINE-PRODPRICE` ze seznamu
   k odstranění vyjmout (cust-soitron-bc CDS.W1 `CDS Management CWSOI.ApplySalesMappingCustomizations`, 2Ring, 2026-11-04;
   kompilace alc 17 + testy lokálně přeložené, běh v Dataverse neověřen).
+- **„Synch. Only Coupled Records" standard zapíná u ITEM-PRODUCT, ITEM UOM, UNIT GROUP i SALESORDER-ORDER (bidirectional
+  i legacy), SOLINE-ORDERDETAIL má `false`** (w1-28 `CRM Setup Defaults`, parametr `SynchOnlyCoupledRecords` v
+  `InsertIntegrationTableMapping`). Příznak platí pro **oba směry** (viz PROJECT výše): nové zboží z BC se v Dataverse
+  nezaloží a nová objednávka z Power Apps se nezaloží v BC, dokud se nespáruje ručně. Jediný hook pro ITEM UOM / UNIT GROUP je
+  **`CRM Setup Defaults.OnBeforeInsertIntegrationTableMapping(…, var SynchOnlyCoupledRecords, var IsHandled)`** — po-insert
+  eventy `OnReset…OnAfterInsertFieldsMapping` mají jen ITEM-PRODUCT, RESOURCE-PRODUCT, objednávky, faktury, ceníky a
+  příležitost; `ResetItemUnitOfMeasureUoMMapping` / `ResetUnitGroupUoMScheduleMapping` mají jen `OnBefore…` s `IsHandled`.
+  Event nese `TableNo` / `IntegrationTableNo` (guard na dvojici tabulek, ne na jméno) a nenese směr, takže zasáhne i legacy
+  SALESORDER-ORDER. Pálí uvnitř `ResetConfiguration`, tedy před `OnAfterResetConfiguration`, kde zákaznická vrstva nepotřebná
+  mapování maže — guard na typ firmy není potřeba. Testovat jde přímo `internal` proceduru nad trojicí parametrů bez
+  `RegisterTableConnection`. (cust-soitron-bc CDS.W1 `CDS Management CWSOI.SynchronizeUncoupledRecords`, 2Ring, 2026-11-04;
+  kompilace alc 17 + testy lokálně přeložené, běh v Dataverse neověřen.)
