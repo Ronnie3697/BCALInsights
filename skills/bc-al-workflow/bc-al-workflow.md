@@ -610,6 +610,28 @@ jen v `<DataSets>` (pole chybí / přibyla). Nová verze appky ani změna bajtů
 vendora v CI s nasazenou (pin závislosti, která tahá novější verzi; `.dependencies` nesmí obsahovat dvě verze) — křehké,
 každý další bump to rozbije. Po (a) se přegenerovaný `<DataSets>` liší jen o pole, na která layout neukazuje = neškodné.
 
+### 12.1i Word layouty editovat přes MCP `bc-word-layout` + skilly `al-word-layout*`, ne ručním OOXML
+
+Od 2026-11-04 je v Claude Code (scope user) MCP server **`bc-word-layout`**
+([TKapitan/bc-word-layout-mcp](https://github.com/TKapitan/bc-word-layout-mcp), instalace a proč ne
+`dnx` / marketplace plugin → `mcp-setup.md` krok 1b) a čtyři uživatelské skilly v `~/.claude/skills/`:
+`al-word-layout` (workflow inspect → edit → validate → preview + přesný tool surface),
+`al-word-layout-design` (jak má nový layout vypadat), `al-word-layout-from-design` (hotový Word návrh
+→ vázaný layout), `al-word-layout-composite` (tělo + hlavička/patička + téma `.dotx`).
+
+- **Pořadí:** u Word layoutu nejdřív načti `al-word-layout` (a `-design` u nového layoutu) a jeď přes
+  tooly (`get_layout_info`, `list_dataset_fields`, `insert_field` / `insert_label` / `insert_repeater_table`
+  / `wrap_in_repeater`, `validate_layout`, `preview_layout`). Každý zápis server validuje a chybný edit
+  odmítne — proto přes tooly a ne přes vlastní skript nad `document.xml`. Dataset bere z `.al` reportu
+  + `app.json` vedle layoutu (BC verze).
+- **Co server neumí → ruční OOXML podle 12.1f / 12.5 zůstává:** hide-if-empty / hide-if-zero, repeater
+  v hlavičce či patičce, komentáře layoutu, svislé merge, okraje / page setup, RDL a Excel layouty,
+  XLF překlady, upload do tenantu. Štítky s barcode fonty (12.5) tedy dál skriptem.
+- **Preview je offline aproximace** (PDF přes Word COM, když je Word nainstalovaný). Finální kontrola
+  = tisk v BC sandboxu; validace serveru je ověřená na BC 28, jiné verze neověřené.
+- Když tool chybí v nabídce, server nestartoval (`CONNECT_TIMEOUT`, 7.2 v `bc-al-tools.md`) → restart
+  seance / `/mcp` reconnect; `claude mcp list` musí ukázat `bc-word-layout … Connected`.
+
 ### 12.2 Když nevíš, co pravidlo znamená — vyhledej
 
 Neopravuj warning naslepo přepsáním kódu. **Najdi popis pravidla:**
