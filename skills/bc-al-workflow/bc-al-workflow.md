@@ -831,6 +831,25 @@ export cen tam neotestuješ; feature nezapínej, vyber firmu, kde běží. (2026
 - Grid s ~180 sloupci (řádky prodejní objednávky) nedostaneš na konec scrollem ani Tabem rozumně – pole na konci ověřuj
   přes tabulku (`?table=<id>`, sloupce i obsolete polí) nebo jinou stránku, kde jsou blíž začátku.
 
+**Proklikání featury v sandboxu + fotky do prezentace — co zdržovalo** (2026-11-04, cust-zlomek-bc 66431, Zlomek BC-DEV):
+- **Testovací doklady přes API v2.0, ne klikáním:** token z `d365bc-admin get_microsoft_entra_id_token` (do hlavičkového souboru,
+  `curl -H @hdr`), `POST …/companies(<id>)/salesQuotes` `{customerNumber, externalDocumentNumber}` a `…/salesQuotes(<id>)/salesQuoteLines`
+  `{lineType: "Item", lineObjectNumber, itemVariantId, quantity}` (ID varianty z `items(<id>)/itemVariants?$filter=code eq '…'`). Vlastní
+  pole extension API nemá, ta se pak vyplní v UI. Do `externalDocumentNumber` dej značku testu, ať se doklady dají najít a uklidit.
+- **Doklad otevřený přes URL (`page=41&filter=…`) je v režimu zobrazení:** klik do buňky řádku dá `activeElement` = `SPAN "(Blank)"` a psaní
+  nikam nedojde, bez chyby. Nejdřív tužka (Upravit), pak ověř, že `activeElement` je `INPUT`.
+- **„Leave site?“ při odchodu z uložené stránky:** stav *Uloženo* ověř zoomem vpravo nahoře a naviguj s `force: true`. Stejný dialog blokuje
+  i `tabs_close_mcp` (timeout) – takovou záložku zavře uživatel.
+- **Číselné pole s předvyplněnou `0`:** `type "1"` bez označení textu dá `10` (inline chyba). Před psaním `ctrl+a`.
+- **Souřadnice buňky z DOM:** hlavička gridu a tělo jsou dvě tabulky; index sloupce ber z `thead th` podle captionu, buňku z `tbody tr` další
+  tabulky, frame = (`iframe.getBoundingClientRect()` + rect buňky) × `screenshotWidth / innerWidth`. Rámec screenshotu se během seance
+  může změnit (nové přihlášení: 1308×924 → 1288×952), staré souřadnice pak neplatí.
+- **Rozbalený part řádků po tažení vodorovného posuvníku** může mít hlavičku posunutou proti datům (sloupec *Pozice* nad zaškrtávátkem) a
+  šířku sloupce v *Chybových zprávách* tažením nezměníš (označí se text; CSS v DOM nezabere). Na fotku se to nehodí: obsah přečti z DOM a
+  v prezentaci ho vypiš jako tabulku, fotku nech jen jako „kde to je“.
+- **České fotky:** jazyk v *Moje nastavení* (9204) → Czech, po focení vrátit původní (zapiš si ho předem). Hlášky do textu ber z `.cs-CZ.xlf`,
+  ne opisem ze screenshotu.
+
 ### 12.4 Essence build — ruleset per projekt konvencí
 
 Essence BC build (`azure-pipelines.yml` → template `ALBuildPipeline2.yml` →

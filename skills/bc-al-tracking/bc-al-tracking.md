@@ -469,5 +469,7 @@ stav položek, rezervace / vazby na VZ i odebrání.
   procedury s `var TempErrorMessage` a testy assertuj nad bufferem bez UI.
 
 (2026-11-03, cust-zlomek-bc 66431 `Position Tracking Mgt. ZLK`; zdroj w1-28 `ItemTrackingLines.Page.al` — `RegisterItemTrackingLines`,
-`WriteToDatabase`, `RegisterChange` —, `ItemTrackingManagement.Codeunit.al`, `TrackingSpecification.Table.al`, `ErrorMessage.Table.al`;
-jen kompilace, testy `Position Tracking Tests ZLK` zatím neběžely.)
+`WriteToDatabase`, `RegisterChange` —, `ItemTrackingManagement.Codeunit.al`, `TrackingSpecification.Table.al`, `ErrorMessage.Table.al`.
+**Ověřeno v BC-DEV 2026-11-04:** přidání (+1) i odebrání (−1) SN, stav Prospect na nabídce / Surplus na objednávce, převod
+nabídky na objednávku SN přenese, Error Messages s Record ID řádku. Řádky sledování zboží s SN, které ještě nejsou skladem,
+se při zavření ptají standardním „Nemáte dostatek zboží… Chcete pokračovat?“ — stejně jako ruční zadání, odpověď Ano nic nemění.)
