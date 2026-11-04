@@ -603,6 +603,18 @@ Pozor na obrácenou logiku testu: `…RoundingDownDoesNotCreateRaster` na původ
 MJ řádku), padá až na mezistavu bez omezení na Equal — test proti regresi opravy, ne proti původní chybě. Dokumentace `prod-epb-pricingMatrix-bc/docs/66358 - …md`,
 `cust-alumistr-bc/docs/66358_MJ-akcniho-radku-mimo-cenovou-matici.md`.
 
+**Od PMEBS PBI 67458 (větev `67458_ParametersCode50`, 2026-11-03, zatím nevydáno) jsou osy kódy:** nová pole
+`Parameter A/B Value PMEBS` (Code[50], 65505/65506), stará Decimal `Parameter A/B PMEBS` jsou `ObsoleteState = Pending` a na
+prodejním řádku jen přeposílají hodnotu do nových polí (`FormatAxisValue`) — starý COALU tedy s novým PMEBS funguje, opačně ne.
+Napojení v COALU / PMALU (cust-alumistr-bc, stejnojmenná větev): číslo z konfigurátoru → `Validate("Parameter A/B Value PMEBS",
+PricingMatrixMgt.FormatAxisValue(x))` (invariantně, `0` → `''`); OnValidate hodnotu převede do tvaru pole osy
+(`CheckAndNormalizeParameterA/BValue` → `CanonicalAxisValue`: číslo invariantně, Option/Enum **názvem i z čísla**, záporné číslo =
+Error). Přímé přiřazení (`:=`, např. komponenta → řádek sešitu) kanonizaci obchází — u číselných os (Width/Height) to vyjde stejně,
+u Option/Enum osy by `'1'` nesedělo s MJ. Zpět kód → číslo (číselná pole `Parameter A/B PMALU` na nákupním řádku) přes
+`TryGetAxisNumber` (vrací `false` a `Number = 0` u kategorie, tolerantní k mezerám / NBSP / čárce). Minimum `EPB Pricing Matrix`
+v obou appkách + testech až na **první publikovanou** verzi s 67458 (lokální `28.0.7.x` v `.alpackages` jsou dev buildy, 7.11
+v `bc-al-build.md`); nasazovat spolu. (Code review 2026-11-04, cust-alumistr-bc 2f136c0 nad PMEBS ff04061.)
+
 Diagnostika: page inspector na řádku prodeje (filtr „Parameter") — nenulové `Parameter A/B PMEBS` na řádku, kde čekáš jinou MJ,
 = tahle cesta. Setup matice je na `Sales & Receivables Setup` (`UoM Rounding PMEBS`, `Parameter A/B Field No. PMEBS`,
 `Use UoM Parameter Fields PMEBS`). (2026-09-23, PBI 66358 analýza; zdroje cust-alumistr-bc master aa320d2, prod-epb-pricingMatrix-bc
