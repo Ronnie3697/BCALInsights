@@ -834,3 +834,19 @@ System Application 28.5):
   řádek ale zůstane. Když mapování entity (CONTACT…) odebíráš podle typu firmy, odeber / guardni i subscribery
   `OnAfterInsertEvent` / `OnAfterModifyEvent`, které pro ni entity change vkládají (vzor guard `SynchronizesProjects()` u
   Job v cust-soitron-bc `CDS Management CWSOI`). (2026-10-30, cust-soitron-bc CDS.W1, CONTACT odebrán i ve 2Ring.)
+- **Standardní synchronizace ceníků do Dataverse (w1-28 `CRM Setup Defaults.ResetConfiguration`) je jednosměrná BC → Dataverse a
+  pro „ceníky v různých měnách" stačí ji nechat zapnutou, žádný vlastní kód.** S *Extended Price Calculation* vznikají mapování
+  `PLHEADER-PRICE` (`Price List Header` → `CRM Pricelevel`, filtr `Price Type = Sale`, `Amount Type = Price`, `Dependency Filter`
+  `CURRENCY|ITEM-PRODUCT`) a `PLLINE-PRODPRICE` (`Price List Line` → `CRM Productpricelevel`, filtr Sale + Price + `Asset Type`
+  Item|Resource + `Minimum Quantity = 0`, závislost `PLHEADER-PRICE|ITEM-PRODUCT`), bez feature `CUSTPRCGRP-PRICE` /
+  `SALESPRC-PRODPRICE`; obě jen `ToIntegrationTable`, `Currency Code → TransactionCurrencyId` (prázdný kód = LCY přes
+  `CRM Int. Table. Subscriber.OnTransferFieldData`), `Unit of Measure Code → UoMId` při Unit Group mappingu, konstantní
+  `PricingMethodCode = CurrencyAmount`, `Status Active → StateCode Active`. Pasti: (a) filtr hlavičky
+  **`Allow Updating Defaults`** = `true` jen když `Sales & Receivables Setup."Default Price List Code"` je vyplněný, jinak `false`
+  → s nastaveným výchozím ceníkem se synchronizuje **jen** ten (ostatní ceníky mají `Allow Updating Defaults = false`); (b)
+  `CheckPriceListHeaderForSync` bere měnu z **prvního řádku** ceníku a při modify `TestField(TransactionCurrencyId)` → jeden ceník
+  = jedna měna, řádky s jinou měnou než hlavička synchronizaci shodí; (c) `Status` se nefiltruje, návrhy (Draft) jdou do
+  Dataverse jako Inactive pricelevel; (d) řádek potřebuje spárované zboží uvnitř filtru `ITEM-PRODUCT` (`Blocked = false`).
+  Ve zákaznické vrstvě, která standardní mapování maže podle typu firmy, stačí `PLHEADER-PRICE` / `PLLINE-PRODPRICE` ze seznamu
+  k odstranění vyjmout (cust-soitron-bc CDS.W1 `CDS Management CWSOI.ApplySalesMappingCustomizations`, 2Ring, 2026-11-04;
+  kompilace alc 17 + testy lokálně přeložené, běh v Dataverse neověřen).
