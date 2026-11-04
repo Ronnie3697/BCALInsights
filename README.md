@@ -33,7 +33,9 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
 | `bc-al-autotests-saas-fallback.md` | příloha autotestů — vlastní Assert/Library pro SaaS-only test appku bez `Tests-TestLibraries` (reference) |
 | `bc-al-autotests-infra.md` | autotesty — test appka jako projekt: `app.json`, `internalsVisibleTo`, ruleset, symboly, lokální kompilace, spouštění z CLI / Dockeru, čtení CI failů (vyčleněno 2026-10-09) |
 | `bc-al-autotests-domains.md` | autotesty — doménové recepty a pasti: plánování / Carry Out, CZZ zálohy s platbou, párování CZB (2026-10-01); projekty, doklady, Job Queue, výroba, cust-soitron-bc (2026-10-09) |
-| `ess-configurator-notes.md` | Essence Configurator — parametry, systémové parametry, vzorce, varianty, akce (sekce C1–C6) |
+| `ess-configurator-notes.md` | Essence Configurator — systémové parametry, vzorce, strom podmínek, odkazy na parametry, *Číslo z parametru*, diagnostika (sekce C1–C4, C6, C12, C15, C17) |
+| `ess-configurator-variants.md` | Essence Configurator — identita varianty, dialog konfigurace, `Variant Config. Engine` a API, `Effective Hidden`, *Kopírovat hodnotu z*, filtr Vyhledání (sekce C5, C11, C13, C14, C16; vyčleněno 2026-11-04) |
+| `ess-configurator-extensions.md` | Essence Configurator — napojení COALU / COZLK: kusovník a cena varianty, EM Cutting Plan, Pricing Matrix přes Parametr A/B, eventy kopie konfigurace (sekce C7–C10; vyčleněno 2026-11-04) |
 | `skills/bc-al/bc-al-mcp-server.md` | **draft** — oficiální BC MCP server (konfigurace v BC, auth / device login, Claude Code `--mcp-config` + `headersHelper`); bez skill-wrapperu, v Routeru jen jako řádek |
 | `SETUP.md` (kořen) | **průvodce prvotním nastavením pro AI agenta** — ptá se na cesty, nástroje, PAT a krok za krokem nastaví junctiony, always-on soubory a MCP; **není notes** |
 | `AGENTS.md` (kořen) + `.claude/CLAUDE.md` | always-on pro agenta otevřeného přímo v tomhle repu: chybí napojení skillů → nabídne `SETUP.md`. `.claude/CLAUDE.md` jen importuje `AGENTS.md` pro Claude Code — v kořeni být nesmí, `claude plugin validate` by varoval („CLAUDE.md at the plugin root is not loaded") |
@@ -54,6 +56,8 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
   3.5–3.6f → `bc-al-posting.md` (2026-09-29, `bc-al-data.md` přesáhl 1000 řádků).
   Doménové recepty testů → `bc-al-autotests-domains.md` (2026-10-01, `bc-al-autotests.md` přesáhl 1000 řádků).
   5.x10 + 5.x12 (Configurator) → `ess-configurator-notes.md` C13/C14 (2026-10-01, `bc-al-objects.md` by přesáhl 1000 řádků).
+  C5, C11, C13, C14, C16 (varianty, dialog, engine, API) → `ess-configurator-variants.md` a C7–C10 (napojení COALU / COZLK)
+  → `ess-configurator-extensions.md` (2026-11-04, `ess-configurator-notes.md` přesáhl 1000 řádků / 98 KB).
   5.x17–5.x20 (projekty) → `bc-al-projects.md` (2026-10-05, `bc-al-objects.md` přesáhl 1000 řádků).
   5.x, 5.x2, 5.x2b, 5.x15 (Item Tracking) → `bc-al-tracking.md` (2026-10-07, `bc-al-objects.md` by znovu přesáhl 1000 řádků).
   5.x5, 5.x9, 5.x21 (hromadné objednávky, sešit požadavků, přepočet ceny) → `bc-al-blanket.md` (2026-10-19, `bc-al-objects.md` přesáhl 1000 řádků).
@@ -330,7 +334,9 @@ stabilních pravidel. **Notes soubory zůstávají zdrojem pravdy.**
 | `bc-al-autotests` | `bc-al-autotests.md` | testy + netriviální funkčnost |
 | `bc-al-autotests-infra` | `bc-al-autotests-infra.md` | test appka: app.json, ruleset, symboly, kompilace, běh, CI faily |
 | `bc-al-autotests-domains` | `bc-al-autotests-domains.md` | testy projektů, dokladů, Job Queue, výroby, plánování, CZZ, CZB |
-| `ess-configurator` | `ess-configurator-notes.md` | konfigurátor — parametry, vzorce, varianty |
+| `ess-configurator` | `ess-configurator-notes.md` | konfigurátor — systémové parametry, vzorce, strom podmínek, diagnostika |
+| `ess-configurator-variants` | `ess-configurator-variants.md` | konfigurátor — varianty, dialog, engine a API, Kopírovat hodnotu z |
+| `ess-configurator-extensions` | `ess-configurator-extensions.md` | konfigurátor — napojení COALU / COZLK (kusovník, Cutting Plan, Pricing Matrix, eventy kopie) |
 
 Všechny skilly mají `user-invocable: true` — jdou spustit i ručně (`/bc-al-tools`…);
 normálně si je agent načítá sám podle `description` (limit 1024 znaků dle spec

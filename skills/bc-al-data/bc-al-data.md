@@ -299,7 +299,7 @@ lookup pole): když uložený filtr míří na totéž pole, `SetRange` ho přep
 `SetView` `RecRef.FilterGroup(10)` a teprve pak `FldRef.SetRange` (`FieldRef` filtruje v aktuální skupině svého `RecordRef`);
 každý další nezávislý filtr (atributy, …) do vlastní skupiny. Kompilace ani analyzery nic nehlásí, chytí to jen test, kde
 filtr a hledané pole splývají. (cust-zlomek-bc `Nested Cfg Runtime COZLK.TableLookupValueExists`, master build 28453,
-2026-09-24; stejný vzor v COEBS `ValidateTableLookupValue` — detail C5 v `ess-configurator-notes.md`.)
+2026-09-24; stejný vzor v COEBS `ValidateTableLookupValue` — detail C5 v `ess-configurator-variants.md`.)
 
 **Sdílený helper, který přidává filtr na cizí `RecordRef` (typicky „filtr atributů → `Item."No."`"), ať si skupinu přepne
 sám:** `Old := RecRef.FilterGroup(); RecRef.FilterGroup(10); FldRef := RecRef.Field(…); FldRef.SetFilter(…); RecRef.FilterGroup(Old);`.

@@ -1,20 +1,20 @@
 ---
 name: ess-configurator
 description: >-
-  Essence Configurator (COEBS, prod-ess-configurator-bc) a rozšíření COALU Alumistr / COZLK Zlomek (BC/AL):
-  parametry a podmínky (strom, zastaralé Root Condition No. po připojení / Kopírovat), dialog konfigurace
-  varianty, systémové parametry (QUANTITY -1, CNC X1/X/Y/Z, OnAddNumericSystemParameters, tiché nuly),
-  Kopírovat hodnotu z (převod typů), filtr Vyhledání hodnotou parametru,
-  číselné vzorce Action Formula Line (PK bez Field Type, Math Expression Parser), textové vzorce Text Formula Line
-  ({KOD:Value}/{KOD:ValueName} + řádek Formula {= A * QUANTITY} s Expression No., i na poznámkovém řádku),
-  identita varianty = množina hodnot parametrů (FindExistingVariantWithSameValues), akce kusovníku / postupu /
-  prodejního řádku a eventy kopie, diagnostika (service stránky), Zrušit editorů (WasCancelled, EditFormula),
-  EM Cutting Plan na kusovníku, MJ řádku přepsaná Pricing Matrix přes Parametr A/B, Effective Hidden
-  persistovaný, find-or-create varianty local v dialogu. Načti u konfigurátoru, vzorců, variant.
+  Essence Configurator (COEBS, prod-ess-configurator-bc) a rozšíření COALU Alumistr / COZLK Zlomek (BC/AL),
+  jádro: systémové parametry (QUANTITY -1, UNIT_PRICE -2, CNC X1/X/Y/Z, OnAddNumericSystemParameters, tiché
+  nuly), číselné vzorce Action Formula Line (PK bez Field Type, Math Expression Parser), textové vzorce Text
+  Formula Line ({KOD:Value}/{KOD:ValueName} + řádek Formula {= A * QUANTITY} s Expression No., i na poznámkovém
+  řádku), Zrušit editorů (WasCancelled, EditFormula), strom podmínek parametru (zastaralé Root Condition No. po
+  připojení / Kopírovat, kořen ze struktury 66845, report 63140 Config. Data Repair, OnAfterRepairConfiguration),
+  nerecyklovaná čísla parametrů a odkazy (Param. Reference Mgt., OnCollectParameterReferences), Číslo z parametru
+  na řádku akce prodejního řádku (Item From Parameter), diagnostika (service stránky). Varianty / dialog / API
+  → ess-configurator-variants, kusovník / Cutting Plan / Pricing Matrix / kopie → ess-configurator-extensions.
+  Načti u konfigurátoru, vzorců, podmínek.
 user-invocable: true
 ---
 
-# Essence Configurator — parametry, vzorce, varianty
+# Essence Configurator — parametry, vzorce, podmínky
 
 **Zdroj pravdy:** `ess-configurator-notes.md` ve stejném adresáři jako tenhle `SKILL.md`
 (adresář skillu = „Base directory" hlášený při načtení; cestu skládej odtud, ne přes `..`).
@@ -30,13 +30,18 @@ publisher Essence International s.r.o.), zákaznická rozšíření
 1. **Přečti `ess-configurator-notes.md` z adresáře tohoto skillu celý.**
    Když se Read ořízne, dočti přes `offset` — částečně přečtený soubor
    = nepřečtený.
-2. Obecná AL pravidla platí dál: `bc-al-style`, `bc-al-posting` (3.6b `Validate("No.")`
-   → `Init()`, 5.x4 `Attached to Line No.`), `bc-al-ui`, u netriviální funkčnosti
-   `bc-al-autotests`. Starší konfigurátorové poznatky zatím i v `bc-al-objects.md`
-   (5.x10, 5.x12, 5.x2b, 5.x8).
-3. Změna v produktové appce → release + bump dependency minima v zákaznickém repu.
-4. Nový poznatek → do `ess-configurator-notes.md` + commit + push do obou remotů
-   (viz skill `bc-al`).
+2. Sesterské skilly (od 2026-11-04, číslování C1–C17 společné): **`ess-configurator-variants`**
+   (C5, C11, C13, C14, C16 — identita varianty, dialog, engine a API, `Effective Hidden`,
+   *Kopírovat hodnotu z*, filtr Vyhledání) a **`ess-configurator-extensions`** (C7–C10 — kusovník
+   a cena varianty, EM Cutting Plan, Pricing Matrix přes Parametr A/B, eventy kopie). Úkol přes
+   varianty nebo napojení COALU / COZLK → načti i příslušný sesterský skill.
+3. Obecná AL pravidla platí dál: `bc-al-style`, `bc-al-posting` (3.6b `Validate("No.")`
+   → `Init()`), `bc-al-ui`, u netriviální funkčnosti `bc-al-autotests`. Další
+   konfigurátorové poznatky: `bc-al-objects.md` (5.x4 `Attached to Line No.`, 5.x8),
+   `bc-al-tracking.md` (5.x2b).
+4. Změna v produktové appce → release + bump dependency minima v zákaznickém repu.
+5. Nový poznatek → do souboru podle tématu (`ess-configurator-notes.md` / `-variants.md` /
+   `-extensions.md`) + commit + push do všech remotů (viz skill `bc-al`).
 
 ## TL;DR
 
@@ -69,14 +74,6 @@ publisher Essence International s.r.o.), zákaznická rozšíření
   poznámky je vždy nula toho parametru, ne vlastnost typu řádku.
 - **Texty přiřazuj až po `Validate("Variant Code")` / `Validate("Unit of Measure Code")`** —
   oba je přepíšou z karty zboží přes `Item Reference Management`.
-- **Identita varianty = množina vyplněných hodnot parametrů**
-  (`FindExistingVariantWithSameValues` + `CompareParameterValues`). Parametr závislý
-  na kontextu prodejního řádku (množství, datum, zákazník) do konfigurace **nepatří** —
-  množil by varianty zboží a při změně na řádku by se stejně nepřepočítal. Takové
-  veličiny patří do vzorců **akce prodejního řádku**.
-- **Dialog kontext prodejního řádku zná** (`SetSalesLineContext` z
-  `SalesLineConfigMgt.HandleVariantCodeLookup`) — chybějící hodnota ve slovníku
-  parametrů není o nedostupnosti kontextu, ale o tom, že ji tam nikdo nedává.
 - **Diagnostika dat zákazníka:** service stránky URL `?page=<ID>&filter=…` —
   **63163** operandy číselných vzorců, **63193** skladba popisů, **63149** uložené
   hodnoty varianty, 63173 definice parametrů, 63184/63185 akce prodejního řádku.

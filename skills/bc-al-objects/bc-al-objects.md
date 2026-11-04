@@ -7,7 +7,7 @@
 > parent↔child řádky, VerifyOnInventory, Auto Format / částky v textu, Retention Policy pro vlastní logy (5.x24).
 >
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
-> **Essence Configurator** má od 2026-09-21 vlastní soubor `ess-configurator-notes.md` (parametry, vzorce, systémové parametry, varianty) — sekce 5.x10 a 5.x12 tam přesunuty 2026-10-01 jako C13 / C14; 5.x8 (Item Charge Assignment) je obecné BC a zůstává tady.
+> **Essence Configurator** má od 2026-09-21 vlastní soubor `ess-configurator-notes.md` (parametry, vzorce, systémové parametry, varianty) — sekce 5.x10 a 5.x12 tam přesunuty 2026-10-01 jako C13 / C14 (od 2026-11-04 v `ess-configurator-variants.md`); 5.x8 (Item Charge Assignment) je obecné BC a zůstává tady.
 > **Item Tracking** (5.x, 5.x2, 5.x2b, 5.x15) má od 2026-10-07 vlastní soubor `bc-al-tracking.md` (skill `bc-al-tracking`).
 > **Hromadné objednávky HNO/HPO, Requisition Line a přepočet ceny bez ceníku** (5.x5, 5.x9, 5.x21) mají od 2026-10-19 vlastní soubor
 > `bc-al-blanket.md` (skill `bc-al-blanket`).
@@ -654,7 +654,7 @@ Pořadí validací v subscriberu má vliv: `Validate("Qty. of Pcs.")` jako prvn�
 i `Length` se počítají dvakrát.
 
 (2026-09-16, cust-alumistr-bc — analýza kusovníků variant 103200-COEBS0209/0210, definice konfigurace 0052;
-zdroje prod-em-cuttingPlan-bc master, prod-ess-configurator-bc master.) Slučování komponent VZ přes `Length` → C8 v `ess-configurator-notes.md`.
+zdroje prod-em-cuttingPlan-bc master, prod-ess-configurator-bc master.) Slučování komponent VZ přes `Length` → C8 v `ess-configurator-extensions.md`.
 
 **Na komponentě VZ (`Prod. Order Component CUEBS`) je to jinak než na kusovníku — bez větvení podle MJ.** Refresh zakázky
 (`Calculate Prod. Order.OnTransferBOMProcessItemOnBeforeGetPlanningParameters`) zkopíruje `Qty. of Pcs.` z řádku kusovníku
