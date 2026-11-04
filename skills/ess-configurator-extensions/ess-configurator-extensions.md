@@ -160,14 +160,28 @@ MJ řádku), padá až na mezistavu bez omezení na Equal — test proti regresi
 **Od PMEBS PBI 67458 (větev `67458_ParametersCode50`, 2026-11-03, zatím nevydáno) jsou osy kódy:** nová pole
 `Parameter A/B Value PMEBS` (Code[50], 65505/65506), stará Decimal `Parameter A/B PMEBS` jsou `ObsoleteState = Pending` a na
 prodejním řádku jen přeposílají hodnotu do nových polí (`FormatAxisValue`) — starý COALU tedy s novým PMEBS funguje, opačně ne.
-Napojení v COALU / PMALU (cust-alumistr-bc, stejnojmenná větev): číslo z konfigurátoru → `Validate("Parameter A/B Value PMEBS",
-PricingMatrixMgt.FormatAxisValue(x))` (invariantně, `0` → `''`); OnValidate hodnotu převede do tvaru pole osy
-(`CheckAndNormalizeParameterA/BValue` → `CanonicalAxisValue`: číslo invariantně, Option/Enum **názvem i z čísla**, záporné číslo =
-Error). Přímé přiřazení (`:=`, např. komponenta → řádek sešitu) kanonizaci obchází — u číselných os (Width/Height) to vyjde stejně,
-u Option/Enum osy by `'1'` nesedělo s MJ. Zpět kód → číslo (číselná pole `Parameter A/B PMALU` na nákupním řádku) přes
-`TryGetAxisNumber` (vrací `false` a `Number = 0` u kategorie, tolerantní k mezerám / NBSP / čárce). Minimum `EPB Pricing Matrix`
-v obou appkách + testech až na **první publikovanou** verzi s 67458 (lokální `28.0.7.x` v `.alpackages` jsou dev buildy, 7.11
-v `bc-al-build.md`); nasazovat spolu. (Code review 2026-11-04, cust-alumistr-bc 2f136c0 nad PMEBS ff04061.)
+**Po review 67458 (2026-11-04) jsou Code[50] i vlastní pole rozšíření** — kategorie (barva `RAL9016`) se jinak cestou ztratí:
+PMALU `51982/51983 "Parameter A/B Value PMALU"` na 8 tabulkách (Production BOM Line, Prod. Order Component, Purchase Line +
+Archive, Purch. Rcpt./Inv./Cr. Memo Line, Return Shipment Line — **stejný pár ID všude**, jinak ho `TransferFields` nepřenese),
+COALU `52014/52015 "Parameter A/B Value COALU"` (statika na BOM Action Line / SL Action Condition / SL Action Line; stará ID
+se liší per tabulka: 52010/52011, 52011/52012, 52002/52003), COZLK `52413/52414` (`Parameter A/B Value COZLK` na SL Action Line,
+`CL Parameter A/B Value COZLK` na SL Action Condition). Stará Decimal pole `Pending`, každá appka má vlastní Upgrade + Upgrade
+Tag Def. + Install codeunitu (převod `DataTransfer` po rozdílné hodnotě, kód píše veřejné `PricingMatrixMgt.FormatAxisValue`
+z PMEBS → stejný tvar i zaokrouhlení na 5 míst). Pravidla napojení:
+- **Číslo → kód** vždy `FormatAxisValue(x)` (invariantně, 5 desetinných míst, `0` → `''`); **kód → číslo** jen kde je potřeba
+  počítat (CalcCostMgt) přes `TryGetAxisNumber` (`false` u kategorie).
+- **Statická hodnota** akce se ukládá nezávisle na ose (`CheckAndNormalizeAxisValue`: čísla invariantně, kódy velkými písmeny,
+  `''` = nenastaveno) — konfigurace přežije změnu setupu os; tvar podle pole osy až na švu: `Validate` na prodejním řádku,
+  `CanonicalAxisValue(FieldNo, …)` při přímém přiřazení (komponenta → řádek sešitu v PlanningTransfer PMALU; **ne**
+  `CheckAndNormalize…`, ten u záporného čísla hodí Error uprostřed plánování). Text s `{`/`}` přepsaný přes náhled vzorce se
+  odmítne (jinak by se vzorec tiše smazal a uložil se kód `{WIDTH} * 3`).
+- **A i B z konfigurátoru najednou:** A jen přiřadit (`CheckAndNormalizeParameterAValue`), validovat B — jako PMEBS
+  `ReapplyMatrixFields`. `Validate(A)` a pak `Validate(B)` u Equal + zboží bez prodejní MJ založí zbytečný rastr *nové A × staré B*.
+- Číselné vzorce dodají dál jen čísla; kategorie ze vzorce by chtěly textové vzorce (`{PARAM:Value}`) — samostatný PBI.
+- **Okno nasazení:** starý COALU nad novým PMALU píše do obsolete polí řádku kusovníku, které nový PMALU nečte → upgrade COALU
+  ty řádky dožene (řádek po řádku, jen zbytek z okna). Nasazovat PMEBS → PMALU + COALU naráz; minimum `EPB Pricing Matrix`
+  v app.json zvednout až na **první publikovanou** verzi s 67458 (dev buildy `28.0.7.x` v `.alpackages`, 7.11 v `bc-al-build.md`).
+(cust-alumistr-bc / cust-zlomek-bc větev `67458_ParametersCode50`, 2026-11-04.)
 
 Diagnostika: page inspector na řádku prodeje (filtr „Parameter") — nenulové `Parameter A/B PMEBS` na řádku, kde čekáš jinou MJ,
 = tahle cesta. Setup matice je na `Sales & Receivables Setup` (`UoM Rounding PMEBS`, `Parameter A/B Field No. PMEBS`,

@@ -348,7 +348,9 @@ Ušetří to hádání nad zdrojákem, když řešíš, jestli změna vyžaduje 
 **Kdo plní Parametr A/B (COZLK) — dotaz přes servisní stránky:** `63184` s `filter='CL Parameter A COZLK' IS '<>0'`, `63185` s
 `'Parameter A COZLK' IS '<>0'` (filtr jde i na pole rozšíření, které stránka nezobrazuje) a `63163` s `'Field Type' IS 'Parametr A'`
 (enum filtruj **captionem**, BC ho přepíše na ordinál `52410`; AL název `Parameter A COZLK` tiše vynechá). Zlomek BC-DEV2 / ZLOMEK
-2026-11-04: všude 0 → A/B na nabídkách nejsou z konfigurátoru. **Testovací konfigurace bez číselné řady:** definici založ přes
+2026-11-04: všude 0 → A/B na nabídkách nejsou z konfigurátoru. Po upgradu na COZLK s 67458 jsou statiky v kódových polích →
+filtr `'CL Parameter A Value COZLK' IS '<>'''''` / `'Parameter A Value COZLK' IS '<>'''''`; ordinál enumu `52410` zůstává
+(je uložený ve vzorcích, nepřečíslovat). **Testovací konfigurace bez číselné řady:** definici založ přes
 editovatelnou `63177` s ručním `No.` (na kartě 63141 je `No.` jen z `Configuration Nos.`); v editoru vzorce do *Hodnota* parametr
 nepiš (chyba „Zadejte platnou číselnou hodnotu…“), vyber ho přes `…`. CRONUS CZ `TEST67458` (1936-S, `IF SIRKA > 0` → CL Parametr A
 = (SIRKA), Výška 1970) dala přes COZLK 28.0.99.0 + PMEBS 28.0.7.6 řádky 1970/800 a nově založený rastr 1970/555. (PBI 67458.)
