@@ -605,6 +605,14 @@ kartu i list rovnou na záznamu, bez klikání přes Tell me. Funguje pro vlastn
 konfigurace) i standardní (`page=42` prodejní objednávka, `page=30` karta zboží). Pak `zoom` na region místo
 celého screenshotu, ať se dají přečíst zkrácené buňky. (2026-09-08, Alumistr BC-TEST2, kontrola Table Lookup
 parametru pro textovou formuli.)
+⚠️ **`filter` jde jen s `page=`, ne s `table=`:** `?table=37&filter=…` skončí *„Something went wrong. Akce RunTable má navíc
+neznámé parametry."* Filtrovaný výpis tabulky = list stránka nad ní (`page=516` Prodejní řádky, `525` / `526` / `527` účtované
+řádky dodávek / faktur / dobropisů, `517` Řádky požadavků, `519` Řádky deníku zboží, `38` Položky zboží, `5404` MJ zboží),
+filtr smí být i na pole, které stránka nezobrazuje (i obsolete). `OR` mezi dvěma poli URL filtr neumí → dva dotazy. Počet řádků
+z JS ber jako `max` počtu `tbody tr` přes všechny `<table>` — první tabulka s `thead` je jen hlavička gridu (vždy 0).
+**Stránka hlásí „Tato stránka je používána funkcí, která není povolena"** (Ceníky 7016, Sešit ceníku 7022) v jedné firmě a v
+jiné téhož prostředí funguje = nový cenový model není v té firmě zapnutý (CRONUS CZ vs. ZLOMEK, Zlomek BC-DEV2). Import /
+export cen tam neotestuješ; feature nezapínej, vyber firmu, kde běží. (2026-11-04, prod-epb-pricingMatrix-bc PBI 67458.)
 
 **Focení BC do dokumentace — co zdržuje** (2026-09-15, BC-TEST2, příručka SK pobočky, viz 8.1):
 

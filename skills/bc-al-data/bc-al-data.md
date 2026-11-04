@@ -679,5 +679,7 @@ Když setup dovolí vybrat **libovolné pole** tabulky (osa cenové matice, klí
 - **Nabídka polí v setupu:** `Field.Class = Normal`, `Enabled`, `ObsoleteState = No`, bez PK a systémových polí (`No. < 2000000000`),
   bez typů bez rozumného textu (`BLOB`, `Media`, `MediaSet`, `RecordID`, `TableFilter`, `Binary`, `Duration`) a
   `Len <= <délka cílového kódu>` — delší text by se uřízl a dvě hodnoty se stejným začátkem by splynuly. Filtr na `"No."` v helperu
-  dej do vlastní `FilterGroup` (2.6c).
+  dej do vlastní `FilterGroup` (2.6c). Upgrade / validace starého setupu: filtr ve **FilterGroup 0** (`SetFilter` v `OnOpenPage`
+  lookupu) uživatel v panelu filtrů zruší a vybere i pole, které lookup „nenabízel" (ověřeno v UI: dedikovaná pole 65503/65504
+  vybraná jako osa) — upgrade s takovými hodnotami počítej, nejen s konfiguračním balíčkem. (2026-11-04, Zlomek BC-DEV2.)
 (2026-11-03, prod-epb-pricingMatrix-bc PBI 67458 — Parametr A/B jako Code[50], osa = libovolné pole Item Unit of Measure.)
