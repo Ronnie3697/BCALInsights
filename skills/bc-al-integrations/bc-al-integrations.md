@@ -805,6 +805,28 @@ System Application 28.5):
   var Result, var IsHandled)` pro `CustomerIdType = account` → `Result := CRMAccount.Get(CustomerId)`, `IsHandled := true`
   (kontakt nech standardu). Jinak opravit data: nastavit účtu v Power Apps *Relationship Type = Customer*. (cust-soitron-bc
   CDS.W1 `CDS Sync Logic CWSOI.GetAccountOfPowerAppsOrder`, 2RING, 2026-11-02.)
+- **Vlastní lookup na Account (`ebs_contractedcustomerid`) ↔ `Bill-to Customer No.` objednávky = obyčejný řádek field
+  mappingu jako standardní `Sell-to Customer No.` ↔ `CustomerId` (Bidirectional, Validate Field), ale prázdný lookup
+  z Power Apps shodí objednávku.** Pole na tableextension `CRM Salesorder` potřebuje `TableRelation = "CRM Account".AccountId`
+  (podle ní `CRM Synch. Helper.AreFieldsRelatedToMappedTables` najde mapování CUSTOMER a GUID ↔ číslo přeloží přes spárování).
+  Pasti (w1-28 `Integration/SynchEngine/IntegrationRecordSynch.Codeunit.al`, `D365Sales/CRMIntTableSubscriber.Codeunit.al`):
+  - `FindNewValueForCoupledRecordPK` ve směru FromIntegrationTable vrátí pro prázdný GUID **`NewValue := ''` (Text)** a
+    `Validate("Bill-to Customer No.", '')` na objednávce padá (`GetCust('')` → „The Customer does not exist"). **`Not Null`
+    na field mappingu tu nepomůže:** engine (`TransferFieldData`, `SkipNullGUID`) přeskakuje jen hodnotu, kterou subscriber
+    vrátil **jako Guid**; Text `''` projde. Řešení = vlastní subscriber `Integration Record Synch.OnTransferFieldData`, který
+    pro pár (prázdný `ebs_contractedcustomerid` → Bill-to) vrátí `NewValue := DestinationFieldRef.Value()` (aktuální Bill-to,
+    u nové objednávky už dosazený validací Sell-to, protože vlastní řádky mapování jdou po standardních) a nastaví
+    `IsValueFound` **bez ohledu na** dřívější `IsValueFound` — pořadí subscriberů není zaručené a standard by jinak vrátil `''`.
+    Dej ho do **samostatného** subscriberu, ne do existujícího, který začíná `if IsValueFound then exit`.
+  - Standardní `CRM Int. Table. Subscriber.OnTransferFieldData` končí hned, když **není zapnutá CDS ani CRM integrace**
+    (`IsCDSIntegrationEnabled() or IsCRMIntegrationEnabled()`), takže test přes `Integration Record Synch.` s temp field
+    mappingem (vzor 11.8) ověří jen vlastní subscriber; bez něj by engine prázdný GUID vyhodnotil `Format('')` → `''` do Code
+    pole. Vyplněný GUID přes engine v testu nepřeložíš (36 znaků do Code[20] = `Evaluate` false, hodnota zůstane) — testuj
+    `internal` proceduru s `FieldRef` napřímo.
+  - AppSourceCop na CDS.W1 hlásí AS0013 / AS0011 na všechna pole proxy extensionů (ID 5435x mimo idRanges, názvy
+    `ebs_*` bez affixu) — záměr (ExternalName = název sloupce), CI AppSourceCop nepouští; držet stejný vzor.
+  (cust-soitron-bc CDS.W1 `CRM Salesorder CWSOI`, `CDS Sync Logic CWSOI.KeepBillToCustomerOfSalesOrder`, task 66193, 2026-11-04;
+  kompilace alc 17 + testy jen lokálně přeložené.)
 - **Subscriber „po změně záznamu v BC hned probuď sync“ přes `Dataverse Entity Change` je bez mapování mrtvý kód, který
   jen plní tabulku.** `Dataverse Entity Change.OnInsert` (w1-28 `Integration/Dataverse/DataverseEntityChange.Table.al`)
   najde CRM proxy tabulky s `ExternalName` = `"Entity Name"` a pro každé `Integration Table Mapping` typu Dataverse nad nimi
