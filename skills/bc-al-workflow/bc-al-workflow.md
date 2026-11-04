@@ -566,6 +566,72 @@ sloupce PowerShell skriptem nad `System.Xml.XmlDocument` (`PreserveWhitespace = 
 - Výhoda proti Report Builderu: diff je čitelný, změna je reprodukovatelná na identickém layoutu v sesterském repu
   (CZ i W1 kopie byly binárně shodné → skript jednou, soubor zkopírovat).
 
+### 12.1h RDLC layout reportextension: `alc` při kompilaci přegeneruje `<DataSets>` podle symbolů — CI s jinou verzí vendora vyrobí rozbitý layout
+
+**Symptom:** tisk padá na *„Rendering output for the report failed … The Value expression for the text box 'Textbox62'
+refers to the field 'Prepaymen_Vat_Date'. Report item expressions can only refer to fields within the current dataset
+scope…"* — jen u layoutu z `rendering { layout(...) }` našeho reportextension. Built-in layout vendora funguje
+a **tentýž rdlc z repa nahraný jako uživatelský layout funguje taky**; export layoutu rozšíření ze serveru se od repa liší
+jen v `<DataSets>` (pole chybí / přibyla). Nová verze appky ani změna bajtů rdlc nepomůže. (cust-smartwings-bc PL Core,
+*ITI Sales - Invoice PSW* na PL Test, 2026-11-03.)
+
+**Mechanismus (ověřeno experimentem i logem CI):**
+- **`alc` při kompilaci přepíše `<DataSets>` RDLC layoutu reportextension** (stejně jako u `report`, 7.1 v `bc-al-tools.md`)
+  podle datasetu base reportu **ze symbolů v package cache** + sloupců rozšíření: chybějící `Field` doplní, neexistující
+  smaže, výrazy v textboxech nechá. Přepíše **i zdrojový soubor v `src/`** (sonda: bogus `Field` zmizel, odebraný se vrátil,
+  307 → 290 polí; alc 17.0.2273547). Když symboly odpovídají layoutu, soubor zůstane bajt po bajtu stejný — proto lokální
+  build „nic nemění" a vypadá to, že alc layout nesahá.
+- Export z *Report Layouts* je přesně obsah `.app`; server nic nepřegenerovává. Uživatelský layout (nahraný soubor) nikdo
+  nepřepisuje, a pole definované v RDL, které v datech není, se tiskne prázdné bez chyby — proto „ITI layout funguje"
+  nic neříká o datasetu.
+- **CI (Essence v2-0, Download Dependencies from NuGet)** stáhlo pro `Polish Localization 10.8.0.0` verzi 10.8.3.3, ale
+  tranzitivní závislost **Electronic Banking Extension PL 7.6.0.1** (SuggestPayments.PL) přitáhla do `.dependencies`
+  i **Polish Localization 10.16.0.5** (+ Electronic Banking Base App 6.0.2.6). V package cache leží obě verze, alc bere
+  nejvyšší → Core PL se kompiluje proti 10.16, kde ITI sloupec `Prepaymen_Vat_Date` (dataitem `PreviousPrepmt`) zrušilo
+  a nahradilo `Prepayment_NSeI_No` (+ labely `NSeIDocumentNoLbl`, `Prepayment_NSeI_Document_NoLbl`). Na serveru je ITI
+  10.13.0.5, které sloupec má → build z CI padá, lokální build (symboly 10.13) by fungoval.
+
+**Diagnostický postup:**
+1. Layout z `.app`: 40 B hlavička `NAVX` + ZIP (`grep -obUa -F $'PK\x03\x04'` s `LC_ALL=C`, `tail -c +N`, `unzip`;
+   nebo PowerShell `ZipArchive`), sha256 proti repu; export ze serveru → `diff` po `tr -d '\r'`, `comm` nad `<Field Name=…>`.
+2. Log kroku *Download Dependencies from NuGet*: řádky `requesting '[x,y)'` a `Copying … to .dependencies` — hledej
+   **dvě verze téže appky**; `Compile AL Apps` ukáže `AL Compiler version` (CI 16.4 ≠ lokální 17/18).
+3. Který sloupec v které verzi vendora existuje: NuGet `.app` bývá šifrovaný (`NAVX.NEA`, bez ZIP, al-mcp ho nenačte) →
+   **sonda kompilací** `add(<dataitem>) { column(<jméno>; 1) { } }` proti symbolům: `AL0155 … already defined … by the
+   extension 'X (verze)'` = existuje, neznámé jméno projde. Sonda přes label je neprůkazná (vendor nechá proměnnou, změní
+   sloupec; `AL0161` = existuje/protected, `AL0118` = neexistuje). Datasety jiných verzí jsou vidět v layoutech jiných
+   zákaznických rep v ADO (`search_code` na jméno sloupce; cust-trafinOil-bc `app_pl` = ITI 10.16).
+4. MCP `pipelines_artifact download` vrací prázdný soubor — artefakt stáhni ručně z ADO, nebo zkompiluj lokálně
+   se stejnými symboly.
+
+**Oprava:** (a) layout nesmí referencovat sloupec, který v jedné z verzí vendora chybí → vlastní column v reportextension
+(`add(PreviousPrepmt) { column(PrepaymentVatDatePSW; …) }` z vlastního temp `Sales Line` naplněného veřejnou
+`ITI Sales Prepayment Mgt.CollectPrevPrepmts`, signatura v 10.13 ověřena) a textbox na něj; (b) nebo sjednotit verzi
+vendora v CI s nasazenou (pin závislosti, která tahá novější verzi; `.dependencies` nesmí obsahovat dvě verze) — křehké,
+každý další bump to rozbije. Po (a) se přegenerovaný `<DataSets>` liší jen o pole, na která layout neukazuje = neškodné.
+
+### 12.1i Word layouty editovat přes MCP `bc-word-layout` + skilly `al-word-layout*`, ne ručním OOXML
+
+Od 2026-11-04 je v Claude Code (scope user) MCP server **`bc-word-layout`**
+([TKapitan/bc-word-layout-mcp](https://github.com/TKapitan/bc-word-layout-mcp), instalace a proč ne
+`dnx` / marketplace plugin → `mcp-setup.md` krok 1b) a čtyři uživatelské skilly v `~/.claude/skills/`:
+`al-word-layout` (workflow inspect → edit → validate → preview + přesný tool surface),
+`al-word-layout-design` (jak má nový layout vypadat), `al-word-layout-from-design` (hotový Word návrh
+→ vázaný layout), `al-word-layout-composite` (tělo + hlavička/patička + téma `.dotx`).
+
+- **Pořadí:** u Word layoutu nejdřív načti `al-word-layout` (a `-design` u nového layoutu) a jeď přes
+  tooly (`get_layout_info`, `list_dataset_fields`, `insert_field` / `insert_label` / `insert_repeater_table`
+  / `wrap_in_repeater`, `validate_layout`, `preview_layout`). Každý zápis server validuje a chybný edit
+  odmítne — proto přes tooly a ne přes vlastní skript nad `document.xml`. Dataset bere z `.al` reportu
+  + `app.json` vedle layoutu (BC verze).
+- **Co server neumí → ruční OOXML podle 12.1f / 12.5 zůstává:** hide-if-empty / hide-if-zero, repeater
+  v hlavičce či patičce, komentáře layoutu, svislé merge, okraje / page setup, RDL a Excel layouty,
+  XLF překlady, upload do tenantu. Štítky s barcode fonty (12.5) tedy dál skriptem.
+- **Preview je offline aproximace** (PDF přes Word COM, když je Word nainstalovaný). Finální kontrola
+  = tisk v BC sandboxu; validace serveru je ověřená na BC 28, jiné verze neověřené.
+- Když tool chybí v nabídce, server nestartoval (`CONNECT_TIMEOUT`, 7.2 v `bc-al-tools.md`) → restart
+  seance / `/mcp` reconnect; `claude mcp list` musí ukázat `bc-word-layout … Connected`.
+
 ### 12.2 Když nevíš, co pravidlo znamená — vyhledej
 
 Neopravuj warning naslepo přepsáním kódu. **Najdi popis pravidla:**

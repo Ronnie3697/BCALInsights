@@ -658,7 +658,23 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   Price` zůstává, rozdíl `Total Price − X` jde do `Line Discount Amount` / `%`. Chceš-li přepočítat jednotkovou cenu, dělej
   `Validate("Unit Price", X / Quantity)` a `Validate("Line Amount", X)` až na dorovnání zaokrouhlení. `Quantity = 0` → nic
   nepřepočítávej (dělení nulou, amounts jsou stejně 0).
-- Vzor „rezerva ↔ čerpající řádky": částky skutečně odečtené z rezervy drž na čerpajícím řádku (`Reserve Consumed Cost/Amount`),
+- Vzor „rezerva ↔ čerpající řádky": na čerpajícím řádku drž **jen to, co rezerva skutečně dala** (`Reserve Consumed` = min(částka
+  řádku, čerpáno + zůstatek rezervy)) a nepokrytý zbytek (`Reserve Shortfall` = částka − čerpáno). Evidovat „čerpáno = celá částka
+  řádku" a rezervu jen ořezávat na 0 je chyba: po snížení částky přečerpaného řádku se vrací peníze, které rezerva nikdy nedala
+  (reklamace Soitron 2026-11-03: rezerva 1 600, řádek 4 500 → 0, snížení na 3 000 vrátilo 1 500). „Uloženo bez změny částek"
+  poznáš z částka = čerpáno + nepokryto, netřeba xRec. **Každý přírůstek rezervy** (odpojení, přepojení, snížení částky, smazání
+  čerpajícího řádku) hned rozdej ostatním propojeným řádkům s nepokrytou částí (v pořadí Line No., měněný řádek vynech —
+  jeho hodnoty žijí v paměti, v DB jsou staré); jinak po přepojení řádku A na jinou rezervu má rezerva zpět celou částku A,
+  ale přečerpaný řádek B si nic nedobere a rezerva je o jeho nepokrytou část vyšší (reklamace Soitron 2026-11-03: 2 880
+  místo 1 950). Rozdělení rezervu jen snižuje, takže se nic nešíří dál. **Pozor na záznam v paměti:** přerozdělení mění řádek B
+  v DB (`Modify(false)`), ale proměnná / page Rec řádku B drží staré čerpáno + nepokryto → jeho další `Modify(true)` by z nich
+  počítal deltu a přepsal DB (CI build 29252: rezerva 0 místo 50). V `OnBeforeModify` proto čerpáno + nepokryto načti z DB
+  (`Get` + `SetLoadFields`), pokud je vazba v DB stejná jako v paměti; při změněné vazbě jsou správné hodnoty z `OnValidate`
+  vazby v paměti. TableRelation s where-filtry na poli vazby: platformní kontrola relace běží PŘED `OnValidate` a vlastní
+  hlášky („není rezerva", „jiná úloha") se nikdy neukážou → `ValidateTableRelation = false` + kontrola v OnValidate
+  (11.x v `bc-al-integrations.md` má totéž u API). Guard „rezervu s vazbami nejde smazat" blokuje `DeleteAll(true)`
+  (smazání projektu, přegenerování QB) — řádky se mažou v pořadí PK a rezerva je první → místo Error vazby tiše zrušit.
+  Částky skutečně odečtené z rezervy drž na čerpajícím řádku,
   deltu dorovnávej v `OnBeforeInsert` / `OnBeforeModify` tableextension (pole přiřazená tam se zapíšou s operací, žádný
   další Modify), vracení v `OnBeforeDelete`. Odmítnutý Confirm = explicitní `Error(label)` (konvence Soitron).
   (2026-11-02, cust-soitron-bc PBI 67428 `Project Reserve Mgt. SOI`, testy `Project Reserve Test SOI`; kompilace čistá, běh v CI.)

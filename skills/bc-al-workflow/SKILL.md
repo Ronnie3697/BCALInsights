@@ -4,8 +4,8 @@ description: >-
   BC/AL dokumentace a verifikace: dokumentace PBI/Task → docs/*.md, uživatelská příručka / prezentace featury v
   HTML se screenshoty (base64, focení BC přes Claude in Chrome, timeout screenshotu, inline chyba pole); co
   číst před editem (hlavička, app.json, .alpackages = binární ZIP → al-mcp, permission set); Word layouty
-  (repeater w15:dataBinding, štítky skriptem, barcode fonty, GS1-128 / FNC1), RDLC tablix sloupce skriptem
-  (TablixCell = sloupec, ColSpan, Hidden); build a analyzery AA/CA/PTE/LC
+  (MCP bc-word-layout + skilly al-word-layout*, repeater w15:dataBinding, štítky skriptem, barcode fonty, GS1-128 / FNC1), RDLC tablix sloupce skriptem
+  (TablixCell = sloupec, ColSpan, Hidden), layout reportextension (alc při kompilaci přegeneruje `<DataSets>` ze symbolů, CI s jinou verzí vendora → „refers to the field", sonda sloupce AL0155); build a analyzery AA/CA/PTE/LC
   (verifikace všech dotčených appek, failOn warning), XML doc komentáře (LC0072, & = AL0640), runtime errory
   bez spekulačních smyček, Essence ruleset per projekt (*Ruleset*.json vedle app.json). Načti u
   dokumentace ticketu, příručky, před netriviálním editem, u warningů a analyzerů. (XLIFF / překlady →
@@ -71,6 +71,9 @@ příklady jsou v souboru. Sekce 6 (XLIFF) je od 2026-10-22 ve skillu `bc-al-xli
 - **12.4** Essence build bere **první `*Ruleset*.json` (case-insensitive)
   rekurzivně ve složce s `app.json`**; `ruleSetPath` v `app.json` = AL0124; `.vscode` je
   gitignored, `.code-workspace` řídí jen editor. `failOn = 'warning'`.
+- **12.1i** Word layout (.docx) nejdřív přes MCP `bc-word-layout` a skill `al-word-layout`
+  (inspect → edit → validate → preview); ruční OOXML (12.1f, 12.5) jen pro to, co tooly
+  neumí (hide-if-empty, repeater v hlavičce, štítky s barcode fontem). Preview ≠ tisk v BC.
 - **12.5** Word layout psaný skriptem: namespace vazeb = název reportu, každá skupina
   ne-alfanumerických znaků → jedno `_`, **ID a token ber z `.al` skriptem** (přečíslovaný
   report = prázdný tisk bez chyby; ověř, že `alc` nechal tvůj `customXml/item1.xml`).

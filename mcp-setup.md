@@ -5,7 +5,8 @@
 > `skills/bc-al/SKILL.md` na něj jen odkazuje pro případ „MCP není nakonfigurovaný".
 > Celé prvotní nastavení (junctiony, always-on, MCP, PAT) s tebou interaktivně projde AI podle
 > **`SETUP.md`** — tenhle soubor je k němu reference.
-> Stav ověřen 2026-09-08, Claude Code 2.1.263, Windows 11; Azure DevOps launcher 2026-10-05.
+> Stav ověřen 2026-09-08, Claude Code 2.1.263, Windows 11; Azure DevOps launcher 2026-10-05;
+> `bc-word-layout` 2026-11-04 (Claude Code 2.1.317).
 
 | Server (název v Claude Code) | npm balíček | K čemu | Auth |
 |---|---|---|---|
@@ -13,6 +14,7 @@
 | `bc-code-intelligence` | [`bc-code-intelligence-mcp`](https://github.com/JeremyVyska/bc-code-intelligence-mcp) (Jeremy Vyska) | BC knowledge base + specialisté („Sam Coder"), workflow (krok 4 startup checklistu) | žádná |
 | `azure-devops` | [`@azure-devops/mcp`](https://github.com/microsoft/azure-devops-mcp) (Microsoft) | tickety, PR, pipelines, wiki, search v org `essencebs` (7.9 v `bc-al-tools.md`) | PAT **read-only** v `MCP_PAT\DevOpsPAT.txt`, spouští launcher (krok 3) |
 | `d365bc-admin` | [`@demiliani/d365bc-admin-mcp`](https://github.com/demiliani/D365BCAdminMCP) | BC Admin Center API — prostředí, nainstalované appky, sessions, storage, update window | Entra login při prvním volání |
+| `bc-word-layout` | NuGet [`BcWordLayout.Mcp`](https://github.com/TKapitan/bc-word-layout-mcp) (Tomáš Kapitán, .NET tool, **ne npm**) | Word layouty reportů: 30 toolů inspect / create / insert field, label, repeater / validate / preview (PDF přes Word COM); doprovodné skilly `al-word-layout*` (krok 1b; 12.1i v `bc-al-workflow.md`) | žádná |
 | `playwright` (volitelné) | `@playwright/mcp` | browser automatizace (BC web klient, dokumentace) | žádná |
 | `businesscentral` (draft) | oficiální MS MCP server `mcp.businesscentral.dynamics.com` | data z BC přes API pages | Entra OAuth → viz `bc-al-mcp-server.md` |
 
@@ -24,7 +26,7 @@ agent hádá signatury z paměti.
 
 - **Node.js 18+** (LTS) a npm; `npm prefix -g` → `%APPDATA%\npm` musí být v `PATH`
   (tam žijí globální shimy `*.cmd`, které Claude Code volá).
-- **.NET SDK 8+** (potřebuje `al-mcp-server`).
+- **.NET SDK 8+** (potřebuje `al-mcp-server`); **.NET SDK 10** pro `bc-word-layout` (krok 1b).
 - **Claude Code** nainstalované (`claude --version`).
 - Notes repo naklonované kamkoli (GitHub `essencebs/BCALInsights`, firemní —
   přístup dá DNEM) + junction skillů podle `README.md`.
@@ -43,6 +45,31 @@ cachovaným balíčkem) a při pomalé síti / AV skenu to nestihne → server p
 tiše zmizí (`CONNECT_TIMEOUT`, detail v 7.2 `bc-al-tools.md`). Globální shim startuje pod
 1 s. Daň: verze se samy neaktualizují (viz 6).
 
+## 1b. `bc-word-layout` — globální .NET tool + skilly (ne dnx, ne plugin marketplace)
+
+```
+dotnet tool install -g BcWordLayout.Mcp --add-source https://api.nuget.org/v3/index.json
+```
+
+Vznikne shim `%USERPROFILE%\.dotnet\tools\bc-word-layout-mcp.cmd` (složka je v `PATH` po instalaci
+SDK), start ~1 s. **Proč ne `dnx BcWordLayout.Mcp --yes`, jak radí README a jak to registruje
+plugin z marketplace:** `dnx` při každém startu resolvuje balíček z NuGetu (stejný problém jako
+`npx`, krok 1) a potřebuje zdroj `nuget.org` v `%APPDATA%\NuGet\NuGet.Config` — na firemním stroji
+byl `<packageSources>` prázdný (`dotnet nuget list source` → „No sources found"), takže `dnx` by
+tiše spadl na `CONNECT_TIMEOUT`. `--add-source` zdroj použije jen pro instalaci, `NuGet.Config`
+se nemění. Microsoft Word nainstalovaný = funguje `preview_layout` do PDF (COM); bez Wordu jen
+ostatní tooly.
+
+**Skilly:** `/plugin marketplace add TKapitan/bc-word-layout-mcp` **nepoužívej** — plugin
+`bc-word-layout` by zaregistroval druhý server přes `dnx` (duplicita + timeout). Místo toho
+zkopíruj `skills/al-word-layout*` z repa (zip `archive/refs/heads/main.zip`) do
+`%USERPROFILE%\.claude\skills\` (čtyři složky: `al-word-layout` = workflow a tooly,
+`-design` = jak má nový layout vypadat, `-from-design` = hotový Word návrh → vázaný layout,
+`-composite` = tělo + hlavička/patička + téma `.dotx`, BC 2026 wave 2). Skilly se v běžící seanci
+objeví hned, MCP server až po restartu seance. Aktualizace: `dotnet tool update -g BcWordLayout.Mcp
+--add-source https://api.nuget.org/v3/index.json` + znovu zkopírovat `skills/` (verze skillů a
+serveru mají sedět; `CHANGELOG.md` v repu).
+
 ## 2. Registrace v Claude Code
 
 Scope **`user`** = `~/.claude.json` → platí pro všechna repa. Bez `-s user` se server zapíše
@@ -55,7 +82,12 @@ claude mcp add -s user al-mcp-server -- cmd /c al-mcp-server
 claude mcp add -s user bc-code-intelligence -- cmd /c bc-code-intelligence-mcp
 claude mcp add -s user d365bc-admin -- cmd /c d365bc-admin-mcp
 claude mcp add -s user azure-devops -- node "<MCP_PAT>\ado-mcp.mjs"
+claude mcp add -s user bc-word-layout -- cmd /c bc-word-layout-mcp
 ```
+
+`claude` není v `PATH`, když Claude Code běží jen jako VS Code extension — binárka je
+`%USERPROFILE%\.vscode\extensions\anthropic.claude-code-<verze>-win32-x64\resources\native-binary\claude.exe`
+(vezmi nejvyšší verzi); `~/.claude.json` sdílí extension i CLI, takže registrace platí pro oba.
 
 `<MCP_PAT>` = složka s launcherem a PATem (krok 3). Volitelně:
 `claude mcp add -s user playwright -- npx @playwright/mcp@latest`.
@@ -121,8 +153,12 @@ seanci při prvním startu po restartu Windows.)
 
 ## 5. Ověření
 
-- `claude mcp list` → u všech čtyř `✔ Connected` (postman „Needs authentication" je jiný
+- `claude mcp list` → u všech pěti `✔ Connected` (postman „Needs authentication" je jiný
   plugin, ignoruj).
+- `bc-word-layout`: `get_layout_info` na libovolný `.docx` layout z repa; dataset bere z
+  `.al` reportu / `app.json` vedle (mimo AL projekt `env.BCWL_BC_VERSION`, např. `29`).
+  Ruční test shimu: `bc-word-layout-mcp` v cmd + JSON-RPC `initialize` na stdin; v stderr
+  musí být „transport reading messages" (ne chyba .NET runtime).
 - V seanci `/mcp` → seznam + reconnect / authenticate.
 - `al-mcp-server`: index je po startu **prázdný** → `al_packages` s `action: "load"` a
   `path` = root repa (sdílená `.alpackages`); pak `al_search_objects`. Detail 7.2.
@@ -140,6 +176,8 @@ seanci při prvním startu po restartu Windows.)
 ## 6. Údržba a diagnostika
 
 - Globální balíčky se samy neaktualizují: občas `npm update -g`; stav `npm ls -g --depth=0`.
+  `.NET` tool: `dotnet tool list -g` / `dotnet tool update -g BcWordLayout.Mcp --add-source
+  https://api.nuget.org/v3/index.json` (krok 1b, i skilly).
 - Server „není v nabídce" = skoro vždy `CONNECT_TIMEOUT` při startu, ne rozbitý balíček.
   Log: `%LOCALAPPDATA%\claude-cli-nodejs\Cache\<projekt>\mcp-logs-<server>\<timestamp>.jsonl`.
   Ruční test: spusť shim v terminálu a pošli JSON-RPC `initialize` na stdin.
