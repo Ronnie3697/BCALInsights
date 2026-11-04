@@ -666,7 +666,13 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   čerpajícího řádku) hned rozdej ostatním propojeným řádkům s nepokrytou částí (v pořadí Line No., měněný řádek vynech —
   jeho hodnoty žijí v paměti, v DB jsou staré); jinak po přepojení řádku A na jinou rezervu má rezerva zpět celou částku A,
   ale přečerpaný řádek B si nic nedobere a rezerva je o jeho nepokrytou část vyšší (reklamace Soitron 2026-11-03: 2 880
-  místo 1 950). Rozdělení rezervu jen snižuje, takže se nic nešíří dál. Guard „rezervu s vazbami nejde smazat" blokuje `DeleteAll(true)`
+  místo 1 950). Rozdělení rezervu jen snižuje, takže se nic nešíří dál. **Pozor na záznam v paměti:** přerozdělení mění řádek B
+  v DB (`Modify(false)`), ale proměnná / page Rec řádku B drží staré čerpáno + nepokryto → jeho další `Modify(true)` by z nich
+  počítal deltu a přepsal DB (CI build 29252: rezerva 0 místo 50). V `OnBeforeModify` proto čerpáno + nepokryto načti z DB
+  (`Get` + `SetLoadFields`), pokud je vazba v DB stejná jako v paměti; při změněné vazbě jsou správné hodnoty z `OnValidate`
+  vazby v paměti. TableRelation s where-filtry na poli vazby: platformní kontrola relace běží PŘED `OnValidate` a vlastní
+  hlášky („není rezerva", „jiná úloha") se nikdy neukážou → `ValidateTableRelation = false` + kontrola v OnValidate
+  (11.x v `bc-al-integrations.md` má totéž u API). Guard „rezervu s vazbami nejde smazat" blokuje `DeleteAll(true)`
   (smazání projektu, přegenerování QB) — řádky se mažou v pořadí PK a rezerva je první → místo Error vazby tiše zrušit.
   Částky skutečně odečtené z rezervy drž na čerpajícím řádku,
   deltu dorovnávej v `OnBeforeInsert` / `OnBeforeModify` tableextension (pole přiřazená tam se zapíšou s operací, žádný
