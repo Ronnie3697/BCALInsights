@@ -896,6 +896,13 @@ System Application 28.5):
     → `SetRange(Status)` → `SetTableFilter(GetTableFilterFromView(...))`; existující mapování se změní až po *Use Default
     Synchronization Setup*. Důsledek: každá změna otevřené objednávky jde do PA (BC wins), nová BC objednávka vznikne v PA
     hned (se `Synch. Only Coupled Records` = false).
+  - **Zámek vydané objednávky i na straně BC = filtr integrační tabulky** (`CRMSalesorder.SetView(GetIntegrationTableFilter())`
+    → `SetRange(ebs_openinbc, true)` → `SetIntegrationTableFilter(GetTableFilterFromView(...))`, Boolean filtr na CRM proxy
+    je v pořádku — standard filtruje `CRM Systemuser.IsDisabled/IsLicensed` stejně): platí jen pro čtení z Dataverse, takže
+    vydaná objednávka (příznak Ne) se z PA nečte a nemůže objednávku v BC otevřít, ale BC → PA ji dál aktualizuje (dohledání
+    podle ID bez filtru) a po Reopen se do filtru vrátí. Bez něj hlídá vydanou objednávku jen UI zámek v PA. Pozor: PA
+    záznamy s prázdným (Ne) příznakem z doby před přidáním sloupce filtr nepustí → před nasazením hromadně nastavit Ano.
+    Test: dva `CRM Salesorder.Insert(false)` (Ano / Ne) + `SetView(filtr)` + `SetRange(SalesOrderId)` + `RecordIsEmpty`.
   - **`statecode = Invoiced`:** `CRM Sales Document Posting Mgt.PostCRMSalesDocumentOnAfterPostSalesDoc` při
     `IsBidirectionalSalesOrderIntEnabled` hned končí a plně vyfakturovanou objednávku účtování smaže (vazba zůstane jen
     s `Archived Sales Order`, sync ji ignoruje) → vlastní pár subscriberů: `Sales-Post.OnBeforeDeleteAfterPosting`
@@ -918,5 +925,5 @@ System Application 28.5):
     appky s verzí **vyšší** než stará kopie v `.alpackages` (kopie `app/` ve scratchpadu s `"version": "28.0.999.0"`), jinak
     alc vezme starou.
   (cust-soitron-bc CDS.W1 `CDS Sync Logic CWSOI.KeepSalesOrderStatus` / `RememberInvoicedSalesOrder` /
-  `SetPowerAppsOrderInvoiced`, `CDS Management CWSOI.IncludeOpenSalesOrdersInMapping` / `WakeUpSalesOrderSynchronization`,
-  task 67561, 2026-11-04; alc 17 + testy jen lokálně přeložené.)
+  `SetPowerAppsOrderInvoiced`, `CDS Management CWSOI.IncludeOpenSalesOrdersInMapping` / `ReadOnlyPowerAppsOrdersOpenInBC` /
+  `WakeUpSalesOrderSynchronization`, task 67561, 2026-11-04; alc 17 + testy jen lokálně přeložené.)
