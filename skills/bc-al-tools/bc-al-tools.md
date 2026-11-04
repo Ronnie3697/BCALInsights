@@ -878,6 +878,12 @@ uživatel ručně podle vlastní konvence (kdy se major povyšuje).
   s verzí `XX.0.0.0`, lokální vývojovou verzi uživateli nech v pracovním stromu. Samotná změna verze = `app.json`
   necommitovat vůbec. V masteru je vždy major verze, build verzi dává pipeline. (DNEM, 2026-10-14,
   prod-ess-dotykackaConnector-bc.)
+- **Ruční / dev buildy pro nahrání: poslední část verze zvyšuj vždy jen o 1; nikdy do ní nedávej číslo PBI/tasku.**
+  Např. `28.0.55.7` → `28.0.55.8`, nikoliv `28.0.55.65437`. Před sestavením ověř nejvyšší verzi, která už byla
+  v cílovém prostředí použita (i dříve nainstalovanou); nová musí být vyšší. Pokud tam historicky je revize `67394`,
+  pokračuj `67395`, ne `8` — části verze jsou celá čísla a BC downgrade odmítne. Číslo PBI patří do názvu větve,
+  dokumentace nebo popisu buildu, ne do verze appky. Verzi měň jen v kopii projektu pro sestavení (viz výše),
+  pokud uživatel výslovně nechce jinak. Pokyn DNEM 2026-11-04 po nasazování Alumistr TNG 67244 na BC-TEST2.
 - Když uživatel **výslovně** řekne „povyš verzi na X" → uděláš.
 - V dokumentačních MD (sekce 8) **nezmiňuj aktuální verzi** extension jako
   součást scope ticketu — verze se mění nezávisle.
