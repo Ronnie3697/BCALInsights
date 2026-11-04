@@ -862,3 +862,22 @@ System Application 28.5):
   mapování maže — guard na typ firmy není potřeba. Testovat jde přímo `internal` proceduru nad trojicí parametrů bez
   `RegisterTableConnection`. (cust-soitron-bc CDS.W1 `CDS Management CWSOI.SynchronizeUncoupledRecords`, 2Ring, 2026-11-04;
   kompilace alc 17 + testy lokálně přeložené, běh v Dataverse neověřen.)
+- **Počítané pole do Dataverse (odkaz na doklad v BC, příznak „Open in BC" ze stavu objednávky) = žádný řádek field
+  mappingu, ale `Integration Rec. Synch. Invoke.OnAfterTransferRecordFields` + zápis zpět při insertu z PA.**
+  Hook běží v `TransferFields` při insertu i modify cílového záznamu (standard ho používá pro `Customer.Blocked`,
+  UoM, ceníky): guard na pár tabulek (`Sales Header` → `CRM Salesorder`, `Sales Invoice Header` → `CRM Invoice`),
+  `DestinationRecordRef.SetTable` → nastav pole → `GetTable` a `AdditionalFieldsWereModified := true` **jen při změně**
+  (engine pak zapíše i záznam bez změny mapovaných polí). Subscriber může deklarovat jen potřebné parametry (podmnožina
+  podle jmen, `SourceRecordRef` s `var`, jinak PC0010). Směr PA → BC hook nepokryje (nová objednávka z Power Apps se
+  BC → PA sama nesynchronizuje, engine jí po insertu nastaví časová razítka) → v `OnAfterInsertRecord` pár
+  `CRM Salesorder` → `Sales Header` zapsat přímo do CRM záznamu (`CRMSalesorder.Get(SalesOrderId)` + `Modify(false)`),
+  stejně jako standardní `SetOrderNumberAndDocOccurenceNumber` dopisuje `BusinessCentralOrderNumber`. ⚠️ Standard v
+  témže `OnAfterInsertRecord` (w1-28 `CRM Int. Table. Subscriber`) objednávku z PA **vydává** (`SetSalesOrderStatus` →
+  `Released`, Open jen u zálohy; `OnBeforeTransferRecordFields` ji napřed staví na Open) a pořadí subscriberů není
+  zaručené → stav pro příznak číst z DB (`SalesHeader.Get`), ne z předaného `DestinationRecordRef`; při opačném pořadí
+  zůstane příznak starý do další synchronizace BC → PA. URL: `GetUrl(ClientType::Web, CompanyName(), ObjectType::Page,
+  Page::"Sales Order" / "Posted Sales Invoice", Rec)` funguje i v sync jobu, pole Text[250] + `CopyStr`. Testy bez
+  Dataverse: `internal` procedury nad `RecordRef` z `Init` záznamů (`GetUrl` jde i na neuložený záznam), zápis zpět
+  přes `CRM Salesorder.Insert(false)` v test připojení `@@test@@`. (cust-soitron-bc CDS.W1 `CDS Sync Logic
+  CWSOI.SetBCLinkOfPowerAppsOrder` / `WriteBCLinkToPowerAppsOrder`, task 67561, 2026-11-04; alc 17 + testy jen
+  lokálně přeložené.)
