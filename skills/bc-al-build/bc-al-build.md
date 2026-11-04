@@ -913,6 +913,16 @@ ED Item Sales Disponibility 28.0.0, Essence Shopify Connector 28.0.6 (závislost
   `Timeout = InfiniteTimeSpan`. `200 OK` s prázdným tělem = publikováno, synchronizováno i nainstalováno (1–5 s na appku).
   Pořadí podle závislostí. Dev build v prostředí pak blokuje PTE téže appky (AVS0109, 7.24).
 
+- **`Publish-BcContainerApp` do kontejneru selže na `AL1024 … Symbols for the requested app X … could not be found in the
+  database`, i když X v kontejneru nainstalovaná je — jako Dev z VS Code.** Bez `-scope` / `-useDevEndpoint` helper publikuje
+  **Global** scope (`Publish-NAVApp`), a globální appka nevidí závislost publikovanou do **Tenant** scope (dev publish z VS Code
+  = `PublishedAs " Dev"`, scope Tenant). Server při publishi kompiluje jen proti globálním symbolům → AL1024. Fix: publikovat do
+  stejné vrstvy — `Publish-BcContainerApp … -scope Tenant -tenant <tenant>` (u single-tenant `default`), nebo
+  `-useDevEndpoint` (totéž, co F5 z VS Code; `-scope Global` s dev endpointem helper odmítne). Alternativa: závislosti
+  přepublikovat jako Global (`-scope Global` z `.app`), pak jde i hlavní appka Global — ale dev publish z VS Code na ně pak
+  nejde. Ověř `Get-BcContainerAppInfo -containerName <c> -tenantSpecificProperties -sort DependenciesFirst` → sloupec `Scope`
+  / `PublishedAs`. (2026-11-04, kontejner suys-dev: Suys Base 26.1 vs. Essence WMS Mobile Inventory 26.0 jako Dev.)
+
 ### 7.26 Dev publish do SaaS sandboxu přes `altool` — osiřelá data staré verze, duplicitní package ID, EM závislosti
 
 - **Sandbox s osiřelými daty odinstalované verze** (banner *„There's orphaned data from uninstalled extensions"*): když nová verze
