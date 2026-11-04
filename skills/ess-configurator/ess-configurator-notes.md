@@ -340,6 +340,10 @@ linky znovu. Každá validace spustí `ApplyDiscount` a `Line Discount %` spadne
 (5.x21 v `bc-al-blanket.md`). Od PBI 66392 (větev `66392_SplitLineDiscount`, 2026-10-06) si split slevu originálu
 pamatuje a na konci ji vrací **na obě linky** — i přes CL slevu z konfigurace (rozhodnutí: ručně přepsaná sleva musí
 přežít i split se stejnou konfigurací). Nový krok do splitu, který mění řádek přes `Validate`, dej **před** `RestoreLineDiscount`.
+**Eventy splitu pro rozšíření (PBI 66431, větev `66431_SplitLineHook`, 2026-11-04):** getter `Variant Configuration COEBS.GetSplitSourceSalesLine`,
+event stránky `OnAfterCheckSplit` (OK v split mode, po kontrole sledování, před uložením varianty; chyba nechá dialog otevřený)
+a `Sales Line Split Mgt. COEBS.OnAfterProcessSplitLine` (konec, po vrácení ceny a slevy). Zlomek přes ně dělí Pozici; vzor
+manuálně bindované instance z pageextension je v 4.21 `bc-al-ui.md`.
 **PBI 66392 znovuotevřeno 2026-10-27 (sleva po změně množství):** ruční změna množství konfigurovaného nebo vytvořeného řádku
 vrací slevu z doby před změnou (`Sales Line COEBS` `modify(Quantity)` → `Sales Line Config Mgt.KeepLineDiscountOnQuantityChange`,
 jen `CurrFieldNo = Quantity`); vytvořené řádky při přepočtu kvůli samotnému množství převezmou slevy smazaných

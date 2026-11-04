@@ -598,6 +598,27 @@ proceduře použité jako `SourceExpr`. Je to čtení bez zápisu, žádný even
 (2026-10-16, cust-sonnentor-bc PBI 64732, appka `Sonnentor Whse. Mobile and Kiosk Ext.` MKSON; getter v
 prod-ew-mobileBase-bc na Move Item / Item Card / Phys. Inv. Journal / Whse Rcpt Tracking / Bin Adjmt. Detail.)
 
+**Varianta: vlastní výběr v cizím modálním dialogu, který po OK teprve zapisuje** (rozšíření přidá do produktového
+dialogu svou volbu, kterou je třeba zkontrolovat při OK a uplatnit po zápisu). Výběr **až po** zápisu jde jen s `Commit`
+(modální stránka v zápisové transakci = 4.25) a zrušení by pak nešlo vrátit, takže výběr musí být v dialogu. Do produktové
+appky stačí tři obecné body: veřejný **getter kontextu** (co dialog zpracovává), **`IntegrationEvent` stránky před
+zápisem** (po vlastních kontrolách dialogu; chyba odběratele v `OnQueryClosePage` nechá dialog otevřený a nic se
+nezapíše) a **event na konci zpracování** v codeunitě, která dialog volala.
+- Stav výběru drží **codeunit s `EventSubscriberInstance = Manual` v globální proměnné pageextension**; `OnOpenPage`
+  pageextension načte kontext přes getter a instanci `BindSubscription`. Instance žije, dokud žije proměnná stránky
+  u volajícího (`VariantConfigPage.RunModal()` → čtení výsledků → zpracování), takže dostane event před zápisem i event
+  na konci zpracování. Žádný SingleInstance, po chybě nezůstane stav viset, dva dialogy se nepomíchají.
+- Pole v pageextension dej `addafter(<pole skupiny s Visible = …>)` — schová se s ní. Vlastní `Visible` přes globál
+  pageextension nastavený v `OnOpenPage` funguje (4.26).
+- Proč ne `OnQueryClosePage` v pageextension: MS docs neříkají pořadí vůči base triggeru („This value is checked
+  after each call"); base trigger už mohl zapsat (vytvořit variantu, ukázat Message) a chyba z extension to sice vrátí,
+  ale uživatel vidí zprávu o zápisu, který neproběhl. Event před zápisem je deterministický.
+
+(2026-11-04, prod-ess-configurator-bc + cust-zlomek-bc PBI 66431: výběr pozic při *Rozdělit řádek s konfigurací* —
+`Variant Configuration COEBS.GetSplitSourceSalesLine`, `OnAfterCheckSplit`, `Sales Line Split Mgt. COEBS.OnAfterProcessSplitLine`;
+COZLK `Position Split Mgt. COZLK` bindovaná z `Variant Configuration COZLK`. Kompilace ověřená, runtime zatím jen testy
+napsané, neběžely.)
+
 ---
 
 ### 4.22 Phone klient kreslí listy a ListParty jako **dlaždice** — sloupec z pageextension se na ně často nedostane
