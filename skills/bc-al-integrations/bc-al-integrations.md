@@ -467,6 +467,23 @@ Z code review API konfigurátoru (COEBS task 66387, stránky `configurationSessi
   `-SkipHttpErrorCheck`, `Invoke-WebRequest` nemá `-StatusCodeVariable`). PATCH potřebuje `If-Match` s `@odata.etag`.
   Tenant ID z domény: `GET https://login.microsoftonline.com/<domena>.onmicrosoft.com/v2.0/.well-known/openid-configuration` → `issuer`.
 
+### 11.7b API POST, které v cíli synchronně zpracovává data = timeout 100 s ve zdroji a ztracená odpověď (ID záznamu)
+
+- **Příznak:** zdroj loguje *„The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing"*, cíl ale data má
+  (`Commit` před zpracováním v `OnInsertRecord` API page). Zdroj nedostane `id` (SystemId) vloženého záznamu, takže navazující
+  dotazy na stav (`$batch` GET podle ID) ho nikdy nenajdou a ruční *Resend* vyrobí v cíli duplicitu. Limit 100 s je pevný
+  default `HttpClient`, zvyšovat ho je záplata — API page má zapsat, naplánovat Job Queue / TaskScheduler a odpovědět hned.
+- **Recovery bez duplicit = korelační klíč v těle requestu:** zdroj pošle `sourceOutboxId` = SystemId svého outboxu, cíl ho uloží do pole
+  na inbox tabulce (API page naplní `Rec` před `OnInsertRecord`, vlastní kód netřeba; klíč na pole kvůli `$filter`). Po `Client.Send` = false
+  (a ne `IsBlockedByEnvironment`) nech outbox ve stavu *Sent* (request odešel, výsledek neznámý) a periodicky dohledej
+  `GET …/replicationInboxes?$filter=sourceOutboxId%20eq%20<guid>&$select=id,status` — právě jeden záznam → ulož `id` + stav; nula → nechat
+  na ruční resend, který před odesláním zkusí totéž dohledání. Zpracování odpovědí (`{"value":[…]}`, `{"id","status"}`) drž v `internal`
+  procedurách bez HTTP, ať jdou testovat na Cloud targetu (`[HttpClientHandler]` je OnPrem-only). Obě strany musí mít novou verzi současně —
+  starý cíl odmítne neznámý atribut v POST (400).
+- **Past v Labelu pro URL:** `%20` v textu, který jde do `StrSubstNo`, je placeholder `%2` + „0" — kódovanou mezeru drž v Locked labelu
+  bez placeholderů a URL skládej konkatenací. GUID do OData filtru bez složených závorek (`DelChr(Format(Guid), '=', '{}')`).
+  (2026-11-05, prod-ef-replications-bc, větev features/replications: `Replicat. Communication ACEBS`, report *Refresh Repl. Status* pro Job Queue.)
+
 ### 11.8 Dataverse (CDS) sync — filtr integrační tabulky platí jen Dataverse → BC, Enum → Choice přes `OptionOrdinalValues`, testy bez Dataverse
 
 Z cust-sonnentor-bc task 66405 (appka SON CDS Sync, BC 28.4, 2026-09-29; zdroje w1-28 `Integration/SynchEngine/
