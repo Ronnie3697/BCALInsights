@@ -830,6 +830,10 @@ export cen tam neotestuješ; feature nezapínej, vyber firmu, kde běží. (2026
   pole zavírej klikem na řádek, Escape / klik vedle ho někdy nechá viset.
 - Grid s ~180 sloupci (řádky prodejní objednávky) nedostaneš na konec scrollem ani Tabem rozumně – pole na konci ověřuj
   přes tabulku (`?table=<id>`, sloupce i obsolete polí) nebo jinou stránku, kde jsou blíž začátku.
+- **Vodorovný posun gridu z JS:** `iframe.contentDocument.querySelector('.freeze-pane-scrollbar').scrollLeft = N` (tažení posuvníku je
+  utlumené, klik do dráhy skočí o stránku; zamrzlý první sloupec zůstává). Na fotku řádků partu nejdřív ikona „otevřít v režimu fokusu“.
+  Řádky TNG postupu skrývají *Kód jednotky doby zpracování* → tabulka `?table=99000764` + panel filtru (*+ Filtr*, pole, `TNGD*`) + ⤢.
+  (2026-11-04, Alumistr BC-DEV, prezentace 67244.)
 
 **Výrobní scénář v sandboxu (konfigurátor → kusovník → VZ) — co zdržovalo** (2026-11-05, cust-zlomek-bc 67632, Zlomek BC-DEV):
 - Karta vydané VZ nemá *Variant Code* a na řádcích VZ je skrytý → VZ na variantu (alternativní kusovník ATEBS) udělej z prodejní

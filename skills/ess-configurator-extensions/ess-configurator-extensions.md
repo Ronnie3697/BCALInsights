@@ -59,6 +59,19 @@ parametru). ⚠️ Konfigurátor ale na akcích prodejního řádku s vzorcem na
 `UpdateUnitPrice` → vyhraje, kdo byl poslední: vzorec při vytvoření/přepočtu akcí, vlastní cena po další změně množství / MJ. Když obojí
 koexistuje, rozhodni pravidlo (vzorec má přednost = subscriber musí poznat řádek s cenovým vzorcem) — jinak se ceny „přetahují".
 
+**Práce z TNG v nákladu (Alumistr, task 67244, 2026-11-04, větev `UnitCostFromRouting_67244`, docs `67244_…md`):** `CalculateFromProdBOM`
+přičte k `ComponentMargin` Σ operací `Run Time × Direct Unit Cost × TimeFactor(MJ řádku) / (TimeFactor(MJ centra) × Lot Size)` — jen při
+`ComponentMargin <> 0` (kusovník s nulou, např. bug `Version Nos.`, jinak pustí na řádek pořizovací i jednotkovou cenu jen za práci). Postup:
+`Alternative Routing ATEBS` (Item + Variant, Default přednost, certifikovaný), jinak `Item."Routing No."`; řádky z
+`VersionManagement.GetRtngVersion(No, WorkDate(), true)`, a jako standard: hlavička nemusí být certifikovaná, když je aktivní certifikovaná verze.
+Pasti: **`Shop Calendar Management.TimeFactor` vrací ms na jednotku a typ prázdný = caption „Milisekundy" (faktor 1)** — Alumistr TEST2 má
+kapacitní MJ `KS` s prázdným typem, MIN → KS by násobil 60 000; `TimeFactor` dělá `Get` bez kontroly (smazaná MJ shodí řádek dokladu);
+`60000 / 3600000` není v AL Decimal (18 platných číslic) přesně 1/60 → násob všechno a děl jednou na konci. `Unit Cost Calculation = Units`
+znamená ve standardu cenu za kus výrobku (doba bez vlivu, `CalculateCostTime`). Ceny kooperace = stránka **Ceny subdodavatele** (20500,
+appka Subcontracting); veřejná `Subc. Price Management.SetRoutingPriceListCost` najde cenu (dodavatel, centrum, zboží, varianta **nebo
+prázdná**, standardní úkol, MJ, měna, datum) a přepočte MJ i měnu — Subcontracting ji používá pro VZ, plánování, sešit, nákup i standardní
+kalkulaci. Konfigurace s `Def. Routing Status` *Nový* (všechny na Alumistr BC-DEV) dají variantě necertifikovaný TNG → práce 0.
+
 ## C8. Řádek kusovníku z konfigurátoru a pole EM Cutting Plan (Alumistr)
 
 `Configurator Events COALU.OnBeforeInsertProdBOMLine` přenáší z akčního řádku kusovníku `Qty. of Pcs.` a `Qty. per Piece`

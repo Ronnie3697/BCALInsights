@@ -4,7 +4,7 @@ description: >-
   Essence Configurator — napojení zákaznických rozšíření Alumistr COALU / Zlomek COZLK na další moduly (BC/AL):
   kusovník konfigurované varianty v Alternative Prod. BOM ATEBS a pořizovací / jednotková cena prodejního řádku
   (Variant Code vs Price Variant Code PMALU, Cost Mgt. ALU, OnAfterGetUnitCost, OnAfterUpdateUnitPrice vs cenový
-  vzorec akce), pole EM Cutting Plan na řádku kusovníku a komponentě VZ (Qty. of Pcs. validuj poslední, slučování
+  vzorec akce, práce z TNG: Alternative Routing ATEBS, TimeFactor, Ceny subdodavatele), pole EM Cutting Plan na řádku kusovníku a komponentě VZ (Qty. of Pcs. validuj poslední, slučování
   komponent přes Length, Length v jednotce optimalizace, plocha započtená dvakrát), Parametr A/B akčního řádku →
   EPB Pricing Matrix (ValidateAndUpdateUoM přepíše MJ, HasMatrixUnitOfMeasure, osy jako Code[50] Parameter A/B
   Value PMEBS, FormatAxisValue / TryGetAxisNumber), eventy kopie konfigurace pro zákaznická data řádků akcí

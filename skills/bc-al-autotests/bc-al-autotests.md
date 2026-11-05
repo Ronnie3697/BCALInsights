@@ -326,6 +326,11 @@ Assert.ExpectedErrorCode('Dialog');
   `BigInteger` proměnné **s explicitním přiřazením** (`NoId := 0;` — bez přiřazení CodeCop **AA0205** „Use of unassigned variable",
   na CI warning = fail), nebo porovnej `Assert.IsTrue(Rec.Id = 0, …)`. Týká se všech externích ID z API (Dotykačka, Shopify) uložených
   jako BigInteger. (prod-ess-dotykackaConnector-bc 2026-10-12 money log a 2026-10-14 copy testy, lokální kontejner.)
+- **`Assert.AreEqual` na Decimal porovnává přesně a AL Decimal má 18 platných číslic** (runtime `Decimal18`, zaokrouhlení AwayFromZero).
+  Mezivýsledek, který není konečné desetinné číslo, se neztratí: `30 × (60000 / 3600000) × 600` = `300.000000000000000006` ≠ 300 a test
+  „30 minut za 600/h = 300" spadne, i když výpočet „sedí". V produkčním kódu násob všechno a děl jednou na konci (`30 × 600 × 60000 /
+  3600000` = přesně 300), v testu volej hodnoty, které vyjdou přesně, jinak `Assert.AreNearlyEqual`. Najde to jen čtení kódu nebo běh,
+  kompilace ne. (2026-11-04, cust-alumistr-bc 67244, `Routing Cost Tests ALU`, nález code review před během.)
 - **`Item Reference.Insert(true)` s prázdnou `Unit of Measure` ji doplní na základní MJ zboží** (BaseApp `ItemReference.Table.al`
   `OnInsert` → `Validate("Unit of Measure", Item."Base Unit of Measure")`, jen `OnInsertTriggerOnBeforeValidateUoM` IsHandled). Test
   „odkaz bez MJ“ s `Insert(true)` tak ve skutečnosti testuje odkaz základní MJ; prázdnou MJ (data z importu) vyrobíš jen `Insert(false)`.
