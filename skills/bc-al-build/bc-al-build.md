@@ -974,6 +974,10 @@ ED Item Sales Disponibility 28.0.0, Essence Shopify Connector 28.0.6 (závislost
 - Příkaz (token z cache VS Code, bez interaktivního přihlášení, 7.2b v `bc-al-tools.md`): `altool.exe publishapp <app>
   --environmenttype Sandbox --environmentname <env> --tenant <tenantId> [--schemaupdatemode ForceSync]`; výstup filtruj
   `grep -v "^\[MSAL\]\|^\[LogMetrics"`, úspěch = `Success: The package … has been published`.
+- **Prázdná `.alpackages` → celá package cache z dev endpointu sandboxu** (verze přesně jako v prostředí): token z `d365bc-admin`, `GET …/<env>/dev/packages?
+  publisher=&appName=&versionText=&appId=` pro každou dependency z `app.json` + `System` (`8874ed3a-…`) a `Application` (`c1335042-…`), z `NavxManifest.xml`
+  staženého `.app` vyčti `<Dependency>` a rekurzivně dál (python, IPv4). Test knihovny (*Tests-TestLibraries*, *System Application Test Library*) endpoint
+  vrátí 404 → MSSymbols (7.12). Ověřeno 2026-11-05, Sonnentor BC-DEV (16 balíčků za ~1 min, alc app i test 0 chyb).
 - **Essence závislosti z dependency-cache lokálního testovacího kontejneru** (`C:\ProgramData\BcContainerHelper\Extensions\<kontejner>\dependency-cache\…`,
   7.23) jdou do sandboxu dev-publishnout stejně, v pořadí závislostí (EM Alternative BOM and Routing, EM MRP Replenishment, EM Net Make
   to Order, EM Production Batch Planning — v manifestu `<Dependencies />`, jen Application 28.0). `get_installed_apps` (d365bc-admin)

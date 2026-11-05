@@ -865,6 +865,16 @@ export cen tam neotestuješ; feature nezapínej, vyber firmu, kde běží. (2026
 - **České fotky:** jazyk v *Moje nastavení* (9204) → Czech, po focení vrátit původní (zapiš si ho předem). Hlášky do textu ber z `.cs-CZ.xlf`,
   ne opisem ze screenshotu.
 
+**Výrobní zakázky v sandboxu přes UI** (2026-11-05, cust-sonnentor-bc 67630, Sonnentor BC-DEV, pevně plánované VZ 99000829 / seznam 9325):
+- **Skrytý sloupec subformu (např. *Kód verze výrobního kusovníku* na řádcích VZ) neodkrývej personalizací** — účet *Essence … Technician*
+  je sdílený. Dočasná testovací appka (vzor výš) s `pageextension … { layout { modify("Production BOM Version Code") { Visible = true; } } }`
+  na *Firm Planned / Released Prod. Order Lines*, po testu odinstalovat.
+- **Data VZ:** po refreshi drží *Datum plánování* hlavičky řádek (přepis se vrátí); datumy hlavičky měň v záložce *Plán* (*Datum-čas
+  dokončení*). Zboží bez TNG má VZ ~12 h, zahájení a ukončení se posouvají spolu, vícedenní rozpětí bez TNG nenastavíš. Víkend posune konec
+  na pátek (10. 10. 2026 = sobota → 9. 10.) — testovací data ze zadání si zkontroluj v kalendáři.
+- **Po editaci řádku na kartě VZ hlásí navigace „Leave site?“** i po kliknutí do pole hlavičky; `force` by změnu zahodil. Zavři kartu šipkou
+  zpět (uloží), pak ji otevři znovu přes `page=99000829&filter='No.' IS '…'`. `Escape` kartu zavře taky (pozor uprostřed práce).
+
 ### 12.4 Essence build — ruleset per projekt konvencí
 
 Essence BC build (`azure-pipelines.yml` → template `ALBuildPipeline2.yml` →
