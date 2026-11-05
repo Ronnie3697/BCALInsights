@@ -334,3 +334,11 @@ end;
   true); `Allow Manual Cust./Vend. SOI` v setupu na to nemá vliv (řídí jen zákazníky). Dodavatele v testu zakládej přes one-shot
   bypass: `CustVendorMgt.SetAllowVendorInsert(true); LibraryPurchase.CreateVendor(Vendor); SetAllowVendorInsert(false)` (vzor
   `BusinessUnitAssignTest`). Lokální kompilace to nechytí, až CI. (2026-10-05, build 28636, `QB Buffer Test SOI`.)
+- **cust-soitron-bc: `LibrarySales.CreateCustomer` / `CreateCustomerNo` padá na „Manual creation of customers and vendors is not
+  allowed. Enable it in Soitron Setup."** — guard `Cust. Vendor Mgt. SOI` čte `Soitron Setup SOI."Allow Manual Cust./Vend. SOI"`
+  a v CI DB je setup prázdný (= false). Platí i pro test appku **CDS.W1** (závisí na Soitron Base W1), ne jen Base.W1 — nový test
+  codeunit, který zakládá zákazníka, to musí mít v `Initialize()`: `LibrarySetupStorage.Restore()` před `if IsInitialized`,
+  v suite initu `SoitronSetup.GetSetup()` + `"Allow Manual Cust./Vend. SOI" := true` + `Modify(false)` + `LibrarySetupStorage.Save(
+  Database::"Soitron Setup SOI")` (vzor `Inv. Payment Status Test SOI`, `Cust. 2Ring Sync Test CWSOI`). Testy, které zákazníka
+  nezakládají (`SalesHeader.Init()` bez insertu), projdou a maskují to — v CI spadne jen část codeunitu, chyba je v GIVEN (6–14 ms).
+  (2026-11-05, cust-soitron-bc build 29289, 9 testů `Order Status Sync Test CWSOI` + `BC Link Sync Test CWSOI`.)

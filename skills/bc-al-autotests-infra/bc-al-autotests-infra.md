@@ -256,6 +256,13 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   v běžícím kontejneru: `Publish-BcContainerApp -skipVerification -sync -install -upgrade` (závislé appky zůstanou), pak
   `Unpublish-BcContainerApp` staré verze. Hotový `.app` z DevOps: MCP `pipelines_artifact download` vrátil 0B ZIP → buď `.app`
   od kolegy / z feedu, nebo kompilace ze zdrojáků na `sourceVersion` buildu s verzí přepsanou v `app.json`.
+  ⚠️ **Kontejner `bc28` (cust-soitron-bc, 28.2 cz) má Essence licenci s expirací** — 2026-11-05 už `Get-BcContainerAppInfo` končí
+  `Your program license has expired` (host `C:WorkingFolderssence.28.0.Latest.bclicense` z 8. 7. = tatáž, v `Downloads` jen zákaznické
+  Smartwings licence). Bez nové partner licence (`Import-BcContainerLicense -containerName bc28 -licenseFile <nová>`) testy nepoběží.
+  Heslo `admin` a licence jsou v Key Vaultu `EssenceBCKeyVault` (secrety `password`, `licenseFile` — tak je bere `scripts/Local-DevEnv.ps1`),
+  `Get-AzKeyVaultSecret` je ale pro agenta v auto-mode zablokované klasifikátorem (Credential Exploration) → licenci a heslo musí dát
+  uživatel. Šablona `Test-Repo.ps1` (7.23) tu není nainstalovaná (`C:WorkingFolderALc-test-container` neexistuje), jen `bc28`.
+  Compile-check test appek bez kontejneru: 28.5.54151 test sada ve scratchpadu soitron seance `21fb1877…/scratchpad/cache/`.
 - AL-Go for GitHub: má built-in test step
 - Lokálně: VS Code task nebo `bc-test-runner` extension
 - **Lokální testovací kontejner pro všechna repa** (Docker + BcContainerHelper bez admina, závislosti z NuGetu, nahrát → testy →
