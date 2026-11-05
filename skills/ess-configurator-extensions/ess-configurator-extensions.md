@@ -103,6 +103,13 @@ pole rozšíření jdou s kopií samy (ověřeno testem `CopyBOMAction`), vzorce
 `UnitofMeasure.TestField("Length Type CUEBS")` v `CalcQtyFieldsCUEBS`. Ověřeno na Zlomek BC-DEV: CONF00004 → kusovník
 ZB00002-COEBS0018 (2 ks × 2,1 m, `Quantity per` = `Length` = 4,2) → VZ25000287 komponenta 2 / 2,1. Na stránce *Production BOM
 Lines* je `Length` skrytý sloupec (DOM ho vrací prázdný) → čti `?table=99000772`.
+⚠️ **Base `BOM Action Line COEBS.DeleteFormula()` maže vzorce řádku bez filtru na `Field Type`** — jako jediný z helperů
+(`SL Action Line.DeleteFormula` filtruje `Quantity`, `Routing Action Line.DeleteTimeFormula` / `Configuration Parameter` /
+`Parameter Condition` berou `FieldType`). Volá ho stránka 63160 při zápisu čísla do *Quantity Expression* i při jejím vyprázdnění,
+takže **tiše smaže i vzorce rozšíření na témž řádku** (COZLK Qty. of Pcs. / Qty. per Piece, COALU Qty. of Pcs. / Qty. per Piece /
+Parametr A/B; textové vzorce ne, ty jsou v jiné tabulce). Oprava patří do COEBS (`SetRange("Field Type", Quantity)` + test), do té doby
+⚠️ v dokumentaci rozšíření. Při review vlastního typu vzorce na řádku akce vždy projdi i base helpery `Delete*Formula` a jejich callery.
+(Code review 67632, 2026-11-06, COEBS master.)
 
 Alumistr (větev `ProdOrderCompMergeNoteColor`): `Event Subscribers ALU` na `OnAfterSetFilterFromProdBOMLine` přidá `SetRange` na
 `Note ALU` a **efektivní** `Color ALU` (barva kusovníku, jinak řádku VZ — stejná `GetComponentColor` jako při vzniku komponenty);
