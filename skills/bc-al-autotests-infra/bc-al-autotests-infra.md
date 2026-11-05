@@ -256,6 +256,13 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   v běžícím kontejneru: `Publish-BcContainerApp -skipVerification -sync -install -upgrade` (závislé appky zůstanou), pak
   `Unpublish-BcContainerApp` staré verze. Hotový `.app` z DevOps: MCP `pipelines_artifact download` vrátil 0B ZIP → buď `.app`
   od kolegy / z feedu, nebo kompilace ze zdrojáků na `sourceVersion` buildu s verzí přepsanou v `app.json`.
+  ⚠️ **Kontejner `bc28` (cust-soitron-bc, 28.2 cz) má Essence licenci s expirací** — 2026-11-05 už `Get-BcContainerAppInfo` končí
+  `Your program license has expired` (host `C:WorkingFolderssence.28.0.Latest.bclicense` z 8. 7. = tatáž, v `Downloads` jen zákaznické
+  Smartwings licence). Bez nové partner licence (`Import-BcContainerLicense -containerName bc28 -licenseFile <nová>`) testy nepoběží.
+  Heslo `admin` a licence jsou v Key Vaultu `EssenceBCKeyVault` (secrety `password`, `licenseFile` — tak je bere `scripts/Local-DevEnv.ps1`),
+  `Get-AzKeyVaultSecret` je ale pro agenta v auto-mode zablokované klasifikátorem (Credential Exploration) → licenci a heslo musí dát
+  uživatel. Šablona `Test-Repo.ps1` (7.23) tu není nainstalovaná (`C:WorkingFolderALc-test-container` neexistuje), jen `bc28`.
+  Compile-check test appek bez kontejneru: 28.5.54151 test sada ve scratchpadu soitron seance `21fb1877…/scratchpad/cache/`.
 - AL-Go for GitHub: má built-in test step
 - Lokálně: VS Code task nebo `bc-test-runner` extension
 - **Lokální testovací kontejner pro všechna repa** (Docker + BcContainerHelper bez admina, závislosti z NuGetu, nahrát → testy →
@@ -293,6 +300,13 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   v hláškách jde poznat, které testy mezi faily prošly (build 28149: „1003" u testů 3–5, „1005" od testu 9 = testy 6 a 8
   prošly). Logika ověřená jen na TestPage cestě a ne z kódu (`Rec.Validate + Modify(true)`) = typický kandidát na
   `xRec = Rec` past (3.9 v `bc-al-data.md`).
+- **Test hlásí „Expected 1, Actual 0" na záznamu, který má testovaná procedura založit = nejdřív zkontroluj, co PR vůbec
+  obsahuje.** Test appka a appka se commitují po souborech, takže commit může nést nové testy a `CDS Sync Logic`, ale
+  `CDS Management` s novou procedurou (`AddContractedCustomerFieldMapping`) zůstane jen v pracovním stromu — CI pak pustí nové
+  testy proti staré appce a hláška vypadá jako chyba logiky. Postup: `git show --stat <commity PR>` + `git diff HEAD -- <soubor appky>`
+  dřív, než hledáš chybu v kódu; když pracovní strom nese i jiné rozdělané tickety, připrav chirurgický patch (`git diff --no-index`
+  HEAD verze vs. minimální úprava, `git apply --check --cached`). (2026-11-05, cust-soitron-bc build 29284, PR 9911, 2 testy
+  `Sales Order Sync Test CWSOI`.)
 
 ### BC 28: `Assert` a `Library - *` žijí v `Application Test Library` — test `app.json` ji musí deklarovat EXPLICITNĚ
 

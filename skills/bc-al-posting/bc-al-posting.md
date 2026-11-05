@@ -686,4 +686,13 @@ cust-soitron-bc 66196 / 67562, 2026-11-05, zdroj w1-28 `SalesPost.Codeunit.al`, 
   `CreateGeneralJnlLineWithBalAcc(…, Customer, …, "G/L Account", CreateGLAccountNo(), -Amount)` + `Validate("Applies-to Doc.
   Type"/"No.")` + `PostGeneralJnlLine`; unapply `LibraryERM.UnapplyCustomerLedgerEntry(PaymentCLE)` (bez dialogu); dobropis
   s `Applies-to` na hlavičce; FCY `LibraryERM.CreateCurrencyWithExchangeRate(WorkDate(), 1, 25)` + `SetCurrencyGainLossAccounts`.
-  Běh v CI zatím neověřen (lokálně jen alc 18 + CodeCop/UICop/PTE čisté).
+  CI (build 29289/29290, 2026-11-05): testy prošly až po opravách FlowFieldu po `Get` a zastaralého recordu (`bc-al-autotests.md`).
+- **Zrušení vyrovnání (`Gen. Jnl.-Post Line.UnapplyCustLedgEntry`): stornovací detailní položka se VLOŽÍ dřív, než standard označí
+  původní aplikaci `Unapplied := true` + `Modify()`** (`PostDtldCustLedgEntryUnapply` → `InsertDtldCustLedgEntryUnapply` → `Insert(true)`
+  a až pak `DetailedCustLedgEntry2.Unapplied := true`, w1-28 řádky ~6066–6074). Subscriber `Detailed Cust. Ledg. Entry.OnAfterInsert`,
+  který při vložení přepočítává stav faktury, tak vidí původní aplikaci pořád jako platnou (filtr `Unapplied = false` nestačí) —
+  `Remaining Amount` už sedí (stornovací položka existuje), ale „datum poslední platby" zůstane. Řešení v `Invoice Payment Status SOI`:
+  aplikaci přeskočit i tehdy, když na ni ukazuje položka s `Unapplied = true` a `"Unapplied by Entry No." = její "Entry No."`
+  (`IsReversedByUnapplication`); `OnAfterModify` subscriber by to řešil až druhým přepočtem. Zdroj: raw.githubusercontent StefanMaron
+  `MSDyn365BC.Code.History/w1-28/BaseApp/Source/Base Application/Finance/GeneralLedger/Posting/GenJnlPostLine.Codeunit.al`.
+  (2026-11-05, cust-soitron-bc build 29290, `UnappliedPaymentMakesInvoiceUnpaidAgain`: Expected <> Actual <01/27/28>.)
