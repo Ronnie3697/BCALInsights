@@ -831,6 +831,21 @@ export cen tam neotestuješ; feature nezapínej, vyber firmu, kde běží. (2026
 - Grid s ~180 sloupci (řádky prodejní objednávky) nedostaneš na konec scrollem ani Tabem rozumně – pole na konci ověřuj
   přes tabulku (`?table=<id>`, sloupce i obsolete polí) nebo jinou stránku, kde jsou blíž začátku.
 
+**Výrobní scénář v sandboxu (konfigurátor → kusovník → VZ) — co zdržovalo** (2026-11-05, cust-zlomek-bc 67632, Zlomek BC-DEV):
+- Karta vydané VZ nemá *Variant Code* a na řádcích VZ je skrytý → VZ na variantu (alternativní kusovník ATEBS) udělej z prodejní
+  objednávky: *Actions → Plan → Planning* (*Sales Order Planning*) → *Create Prod. Order for selected lines* → Released. U Zlomka
+  musí být objednávka nejdřív **vydaná** („Sales order … must have status Released“). Kusovník varianty z konfigurátoru je *New*,
+  dokud konfigurace nemá výchozí stav → certifikovat (jinak „Status must be equal to 'Certified'“).
+- Ruční VZ se zbožím, jehož kusovník na kartě má komponentu s *Routing Link Code*, které postup nezná, spadne v refreshi na
+  „There is no Prod. Order Routing Line within the filter … Routing Link Code“ — kmenová data, ne tvůj kód.
+- Editor vzorců konfigurátoru (*Action Formula*): parametr se do *Value* **nepíše** (`{VYSKA}` = inline chyba čísla), vybírá se
+  tlačítkem `…`; operátor je option `<select>` (JS `value` = index + `change`, 12.3 výš). Draft konfigurace jde v dialogu vybrat jen s
+  *User Setup* → *Allow Select Draft Configuration*.
+- Menu *Actions* se po kliknutí občas hned zavře a další klik podle souřadnic trefí akci pod ním (*Inventory Reservation* → dotaz Ano/Ne).
+  Po otevření menu `hover` na položku + screenshot, teprve pak klik.
+- Skrytá pole ověřuj přes `?table=<id>` (ukáže všechna pole včetně extension); výsledek z JS nevracej ve tvaru `pole=hodnota`
+  (`[BLOCKED: Cookie/query string data]`), použij `->`.
+
 **Proklikání featury v sandboxu + fotky do prezentace — co zdržovalo** (2026-11-04, cust-zlomek-bc 66431, Zlomek BC-DEV):
 - **Testovací doklady přes API v2.0, ne klikáním:** token z `d365bc-admin get_microsoft_entra_id_token` (do hlavičkového souboru,
   `curl -H @hdr`), `POST …/companies(<id>)/salesQuotes` `{customerNumber, externalDocumentNumber}` a `…/salesQuotes(<id>)/salesQuoteLines`

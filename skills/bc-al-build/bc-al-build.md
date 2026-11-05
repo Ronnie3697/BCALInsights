@@ -950,6 +950,17 @@ ED Item Sales Disponibility 28.0.0, Essence Shopify Connector 28.0.6 (závislost
   `Namespaces[]`): pole `Tables` / `TableExtensions` (Id, Name, typ) a `Methods` všech objektů (jméno + počet parametrů) proti čerstvému
   buildu. Nic navíc na straně prostředí = Synchronize projde a závislé PTE zůstanou nainstalované. (2026-11-02, Alumistr BC-TEST2: base dev
   28.0.55.1 bez známého commitu → 28.0.55.67394 z masteru, diff 0/0, PMALU / CDS / COALU PTE dál `installed`.)
+- **Na sdíleném DEV leží dev build rozpracované (necommitnuté) větve kolegy / tvé jiné seance → publikuj „combo“, ne čistou
+  větev.** Čistý build tvé větve by featuru té druhé z prostředí vymazal (a s novými tabulkami ještě shodil Synchronize). Postup:
+  zkopíruj working tree té appky z jejího klonu do scratchpadu (`cp -r app.json *.json *.png src Translations`, i untracked
+  soubory), aplikuj svůj diff (`git diff -- <appka> ':!<appka>/Translations' > p.patch`, v kopii `git apply -p<n>`), XLIFF dogeneruj
+  skriptem z nového `.g.xlf` (6.x v `bc-al-xliff.md`), verze = nainstalovaná s poslední částí +1 (`28.0.3.66431` → `.66432`, 7.8).
+  Kompiluj proti symbolům **přesně nainstalovaných** dev buildů: al-official MCP `al_downloadsymbols` (projekt kopie, `environmentType
+  Sandbox`, `environmentName`, `tenant`) — nejdřív `al_addproject` na tu kopii, jinak vrátí „No projects are loaded in the workspace“;
+  stáhne jen přímé závislosti, tranzitivní (CZ packy, EM appky závislé base appky) doplň do `.alpackages` kopie ručně. Schéma ověř
+  porovnáním `mtime` souborů `table*/` v klonu s časem publikovaného `.app` (scratchpad seance, která publikovala). Kolize ID mezi
+  větvemi vyleze právě tady (1.12 v `bc-al-style.md`). Uživateli řekni, že build na DEV teď není ani jedna větev. (2026-11-05,
+  Zlomek BC-DEV: COZLK 66431 Pozice + 67632, COEBS 28.0.39.66431 a Zlomek Extension 28.0.3.66431 nechané.)
 - Příkaz (token z cache VS Code, bez interaktivního přihlášení, 7.2b v `bc-al-tools.md`): `altool.exe publishapp <app>
   --environmenttype Sandbox --environmentname <env> --tenant <tenantId> [--schemaupdatemode ForceSync]`; výstup filtruj
   `grep -v "^\[MSAL\]\|^\[LogMetrics"`, úspěch = `Success: The package … has been published`.

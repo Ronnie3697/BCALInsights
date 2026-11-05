@@ -90,6 +90,20 @@ filtr nesedne a nesloučí se nic — proto „jednou ano, jednou ne". NMEBS / k
 `OnAfterSetFilterFromProdBOMLine` / `OnAfterProdOrderCompFilter` / `OnBeforeProdOrderCompModify` nemá nikdo. Diagnostika: page inspector
 `Length` na řádku kusovníku vs. na komponentě + `SystemModifiedAt` MJ. (2026-10-07, Alumistr BC-TEST: MJ M přepnutá m → mm 30. 9.,
 kusovník 0106 z rána 30. 9. má Length 3 500, 0107/0116 mají 4 → VZ 25-0000538 nesloučená, 544/548 sloučené na 5.)
+**Zlomek COZLK (task 67632, 2026-11-05, docs `67632 - VYR_24 - Množství výrobních jednotek…`):** port COALU — pole 52410/52411
+na `BOM Action Line COEBS` (tableext 52412), hodnoty `Formula Field Type` 52413/52414, sloupce s výrazem za `QuantityExpression`
+(pageext 52417), vzorce přes `Param Formula Mgt. COZLK` zobecněný o typ zdroje (`Sales Line` / `BOM`, `Source Line No.` 0 =
+vzorec podmínky, neuložený řádek ho číst nesmí), závislost EM Cutting Plan ≥ 28.0.4.0. Proti COALU navíc: **samotné Qty. per
+Piece = 1 kus** (validuje se `Qty. of Pcs.` s 1). Bez toho by u MJ s typem délky trigger Qty. per Piece nad nulovými kusy vynuloval
+`Quantity per` a u MJ bez typu délky by kusovník (Quantity per z akce) a komponenta (CUEBS chybějící kusy bere jako 1) dostaly různé
+množství. Subscriber na `OnAfterCopyBOMActionLine` netřeba — `Configuration Copy Mgt.` kopíruje řádky `TransferFields`, takže
+pole rozšíření jdou s kopií samy (ověřeno testem `CopyBOMAction`), vzorce všech typů kopíruje COEBS. Komponentu VZ plní CUEBS
+(`Set_PieceFields` při refreshi); **cesta přes plánovací sešit (`Planning Component`) pole nenese** — CUEBS nemá extension na
+`Planning Component`. Qty. per Piece u komponenty v MJ bez *Length Type* projde konfigurací, ale refresh VZ spadne na
+`UnitofMeasure.TestField("Length Type CUEBS")` v `CalcQtyFieldsCUEBS`. Ověřeno na Zlomek BC-DEV: CONF00004 → kusovník
+ZB00002-COEBS0018 (2 ks × 2,1 m, `Quantity per` = `Length` = 4,2) → VZ25000287 komponenta 2 / 2,1. Na stránce *Production BOM
+Lines* je `Length` skrytý sloupec (DOM ho vrací prázdný) → čti `?table=99000772`.
+
 Alumistr (větev `ProdOrderCompMergeNoteColor`): `Event Subscribers ALU` na `OnAfterSetFilterFromProdBOMLine` přidá `SetRange` na
 `Note ALU` a **efektivní** `Color ALU` (barva kusovníku, jinak řádku VZ — stejná `GetComponentColor` jako při vzniku komponenty);
 řádek VZ čte přes `GetRangeMin` filtrů Status / Prod. Order No. / Prod. Order Line No., které base nastaví před voláním. Holý filtr
@@ -120,7 +134,9 @@ kartě zboží. Vodítko: na tomtéž řádku komponenty si oba „základní" s
 zřejmě spočítané s faktorem 1, protože `CalcQtyFieldsCUEBS` validuje `Quantity per` dřív než `Qty. per Unit of Measure`), `Expected` / `Remaining Qty. (Base)` = zaokrouhlené
 `Expected Quantity` × m²/kus. Do sešitu jde to druhé. Oprava patří do prod-em-cuttingPlan-bc. (2026-11-02, Alumistr BC-TEST2 VZ
 25-0000619 s EM Cutting Plan Dev 28.0.6.1; potvrzeno na BC-TEST VZ 25-0000630 s PTE 28.0.8.0: 1 / 1 / 2 ks à 1,686 / 1,486 / 1,486 m²
-→ sešit 3,372 / 2,972 / 4,458 místo 1,686 / 1,486 / 2,972.)
+→ sešit 3,372 / 2,972 / 4,458 místo 1,686 / 1,486 / 2,972.) **Totéž u délkových MJ a u Zlomka:** BC-DEV s EM Cutting Plan 28.0.8.0
+(= verze na Zlomek LIVE), komponenta v M (typ délky m, setup m), 2 ks × 2,1 m: `Quantity per` 4,2, `Qty. per Unit of Measure` 2,1,
+`Expected Quantity` 5 (Rounding Precision 1) → `Expected Qty. (Base)` **10,5 m místo 4,2** (2026-11-05, VZ25000287, task 67632).
 
 ## C9. MJ z akčního řádku přepíše Pricing Matrix přes Parametr A/B (Alumistr)
 

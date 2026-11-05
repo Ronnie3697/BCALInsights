@@ -517,6 +517,13 @@ nepřenášet globální/offsetové číslování z předlohy — vždy přečí
 od začátku range. (2026-06: migrace EF Advance CZ — první návrh čísloval
 globálně 60120…60132 napříč typy, správně per typ od 60120.)
 
+**Volné ID hledej i v rozpracované práci, ne jen v masteru.** Paralelní větve téže appky (vlastní klony
+`<repo>-<task>`, necommitnutý working tree, pushnuté feature větve `git grep <ID> origin/<větev>`) si berou „první volné“
+ID nezávisle a kolize vyleze až při kompilaci kombinace nebo po merge druhé větve (AL0264 *already declared*). Před výběrem
+ID vypiš hlavičky objektů ze všech klonů repa (`for f in $(find <klon>/<appka> -name "*.al")`, BOM-aware, 7.1 v
+`bc-al-tools.md`) a z feature větví; kolizi mezi cizími větvemi řekni uživateli. (2026-11-05, cust-zlomek-bc 67632: master
+měl volné pageext 52416 a test codeunit 52422, ale necommitnutá 66431 je už držela; 66431 a 67458 se navíc perou o codeunit 52417.)
+
 ### 1.13 `Format(EnumValue)` vrací CAPTION — nestavět z něj strojově parsované texty
 
 `Format()` na enum hodnotě vrací **caption v jazyce session** (přeložitelný přes
