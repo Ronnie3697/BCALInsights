@@ -655,3 +655,35 @@ ship jen část řádků → `PostSalesDocument(SalesHeader, false, true)` musí
 
 (2026-10-23, prod-em-kiosk-bc 61658, odvod zmetků na kiosku; zdroje w1-28 `ItemJournalLine.Table.al`, `ItemJnlPost.Codeunit.al`,
 `ItemJnlPostBatch.Codeunit.al`, `ItemJnlPostLine.Codeunit.al`, `InventoryAdjustment(Handler).Codeunit.al`, ověřeno v BC-DEV 28.5.)
+
+### 3.6m Vlastní pole účtované faktury plněné z položek zákazníka (stav úhrady) — Sales-Post drží hlavičku ve vlastní instanci
+
+Zjištění při implementaci stavu úhrady (`Payment Status`, `Outstanding Amount`, `Last Payment Date` na `Sales Invoice Header`;
+cust-soitron-bc 66196 / 67562, 2026-11-05, zdroj w1-28 `SalesPost.Codeunit.al`, `DetailedCVLedgEntryBuffer.Table.al`):
+
+- **Subscriber na `Detailed Cust. Ledg. Entry.OnAfterInsertEvent` je správné místo pro „po platbě / vyrovnání / zrušení
+  vyrovnání přepočítej fakturu"** — pokryje platbu z deníku i z *Apply Entries*, dobropis s *Applies-to*, unapply (nové DCLE
+  s `Unapplied`), platební slevu i kurzové rozdíly. Výpočet z `Cust. Ledger Entry.CalcFields(Amount, "Remaining Amount")`
+  (měna dokladu) vidí i právě vloženou DCLE (stejná transakce). `Modify(false)` jen při změně hodnot, jinak `SystemModifiedAt`
+  pošle fakturu znovu do Dataverse syncu.
+- ⚠️ **Během účtování faktury hlavičku z tohoto subscriberu neměň.** `Sales-Post.UpdateSalesHeader` po `PostCustomerEntry` dělá
+  `SalesInvHeader."Cust. Ledger Entry No." := …; SalesInvHeader.Modify()` na **globální instanci** — Initial Entry i aplikace
+  při účtování (faktura s *Applies-to*) vzniknou dřív, takže `Modify` z jiné instance by Sales-Post shodil na „záznam změnil
+  jiný uživatel". Guard: `SalesInvoiceHeader."Cust. Ledger Entry No." = CustLedgerEntry."Entry No."` (dokud je 0, faktura se
+  účtuje → přeskoč); počáteční stav nastav v **`Sales-Post.OnAfterUpdateSalesHeader(var CustLedgerEntry, var SalesInvoiceHeader,
+  var SalesCrMemoHeader, GenJnlLineDocType: Integer, GenJnlLineDocNo, PreviewMode, var SalesHeader)`** — běží hned po tom
+  `Modify` se **stejnou instancí**, takže vlastní `Modify(false)` ji drží čerstvou (Sales-Post pak ještě `PostUpdateOrderNo`
+  → `Modify(true)` na téže instanci). Guard `GenJnlLineDocType = "Gen. Journal Document Type"::Invoice.AsInteger()`, u dobropisu je
+  `SalesInvoiceHeader."No." = ''`.
+- **Datum poslední platby:** DCLE faktury typu *Application* s `Unapplied = false` → `"Applied Cust. Ledger Entry No."` = položka
+  protistrany (`InitDetailedCVLedgEntryBuf` ho plní na obou stranách aplikace) → `Cust. Ledger Entry."Document Type" = Payment`
+  → max `Posting Date`. Dobropis vyrovnaný s fakturou tak zůstatek sníží, datum platby ne. Klíč DCLE `"Cust. Ledger Entry No.",
+  "Entry Type", "Posting Date"` existuje.
+- Subscriber smí deklarovat jen podmnožinu parametrů eventu (podle jmen) — `OnAfterInsertEvent` bez `RunTrigger`,
+  `OnAfterUpdateSalesHeader` bez `GenJnlLineDocNo`/`PreviewMode`; alc 18 bere. `Permissions = tabledata "Sales Invoice Header"
+  = m` na codeunitě, ať účtující uživatel bez práva na účtované faktury posting neshodí.
+- Test (Base.W1 `Inv. Payment Status Test SOI`): platba = `LibraryERM.SelectGenJnlBatch` + `ClearGenJournalLines` +
+  `CreateGeneralJnlLineWithBalAcc(…, Customer, …, "G/L Account", CreateGLAccountNo(), -Amount)` + `Validate("Applies-to Doc.
+  Type"/"No.")` + `PostGeneralJnlLine`; unapply `LibraryERM.UnapplyCustomerLedgerEntry(PaymentCLE)` (bez dialogu); dobropis
+  s `Applies-to` na hlavičce; FCY `LibraryERM.CreateCurrencyWithExchangeRate(WorkDate(), 1, 25)` + `SetCurrencyGainLossAccounts`.
+  Běh v CI zatím neověřen (lokálně jen alc 18 + CodeCop/UICop/PTE čisté).
