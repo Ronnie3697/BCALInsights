@@ -467,6 +467,23 @@ Z code review API konfigurátoru (COEBS task 66387, stránky `configurationSessi
   `-SkipHttpErrorCheck`, `Invoke-WebRequest` nemá `-StatusCodeVariable`). PATCH potřebuje `If-Match` s `@odata.etag`.
   Tenant ID z domény: `GET https://login.microsoftonline.com/<domena>.onmicrosoft.com/v2.0/.well-known/openid-configuration` → `issuer`.
 
+### 11.7b API POST, které v cíli synchronně zpracovává data = timeout 100 s ve zdroji a ztracená odpověď (ID záznamu)
+
+- **Příznak:** zdroj loguje *„The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing"*, cíl ale data má
+  (`Commit` před zpracováním v `OnInsertRecord` API page). Zdroj nedostane `id` (SystemId) vloženého záznamu, takže navazující
+  dotazy na stav (`$batch` GET podle ID) ho nikdy nenajdou a ruční *Resend* vyrobí v cíli duplicitu. Limit 100 s je pevný
+  default `HttpClient`, zvyšovat ho je záplata — API page má zapsat, naplánovat Job Queue / TaskScheduler a odpovědět hned.
+- **Recovery bez duplicit = korelační klíč v těle requestu:** zdroj pošle `sourceOutboxId` = SystemId svého outboxu, cíl ho uloží do pole
+  na inbox tabulce (API page naplní `Rec` před `OnInsertRecord`, vlastní kód netřeba; klíč na pole kvůli `$filter`). Po `Client.Send` = false
+  (a ne `IsBlockedByEnvironment`) nech outbox ve stavu *Sent* (request odešel, výsledek neznámý) a periodicky dohledej
+  `GET …/replicationInboxes?$filter=sourceOutboxId%20eq%20<guid>&$select=id,status` — právě jeden záznam → ulož `id` + stav; nula → nechat
+  na ruční resend, který před odesláním zkusí totéž dohledání. Zpracování odpovědí (`{"value":[…]}`, `{"id","status"}`) drž v `internal`
+  procedurách bez HTTP, ať jdou testovat na Cloud targetu (`[HttpClientHandler]` je OnPrem-only). Obě strany musí mít novou verzi současně —
+  starý cíl odmítne neznámý atribut v POST (400).
+- **Past v Labelu pro URL:** `%20` v textu, který jde do `StrSubstNo`, je placeholder `%2` + „0" — kódovanou mezeru drž v Locked labelu
+  bez placeholderů a URL skládej konkatenací. GUID do OData filtru bez složených závorek (`DelChr(Format(Guid), '=', '{}')`).
+  (2026-11-05, prod-ef-replications-bc, větev features/replications: `Replicat. Communication ACEBS`, report *Refresh Repl. Status* pro Job Queue.)
+
 ### 11.8 Dataverse (CDS) sync — filtr integrační tabulky platí jen Dataverse → BC, Enum → Choice přes `OptionOrdinalValues`, testy bez Dataverse
 
 Z cust-sonnentor-bc task 66405 (appka SON CDS Sync, BC 28.4, 2026-09-29; zdroje w1-28 `Integration/SynchEngine/
@@ -834,3 +851,129 @@ System Application 28.5):
   řádek ale zůstane. Když mapování entity (CONTACT…) odebíráš podle typu firmy, odeber / guardni i subscribery
   `OnAfterInsertEvent` / `OnAfterModifyEvent`, které pro ni entity change vkládají (vzor guard `SynchronizesProjects()` u
   Job v cust-soitron-bc `CDS Management CWSOI`). (2026-10-30, cust-soitron-bc CDS.W1, CONTACT odebrán i ve 2Ring.)
+- **Odebrání mapování option setů PAYMENT TERMS / SHIPMENT METHOD / SHIPPING AGENT = odebrat i řádky field mappingu
+  těch kódů na CUSTOMER, SALESORDER-ORDER a POSTEDSALESINV-INV.** Standard (w1-28 `CRM Int. Table. Subscriber.
+  OnTransferFieldData` → `CRM Synch. Helper.ConvertTableToOption` / `ConvertOptionToTable`) překládá Code ↔ Option přes
+  `CRM Option Mapping` jen když `IsTableMappedToCRMOption` najde **jakékoli** `Integration Table Mapping` s `Table ID` =
+  tabulka relace BC pole (Payment Terms…); bez něj spadne do obecného `Integration Record Synch.TransferFieldData`:
+  BC → PA `TextToOptionValue(kód, OptionCaption)` = −1 → pole se tiše nepřenese, PA → BC `Format(option)` → `Validate("Payment
+  Terms Code", 'Net 30')` = **chyba synchronizace objednávky**, kdykoli má PA objednávka option vyplněný. Řádky field mappingu
+  odstraň v subscriberech `OnResetBidirectionalSalesOrderMappingOnAfterInsertFieldsMapping` (+ legacy `OnResetSalesOrderMapping…`)
+  a `OnResetSalesInvoiceHeaderInvoiceMappingOnAfterInsertFieldsMapping` (faktura mapuje jen Payment Terms + Shipping Agent, bez
+  Shipment Method; ten jde na fakturu jako text `Description` z `UpdateCRMInvoiceBeforeInsertRecord`, mapování nepotřebuje).
+  `Dependency Filter` mapování CUSTOMER (`…|PAYMENT TERMS|SHIPMENT METHOD|SHIPPING AGENT`) čte jen stránka *Run Full
+  Synchronization* (`CRM Full Synch. Review Line.AreAllParentalJobsFinished` — chybějící mapování = splněno), plánovaný sync
+  ho ignoruje. (2026-11-05, cust-soitron-bc CDS.W1 `CDS Management CWSOI.RemoveOptionSetFieldMappings`, 2Ring: všechna čtyři
+  mapování vč. CONTACT odebrána v každé firmě; alc 18 + testy lokálně přeložené, běh v Dataverse neověřen.)
+- **Standardní synchronizace ceníků do Dataverse (w1-28 `CRM Setup Defaults.ResetConfiguration`) je jednosměrná BC → Dataverse a
+  pro „ceníky v různých měnách" stačí ji nechat zapnutou, žádný vlastní kód.** S *Extended Price Calculation* vznikají mapování
+  `PLHEADER-PRICE` (`Price List Header` → `CRM Pricelevel`, filtr `Price Type = Sale`, `Amount Type = Price`, `Dependency Filter`
+  `CURRENCY|ITEM-PRODUCT`) a `PLLINE-PRODPRICE` (`Price List Line` → `CRM Productpricelevel`, filtr Sale + Price + `Asset Type`
+  Item|Resource + `Minimum Quantity = 0`, závislost `PLHEADER-PRICE|ITEM-PRODUCT`), bez feature `CUSTPRCGRP-PRICE` /
+  `SALESPRC-PRODPRICE`; obě jen `ToIntegrationTable`, `Currency Code → TransactionCurrencyId` (prázdný kód = LCY přes
+  `CRM Int. Table. Subscriber.OnTransferFieldData`), `Unit of Measure Code → UoMId` při Unit Group mappingu, konstantní
+  `PricingMethodCode = CurrencyAmount`, `Status Active → StateCode Active`. Pasti: (a) filtr hlavičky
+  **`Allow Updating Defaults`** = `true` jen když `Sales & Receivables Setup."Default Price List Code"` je vyplněný, jinak `false`
+  → s nastaveným výchozím ceníkem se synchronizuje **jen** ten (ostatní ceníky mají `Allow Updating Defaults = false`); (b)
+  `CheckPriceListHeaderForSync` bere měnu z **prvního řádku** ceníku a při modify `TestField(TransactionCurrencyId)` → jeden ceník
+  = jedna měna, řádky s jinou měnou než hlavička synchronizaci shodí; (c) `Status` se nefiltruje, návrhy (Draft) jdou do
+  Dataverse jako Inactive pricelevel; (d) řádek potřebuje spárované zboží uvnitř filtru `ITEM-PRODUCT` (`Blocked = false`).
+  Ve zákaznické vrstvě, která standardní mapování maže podle typu firmy, stačí `PLHEADER-PRICE` / `PLLINE-PRODPRICE` ze seznamu
+  k odstranění vyjmout (cust-soitron-bc CDS.W1 `CDS Management CWSOI.ApplySalesMappingCustomizations`, 2Ring, 2026-11-04;
+  kompilace alc 17 + testy lokálně přeložené, běh v Dataverse neověřen).
+- **„Synch. Only Coupled Records" standard zapíná u ITEM-PRODUCT, ITEM UOM, UNIT GROUP i SALESORDER-ORDER (bidirectional
+  i legacy), SOLINE-ORDERDETAIL má `false`** (w1-28 `CRM Setup Defaults`, parametr `SynchOnlyCoupledRecords` v
+  `InsertIntegrationTableMapping`). Příznak platí pro **oba směry** (viz PROJECT výše): nové zboží z BC se v Dataverse
+  nezaloží a nová objednávka z Power Apps se nezaloží v BC, dokud se nespáruje ručně. Jediný hook pro ITEM UOM / UNIT GROUP je
+  **`CRM Setup Defaults.OnBeforeInsertIntegrationTableMapping(…, var SynchOnlyCoupledRecords, var IsHandled)`** — po-insert
+  eventy `OnReset…OnAfterInsertFieldsMapping` mají jen ITEM-PRODUCT, RESOURCE-PRODUCT, objednávky, faktury, ceníky a
+  příležitost; `ResetItemUnitOfMeasureUoMMapping` / `ResetUnitGroupUoMScheduleMapping` mají jen `OnBefore…` s `IsHandled`.
+  Event nese `TableNo` / `IntegrationTableNo` (guard na dvojici tabulek, ne na jméno) a nenese směr, takže zasáhne i legacy
+  SALESORDER-ORDER. Pálí uvnitř `ResetConfiguration`, tedy před `OnAfterResetConfiguration`, kde zákaznická vrstva nepotřebná
+  mapování maže — guard na typ firmy není potřeba. Testovat jde přímo `internal` proceduru nad trojicí parametrů bez
+  `RegisterTableConnection`. (cust-soitron-bc CDS.W1 `CDS Management CWSOI.SynchronizeUncoupledRecords`, 2Ring, 2026-11-04;
+  kompilace alc 17 + testy lokálně přeložené, běh v Dataverse neověřen.)
+- **Počítané pole do Dataverse (odkaz na doklad v BC, příznak „Open in BC" ze stavu objednávky) = žádný řádek field
+  mappingu, ale `Integration Rec. Synch. Invoke.OnAfterTransferRecordFields` + zápis zpět při insertu z PA.**
+  Hook běží v `TransferFields` při insertu i modify cílového záznamu (standard ho používá pro `Customer.Blocked`,
+  UoM, ceníky): guard na pár tabulek (`Sales Header` → `CRM Salesorder`, `Sales Invoice Header` → `CRM Invoice`),
+  `DestinationRecordRef.SetTable` → nastav pole → `GetTable` a `AdditionalFieldsWereModified := true` **jen při změně**
+  (engine pak zapíše i záznam bez změny mapovaných polí). Subscriber může deklarovat jen potřebné parametry (podmnožina
+  podle jmen, `SourceRecordRef` s `var`, jinak PC0010). Směr PA → BC hook nepokryje (nová objednávka z Power Apps se
+  BC → PA sama nesynchronizuje, engine jí po insertu nastaví časová razítka) → v `OnAfterInsertRecord` pár
+  `CRM Salesorder` → `Sales Header` zapsat přímo do CRM záznamu (`CRMSalesorder.Get(SalesOrderId)` + `Modify(false)`),
+  stejně jako standardní `SetOrderNumberAndDocOccurenceNumber` dopisuje `BusinessCentralOrderNumber`. ⚠️ Standard v
+  témže `OnAfterInsertRecord` (w1-28 `CRM Int. Table. Subscriber`) objednávku z PA **vydává** (`SetSalesOrderStatus` →
+  `Released`, Open jen u zálohy; `OnBeforeTransferRecordFields` ji napřed staví na Open) a pořadí subscriberů není
+  zaručené → stav pro příznak číst z DB (`SalesHeader.Get`), ne z předaného `DestinationRecordRef`; při opačném pořadí
+  zůstane příznak starý do další synchronizace BC → PA. URL: `GetUrl(ClientType::Web, CompanyName(), ObjectType::Page,
+  Page::"Sales Order" / "Posted Sales Invoice", Rec)` funguje i v sync jobu, pole Text[250] + `CopyStr`. Testy bez
+  Dataverse: `internal` procedury nad `RecordRef` z `Init` záznamů (`GetUrl` jde i na neuložený záznam), zápis zpět
+  přes `CRM Salesorder.Insert(false)` v test připojení `@@test@@`. (cust-soitron-bc CDS.W1 `CDS Sync Logic
+  CWSOI.SetBCLinkOfPowerAppsOrder` / `WriteBCLinkToPowerAppsOrder`, task 67561, 2026-11-04; alc 17 + testy jen
+  lokálně přeložené.)
+- **Stavy obousměrné synchronizace objednávek (BC 28): status objednávky v BC řídí z vlastního kódu jedině hook
+  `CRM Int. Table. Subscriber.OnChangeSalesOrderStatusOnBeforeCompareStatus(var SalesHeader, var NewStatus)`, stav `Invoiced`
+  standard v obousměrném režimu nikdy nenastaví a otevřené objednávky do PA vůbec neposílá.**
+  - Standard po insertu i modify z PA objednávku **vydá** (`SetSalesOrderStatus` → Released, Open jen u záloh); u nezměněné PA
+    objednávky (`OnAfterUnchangedRecordHandled` / `OnBeforeIgnoreUnchangedRecordHandled`, typicky echo vlastního zápisu BC → PA)
+    ji nejdřív `ChangeSalesOrderStatus(Open)` plain `Modify` otevře a pak znovu vydá; před přenosem polí z PA dá do bufferu
+    `Status := Open` (`OnBeforeTransferRecordFields`). Obě místa volají hook → `NewStatus := SalesHeader.Status` (DB stav přes
+    `GetBySystemId`) = sync z PA stav **nikdy nemění**: nová objednávka zůstane Open, echo vydanou neotevře. Jen skutečná
+    změna mapovaného pole v PA nechá vydanou objednávku Open (engine ji přepsal), uživatel vydá znovu.
+  - **BC filtr mapování SALESORDER-ORDER je `Document Type = Order, Status = Released`** → otevřená objednávka se do PA
+    neposílá, dokud ji nevydáš (Reopen tam nedojde, vlastní pole z `OnAfterTransferRecordFields` taky ne). Úprava
+    v subscriberu `OnResetBidirectionalSalesOrderMappingOnAfterInsertFieldsMapping`: `SalesHeader.SetView(GetTableFilter())`
+    → `SetRange(Status)` → `SetTableFilter(GetTableFilterFromView(...))`; existující mapování se změní až po *Use Default
+    Synchronization Setup*. Důsledek: každá změna otevřené objednávky jde do PA (BC wins), nová BC objednávka vznikne v PA
+    hned (se `Synch. Only Coupled Records` = false).
+  - **Zámek vydané objednávky i na straně BC = filtr integrační tabulky** (`CRMSalesorder.SetView(GetIntegrationTableFilter())`
+    → `SetRange(ebs_openinbc, true)` → `SetIntegrationTableFilter(GetTableFilterFromView(...))`, Boolean filtr na CRM proxy
+    je v pořádku — standard filtruje `CRM Systemuser.IsDisabled/IsLicensed` stejně): platí jen pro čtení z Dataverse, takže
+    vydaná objednávka (příznak Ne) se z PA nečte a nemůže objednávku v BC otevřít, ale BC → PA ji dál aktualizuje (dohledání
+    podle ID bez filtru) a po Reopen se do filtru vrátí. Bez něj hlídá vydanou objednávku jen UI zámek v PA. Pozor: PA
+    záznamy s prázdným (Ne) příznakem z doby před přidáním sloupce filtr nepustí → před nasazením hromadně nastavit Ano.
+    Test: dva `CRM Salesorder.Insert(false)` (Ano / Ne) + `SetView(filtr)` + `SetRange(SalesOrderId)` + `RecordIsEmpty`.
+  - **`statecode = Invoiced`:** `CRM Sales Document Posting Mgt.PostCRMSalesDocumentOnAfterPostSalesDoc` při
+    `IsBidirectionalSalesOrderIntEnabled` hned končí a plně vyfakturovanou objednávku účtování smaže (vazba zůstane jen
+    s `Archived Sales Order`, sync ji ignoruje) → vlastní pár subscriberů: `Sales-Post.OnBeforeDeleteAfterPosting`
+    (`EverythingInvoiced`; `CRM Integration Record.FindIDFromRecordID` funguje jen dokud záznam existuje → `SystemId` + CRM ID
+    do globálů codeunity, statické subscribery sdílejí instanci per session, stejný vzor jako standard) +
+    `Sales-Post.OnAfterPostSalesDoc` (běží **po** `Commit`; `PreviewMode` skip, shoda `SystemId` proti náhledu, pak
+    `Codeunit.Run(Codeunit::"CRM Integration Management")` zaregistruje CRM spojení v session uživatele,
+    `StateCode`/`StatusCode := Invoiced`, `Modify(false)` — hodnoty jako standard v jednosměrném režimu). Chyba Dataverse
+    přijde uživateli až po zaúčtování; `TryFunction` kolem zápisu nejde (DB zápis). Částečná faktura objednávku nemaže → nic.
+  - Okamžitý sync po Release / Reopen: `Dataverse Entity Change."Entity Name" := 'salesorder'` + `Insert(true)` z
+    `Release Sales Document.OnAfterReleaseSalesDoc` / `OnAfterReopenSalesDoc` (`OnInsert` reaktivuje job jen při
+    `CDS Connection Setup."Is Enabled"` a mapování `Type = Dataverse`; bez mapování řádky jen přibývají → guard
+    `IsBidirectionalSalesOrderIntEnabled`).
+  - Testy bez Dataverse: vazba přes `CRM Integration Record.InsertRecord(CRMID, SystemId, TableId)` (`CoupleRecordIdToCRMID`
+    navíc hlídá duplicitní vazbu), `CRM Salesorder.Insert(false)` v `@@test@@`, `Sales Header.Delete(false)` simuluje smazání
+    účtováním. CodeCop **AA0214** („should be modified before saving") na `Get` → `SetTableFilter` → `Modify(false)` vyskočí
+    v test appce (v hlavní appce stejný vzor ne) → `#pragma warning disable AA0214` s komentářem kolem `Modify`.
+    alc 17 bere **opakovaný `/packagecachepath:`** (dva parametry místo seznamu s čárkou); test cache = MS 28.5 sada
+    (`Microsoft_Tests-TestLibraries_28.5.54151.54365` a spol. z dřívějšího soitron scratchpadu `testcache/`) + build hlavní
+    appky s verzí **vyšší** než stará kopie v `.alpackages` (kopie `app/` ve scratchpadu s `"version": "28.0.999.0"`), jinak
+    alc vezme starou.
+  (cust-soitron-bc CDS.W1 `CDS Sync Logic CWSOI.KeepSalesOrderStatus` / `RememberInvoicedSalesOrder` /
+  `SetPowerAppsOrderInvoiced`, `CDS Management CWSOI.IncludeOpenSalesOrdersInMapping` / `ReadOnlyPowerAppsOrdersOpenInBC` /
+  `WakeUpSalesOrderSynchronization`, task 67561, 2026-11-04; alc 17 + testy jen lokálně přeložené.)
+- **Stav úhrady účtované faktury v Dataverse (`CRM Invoice.StateCode/StatusCode` Active/Billed → Paid/Partial → Paid/Complete)
+  řeší standard sám, žádný vlastní report do fronty.** Výpočet je `CRM Synch. Helper.CalculateActualStatusCode` nad `Cust. Ledger
+  Entry` faktury (`Document Type = Invoice`, `Document No.`): `CalcFields(Amount, "Remaining Amount")` → `Remaining = 0` = Paid/Complete,
+  `Remaining <> Amount` = Paid/Partial, jinak Active/Billed (hook `OnBeforeCalculateActualStatusCode` s `IsHandled`). Volá se (a) při
+  založení CRM faktury (`CRM Int. Table. Subscriber.UpdateCRMInvoiceAfterInsertRecord` → `UpdateCRMInvoiceStatus`), (b) opakovaně
+  z **codeunit 5350 `CRM Statistics Job`** (`UpdateStatusOfPaidInvoices('')`): projde `Detailed Cust. Ledg. Entry` s `Entry No.` >
+  `CRM Synch Status."Last Update Invoice Entry No."` (vodoznak, posune se jen bez chyb Dataverse), per CLE faktury dohledá spárovanou
+  CRM fakturu a `UpdateCRMInvoiceStatusFromEntry` (`ActivateInvoiceForFurtherUpdate` nejdřív přepne Paid → Active, protože neaktivní
+  faktura je v Dataverse read-only; stornovaná faktura → Canceled). Pokrývá i odúčtování (unapply = nové DCLE) a aplikaci dobropisu.
+  Úlohu fronty zakládá *Use Default Synchronization Setup* (`CRM Setup Defaults.RecreateStatisticsJobQueueEntry`, 30 min) a
+  `Job Queue Entry.OnFindingIfJobNeedsToBeRun` ji pustí jen při novém DCLE nad vodoznakem. Pasti: (1) běží jen s `CRM Connection
+  Setup."Is Enabled"`; (2) před fakturami nejdřív `UpdateAccountStatistics` zapisuje entitu `nav_accountstatistics` (BC integrační
+  solution v Dataverse) — bez ní úloha spadne dřív, než dojde na faktury, ověřit v Job Queue Log; (3) nespárovaná faktura v době běhu
+  se přeskočí a vodoznak jede dál (dožene to insert sync přes `UpdateCRMInvoiceStatus`); (4) `Modify` účtované faktury v BC (vlastní
+  pole stavu úhrady) změní `SystemModifiedAt` → POSTEDSALESINV-INV ji znovu pošle, u `StateCode <> Active` ji
+  `IgnoreReadOnlyInvoiceOnQueryPostFilterIgnoreRecord` přeskočí. Vlastní BC pole stavu úhrady plň synchronně ze subscriberu na
+  `Detailed Cust. Ledg. Entry.OnAfterInsertEvent` (CLE Invoice + `Sales Invoice Header.Get`, stejný výpočet, `Modify(false)` jen při
+  změně), nebo z `OnUpdateCRMInvoiceStatusFromEntryOnBeforeModify` (jen spárované faktury). (w1-28, cust-soitron-bc 2Ring task
+  67562 analýza, 2026-11-05.)
