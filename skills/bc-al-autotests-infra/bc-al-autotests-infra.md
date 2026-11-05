@@ -293,6 +293,13 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   v hláškách jde poznat, které testy mezi faily prošly (build 28149: „1003" u testů 3–5, „1005" od testu 9 = testy 6 a 8
   prošly). Logika ověřená jen na TestPage cestě a ne z kódu (`Rec.Validate + Modify(true)`) = typický kandidát na
   `xRec = Rec` past (3.9 v `bc-al-data.md`).
+- **Test hlásí „Expected 1, Actual 0" na záznamu, který má testovaná procedura založit = nejdřív zkontroluj, co PR vůbec
+  obsahuje.** Test appka a appka se commitují po souborech, takže commit může nést nové testy a `CDS Sync Logic`, ale
+  `CDS Management` s novou procedurou (`AddContractedCustomerFieldMapping`) zůstane jen v pracovním stromu — CI pak pustí nové
+  testy proti staré appce a hláška vypadá jako chyba logiky. Postup: `git show --stat <commity PR>` + `git diff HEAD -- <soubor appky>`
+  dřív, než hledáš chybu v kódu; když pracovní strom nese i jiné rozdělané tickety, připrav chirurgický patch (`git diff --no-index`
+  HEAD verze vs. minimální úprava, `git apply --check --cached`). (2026-11-05, cust-soitron-bc build 29284, PR 9911, 2 testy
+  `Sales Order Sync Test CWSOI`.)
 
 ### BC 28: `Assert` a `Library - *` žijí v `Application Test Library` — test `app.json` ji musí deklarovat EXPLICITNĚ
 
