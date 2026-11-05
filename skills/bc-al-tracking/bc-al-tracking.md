@@ -434,8 +434,14 @@ Quantity`, u `Bin Active` min s `QtyAvailableToSelectFromBin()`, minus `Non-spec
 
 **Přejmenování standardních polí sledování:** `tableextension` → `modify("Warranty Date") { Caption = …; ToolTip = …; }`
 se přeloží (Tracking Specification, Reservation Entry, Item Ledger Entry; vznikne trans-unit `TableExtension … - Change …`).
-`Package No.` přejmenuj **nastavením**, ne kódem: pole mají `CaptionClass = '6,1'` a popisek bere `Inventory Setup."Package
-Caption"` (Text[30], jen jeden jazyk). Warranty Date je na 6510 `Visible = false` → `modify("Warranty Date") { Visible = true; }`.
+`Package No.` má `CaptionClass = '6,1'`: codeunit 6512 `Item Tracking CaptionClass Mgt` (oblast `6`) skládá popisek
+`StrSubstNo('%1 No.', Inventory Setup."Package Caption")` (prázdné → label `Package`). Nastavení **nestačí na český klient**:
+šablona je přeložená `Číslo %1` a default `Zásilka` → „Číslo Zásilka"; vyplněné „Smlouva" dá „Číslo Smlouva" (bez skloňování,
+Text[30] jen v jednom jazyce, platí pro všechny popisky oblasti 6 vč. polí Item Tracking Code). Uživatel po vyplnění na 6510
+změnu neviděl (popisky resolvnuté přes CaptionClass se cachují per session, 4.6 v `bc-al-ui.md` → odhlásit / Ctrl+F5;
+neověřeno, jestli to byla příčina). Přeložitelný popisek = subscriber `OnBeforeResolveCaption(var InventorySetup;
+CaptionString; var Result; var IsHandled)` téhož codeunitu s vlastním Labelem dosazeným do `CaptionString` (CZ v 2. pádě
+„smlouvy" → „Číslo smlouvy"). Warranty Date je na 6510 `Visible = false` → `modify("Warranty Date") { Visible = true; }`.
 (2026-11-02, cust-soitron-bc — `Serial No. Import Mgt. SOI`, `Serial No. Selection Mgt. SOI`, `Item Tracking Summary SOI`;
 zdroj w1-28 `ItemTrackingSummary.Page.al`, `ItemTrackingDataCollection.Codeunit.al`, `CreateReservEntry.Codeunit.al`; jen
 kompilace, testy zatím neběžely.)
