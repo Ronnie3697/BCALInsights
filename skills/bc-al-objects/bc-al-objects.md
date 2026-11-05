@@ -745,6 +745,17 @@ Zdroj w1-28 `Modules/System/JobQueue/JobQueueEntry.Table.al` + `JobQueueEnqueue.
   GIVEN dat (`Codeunit.Run` s návratovou hodnotou uvnitř chce zavřenou write transakci). (2026-10-20, cust-soitron-bc
   `QB Buffer Automation Mgt. SOI` / `QB Buffer Automation Run SOI`, chyba z Job Queue na testu zákazníka.)
 
+- **Stav `On Hold with Inactivity Timeout` s `Inactivity Timeout Period` > 0 je běžící opakovaná úloha, ne zastavená.** `Job Queue - Enqueue`
+  takové entry naplánuje task a stav ponechá (`UpdateStatusOnHoldWithInactivityTimeout` vrací true jen při periodě 0); po každém běhu
+  `CleanupAfterExecution` dá `Earliest Start = now + Inactivity Timeout Period` a znovu enqueue — codeunit se tedy spouští každých N minut
+  bez ohledu na `OnFindingIfJobNeedsToBeRun` (ten čte jen `Job Queue User Handler` při přihlášení pro entry se `Scheduled = false`).
+  Standardní CRM úlohy (`CRM Setup Defaults.RecreateJobQueueEntry` se `StatusReady = false`, např. 5350 *CRM Statistics Job*, 30 min) se
+  tak zakládají záměrně. Rozhodující je sloupec **Scheduled** (Ano = task existuje) a *Job Queue Log Entries*; `Scheduled = Ne` = mrtvá
+  entry → akce *Set Status to Ready* (`Restart` u inactivity entry nastaví start na teď). `CRM Integration Management.ReactivateJobForTable`
+  (databázové triggery + `Dataverse Entity Change`) probouzí jen entry s `Record ID to Process` = Integration Table Mapping dané tabulky,
+  statistickou úlohu ne — kdo ji chce po zaúčtování platby hned, nastaví `Earliest Start` + enqueue sám (vzor výše). (w1-28, cust-soitron-bc
+  2Ring DEV, 2026-11-05.)
+
 ### 5.x15 → vyčleněno do `bc-al-tracking.md`
 
 Tracking na fakturačním řádku z Get Shipment Lines (jen Prospect z dodávky) a předvyplnění šarže na Item Tracking Lines
