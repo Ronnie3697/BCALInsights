@@ -851,6 +851,20 @@ System Application 28.5):
   řádek ale zůstane. Když mapování entity (CONTACT…) odebíráš podle typu firmy, odeber / guardni i subscribery
   `OnAfterInsertEvent` / `OnAfterModifyEvent`, které pro ni entity change vkládají (vzor guard `SynchronizesProjects()` u
   Job v cust-soitron-bc `CDS Management CWSOI`). (2026-10-30, cust-soitron-bc CDS.W1, CONTACT odebrán i ve 2Ring.)
+- **Odebrání mapování option setů PAYMENT TERMS / SHIPMENT METHOD / SHIPPING AGENT = odebrat i řádky field mappingu
+  těch kódů na CUSTOMER, SALESORDER-ORDER a POSTEDSALESINV-INV.** Standard (w1-28 `CRM Int. Table. Subscriber.
+  OnTransferFieldData` → `CRM Synch. Helper.ConvertTableToOption` / `ConvertOptionToTable`) překládá Code ↔ Option přes
+  `CRM Option Mapping` jen když `IsTableMappedToCRMOption` najde **jakékoli** `Integration Table Mapping` s `Table ID` =
+  tabulka relace BC pole (Payment Terms…); bez něj spadne do obecného `Integration Record Synch.TransferFieldData`:
+  BC → PA `TextToOptionValue(kód, OptionCaption)` = −1 → pole se tiše nepřenese, PA → BC `Format(option)` → `Validate("Payment
+  Terms Code", 'Net 30')` = **chyba synchronizace objednávky**, kdykoli má PA objednávka option vyplněný. Řádky field mappingu
+  odstraň v subscriberech `OnResetBidirectionalSalesOrderMappingOnAfterInsertFieldsMapping` (+ legacy `OnResetSalesOrderMapping…`)
+  a `OnResetSalesInvoiceHeaderInvoiceMappingOnAfterInsertFieldsMapping` (faktura mapuje jen Payment Terms + Shipping Agent, bez
+  Shipment Method; ten jde na fakturu jako text `Description` z `UpdateCRMInvoiceBeforeInsertRecord`, mapování nepotřebuje).
+  `Dependency Filter` mapování CUSTOMER (`…|PAYMENT TERMS|SHIPMENT METHOD|SHIPPING AGENT`) čte jen stránka *Run Full
+  Synchronization* (`CRM Full Synch. Review Line.AreAllParentalJobsFinished` — chybějící mapování = splněno), plánovaný sync
+  ho ignoruje. (2026-11-05, cust-soitron-bc CDS.W1 `CDS Management CWSOI.RemoveOptionSetFieldMappings`, 2Ring: všechna čtyři
+  mapování vč. CONTACT odebrána v každé firmě; alc 18 + testy lokálně přeložené, běh v Dataverse neověřen.)
 - **Standardní synchronizace ceníků do Dataverse (w1-28 `CRM Setup Defaults.ResetConfiguration`) je jednosměrná BC → Dataverse a
   pro „ceníky v různých měnách" stačí ji nechat zapnutou, žádný vlastní kód.** S *Extended Price Calculation* vznikají mapování
   `PLHEADER-PRICE` (`Price List Header` → `CRM Pricelevel`, filtr `Price Type = Sale`, `Amount Type = Price`, `Dependency Filter`
