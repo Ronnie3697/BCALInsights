@@ -927,3 +927,22 @@ System Application 28.5):
   (cust-soitron-bc CDS.W1 `CDS Sync Logic CWSOI.KeepSalesOrderStatus` / `RememberInvoicedSalesOrder` /
   `SetPowerAppsOrderInvoiced`, `CDS Management CWSOI.IncludeOpenSalesOrdersInMapping` / `ReadOnlyPowerAppsOrdersOpenInBC` /
   `WakeUpSalesOrderSynchronization`, task 67561, 2026-11-04; alc 17 + testy jen lokálně přeložené.)
+- **Stav úhrady účtované faktury v Dataverse (`CRM Invoice.StateCode/StatusCode` Active/Billed → Paid/Partial → Paid/Complete)
+  řeší standard sám, žádný vlastní report do fronty.** Výpočet je `CRM Synch. Helper.CalculateActualStatusCode` nad `Cust. Ledger
+  Entry` faktury (`Document Type = Invoice`, `Document No.`): `CalcFields(Amount, "Remaining Amount")` → `Remaining = 0` = Paid/Complete,
+  `Remaining <> Amount` = Paid/Partial, jinak Active/Billed (hook `OnBeforeCalculateActualStatusCode` s `IsHandled`). Volá se (a) při
+  založení CRM faktury (`CRM Int. Table. Subscriber.UpdateCRMInvoiceAfterInsertRecord` → `UpdateCRMInvoiceStatus`), (b) opakovaně
+  z **codeunit 5350 `CRM Statistics Job`** (`UpdateStatusOfPaidInvoices('')`): projde `Detailed Cust. Ledg. Entry` s `Entry No.` >
+  `CRM Synch Status."Last Update Invoice Entry No."` (vodoznak, posune se jen bez chyb Dataverse), per CLE faktury dohledá spárovanou
+  CRM fakturu a `UpdateCRMInvoiceStatusFromEntry` (`ActivateInvoiceForFurtherUpdate` nejdřív přepne Paid → Active, protože neaktivní
+  faktura je v Dataverse read-only; stornovaná faktura → Canceled). Pokrývá i odúčtování (unapply = nové DCLE) a aplikaci dobropisu.
+  Úlohu fronty zakládá *Use Default Synchronization Setup* (`CRM Setup Defaults.RecreateStatisticsJobQueueEntry`, 30 min) a
+  `Job Queue Entry.OnFindingIfJobNeedsToBeRun` ji pustí jen při novém DCLE nad vodoznakem. Pasti: (1) běží jen s `CRM Connection
+  Setup."Is Enabled"`; (2) před fakturami nejdřív `UpdateAccountStatistics` zapisuje entitu `nav_accountstatistics` (BC integrační
+  solution v Dataverse) — bez ní úloha spadne dřív, než dojde na faktury, ověřit v Job Queue Log; (3) nespárovaná faktura v době běhu
+  se přeskočí a vodoznak jede dál (dožene to insert sync přes `UpdateCRMInvoiceStatus`); (4) `Modify` účtované faktury v BC (vlastní
+  pole stavu úhrady) změní `SystemModifiedAt` → POSTEDSALESINV-INV ji znovu pošle, u `StateCode <> Active` ji
+  `IgnoreReadOnlyInvoiceOnQueryPostFilterIgnoreRecord` přeskočí. Vlastní BC pole stavu úhrady plň synchronně ze subscriberu na
+  `Detailed Cust. Ledg. Entry.OnAfterInsertEvent` (CLE Invoice + `Sales Invoice Header.Get`, stejný výpočet, `Modify(false)` jen při
+  změně), nebo z `OnUpdateCRMInvoiceStatusFromEntryOnBeforeModify` (jen spárované faktury). (w1-28, cust-soitron-bc 2Ring task
+  67562 analýza, 2026-11-05.)
