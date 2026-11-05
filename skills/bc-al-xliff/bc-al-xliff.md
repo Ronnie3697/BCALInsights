@@ -129,6 +129,12 @@ def alhash(name: str) -> int:
   uniq -d`). Postup, který seděl: node skript 1 = diff `.g.xlf` vs. překlady (MISSING / CHANGED source) → soubor pro Read tool
   (diakritika), skript 2 = mapa id → [cs, sk], MISSING vloží blok z `.g.xlf` + `<target>` před `</group>`, CHANGED přepíše
   `<source>` i `<target>` (6.3). Bez pythonu v Bash toolu (Store stub) jede node bez problémů. (2026-10-01, cust-soitron-bc 66504.)
+- **Atribut `al-object-target` z bloku `.g.xlf` nemaž.** Unity rozšíření (tableextension / pageextension / enumextension)
+  ho v `.g.xlf` nesou (`al-object-target="Table 1214036836"` = hash cílového base objektu) a NAB Refresh ho do `.cs-CZ.xlf`
+  přenáší. Skript, který ho při vložení stripne, za běhu nic nerozbije (páruje se přes `id`), ale review to pozná podle
+  počtu (`grep -c al-object-target` v `.g.xlf` vs `.cs-CZ.xlf`) a další NAB Refresh unit přepíše. Kopíruj blok včetně
+  atributu, jen doplň `<target>`; oprava dodatečně = sync atributů podle `id` z čerstvého `.g.xlf`. (2026-11-06, cust-zlomek-bc
+  67632, code review.)
 
 > **⚠️ Výjimka — víc extensionů na stejný target objekt.** Algoritmus výše
 > platí pro jména elementů, ALE když **víc tableextension (nebo víc
