@@ -427,6 +427,11 @@ připojeného podstromu na root rodiče; (2) evaluátor ať kořen odvozuje ze s
   `Root Condition No.` engine nečte; pole udržuje `UpdateParameterConditionTree` / `UpdateParamTemplateTree` a na stránkách je jen
   pro čtení. ⚠️ Neplatný strom teď **shodí dialog, API i vnořenou konfiguraci COZLK** (dřív tiše rozšířená nabídka) — po nasazení
   pustit report 63140 a neopravitelné stromy opravit ručně.
+- **Od 67634 (IN-013595, 2026-11-05) udržují `Root Condition No.` i stromy BOM / Routing / SL** (`Update…ActionTree` s `RootOf`,
+  karty a dialogy akcí volají `RefreshConditionTree` po změně vazby, report 63140 kořeny akcí počítá i srovná). Do té doby
+  psaly jen pořadí a test `SLTreeRecalculationKeepsStoredRoot` to hlídal → kopie podmínky (*Kopírovat* = samostatný strom)
+  připojená zadáním čísla do *Číslo řádku potomka* si nechala vlastní kořen. Evaluátory akcí kořen dál berou ze struktury,
+  vada byla jen v zobrazeném poli. **COALU CNC strom** má stejný vzor a zatím ho neudržuje.
 - Vazby True/False Child validuje `OnValidate` všech pěti tabulek podmínek (`CheckChildLink`: sám sebe, předek, už připojená
   podmínka, druhá větev — druhou větev bere **z paměti**, na kartě jdou změnit obě před uložením); šipka nenabízí předky (nový
   overload `Condition Page Helper.CollectExcludedChildLineNos` s mapou vazeb; starý overload a 5parametrový `ComputeTreeOrder`
