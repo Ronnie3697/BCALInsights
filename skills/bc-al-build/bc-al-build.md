@@ -950,6 +950,16 @@ ED Item Sales Disponibility 28.0.0, Essence Shopify Connector 28.0.6 (závislost
   `Namespaces[]`): pole `Tables` / `TableExtensions` (Id, Name, typ) a `Methods` všech objektů (jméno + počet parametrů) proti čerstvému
   buildu. Nic navíc na straně prostředí = Synchronize projde a závislé PTE zůstanou nainstalované. (2026-11-02, Alumistr BC-TEST2: base dev
   28.0.55.1 bez známého commitu → 28.0.55.67394 z masteru, diff 0/0, PMALU / CDS / COALU PTE dál `installed`.)
+- **Update sandboxu (např. 28.5.54151 → 28.5.54976) smaže VŠECHNY dev buildy, data i jejich verze v DB zůstanou.** Den předtím
+  kompletní Zlomek stack na BC-DEV2 (PMEBS 28.0.7.6, Zlomek Extension 28.0.3.4, COZLK 28.0.99.0 jako dev) druhý den chyběl i v
+  `…/extensions` (ani publikovaný), PTE zůstaly. Release PTE nižší verze pak skončí `Failed` a `Microsoft.NAV.install` vrátí *„Cannot
+  install the extension … 28.0.6.0 because a newer version 28.0.7.6 was already installed“* — **ForceSync to nevyřeší** (hlídá verzi
+  dat, ne schéma). Cesty: dev build verze ≥ té v datech ze stejné větve (schéma sedí, data zůstanou), nebo smazat osiřelá data
+  appky celá (Extension Management → orphaned data) a pak release. Vyšší verze v datech (COZLK 28.0.99.0) zablokuje i budoucí PTE
+  release z pipeline → do té doby jen dev buildy `28.0.99.<n>`. Na prostředí, kde se dev buildy „ztratily“, se nejdřív podívej do
+  `extensionDeploymentStatus` (historie PTE uploadů) a starších snímků `…/extensions`. (2026-11-05, Zlomek BC-DEV2, 67632.)
+- **Token z `d365bc-admin get_microsoft_entra_id_token` platí ~1 h** — dlouhá série PTE uploadů (5–8 min / appka) ho přežije těžko;
+  `401 Unauthorized … credentials provided are incorrect` uprostřed = vzít nový token, ne hledat chybu v appce.
 - **Na sdíleném DEV leží dev build rozpracované (necommitnuté) větve kolegy / tvé jiné seance → publikuj „combo“, ne čistou
   větev.** Čistý build tvé větve by featuru té druhé z prostředí vymazal (a s novými tabulkami ještě shodil Synchronize). Postup:
   zkopíruj working tree té appky z jejího klonu do scratchpadu (`cp -r app.json *.json *.png src Translations`, i untracked
