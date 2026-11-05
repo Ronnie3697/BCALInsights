@@ -981,3 +981,13 @@ Ověřeno proti zdroji w1-25 (cust-ardo-bc PBI 67302 *Increase Qty. for Pick %*,
   plnit přímým přiřazením v hooku `OnValidateExpectedQuantityOnAfterCalcActConsumptionQty`, ne `Validate`. Pozor na pořadí v refreshi:
   vlastní pole se kopíruje až v `OnTransferBOMProcessItemOnBeforeGetPlanningParameters`, tedy **po** výpočtu Expected Quantity →
   v `OnAfterProdOrderCompInsert` znovu `Validate("Quantity per")`. (2026-11-03, cust-ardo-bc 67302, zákazník odmítl v1.)
+- **Odvozená pole plnit jen při standardním přepočtu, ne při každém `Validate("Expected Quantity")`.** Hook
+  `OnValidateExpectedQuantityOnAfterCalcActConsumptionQty` běží i z přímých `Validate("Expected Quantity", X)` (ruční Quantity to
+  Consume, refund z trackingu, akce na stránce) — plnění *Planned Quantity* tam přepisovalo „původní množství“ při každé ruční změně
+  („dřív se to nedělo“). Rozlišení: subscriber na **`Prod. Order Component.OnBeforeUpdateExpectedQuantity(var Rec, var IsHandled)`**
+  (běží jen v `UpdateExpectedQuantity` = Quantity per / Calculation Formula / Scrap % / Routing Link Code) nastaví příznak v globální
+  proměnné tableextension na té instanci (`SetRecalculatingExpectedQuantity`), hook ho spotřebuje a vynuluje. Globální var
+  tableextension žije per instance a přežije vnořené `Validate` (3.9 v `bc-al-data.md`). (2026-11-05, cust-ardo-bc 67302.)
+- Před změnou sémantiky vlastního pole grepni jeho čtenáře: `Planned Quantity ATARD` u Ardo čte terminál Ropala (zbývá vyskladnit =
+  Planned − Qty. Picked), Item Tracking Lines (množství zakázky) i `Quantity2` (množství na batch). Nové plnění pole = otázka na zákazníka,
+  jestli tihle čtenáři mají dostat původní, nebo navýšené množství.
