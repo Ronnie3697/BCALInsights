@@ -983,7 +983,9 @@ System Application 28.5):
   vysvětlení: proxy změnu stavu posílá jako změnu stavu a ostatní změněné atributy s ní do Dataverse nejdou (neověřeno ve zdroji
   platformy, jen chování). Oprava: v hooku zapsat sloupce **vlastním `Modify` se stavem, který faktura v Dataverse právě má**
   (`Get` uložené faktury; po `ActivateInvoiceForFurtherUpdate` je Active), pak v záznamu vrátit nový stav pro `Modify` standardu;
-  fakturu, která v Dataverse není Active, samostatně nezapisovat (read-only). Druhá, nezávislá cesta: sloupce i v
-  `OnAfterTransferRecordFields` páru `Sales Invoice Header` → `CRM Invoice` (insert nové faktury + modify aktivní po změně BC
-  faktury). Ověření opravy v DEV k datu zápisu chybí. (cust-soitron-bc CDS.W1 `CDS Sync Logic CWSOI.WritePaymentFieldsToPowerAppsInvoice`
-  / `SetPaymentStateOfPowerAppsInvoice`, 2026-11-06.)
+  fakturu, která v Dataverse není Active, samostatně nezapisovat (read-only). Druhá, nezávislá cesta: řádky *Integration Field
+  Mapping* `Sales Invoice Header` → `CRM Invoice` (ToIntegrationTable) z BC polí stavu úhrady, přidané v subscriberu
+  `OnResetSalesInvoiceHeaderInvoiceMappingOnAfterInsertFieldsMapping` — pokryjí insert nové faktury a modify faktury, která je v PA
+  ještě Active (zákazník chtěl mapování kvůli přehlednosti místo kódu v `OnAfterTransferRecordFields`, funkčně totéž; Paid faktury
+  sync přeskakuje, ty dál jen hook statistické úlohy). Ověření opravy v DEV k datu zápisu chybí. (cust-soitron-bc CDS.W1
+  `CDS Sync Logic CWSOI.WritePaymentFieldsToPowerAppsInvoice`, `CDS Management CWSOI.AddPaymentStateFieldMappings`, 2026-11-06.)
