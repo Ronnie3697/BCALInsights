@@ -509,6 +509,12 @@ kopie karty podmínky z COEBS) měla tentýž `OnValidate` jen s `Update(false)`
 po opravě v COEBS zůstala rozbitá, dokud ji nechytil code review. Navíc stromový seznam otevřený šipkou při `OnOpenPage`
 přepočítá strom (i otevřený řádek) → po `RunModal` seznamu `Rec.Find('=')`, jinak `SaveRecord` uloží zastaralou verzi.
 Grep zákaznických rep na název base stránky / komentář „Mirrors …“. (2026-10-09, cust-alumistr-bc 66845, commit 0b39935.)
+⚠️ **`Rec.Find('=')` po `RunModal` zahodí i hodnotu zadanou těsně předtím.** `Find` čte řádek z DB, takže pole, které
+uživatel vyplnil a stránka ho ještě neuložila (vybral hodnotu lookupem a hned klikl na tři tečky / šipku jiného pole),
+zmizí – v tabulce nikde nezůstane. Před otevřením seznamu nebo dialogu proto nejdřív `CurrPage.SaveRecord()` (a kvůli
+`RunModal` `Commit()`, viz 4.25), teprve po něm `Find('=')`. Regresní test: `SetValue` → `AssistEdit()` / `Lookup()` →
+`Close()` → `Get` a assert hodnoty. (2026-11-06, prod-ess-configurator-bc 67634: *Kódy hodnot filtru* mizely po
+potomkovi na všech osmi kartách a dialozích podmínek od WI 66845; reprodukováno a ověřeno na Zlomek BC-DEV.)
 
 ---
 
