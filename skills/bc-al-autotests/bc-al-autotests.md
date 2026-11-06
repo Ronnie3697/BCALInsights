@@ -358,6 +358,12 @@ Assert.ExpectedErrorCode('Dialog');
 
   (2026-10-16, prod-ess-configurator-bc `CL Override Tests COEBS.SplitKeepsCurrentLinePriceOfOriginalLineWithPriceList`, prošel
   v kontejneru. Že by bez opravy spadl, ověřené není.)
+- **`CaptionClassTranslate` (a popisky polí s `CaptionClass`) jsou v session cachované — dva testy, které mezi sebou změní setup
+  a resolvují STEJNÝ výraz, se ovlivní.** Test „bez Package Caption → *Contract No.*" a po něm „s Package Caption *Box* → *Box No.*"
+  nad `'6,1'`: druhý v CI dostal *Contract No.* (build 29294, cust-soitron-bc `Contract Caption Test SOI`). Subscriber
+  `OnResolveCaptionClass` / `OnBeforeResolveCaption` se pro už vyřešený výraz znovu nevolá. Každý test, který mění zdroj popisku,
+  ať ověřuje **jiný výraz** téže oblasti (`'6,88'` *Availability, %1 No.* místo `'6,1'`); cache se z AL vyprázdnit nedá. Totéž platí
+  pro uživatele: změna nastavení popisku je vidět až po novém přihlášení (4.6 v `bc-al-ui.md`). (2026-11-06)
 - **Helper `FindXxx(var Rec, …)`, který na předaný record jen přidává `SetRange`, musí začínat `Rec.Reset()`.** Když jeden test
   použije tutéž proměnnou pro dva helpery (`FindReturnEntries` = Item No. + Entry Type + `Document Type = Purchase Return Shipment`, pak
   `FindReceiptEntries` = Item No. + Entry Type), filtr z prvního přežije, `FindFirst` vrátí vratku místo první příjemky a assert na
