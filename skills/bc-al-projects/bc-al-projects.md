@@ -216,6 +216,30 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   `TestField("Remaining Quantity", Quantity)` na položce příjmu (`OnCheckItemLedgEntriesOnBeforeCheckTempItemLedgEntry` nebo před
   účtováním). Hook `Undo Posting Management.OnBeforeReapplyJobConsumption(ItemRcptEntryNo, var IsHandled)` sám nestačí — zůstala by
   druhá Negative Adjmt. položka a Applies-to 0. (2026-10-14, cust-soitron-bc: NO 106182 / příjemka 107358, Base App 28.4.)
+- **Implementováno v IMEBS (prod-ep-itemManagement-bc `features/misc`, 2026-11-06; hláška znovu z X-ESSENCE, Base App 28.5):**
+  subscribery v `Project Item Management IMEBS` přesně podle plánu výše — `OnAfterCopyItemJnlLineFromPurchRcpt` (Job No./Task
+  prázdné, `Job Purchase := false`, `Unit Cost := 0`, `Correction := true`, `Applies-to Entry := "Item Rcpt. Entry No."`), `IsHandled`
+  v `OnPostItemJnlLineOnBeforeUndoValuePostingWithJob` i `OnBeforeReapplyJobConsumptionFromApplyToEntryList`, guard v `Undo Posting
+  Management.OnCheckItemLedgEntriesOnBeforeCheckTempItemLedgEntry` (kladná položka Purchase Receipt s Job No. → `Purch. Rcpt. Line`
+  z `Document No.` + `Document Line No.`; `Remaining Quantity` musí být `Quantity`, u fakturované příjemky `Quantity − Invoiced
+  Quantity` jako standard; vlastní `ReceiptConsumedErr` „Undo the sales shipment first"). „Skip + navázaný" z `Purch. Rcpt. Line`:
+  Type Item, Job No., `Job Planning Line No.` (1019) nebo EPEBS kopie → `FindBillableLineLinkedToBudgetLine`. Pasti:
+  (a) **standardní undo označí `Correction = true` i na PŮVODNÍM řádku příjemky** (jako u dodávky, 5.x26) → `CollectReceiptItemEntries`
+  (zdroj položek příjmu pro usage z dodávky) i kontrola „příjemka existuje" při změně vazby billable ↔ budget filtrují
+  `SetRange(Correction, false)`; EPEBS flowfield `Purchase Receipt Exists EPEBS` vrácené řádky počítá → nahrazen vlastním
+  `ReceiptExistsForPlanningLine`. Bez toho by další dodávka navázala usage na vrácenou položku příjmu (`Remaining Quantity` kopie
+  = přijato − usage, standardní zbytek položky IMEBS záměrně nečte). (b) Cesta bez trackingu končí `exit(ItemShptEntryNo)` = 0 i u
+  standardního řádku bez projektu (nový korekční řádek příjemky má `Item Rcpt. Entry No.` 0) — není chyba subscriberu.
+  (c) `TransferSourceValues` běží podle `PurchRcptLine."Job No."`, i když ItemJnlLine projekt už nemá — neškodí. (d) Standard
+  blokuje undo při `Reserved Quantity <> 0` na položce příjmu → prodejka s `Reserve = Always` (auto-rezervace při příjmu,
+  `PurchPost_OnRunOnAfterPostPurchLineIMEBS`) chce nejdřív zrušit rezervaci — standardní chování, nic jsme neměnili.
+  Testy `Purch. Consumption Test IMEBS.UndoReceipt_*` (5): bez dodávky → korekce bez projektu vyrovnaná na položku příjmu
+  (`Item Application Entry` Inbound/Outbound), žádná Negative Adjmt. ani JLE, vazbu jde přenastavit, znovupříjem + dodávka →
+  usage na NOVOU položku; po dodávce = `asserterror` + `ExpectedError('cannot be undone because the project has already
+  consumed')`; šarže (`Item Rcpt. Entry No.` = 0, list cesta, korekce per šarže); projekt bez Skip a nenavázaný rozpočtový řádek =
+  standardní reverz spotřeby (2 Negative Adjmt. s projektem, Σ 0). Undo v testu bez dialogu jako u dodávky: `PurchRcptLine.
+  SetRecFilter()` + `Undo Purchase Receipt Line.SetHideDialog(true)` + `.Run(PurchRcptLine)`; řádek k undo hledej
+  `SetRange(Correction, false)`. Kompilace app i test čistá (alc 17 + CodeCop/PTE/UICop/ALCops, ruleset z blobu), běh v CI.
 
 ### 5.x24 Spotřeba projektu z prodejní dodávky (IMEBS `CreateJobLedgerEntryFromSalesLine`): víc příjemek, víc položek zboží na příjemce, tracking
 
