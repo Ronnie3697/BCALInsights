@@ -675,10 +675,16 @@ cust-soitron-bc 66196 / 67562, 2026-11-05, zdroj w1-28 `SalesPost.Codeunit.al`, 
   `Modify` se **stejnou instancí**, takže vlastní `Modify(false)` ji drží čerstvou (Sales-Post pak ještě `PostUpdateOrderNo`
   → `Modify(true)` na téže instanci). Guard `GenJnlLineDocType = "Gen. Journal Document Type"::Invoice.AsInteger()`, u dobropisu je
   `SalesInvoiceHeader."No." = ''`.
-- **Datum poslední platby:** DCLE faktury typu *Application* s `Unapplied = false` → `"Applied Cust. Ledger Entry No."` = položka
-  protistrany (`InitDetailedCVLedgEntryBuf` ho plní na obou stranách aplikace) → `Cust. Ledger Entry."Document Type" = Payment`
-  → max `Posting Date`. Dobropis vyrovnaný s fakturou tak zůstatek sníží, datum platby ne. Klíč DCLE `"Cust. Ledger Entry No.",
-  "Entry Type", "Posting Date"` existuje.
+- **Datum poslední platby:** ⚠️ `"Applied Cust. Ledger Entry No."` **NENÍ „položka protistrany"** — `Gen. Jnl.-Post Line.CalcApplication`
+  volá `InitDetailedCVLedgEntryBuf` pro obě strany aplikace s `NewCVLedgEntryBuf."Entry No."`, tedy obě DCLE ukazují na
+  **vyrovnávající** položku. Platba s *Applies-to* faktury → DCLE faktury ukazuje na platbu; *Vyrovnat položky* spuštěné z faktury
+  (vyrovnávající = faktura) → DCLE faktury ukazuje **na fakturu samotnou** a platby najdeš jako DCLE *Application* téže `Transaction No.`
+  s `"Applied Cust. Ledger Entry No."` = faktura a jiným `"Cust. Ledger Entry No."` (klíč `"Applied Cust. Ledger Entry No.", "Entry
+  Type"`). První verze to brala jako protistranu → u vyrovnání z faktury prázdné datum (nalezeno review, test
+  `PaymentAppliedFromTheInvoiceSetsLastPaymentDate` přes `LibraryERM.ApplyCustomerLedgerEntries(Invoice, Payment, …)`). Pak
+  `Cust. Ledger Entry."Document Type" = Payment` → max `Posting Date`; dobropis zůstatek sníží, datum ne. Zrušení vyrovnání:
+  `UnapplyCustLedgEntry` vloží stornovací DCLE (`Unapplied`, `"Unapplied by Entry No."` = původní) dřív, než původní označí
+  `Unapplied` → v `OnAfterInsertEvent` počítat aplikaci jako zrušenou i podle existence stornovací položky.
 - Subscriber smí deklarovat jen podmnožinu parametrů eventu (podle jmen) — `OnAfterInsertEvent` bez `RunTrigger`,
   `OnAfterUpdateSalesHeader` bez `GenJnlLineDocNo`/`PreviewMode`; alc 18 bere. `Permissions = tabledata "Sales Invoice Header"
   = m` na codeunitě, ať účtující uživatel bez práva na účtované faktury posting neshodí.

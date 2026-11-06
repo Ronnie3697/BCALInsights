@@ -216,6 +216,11 @@ NEmodifikuje). Směr částky: odchozí platba dodavateli z výpisu má na řád
   řádek se záporným množstvím, taky `Correction = true`). `SetRange(Correction, true) + FindFirst` tedy vrátí původní řádek
   (+4) → `Expected -4, Actual 4`. Korekční řádek filtruj `SetFilter(Quantity, '<0')` (nebo `Line No.` > původní).
   (2026-09-15, cust-alumistr-bc build 28247, `UndoShipmentNegatesSKEndCustomerTotalOnCorrectionLine`.)
+  **Undo nákupní příjemky stejně:** `PurchRcptLine.SetRange("Order No.", …)` + `SetRange(Correction, false)` + `FindFirst` +
+  `SetRecFilter()`, `UndoPurchaseReceiptLine.SetHideDialog(true)` + `.Run(PurchRcptLine)` (codeunit 5813, bez handleru); po undo má
+  `Correction = true` původní i korekční řádek a `Purchase Line."Quantity Received"` je 0 → `Get` hlavičky a další `PostPurchaseDocument
+  (…, true, false)` příjme znovu bez reopen. Negativní test (vlastní guard v `Undo Posting Management.OnCheckItemLedgEntries…`) =
+  `Commit()` po GIVEN + `asserterror Run`. (2026-11-06, prod-ep-itemManagement-bc `Purch. Consumption Test IMEBS.UndoReceipt_*`.)
 - **Zákaznická appka, která při Quote → Order dá objednávce ČÍSLO NABÍDKY (`OnBeforeInsertSalesOrderHeader`:
   `SalesOrderHeader."No." := SalesQuoteHeader."No."`), shodí `LibrarySales.QuoteMakeOrder` na *„The record in table Sales
   Header already exists. Document Type='Order', No.='1001'"*.** V CI firmě (CRONUS CZ) začínají řady nabídek i objednávek

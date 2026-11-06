@@ -977,3 +977,15 @@ System Application 28.5):
   `Detailed Cust. Ledg. Entry.OnAfterInsertEvent` (CLE Invoice + `Sales Invoice Header.Get`, stejný výpočet, `Modify(false)` jen při
   změně), nebo z `OnUpdateCRMInvoiceStatusFromEntryOnBeforeModify` (jen spárované faktury). (w1-28, cust-soitron-bc 2Ring task
   67562 analýza, 2026-11-05.)
+  ⚠️ **Vlastní sloupce faktury PA (zůstatek, datum platby) NEdávej do téhož `Modify`, kterým standard mění stav.** První verze je
+  dosazovala v `OnUpdateCRMInvoiceStatusFromEntryOnBeforeModify` do záznamu, který standard vzápětí `Modify()` s novým
+  `StateCode`/`StatusCode`: v 2RING DEV se status faktury změnil (Paid / Partial), sloupce zůstaly prázdné. Nejpravděpodobnější
+  vysvětlení: proxy změnu stavu posílá jako změnu stavu a ostatní změněné atributy s ní do Dataverse nejdou (neověřeno ve zdroji
+  platformy, jen chování). Oprava: v hooku zapsat sloupce **vlastním `Modify` se stavem, který faktura v Dataverse právě má**
+  (`Get` uložené faktury; po `ActivateInvoiceForFurtherUpdate` je Active), pak v záznamu vrátit nový stav pro `Modify` standardu;
+  fakturu, která v Dataverse není Active, samostatně nezapisovat (read-only). Druhá, nezávislá cesta: řádky *Integration Field
+  Mapping* `Sales Invoice Header` → `CRM Invoice` (ToIntegrationTable) z BC polí stavu úhrady, přidané v subscriberu
+  `OnResetSalesInvoiceHeaderInvoiceMappingOnAfterInsertFieldsMapping` — pokryjí insert nové faktury a modify faktury, která je v PA
+  ještě Active (zákazník chtěl mapování kvůli přehlednosti místo kódu v `OnAfterTransferRecordFields`, funkčně totéž; Paid faktury
+  sync přeskakuje, ty dál jen hook statistické úlohy). Ověření opravy v DEV k datu zápisu chybí. (cust-soitron-bc CDS.W1
+  `CDS Sync Logic CWSOI.WritePaymentFieldsToPowerAppsInvoice`, `CDS Management CWSOI.AddPaymentStateFieldMappings`, 2026-11-06.)
