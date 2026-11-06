@@ -10,7 +10,7 @@
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
 Obsahuje:
-- **4.** UI patterny (4.1–4.28)
+- **4.** UI patterny (4.1–4.31)
 
 ## 4. UI patterny
 
@@ -886,3 +886,29 @@ Uživatel to čte jako „poukaz se uplatnil na nabídce".
 - Při prohlížení dat přes `?table=<id>` se hodnota zobrazí dál. `HideValue` platí jen pro stránku.
 
 (2026-10-30, cust-sonnentor-bc 63637, stránka 54810 *Dárkové poukazy objednávky Shopify*, sloupec *Typ prodejního dokladu*.)
+
+### 4.31 Příznak „vytištěno" z `OnPostReport` se zapíše i po zrušeném tisku — potvrzení až po `RunModal`, report jen vrací řádky
+
+`OnPostReport` běží na konci zpracování **datasetu**, tedy **před** vyrenderováním dokumentu a jeho odesláním na tiskárnu /
+do tiskového dialogu prohlížeče. Zápis příznaku (*Likvidační protokol vytištěn*, *No. Printed*) tam proběhne a commitne se, i když
+uživatel pak tisk zruší (Storno v tiskovém dialogu prohlížeče nebo během renderování). Server se o zrušení tisku v prohlížeči
+nedozví nikdy; `Reporting Triggers.OnDocumentPrintReady` / `OnDocumentReady` běží taky před tiskovým dialogem a pro tisk přes
+prohlížeč to nevyřeší. `CurrReport.Preview()` odliší jen náhled.
+
+- **Vzor:** report si v `OnAfterGetRecord` pamatuje řádky (temp) a v `OnPostReport` jen `Printed := not CurrReport.Preview()`;
+  veřejná procedura reportu `GetPrintedLines(var Temp): Boolean` (false = Storno request page, náhled, nic nevytištěno). Akce
+  stránky volá codeunit: proměnná reportu → `SetTableView` → `RunModal()` → `GetPrintedLines` → `ConfirmManagement.GetResponseOrDefault(
+  'Vytiskl se protokol v pořádku?', true)` → zápis příznaku `Modify(false)` → `CurrPage.Update(false)`. Procedura na proměnné reportu
+  po `RunModal` funguje (stav instance zůstane, jako `GetRecord` u stránky).
+- Před `RunModal` s request page v akci, která volá `CurrPage.SaveRecord()`, patří `Commit()` (4.25).
+- Spuštění reportu mimo akci (hledání, Report Selection) pak příznak nezapíše — rozhodnutí pro uživatele, ne chyba.
+- **Shození příznaku při ruční změně řádku:** `trigger OnModifyRecord(): Boolean` v **pageextension** (povolený trigger) nastaví pole
+  na `Rec`; uloží ho modify stránky. Zápis z kódu (`Modify(false)` při označení) ho nespustí. Změny mimo stránku (Item Tracking Lines
+  měnící šarži, API) nezachytí.
+- **Test bez tisku:** `Report.SaveAs('', ReportFormat::Pdf, OutStream)` na proměnné reportu + `GetPrintedLines` (SaveAs není náhled),
+  potvrzení přes `ConfirmHandler` na procedurou „potvrď a označ". Stránka *Item Journal* z TestPage bez výběru šablony:
+  `ItemJournal.Trap(); ItemJnlManagement.TemplateSelectionFromBatch(Batch);` (`IsOpenedFromBatch`), vlastní šablona z
+  `LibraryInventory.CreateItemJournalTemplate` má `Page ID` z `OnInsert`.
+
+(2026-11-06, cust-sonnentor-bc *Disposal Protocol SON* — uživatelé rušili tisk a řádky zůstaly označené. Kompilace ověřená, testy
+napsané, v klientu ani v kontejneru zatím neběželo.)
