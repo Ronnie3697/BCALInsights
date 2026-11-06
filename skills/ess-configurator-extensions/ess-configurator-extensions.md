@@ -120,8 +120,9 @@ Lines* je `Length` skrytý sloupec (DOM ho vrací prázdný) → čti `?table=99
 (`SL Action Line.DeleteFormula` filtruje `Quantity`, `Routing Action Line.DeleteTimeFormula` / `Configuration Parameter` /
 `Parameter Condition` berou `FieldType`). Volá ho stránka 63160 při zápisu čísla do *Quantity Expression* i při jejím vyprázdnění,
 takže **tiše smaže i vzorce rozšíření na témž řádku** (COZLK Qty. of Pcs. / Qty. per Piece, COALU Qty. of Pcs. / Qty. per Piece /
-Parametr A/B; textové vzorce ne, ty jsou v jiné tabulce). Oprava patří do COEBS (`SetRange("Field Type", Quantity)` + test), do té doby
-⚠️ v dokumentaci rozšíření. Při review vlastního typu vzorce na řádku akce vždy projdi i base helpery `Delete*Formula` a jejich callery.
+Parametr A/B) **i operandy výrazů `{= …}` v textových vzorcích řádku** (`Field Type = Text Expression` leží ve stejné tabulce
+pod týmž řádkem; řádek *Formula* zůstane bez operandů a výraz tiše dá 0). Oprava v COEBS (`SetRange("Field Type", Quantity)` + 4 testy
+v 63188) je ve větvi `BOMActionLineQtyFormulaDelete` (2026-11-06, zatím bez WI), do vydání ⚠️ v dokumentaci rozšíření. Při review vlastního typu vzorce na řádku akce vždy projdi i base helpery `Delete*Formula` a jejich callery.
 (Code review 67632, 2026-11-06, COEBS master.)
 
 Alumistr (větev `ProdOrderCompMergeNoteColor`): `Event Subscribers ALU` na `OnAfterSetFilterFromProdBOMLine` přidá `SetRange` na
