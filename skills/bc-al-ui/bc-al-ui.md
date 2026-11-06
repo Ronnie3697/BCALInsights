@@ -902,9 +902,14 @@ prohlížeč to nevyřeší. `CurrReport.Preview()` odliší jen náhled.
   po `RunModal` funguje (stav instance zůstane, jako `GetRecord` u stránky).
 - Před `RunModal` s request page v akci, která volá `CurrPage.SaveRecord()`, patří `Commit()` (4.25).
 - Spuštění reportu mimo akci (hledání, Report Selection) pak příznak nezapíše — rozhodnutí pro uživatele, ne chyba.
-- **Shození příznaku při ruční změně řádku:** `trigger OnModifyRecord(): Boolean` v **pageextension** (povolený trigger) nastaví pole
-  na `Rec`; uloží ho modify stránky. Zápis z kódu (`Modify(false)` při označení) ho nespustí. Změny mimo stránku (Item Tracking Lines
-  měnící šarži, API) nezachytí.
+- **Shození příznaku při každé změně řádku** (zákazník nechtěl porovnávat pole): subscriber `OnBeforeModifyEvent` na *Item Journal
+  Line* (běží i při `Modify(false)`, tableextension trigger ne — 3.1 v `bc-al-data.md`). Samotné označení po tisku je taky `Modify`
+  → odliš ho podle **uloženého stavu**, ne podle `xRec` (z kódu = `Rec`): `if not Rec.Flag then exit; Stored.SetLoadFields(Flag);
+  Stored.Get(PK); if Stored.Flag then Rec.Flag := false` — označení (DB NE → ANO) projde, každý další zápis označeného řádku ho shodí;
+  DB dotaz jen u řádků s `Rec.Flag = true`. Účtování to nerozbije: `Item Jnl.-Post Batch` řádky před `CheckLines` / `PostLines`
+  nemodifikuje (Modify až po zaúčtování u nového prázdného a opakovaného řádku; ověřeno BCApps main). Item Tracking Lines měnící
+  šarži řádek deníku nemodifikují (zapisují Reservation Entry) → nezachytí se. Varianta jen pro ruční změny: `trigger
+  OnModifyRecord(): Boolean` v pageextension.
 - **Test bez tisku:** `Report.SaveAs('', ReportFormat::Pdf, OutStream)` na proměnné reportu + `GetPrintedLines` (SaveAs není náhled),
   potvrzení přes `ConfirmHandler` na procedurou „potvrď a označ". Stránka *Item Journal* z TestPage bez výběru šablony:
   `ItemJournal.Trap(); ItemJnlManagement.TemplateSelectionFromBatch(Batch);` (`IsOpenedFromBatch`), vlastní šablona z
