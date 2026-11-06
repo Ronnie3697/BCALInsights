@@ -989,3 +989,9 @@ System Application 28.5):
   ještě Active (zákazník chtěl mapování kvůli přehlednosti místo kódu v `OnAfterTransferRecordFields`, funkčně totéž; Paid faktury
   sync přeskakuje, ty dál jen hook statistické úlohy). Ověření opravy v DEV k datu zápisu chybí. (cust-soitron-bc CDS.W1
   `CDS Sync Logic CWSOI.WritePaymentFieldsToPowerAppsInvoice`, `CDS Management CWSOI.AddPaymentStateFieldMappings`, 2026-11-06.)
+  **Dorovnání uhrazených faktur, jejichž položky se už nemění** (statistická úloha je znovu nenavštíví, sync je přeskakuje):
+  veřejná `CRM Synch. Helper.UpdateCRMInvoiceStatusFromEntry(var CRMInvoice, CustLedgerEntry): Integer` (1 = zapsáno) dělá
+  přesně krok úlohy včetně reaktivace Paid faktury a hooků → report přes faktury: `CRM Integration Record.FindIDFromRecordID` +
+  `CRMInvoice.Get` + volání, předtím `Codeunit.Run(Codeunit::"CRM Integration Management")` kvůli spojení. Test bez Dataverse:
+  `CRM Integration Record.InsertRecord(CRMID, SystemId, TableId)` + `CRMInvoice.Insert(false)` v `@@test@@` projde celým řetězcem
+  (`Send Inv. Payment State CWSOI`, 2026-11-06).
