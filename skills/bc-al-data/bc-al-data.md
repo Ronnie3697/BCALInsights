@@ -445,6 +445,25 @@ nebo Insert, a subscriber by ten buffer "zmodifikoval" místo reálného recordu
 **Kdy NE:** V čistě read-only subscriberech, kde jen čteš hodnotu a nic
 nezapisuješ, check není nutný.
 
+### 3.2b `OnBefore…(var IsHandled)` subscriber, který standard nahrazuje — náhradu volej jen ve větvi s `IsHandled`
+
+Subscriber na `OnBeforeOpenItemTrackingLines(SalesLine; var IsHandled)` měl obejít standardní chybu „sledování nelze na řádku
+s projektem": `if "Job Contract Entry No." <> 0 then IsHandled := true; SalesLineReserve.CallItemTracking(SalesLine);` — volání
+náhrady stálo **mimo** `if`, takže pro každý neprojektový řádek proběhlo dvakrát (jednou subscriber, podruhé standard, protože
+`IsHandled` zůstal `false`). V klientu dvě okna za sebou (3 měsíce bez hlášení), v testu „nemožný" stav dat: druhé okno vidělo SN
+vybraný prvním oknem jako nedostupný (`Total Requested Quantity`), hláška přišla z úplně jiné (vlastní) codeunity. Vzor:
+
+```al
+if SalesLine."Job Contract Entry No." = 0 then
+    exit;              // ostatní řádky nechej standardu
+IsHandled := true;
+SalesLineReserve.CallItemTracking(SalesLine);
+```
+
+Při diagnostice „kód se chová, jako by běžel dvakrát" grepni subscribery na `OnBefore…` dané cesty a zkontroluj, že každé
+volání náhrady je pod `IsHandled := true`. (2026-11-09, cust-soitron-bc build 29326, `Job Mgt. SOI`; detail 5.x24 v
+`bc-al-tracking.md`.)
+
 ### 3.3 `OnAfterValidateEvent` — init detection patterny
 
 V `OnAfterValidateEvent` často potřebuješ rozeznat, jestli `Rec` je nově

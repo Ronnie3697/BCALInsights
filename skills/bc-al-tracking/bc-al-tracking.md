@@ -418,6 +418,19 @@ Quantity`, u `Bin Active` min s `QtyAvailableToSelectFromBin()`, minus `Non-spec
   `(var TempEntrySummary; var TempMarked; MaxQuantity)` a testuj nad temp `Entry Summary`; E2E přes `SalesLine.
   OpenItemTrackingLines()` → handler 6510 `"Select Entries".Invoke()` → handler 6500 `Filter.SetFilter("Serial No.", …)` +
   `First()` + akce + `OK()` — ověří, že předvýběr FEFO nahradil označený SN.
+  ⚠️ **E2E test padal na *None of the marked lines has a quantity available to select* (buildy 29294 a 29326) a chyba nebyla
+  v akci:** `Job Mgt. SOI` měl subscriber `Sales Line.OnBeforeOpenItemTrackingLines`, který nastavil `IsHandled` jen pro
+  projektový řádek, ale `Sales Line-Reserve.CallItemTracking` volal **vždy** → pro neprojektový řádek se 6510 otevřela
+  **dvakrát** (standard ji po subscriberu otevře znovu; v klientu dvě okna za sebou, nikdo si nevšiml). V testu handler proběhl
+  podruhé: nedefinované množství 0 → `SelectMultipleTrackingNo` s `MaxQuantity = 0` (selection mode vypnutý, akce `Visible =
+  false` — TestPage ji přesto invokne), SN vybraný v prvním kole má v `Entry Summary` `Total Requested Quantity` 1 → dostupné 0.
+  Pravidlo: subscriber na `OnBefore…(var IsHandled)`, který standard **nahrazuje**, volá náhradu jen ve větvi, kde `IsHandled`
+  nastavuje (`if … = 0 then exit;`). Diagnostika z kódu: hláška z vlastní codeunity + „nemožný" stav dat (SN v zásobě a přesto
+  nedostupný) = hledej, kdo volá testovanou cestu vícekrát (grep subscriberů na `OnBeforeOpenItemTrackingLines`).
+  Dvě drobnosti k akci: `IsEmpty()` nad záznamem po `CurrPage.SetSelectionFilter` (MarkedOnly) nepoužívej — existenci
+  označených řádků testuj `FindSet()` (pro marks je dokumentované jen chování Find*/Count, u `IsEmpty` ne); a kopii pro
+  označení dělej do **samostatné** temp instance se všemi řádky (`CopyEntries`), na kterou se `SetSelectionFilter` aplikuje
+  (MS docs: na prázdný temp záznam nic neoznačí). (2026-11-09, cust-soitron-bc build 29326, `Serial No. Selection Test SOI`.)
 
 **Import SN z Excelu na nákupní objednávku a skladovou příjemku:**
 - Sledování skladové příjemky žije v `Reservation Entry` **zdrojového nákupního řádku** (6510 z příjemky se otevírá nad
