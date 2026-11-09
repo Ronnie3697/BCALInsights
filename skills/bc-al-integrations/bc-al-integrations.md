@@ -337,6 +337,25 @@ Pro Cloud target tuhle metodu nepoužívej. Pokud potřebuješ autentizaci, jdi
 přes OAuth (`SecretText` token v `HttpRequestMessage` headerech) nebo Basic
 auth se secretem z Isolated Storage.
 
+### 11.2b Anti-SSRF validace HttpClient — volání na interní IP v kontejneru / OnPrem
+
+Od 26.11 (platform 26.0.46773), 27.2 (27.0.42799) a 28.0 (28.0.47117.0) AL
+`HttpClient` **defaultně blokuje požadavky na interní IP adresy** (localhost,
+privátní rozsahy). Na SaaS vždy zapnuto a **nejde vypnout**. V kontejneru /
+OnPrem to řídí dvě nastavení Business Central Serveru (CustomSettings.config):
+
+- `NavHttpClientAntiSSRFEnabled` — `true` (default) / `false` = vypnout celé.
+- `NavHttpClientAntiSSRFAllowedAddresses` — JSON pole povolených IP, např.
+  `["10.0.0.1","192.168.1.100"]`, platí i se zapnutou validací (doporučená cesta).
+
+Kontejner: při vytvoření `New-BcContainer … -customNavSettings "NavHttpClientAntiSSRFEnabled=false"`,
+běžící kontejner `Invoke-ScriptInBcContainer` → `Set-NAVServerConfiguration
+-ServerInstance BC -KeyName … -KeyValue …` + `Set-NAVServerInstance BC -Restart`.
+Allowlist s víc IP v `-customNavSettings` nepředávej (čárky v JSONu se rozsekají) —
+nastav ho přes `Set-NAVServerConfiguration`. Zdroj: MS Learn devenv-httpclient
+(#anti-ssrf-validation-for-al-httpclient), 2026-11-09; příkazy pro kontejner
+zatím neověřené v praxi.
+
 ### 11.3 Další Cloud-only gotchas
 
 - `HttpClient.SkipDefaultUserAgentSet := true` — funguje, ale BC ti pak
