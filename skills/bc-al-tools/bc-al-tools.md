@@ -192,8 +192,16 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
 - **`grep -c $'\r' soubor` v Git Bash vrátí 0 i u CRLF souboru** (grep čte v textovém režimu) → falešné „soubor je LF".
   Konce řádků počítej `tr -cd '\r' < f | wc -c` nebo v Pythonu `open(p, 'rb').read().count(b'\r\n')`. Python skript, který
   čte `newline=''` a hledá vzory s `\n`, na CRLF souboru nic nenajde (assert na `count == 1` spadne) → po načtení
-  `s = s.replace('\r\n', '\n')`, při zápisu vrať `\r\n`. Edit tool si s CRLF poradí sám. Skript s apostrofy a `\r`/`\n`
+  `s = s.replace('\r\n', '\n')`, při zápisu vrať `\r\n`. Edit tool si s CRLF většinou poradí sám (ale viz bullet níž). Skript s apostrofy a `\r`/`\n`
   piš do souboru (Write), ne do Bash heredocu / `python -c`. (2026-10-02, prod-ess-configurator-bc `VariantConfigEngineUnify`)
+- **Edit i Write tool Claude Code (VS Code extension) umí CRLF soubor zapsat jako LF.** Po sérii Edit volání na CRLF
+  `.al` souborech (`JobPlanningLine.TableExt.al`, test codeunit) měly soubory 0 `\r`; nově napsané soubory z Write toolu
+  jsou LF vždy. Git s `autocrlf=true` v diffu nic neukáže, ale working copy se rozejde s ostatními soubory. Před
+  kompilací / shrnutím projdi dotčené soubory: `cr=$(tr -cd '\r' < f | wc -c); lf=$(tr -cd '\n' < f | wc -c)` —
+  `cr=0` → `sed -i 's/$/\r/' f` (soubor je čistě LF, takže přepis je bezpečný), `0<cr<lf` = smíšené konce, přepiš Write
+  toolem a převeď. **Pozor na soubor bez koncového `\n`** (`.al` končí `}`): `sed 's/$/\r/'` přidá na poslední řádek
+  osamocené `\r` (`tail -c 1 f | xxd -p` = `0d`) → `truncate -s -1 f`. Na konec ověř `git ls-files --eol -- f` = `w/crlf`.
+  (2026-11-09, cust-soitron-bc 67039.)
 - **Převod na CRLF přes `sed 's/\r$//; s/$/\r/'` na souboru bez koncového nového řádku** (`.al` často končí `}`) přidá na konec
   osamocené `\r`. Git pak soubor nebere jako text (`git ls-files --eol -- f` ukáže `w/-text`) a `git diff --stat` hlásí změnu
   celého souboru (1093 řádků místo 245). Převáděj v Pythonu `b.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n')` (konec souboru
