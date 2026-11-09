@@ -512,9 +512,14 @@ Grep zákaznických rep na název base stránky / komentář „Mirrors …“. 
 ⚠️ **`Rec.Find('=')` po `RunModal` zahodí i hodnotu zadanou těsně předtím.** `Find` čte řádek z DB, takže pole, které
 uživatel vyplnil a stránka ho ještě neuložila (vybral hodnotu lookupem a hned klikl na tři tečky / šipku jiného pole),
 zmizí – v tabulce nikde nezůstane. Před otevřením seznamu nebo dialogu proto nejdřív `CurrPage.SaveRecord()` (a kvůli
-`RunModal` `Commit()`, viz 4.25), teprve po něm `Find('=')`. Regresní test: `SetValue` → `AssistEdit()` / `Lookup()` →
-`Close()` → `Get` a assert hodnoty. (2026-11-06, prod-ess-configurator-bc 67634: *Kódy hodnot filtru* mizely po
-potomkovi na všech osmi kartách a dialozích podmínek od WI 66845; reprodukováno a ověřeno na Zlomek BC-DEV.)
+`RunModal` `Commit()`, viz 4.25), teprve po něm `Find('=')`. **TestPage tu chybu nezreprodukuje:** po `SetValue` je
+hodnota v řádku uložená dřív, než se spustí další trigger (`AssistEdit()` / `Lookup()`), kdežto klient pošle
+neuloženou změnu a klik v jednom kole. Test `SetValue` → `AssistEdit()` / `Lookup()` → `Close()` → `Get` je bez
+opravy zelený (63259 bez opravy stránek: 5 ze 6 zelených, šestý spadl na zastaralém řádku, ne na ztracené
+hodnotě). Takový test hlídá jen to, že se s opravou uloží hodnota i vazba. Chybu reprodukuj a opravu ověř proklikem
+v klientu, stejně jako u 4.25. (2026-11-06 / 2026-11-09, prod-ess-configurator-bc 67634: *Kódy hodnot filtru* mizely
+po potomkovi na všech osmi kartách a dialozích podmínek od WI 66845; reprodukováno a ověřeno na Zlomek BC-DEV;
+stejná oprava COALU `CNC Action Cond. Card`, větev 67634_CNCCondFilterValueSave.)
 
 ---
 
