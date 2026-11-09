@@ -34,14 +34,18 @@ contain a definition for Y'`, i když aktuální zdroják té závislosti dané 
 > jinak range nic nenajde a Compile spadne (detail a případ Subcontracting v 7.17).
 > Dedupe past níže platí beze změny.
 >
-> **„Proč zvedat minimum, když konzument nemá změnu kódu?"** Kvůli kompilaci ne —
-> LatestMatching v CI stejně vezme nejnovější `X.Y.*` i se starým minimem. Minimum
-> v `app.json` je **pojistka při instalaci**: BC novou verzi konzumenta nenainstaluje
-> ani neupgraduje, dokud v prostředí není dependency ≥ minimum → oprava v závislé
-> appce (na kterou čeká zákazník) se nasadí povinně spolu s ním. Minimum ber jako
-> **první publikovanou** verzi s opravou — spadlý build číslo spotřebuje (7.11 níž).
-> Zachyceno 2026-09-22: cust-alumistr-bc → Essence Configurator 28.0.26 (textové
-> formule s `{= A * QUANTITY}`; 28.0.25 = spadlý build 28404, nepublikováno).
+> **Kdy minimum zvedat (konvence Essence, 2026-11-09):** jen když novou verzi potřebuje
+> **kód konzumenta** — volá pole / proceduru / event, které starší verze nemá. Samotná
+> oprava v závislosti bump v konzumentovi **nepotřebuje**, i když se ho týká: PR i CI
+> buildy berou přes LatestMatching nejnovější `X.Y.*` i se starým minimem a zákazníkovi
+> se nahrává nejnovější verze závislosti. Minimum v `app.json` je jen pojistka při
+> instalaci (BC konzumenta nenainstaluje ani neupgraduje, dokud v prostředí není
+> dependency ≥ minimum). Když zvedáš, ber **první publikovanou** verzi s tím, co kód
+> potřebuje — spadlý build číslo spotřebuje (7.11 níž). Případy: cust-alumistr-bc →
+> Essence Configurator 28.0.26 (2026-09-22, textové formule s `{= A * QUANTITY}`;
+> 28.0.25 = spadlý build 28404, nepublikováno); task 67634 (2026-11-09) — COEBS 28.0.41
+> opravil `DeleteFormula`, která mazala i vzorce COZLK / COALU → COZLK bez změny kódu
+> **bez bumpu**, COALU zvednuté jen v rámci vlastní opravy v témže tasku.
 
 **Příznak:** lokálně to „funguje" (máš v `.alpackages` novější symbol nebo jsi ho
 dočasně obešel), ale CI padá na chybějícím poli/proceduře cizí appky. `AL1076 name/

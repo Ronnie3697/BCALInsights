@@ -39,7 +39,9 @@ publisher Essence International s.r.o.), zákaznická rozšíření
    → `Init()`), `bc-al-ui`, u netriviální funkčnosti `bc-al-autotests`. Další
    konfigurátorové poznatky: `bc-al-objects.md` (5.x4 `Attached to Line No.`, 5.x8),
    `bc-al-tracking.md` (5.x2b).
-4. Změna v produktové appce → release + bump dependency minima v zákaznickém repu.
+4. Změna v produktové appce → release. Bump dependency minima v zákaznickém repu jen když
+   novou verzi potřebuje **jeho kód** (nové pole / procedura / event), ne kvůli samotné opravě
+   v base — buildy i zákazník berou nejnovější verzi (`bc-al-build` 7.11).
 5. Nový poznatek → do souboru podle tématu (`ess-configurator-notes.md` / `-variants.md` /
    `-extensions.md`) + commit + push do všech remotů (viz skill `bc-al`).
 
