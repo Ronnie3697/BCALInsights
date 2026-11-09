@@ -893,6 +893,11 @@ System Application 28.5):
   mapování maže — guard na typ firmy není potřeba. Testovat jde přímo `internal` proceduru nad trojicí parametrů bez
   `RegisterTableConnection`. (cust-soitron-bc CDS.W1 `CDS Management CWSOI.SynchronizeUncoupledRecords`, 2Ring, 2026-11-04;
   kompilace alc 17 + testy lokálně přeložené, běh v Dataverse neověřen.)
+  Stejně (`InsertIntegrationTableMapping(..., true)` → týž event) vzniká i **PLHEADER-PRICE** (`ResetPriceListHeaderPricelevelMapping`)
+  a **POSTEDSALESINV-INV** (`ResetSalesInvoiceHeaderInvoiceMapping`); guard na `Price List Header`/`CRM Pricelevel` a
+  `Sales Invoice Header`/`CRM Invoice`. ⚠️ Faktura nemá BC filtr tabulky → první sync po resetu (prázdný `Synch. Modified On
+  Filter`) pošle do Dataverse **všechny historické** účtované faktury; před nasazením domluvit / nastavit filtr. (cust-soitron-bc
+  CDS.W1, 2026-11-09, ověřeno ve zdroji w1-28.)
 - **Počítané pole do Dataverse (odkaz na doklad v BC, příznak „Open in BC" ze stavu objednávky) = žádný řádek field
   mappingu, ale `Integration Rec. Synch. Invoke.OnAfterTransferRecordFields` + zápis zpět při insertu z PA.**
   Hook běží v `TransferFields` při insertu i modify cílového záznamu (standard ho používá pro `Customer.Blocked`,
