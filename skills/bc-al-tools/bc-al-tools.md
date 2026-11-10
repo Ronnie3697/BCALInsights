@@ -115,6 +115,10 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   ⚠️ **alc z AL extension `18.0.2732683` ho ignoruje:** s `/enableexternalrulesets` před i za `/ruleset:` končí `AL1033 … because
   external rulesets are not allowed` (jiná hláška než TLS problém níž) a nic se nezkontroluje. Postup pak stejný jako při TLS chybě:
   lokální kopie rulesetu bez `includedRuleSets` + pravidla skrytá v essence-default. (2026-11-02, cust-zlomek-bc 66431.)
+  **alc z `18.1.2842859` ho zase bere:** `/ruleset:<repo ruleset s https include> /enableexternalrulesets` bez `AL1033` a v logu
+  hlavní appky chybí `AC0030` / `AC0031` / `AA0247` / `PC0037` (skryté v essence-default), které test appka bez rulesetu hlásí →
+  remote ruleset zabral. Když máš vedle sebe 18.0 i 18.1, ber nejvyšší (`sort -V | tail -1`). (2026-11-10, cust-alumistr-bc
+  configuratorExtension.)
   ⚠️ **Když blob s rulesetem neprojde TLS** (2026-10-14: `essencefiles.blob.core.windows.net` → `SEC_E_UNTRUSTED_ROOT` z curl
   i PowerShellu, alc `AL1033 … Could not load the rule set file`), kompilace z CLI s repo rulesetem skončí jen tou chybou —
   žádný kód se nezkontroluje. Obejdi to lokální kopií: repo ruleset **bez `includedRuleSets`** + pravidla, která
