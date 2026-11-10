@@ -906,7 +906,9 @@ uživatel pak tisk zruší (Storno v tiskovém dialogu prohlížeče nebo během
 nedozví nikdy; `Reporting Triggers.OnDocumentPrintReady` / `OnDocumentReady` běží taky před tiskovým dialogem a pro tisk přes
 prohlížeč to nevyřeší. `CurrReport.Preview()` odliší jen náhled.
 
-- **Vzor:** report si v `OnAfterGetRecord` pamatuje řádky (temp) a v `OnPostReport` jen `Printed := not CurrReport.Preview()`;
+- **Nejdřív se zeptej, jestli to zákazníkovi vadí.** U Sonnentoru po rozboru řekli „když dají Storno, jejich věc" a zápis v
+  `OnPostReport` zůstal; vzor níž (potvrzovací dotaz po tisku) se nenasadil — je to otázka navíc při každém tisku.
+- **Vzor (navržený, nenasazený):** report si v `OnAfterGetRecord` pamatuje řádky (temp) a v `OnPostReport` jen `Printed := not CurrReport.Preview()`;
   veřejná procedura reportu `GetPrintedLines(var Temp): Boolean` (false = Storno request page, náhled, nic nevytištěno). Akce
   stránky volá codeunit: proměnná reportu → `SetTableView` → `RunModal()` → `GetPrintedLines` → `ConfirmManagement.GetResponseOrDefault(
   'Vytiskl se protokol v pořádku?', true)` → zápis příznaku `Modify(false)` → `CurrPage.Update(false)`. Procedura na proměnné reportu
@@ -921,10 +923,10 @@ prohlížeč to nevyřeší. `CurrReport.Preview()` odliší jen náhled.
   nemodifikuje (Modify až po zaúčtování u nového prázdného a opakovaného řádku; ověřeno BCApps main). Item Tracking Lines měnící
   šarži řádek deníku nemodifikují (zapisují Reservation Entry) → nezachytí se. Varianta jen pro ruční změny: `trigger
   OnModifyRecord(): Boolean` v pageextension.
-- **Test bez tisku:** `Report.SaveAs('', ReportFormat::Pdf, OutStream)` na proměnné reportu + `GetPrintedLines` (SaveAs není náhled),
-  potvrzení přes `ConfirmHandler` na procedurou „potvrď a označ". Stránka *Item Journal* z TestPage bez výběru šablony:
+- **Test bez tisku:** `Report.SaveAs('', ReportFormat::Pdf, OutStream)` na proměnné reportu (SaveAs není náhled, `OnPostReport`
+  příznak zapíše); u vzoru s potvrzením `GetPrintedLines` + `ConfirmHandler`. Stránka *Item Journal* z TestPage bez výběru šablony:
   `ItemJournal.Trap(); ItemJnlManagement.TemplateSelectionFromBatch(Batch);` (`IsOpenedFromBatch`), vlastní šablona z
   `LibraryInventory.CreateItemJournalTemplate` má `Page ID` z `OnInsert`.
 
-(2026-11-06, cust-sonnentor-bc *Disposal Protocol SON* — uživatelé rušili tisk a řádky zůstaly označené. Kompilace ověřená, testy
-napsané, v klientu ani v kontejneru zatím neběželo.)
+(2026-11-06 / 2026-11-10, cust-sonnentor-bc *Disposal Protocol SON* — uživatelé rušili tisk a řádky zůstaly označené. Nasazeno
+jen shození příznaku subscriberem; kompilace ověřená, testy napsané, v klientu ani v kontejneru zatím neběželo.)
