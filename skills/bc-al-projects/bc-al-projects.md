@@ -189,6 +189,18 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   přepíše prodejce. Tendr `Job No. EPEBS` na poptávku nenastavuje, proto helper i v `Tender Management`. Kompilace: EPEBS má
   AppSource range (AppSourceCop), IMEBS PTE range (PTE cop); test IMEBS chce EPEBS ≥ 28.0.24.0 → v temp cache přepsat verzi
   čerstvého EPEBS buildu v kopii `app.json`. `User Setup` v testu: `Init` + `"User ID" := GenerateGUID` + `Insert(true)`.
+- **Množství k objednání z řádku plánování (`Project Functions EPEBS.GetJPLQuantity`) musí vracet dobropisy** — původně plán −
+  `Qty. to Invoice` VŠECH otevřených nákupních řádků (i dobropisových a vratkových, ty množství ubíraly místo uvolnily) − účtované
+  faktury; účtované dobropisy (`Purch. Cr. Memo Line`, standardní `Job Planning Line No.` 1019) nepočítal vůbec. Po faktuře +
+  dobropisu tak report *Create Subcontract Purchase Orders* hlásil „No purchase order was created", přestože ostatní podmínky
+  sedí: nákupní dobropis zaúčtuje zápornou spotřebu a `Remaining Qty.` řádku plánování se vrátí (`Use` se záporným množstvím),
+  plně vyfakturovaná objednávka je smazaná (`Purchase Order Exists EPEBS` = false). Fix: otevřené Credit Memo / Return Order
+  řádky a účtované dobropisy množství přičítají (dobropis z *Get Return Shipment Lines* se přeskočí — vratka ho ještě nese),
+  stejně jako IMEBS `GetJPLQuantity` na prodeji. Příznak „Vytvořit NO" se po přenosu maže, pro novou objednávku ho uživatel
+  zaškrtne znovu. `LibraryPurchase.PostPurchaseDocument` číslo faktury dodavatele nedoplní (jen `CreatePurchHeader`) → objednávce
+  z reportu nastav `Vendor Invoice No.` sám; `LibraryWarehouse.CreateLocation` nemá inventory posting setup → pro účtování
+  `CreateLocationWithInventoryPostingSetup`. (2026-11-10, prod-ep-projectBase-bc `features/salesQuotes`, testy `GetJPLQuantity_*`
+  a `CreateNew_LineInvoicedAndCredited_OrdersWholeQuantityAgain`, kompilace čistá, běh v CI.)
 
 ### 5.x23 Undo nákupní příjemky s projektem: standard předpokládá zaúčtovanou spotřebu projektu — „Skip Purchase Consumption" (IMEBS) ho shodí
 
