@@ -31,7 +31,7 @@ EM Alternative BOM and Routing (ATEBS).
    Když se Read ořízne, dočti přes `offset` — částečně přečtený soubor
    = nepřečtený.
 2. Sesterské skilly: **`ess-configurator`** (systémové parametry, vzorce, strom podmínek,
-   odkazy na parametry — C1–C4, C6, C12, C15, C17) a `ess-configurator-variants`
+   odkazy na parametry — C1–C4, C6, C12, C15, C17, C18) a `ess-configurator-variants`
    (varianty, dialog, engine, API — C5, C11, C13, C14, C16).
 3. Obecná AL pravidla platí dál: `bc-al-style`, `bc-al-posting` (3.6b `Validate("No.")` →
    `Init()`, pořizovací cena přes `OnAfterGetUnitCost`), `bc-al-objects` (pole kusovníku →

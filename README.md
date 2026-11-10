@@ -33,7 +33,7 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
 | `bc-al-autotests-saas-fallback.md` | příloha autotestů — vlastní Assert/Library pro SaaS-only test appku bez `Tests-TestLibraries` (reference) |
 | `bc-al-autotests-infra.md` | autotesty — test appka jako projekt: `app.json`, `internalsVisibleTo`, ruleset, symboly, lokální kompilace, spouštění z CLI / Dockeru, čtení CI failů (vyčleněno 2026-10-09) |
 | `bc-al-autotests-domains.md` | autotesty — doménové recepty a pasti: plánování / Carry Out, CZZ zálohy s platbou, párování CZB (2026-10-01); projekty, doklady, Job Queue, výroba, cust-soitron-bc (2026-10-09) |
-| `ess-configurator-notes.md` | Essence Configurator — systémové parametry, vzorce, strom podmínek, odkazy na parametry, *Číslo z parametru*, diagnostika (sekce C1–C4, C6, C12, C15, C17) |
+| `ess-configurator-notes.md` | Essence Configurator — systémové parametry, vzorce, strom podmínek, odkazy na parametry, *Číslo z parametru*, diagnostika, konfigurační balíček pro přenos definic (sekce C1–C4, C6, C12, C15, C17, C18) |
 | `ess-configurator-variants.md` | Essence Configurator — identita varianty, dialog konfigurace, `Variant Config. Engine` a API, `Effective Hidden`, *Kopírovat hodnotu z*, filtr Vyhledání (sekce C5, C11, C13, C14, C16; vyčleněno 2026-11-04) |
 | `ess-configurator-extensions.md` | Essence Configurator — napojení COALU / COZLK: kusovník a cena varianty, EM Cutting Plan, Pricing Matrix přes Parametr A/B, eventy kopie konfigurace (sekce C7–C10; vyčleněno 2026-11-04) |
 | `skills/bc-al/bc-al-mcp-server.md` | **draft** — oficiální BC MCP server (konfigurace v BC, auth / device login, Claude Code `--mcp-config` + `headersHelper`); bez skill-wrapperu, v Routeru jen jako řádek |
@@ -334,7 +334,7 @@ stabilních pravidel. **Notes soubory zůstávají zdrojem pravdy.**
 | `bc-al-autotests` | `bc-al-autotests.md` | testy + netriviální funkčnost |
 | `bc-al-autotests-infra` | `bc-al-autotests-infra.md` | test appka: app.json, ruleset, symboly, kompilace, běh, CI faily |
 | `bc-al-autotests-domains` | `bc-al-autotests-domains.md` | testy projektů, dokladů, Job Queue, výroby, plánování, CZZ, CZB |
-| `ess-configurator` | `ess-configurator-notes.md` | konfigurátor — systémové parametry, vzorce, strom podmínek, diagnostika |
+| `ess-configurator` | `ess-configurator-notes.md` | konfigurátor — systémové parametry, vzorce, strom podmínek, diagnostika, konfigurační balíček |
 | `ess-configurator-variants` | `ess-configurator-variants.md` | konfigurátor — varianty, dialog, engine a API, Kopírovat hodnotu z |
 | `ess-configurator-extensions` | `ess-configurator-extensions.md` | konfigurátor — napojení COALU / COZLK (kusovník, Cutting Plan, Pricing Matrix, eventy kopie) |
 

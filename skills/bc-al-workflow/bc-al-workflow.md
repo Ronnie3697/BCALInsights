@@ -752,6 +752,18 @@ export cen tam neotestuješ; feature nezapínej, vyber firmu, kde běží. (2026
   Spolehlivě: `const a = iframe.contentDocument.activeElement; a.value = '<index>'; a.dispatchEvent(new Event('input',
   {bubbles:true})); a.dispatchEvent(new Event('change',{bubbles:true}))` → `Tab` → klik mimo řádek (uložení),
   hodnoty `<option>` jsou indexy enumu. Výsledek ověř screenshotem listu po zavření editace. (2026-10-16, BC-DEV Sonnentor.)
+- **Hromadné přepnutí checkboxu v gridu** (2026-11-10, Alumistr BC-TEST, *Ověřit pole* u ~450 polí balíčku, C18 v `ess-configurator`):
+  - JS `click()` na checkbox v gridu BC nic nepřepne.
+  - Spolehlivě to jde přes *Upravit seznam*: první checkbox klikem myší, pak klávesy `Down space`. Dávka `repeat` 10 s pauzou
+    ~3,5 s sedí 1:1. Při `repeat` 100 BC zpracoval jen asi třetinu a občas spolkl `Down`, takže mezerník přepnul týž řádek
+    dvakrát.
+  - Fokus občas uteče na `FORM`, když grid donačítá další stránku. Mezi dávky dej JS pojistku
+    `if (!doc.activeElement.closest('tr')) throw` (fokus drží i `DIV.input-wrapper` s `role=checkbox`).
+  - Kontrolní průchod: URL filtr `'Validate Field' IS 'Yes'` funguje i v české relaci. Ve filtrovaném seznamu odškrtnutý
+    řádek po opuštění zmizí a ostatní poskočí, proto klikej po jednom a po každém kliku zkontroluj screenshot.
+  - Kliky podle souřadnic se v delším gridu rozjedou (fokus u spodního okraje posune stránku), souřadnice ber z DOM těsně
+    před klikem.
+  - JS výstup ve tvaru `0101…` končí `[BLOCKED: Base64 encoded data]`.
 - **Testovací data do sandboxu radši dočasnou appkou než klikáním** (se svolením k zápisu, viz konec 12.3). Malá appka mimo repo
   (vlastní GUID, rozsah např. 99970–99979, bez závislostí) se stránkou s akcemi „1 kmenová data / 2 zásoby / 3 doklady", nahraná
   `altool publishapp` (7.26 v `bc-al-build.md`): zboží + MJ + odkazy, kód sledování, deník zboží se SN/šaržemi (`Create Reserv.

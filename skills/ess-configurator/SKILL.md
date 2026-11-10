@@ -5,12 +5,12 @@ description: >-
   jádro: systémové parametry (QUANTITY -1, UNIT_PRICE -2, CNC X1/X/Y/Z, OnAddNumericSystemParameters, tiché
   nuly), číselné vzorce Action Formula Line (PK bez Field Type, Math Expression Parser), textové vzorce Text
   Formula Line ({KOD:Value}/{KOD:ValueName} + řádek Formula {= A * QUANTITY} s Expression No., i na poznámkovém
-  řádku), Zrušit editorů (WasCancelled, EditFormula), strom podmínek parametru (zastaralé Root Condition No. po
-  připojení / Kopírovat, kořen ze struktury 66845, report 63140 Config. Data Repair, OnAfterRepairConfiguration),
-  nerecyklovaná čísla parametrů a odkazy (Param. Reference Mgt., OnCollectParameterReferences), Číslo z parametru
-  na řádku akce prodejního řádku (Item From Parameter), diagnostika (service stránky). Varianty / dialog / API
-  → ess-configurator-variants, kusovník / Cutting Plan / Pricing Matrix / kopie → ess-configurator-extensions.
-  Načti u konfigurátoru, vzorců, podmínek.
+  řádku), Zrušit editorů (WasCancelled, EditFormula), strom podmínek parametru (zastaralé Root Condition No.,
+  kořen ze struktury 66845, report 63140 Config. Data Repair, OnAfterRepairConfiguration), nerecyklovaná čísla
+  parametrů a odkazy (Param. Reference Mgt., OnCollectParameterReferences), Číslo z parametru na řádku SL akce
+  (Item From Parameter), diagnostika (service stránky), konfigurační balíček RapidStart.
+  Varianty / dialog / API → ess-configurator-variants, kusovník / Cutting Plan / Pricing Matrix / kopie →
+  ess-configurator-extensions. Načti u konfigurátoru, vzorců, podmínek.
 user-invocable: true
 ---
 
@@ -30,7 +30,7 @@ publisher Essence International s.r.o.), zákaznická rozšíření
 1. **Přečti `ess-configurator-notes.md` z adresáře tohoto skillu celý.**
    Když se Read ořízne, dočti přes `offset` — částečně přečtený soubor
    = nepřečtený.
-2. Sesterské skilly (od 2026-11-04, číslování C1–C17 společné): **`ess-configurator-variants`**
+2. Sesterské skilly (od 2026-11-04, číslování C1–C18 společné): **`ess-configurator-variants`**
    (C5, C11, C13, C14, C16 — identita varianty, dialog, engine a API, `Effective Hidden`,
    *Kopírovat hodnotu z*, filtr Vyhledání) a **`ess-configurator-extensions`** (C7–C10 — kusovník
    a cena varianty, EM Cutting Plan, Pricing Matrix přes Parametr A/B, eventy kopie). Úkol přes

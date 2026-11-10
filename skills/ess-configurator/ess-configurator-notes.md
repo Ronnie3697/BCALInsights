@@ -9,7 +9,7 @@
 > Načítej, když řešíš: systémové parametry, vzorce (číselné i textové), strom
 > podmínek parametru a jeho opravu, nerecyklovaná čísla parametrů a odkazy
 > na parametry, *Číslo z parametru* na řádku akce prodejního řádku, diagnostiku
-> konfigurace v běžícím BC.
+> konfigurace v běžícím BC, konfigurační balíček (RapidStart) pro přenos definic.
 >
 > **Rozděleno 2026-11-04** (soubor přesáhl 1000 řádků / 98 KB). Číslování C1–C17 zůstává napříč
 > soubory, odkazy „viz Cx" platí:
@@ -37,6 +37,7 @@
 - [C12. Strom podmínek parametru — zastaralé `Root Condition No.` (Zlomek)](#c12-strom-podmínek-parametru--zastaralé-root-condition-no-zlomek)
 - [C15. Strom podmínek ze struktury (66845) a nerecyklovaná čísla parametrů (66711)](#c15-strom-podmínek-ze-struktury-66845-a-nerecyklovaná-čísla-parametrů-66711)
 - [C17. Číslo z parametru pro všechny typy řádků akce prodejního řádku (67541)](#c17-číslo-z-parametru-pro-všechny-typy-řádků-akce-prodejního-řádku-67541)
+- [C18. Konfigurační balíček (RapidStart) pro přenos definic konfigurátoru](#c18-konfigurační-balíček-rapidstart-pro-přenos-definic-konfigurátoru)
 
 Vyčleněno: C5, C11, C13, C14, C16 → `ess-configurator-variants.md`; C7–C10 → `ess-configurator-extensions.md`.
 
@@ -505,3 +506,46 @@ připojeného podstromu na root rodiče; (2) evaluátor ať kořen odvozuje ze s
 - ⚠️ **Stránka 63183 zobrazuje *Popis* / *Popis 2* přes výrazové proměnné** (`DescriptionExpressionText`, kvůli textovým vzorcům). Když tabulkový trigger popis změní (výběr parametru maže `No.` + popisy, změna typu, zadání čísla), stránka dál ukazuje starý text, dokud se řádek znovu nenačte. DB je správně. Každý page trigger, který mění číslo / parametr / typ, musí volat `UpdateDescriptionExpressions` (u 67541 `RefreshAfterNoSourceChange`). Chytil to až průchod v BC, testy ne.
 - `TableRelation` pole 50 (jen parametry *Vyhledání v tabulce*) se vyhodnotí před `OnValidate` — ruční zadání čísla parametru jiného typu skončí standardní chybou relace, vlastní hláška „není typu Vyhledání v tabulce“ jen při aktivaci.
 - Testovací data na Zlomek BC-DEV2 (ZLOMEK): zboží ZB00047, zdroj CLAUDE67541 (ZDR00001 nemá obecnou účto skupinu → standardní chyba BC na řádku zdroje), CONF0000074 / CONF0000075, objednávka O000022.
+
+## C18. Konfigurační balíček (RapidStart) pro přenos definic konfigurátoru
+
+> 2026-11-10, Alumistr BC-TEST (Alumistr SE), balíček `CLAUDE_CONFIGURATOR` (COEBS 28.0.41, COALU 28.0.81). Mechaniku apply
+> jsem ověřil ve zdrojáku `Config. Package Management` / `Config. XML Exchange` (w1-28). Import do cíle zatím nikdo nezkoušel.
+
+**Tabulky (25):** COEBS 63140–63142, 63144–63155, šablony 63158–63160, **63164** čítač čísel parametrů (bez něj cíl znovu
+použije čísla smazaných parametrů, C15) a 63166 filtry Vyhledání. Z COALU CNC tabulky 52008–52012 (podmínky, řádky, pozice,
+strany, makra). Pole tableextensions (COALU na řádcích BOM / Routing / SL) jdou automaticky se svou tabulkou.
+**Záměrně vynecháno:**
+- 63143 `Variant Configuration` – hodnoty variant jsou bez `Item Variant` a kusovníků ATEBS v cíli k ničemu.
+- 63156 `Configurator Setup` – import je upsert, přepsal by číselné řady cíle.
+- 63161 / 63162 – runtime sessions API.
+- 63157 / 63163 / 63165 – mají `TableType = Temporary`.
+
+**Nastavení pro import:**
+- Apply jede ve dvou průchodech. Nejdřív se do všech tabulek vloží záznamy jen s PK poli, pak se doplní ostatní pole a
+  zavolá `Modify`.
+- `Skip Table Triggers` znamená `RecRef.Insert()` / `Modify(false)`. Vypne tedy jen `OnInsert` / `OnModify`
+  (číslování `Line No.`, čítač, kaskády), **`OnValidate` ne**.
+- `OnValidate` se řídí příznakem `Validate Field` u každého pole (`EvaluateTextToFieldRef(…, Validate)`), u PK polí už v prvním
+  průchodu. Přidání tabulky zapne *Zahrnout* i *Ověřit* u všech polí. Hromadná akce na vypnutí není: *Nastavit zahrnuto*
+  validaci zase zapne.
+- U konfigurátoru validace import rozbije:
+  - `No.` definice zavolá `TestManual` číselné řady.
+  - `Status` spustí certifikaci nad řádky, které jsou zatím prázdné.
+  - `Line Type` textového vzorce přidělí nové `Expression No.`.
+  - `Parameter Type` maže hodnoty.
+  - Vazby potomků spustí `CheckChildLink`.
+  - K tomu `OnAfterValidateEvent` subscribery cizích appek.
+  Vlastní `OnValidate` má 87 z ~450 polí, takže je vypnuté u **všech** polí.
+- Bez validace nic nehlásí ani *Ověřit balíček*, protože relace se kontrolují jen u polí s `Validate Field`. Kmenová data proto
+  musí v cíli existovat: zboží, pracovní centra / TNG, MJ, číselné řady a stejné verze COEBS / COALU. Pozor na
+  `Lookup Param. Filter."Attribute ID"`: je to celočíselné ID atributu, v jiné databázi může patřit jinému atributu.
+- Import páruje podle PK. Řádky, které v cíli přebývají (podmínky nebo řádky smazané ve zdroji), proto zůstanou.
+  `Delete Recs Before Processing` by smazal **celou** cílovou tabulku (`RecRef.DeleteAll()`), nepoužívat.
+- Při přidání tabulky s podmíněnou `TableRelation` se BC zeptá „Některá pole mají 2 nebo více souvisejících tabulek…“.
+  Odpověz *Ne*, výběr relace slouží jen validaci.
+- Nastavení cestuje se souborem `.rapidstart`. XML nese `ValidateField="1"` jen u validovaných polí a `SkipTableTriggers`
+  u každé tabulky.
+- Starší balíček `KONFIGURATOR` v Alumistr BC-TEST (24 tabulek) má validaci všude a triggery nepřeskakuje. Chybí mu CNC a
+  obsahuje 63143 / 63156 / API sessions, k importu se nehodí.
+- Jak validaci rychle vypnout u stovek polí: 12.3 v `bc-al-workflow.md` (hromadné přepnutí checkboxu v gridu).

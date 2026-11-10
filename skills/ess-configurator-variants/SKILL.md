@@ -27,7 +27,7 @@ a diagnostické postupy jsou v souboru. Vyčleněno z `ess-configurator-notes.md
    Když se Read ořízne, dočti přes `offset` — částečně přečtený soubor
    = nepřečtený.
 2. Sesterské skilly: **`ess-configurator`** (systémové parametry, vzorce, strom podmínek,
-   diagnostika — C1–C4, C6, C12, C15, C17; úkol přes hodnoty parametrů a vzorce ho
+   diagnostika — C1–C4, C6, C12, C15, C17, C18; úkol přes hodnoty parametrů a vzorce ho
    potřebuje skoro vždy) a `ess-configurator-extensions` (napojení COALU / COZLK — C7–C10).
 3. Obecná AL pravidla platí dál: `bc-al-style`, `bc-al-data` (2.6c filter groups),
    `bc-al-ui`, `bc-al-blanket` (5.x21 sleva po změně množství), u netriviální funkčnosti
