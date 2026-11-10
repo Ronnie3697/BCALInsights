@@ -16,7 +16,7 @@ Obsahuje:
 - **3.6i** Report dokladu pro tělo emailu z vlastního kódu archivuje podruhé (`Mail Management` bind)
 - **3.6j** Programové účtování staršího dokladu: subscriber přepíše zúčtovací datum na WorkDate (Essence Distribution) — nastav WorkDate
 - **3.6k** Platba / refundace zákazníka z kódu přes `Gen. Journal Line`: zákazník s vlastním plátcem = Confirm → `SetHideValidation(true)`
-- **3.6l** Výstup a kapacita výroby z kódu: `Validate(Type)` maže `No.`, zmetky na výstupním řádku, tiché atomické účtování přes manuální bind `Item Jnl.-Post.OnBeforeCode`, `Increment Batch Name`
+- **3.6l** Výstup a kapacita výroby z kódu: `Validate(Type)` maže `No.`, zmetky na výstupním řádku, tiché atomické účtování přes manuální bind `Item Jnl.-Post.OnBeforeCode`, `Increment Batch Name`, řádek spotřeby z kódu ztrácí dimenze zakázky po `Validate("Location Code")` (`CreateProdDim`)
 
 ## 3. Event Subscribery — propagace polí (3.5–3.6f)
 
@@ -655,6 +655,21 @@ ship jen část řádků → `PostSalesDocument(SalesHeader, false, true)` musí
 
 (2026-10-23, prod-em-kiosk-bc 61658, odvod zmetků na kiosku; zdroje w1-28 `ItemJournalLine.Table.al`, `ItemJnlPost.Codeunit.al`,
 `ItemJnlPostBatch.Codeunit.al`, `ItemJnlPostLine.Codeunit.al`, `InventoryAdjustment(Handler).Codeunit.al`, ověřeno v BC-DEV 28.5.)
+
+**Řádek deníku spotřeby skládaný z kódu: `Validate("Location Code")` umí zahodit dimenze výrobní zakázky.**
+`Item Journal Line."Location Code"` OnValidate volá `CreateDimFromDefaultDim(FieldNo("Location Code"))` **vždy**, i při stejné
+hodnotě. Když má lokace výchozí dimenzi s hodnotou (`DimensionManagement.IsDefaultDimDefinedForTable`: tabulka 14, `No.` = kód
+lokace nebo prázdné), `CreateDim` přepíše `Dimension Set ID` jen výchozími dimenzemi zboží / prodejce / lokace
+(`InheritFromDimSetID = 0`) a dimenze z `CreateProdDim` (zakázka + řádek + komponenta) zmizí. Bez výchozí dimenze lokace se nic
+nestane, takže chyba je vidět jen u některých lokací. Standard `Production Journal Mgt.InsertConsumptionItemJnlLine` proto hned
+po lokaci dělá `Validate("Dimension Set ID", ProdOrderComp."Dimension Set ID")` a teprve pak `Order Line No.` /
+`Prod. Order Comp. Line No.`. Samotné pořadí validací nestačí: `CreateProdDim` běží jen při **změně** hodnoty a `Validate("Item No.")`
+u spotřeby umí řádek zakázky i komponentu nastavit dřív (`FindProdOrderComponent` → `CopyFromProdOrderComp`). Ve vlastním kódu
+proto po lokaci a přihrádce zavolej veřejné `ItemJournalLine.CreateProdDim()` (tableextension `Mfg. Item Journal Line`). Symptom
+při účtování: „Vyberte Kód hodnoty dimenze pro Kód dimenze X pro Finanční účet Y" z `Inventory Posting To G/L.CheckGenJnlLine`.
+(2026-11-10, prod-em-cuttingPlan-bc větev 67545-CuttingPlanV2, `Consumption Posting CUEBS.InsertJournalLine`; mechanismus ověřen
+ve zdrojích w1-28 `ItemJournalLine.Table.al`, `MfgItemJournalLine.TableExt.al`, `MfgItemJournalMgt.Codeunit.al`,
+`ProductionJournalMgt.Codeunit.al`, `DimensionManagement.Codeunit.al`; na datech incidentu zatím nepotvrzeno.)
 
 ### 3.6m Vlastní pole účtované faktury plněné z položek zákazníka (stav úhrady) — Sales-Post drží hlavičku ve vlastní instanci
 
