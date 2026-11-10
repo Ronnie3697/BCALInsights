@@ -5,7 +5,7 @@
 > Načítej, když řešíš: vlastní pole na Sales/Purchase Header/Line a jejich cestu do archivu, účtovaných
 > dokladů, kopie dokladu a obnovy z archivu (TransferFields, Blob + CalcFields, částečné účtování a undo,
 > `Validate("No.")` → `Init()`), kontroly dokladu před účtováním a Job No. na dodávce vs. faktuře; výstup a kapacitu
-> výroby účtované z kódu (3.6l).
+> výroby účtované z kódu (3.6l); způsob platby na dokladu z integrace bez `Validate` (3.6n).
 >
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y". Obecné subscriber patterny
 > (3.1–3.4, 3.7–3.9) zůstávají v `bc-al-data.md`.
@@ -17,6 +17,7 @@ Obsahuje:
 - **3.6j** Programové účtování staršího dokladu: subscriber přepíše zúčtovací datum na WorkDate (Essence Distribution) — nastav WorkDate
 - **3.6k** Platba / refundace zákazníka z kódu přes `Gen. Journal Line`: zákazník s vlastním plátcem = Confirm → `SetHideValidation(true)`
 - **3.6l** Výstup a kapacita výroby z kódu: `Validate(Type)` maže `No.`, zmetky na výstupním řádku, tiché atomické účtování přes manuální bind `Item Jnl.-Post.OnBeforeCode`, `Increment Batch Name`, řádek spotřeby z kódu ztrácí dimenze zakázky po `Validate("Location Code")` (`CreateProdDim`)
+- **3.6n** Způsob platby na dokladu, jehož platby účtuje vlastní kód: přiřazením, ne `Validate` (protiúčet → druhé vyrovnání, Cash Desk CZP → pokladní doklad), CZL QR dotaz při vydání
 
 ## 3. Event Subscribery — propagace polí (3.5–3.6f)
 
@@ -717,3 +718,30 @@ cust-soitron-bc 66196 / 67562, 2026-11-05, zdroj w1-28 `SalesPost.Codeunit.al`, 
   (`IsReversedByUnapplication`); `OnAfterModify` subscriber by to řešil až druhým přepočtem. Zdroj: raw.githubusercontent StefanMaron
   `MSDyn365BC.Code.History/w1-28/BaseApp/Source/Base Application/Finance/GeneralLedger/Posting/GenJnlPostLine.Codeunit.al`.
   (2026-11-05, cust-soitron-bc build 29290, `UnappliedPaymentMakesInvoiceUnpaidAgain`: Expected <> Actual <01/27/28>.)
+
+### 3.6n Způsob platby na dokladu, jehož platby účtuje vlastní kód — přiřazením, ne `Validate` (protiúčet, CZ pokladna)
+
+Doklad z pokladny / e-shopu, kde platby účtuje integrace sama (řádky finančního deníku vyrovnané na zaúčtovanou fakturu), má
+nést *Kód způsobu platby* jen jako údaj (HOTOVĚ, KARTA). `SalesHeader.Validate("Payment Method Code", X)` ale převezme
+i chování způsobu platby:
+
+- **Base** (w1-28 `SalesHeader.Table.al` pole 104): `"Bal. Account Type/No." := PaymentMethod."Bal. Account …"`.
+  `Sales-Post` (ř. ~1263) a `Sales-Post Invoice` (ř. ~746) pak podle `SalesHeader."Bal. Account No."` zaúčtují
+  vyrovnání → faktura uhrazená při účtování **podruhé** vedle plateb integrace.
+- **Cash Desk CZP** (`Sales Handler CZP.UpdateCashDeskOnAfterPaymentMethodValidate`, `OnAfterValidateEvent` pole) dosadí
+  `Cash Desk Code CZP` + `Cash Document Action CZP` z karty způsobu platby → `CreateCashDocumentOnAfterFinalizePostingOnBeforeCommit`
+  založí / vydá / zaúčtuje **pokladní doklad**.
+- Účtování samotný kód nečte: jde jen přes `Gen. Journal Line.CopyFromSalesHeader` do `Cust. Ledger Entry."Payment Method Code"`
+  a `TransferFields` na zaúčtovanou fakturu.
+
+**Vzor:** nejdřív `Validate("Payment Method Code", '')` (smaže protiúčet a pokladnu, které přinesla karta zákazníka; CZP subscriber
+při prázdném kódu validuje `Cash Desk Code CZP` na prázdno), pak `SalesHeader."Payment Method Code" := Kód` s komentářem proč.
+Způsob platby s vlastním protiúčtem / pokladnou pak v mapování nevadí. Ruční změna na nezaúčtovaném dokladu už jde přes `Validate`
+(stránka) — to je mimo kód integrace.
+**CZL navíc při vydání** (`Release Sales Document.OnCodeOnAfterCheck` → `CheckPaymentQRCodePrintIBANCZL`): faktura se způsobem platby
+s *Tisknout QR platbu* (a zapnutým tiskem QR v nastavení prodeje) bez IBAN = `Confirm` přes `ConfirmManagement.GetResponse(…, false)`
+→ odpověď Ne = `Error('')`; jen při `GuiAllowed()`, v Job Queue se přeskočí.
+Test: způsob platby z `LibraryERM.CreatePaymentMethodWithBalAccount` → zaúčtovaná faktura nese kód, `"Bal. Account No."` prázdný,
+na protiúčet způsobu platby `Assert.RecordIsEmpty(GLEntry)`, položka zákazníka zavřená platbou integrace.
+(2026-11-10, prod-ess-dotykackaConnector-bc PBI 63075, `Dotykacka Receipt Doc. DCEBS.InitHeader`; zdroje Base App 28.5,
+Cash Desk CZP 28.1, CZL 28.5; test zkompilovaný, běh v kontejneru zatím ne.)

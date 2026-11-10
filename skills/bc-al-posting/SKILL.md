@@ -1,7 +1,7 @@
 ---
 name: bc-al-posting
 description: >-
-  BC/AL propagace vlastních polí do účtovaných dokladů, archivu a kopií + účtování z kódu (BC, 3.5–3.6l):
+  BC/AL propagace vlastních polí do účtovaných dokladů, archivu a kopií + účtování z kódu (BC, 3.5–3.6n):
   Sales Line → Item Jnl. Line → ILE / Whse. Shipment, stejné field ID na archive + posted tabulkách
   (TransferFields), total řádku při částečném účtování a undo (OnAfterInitFromSalesLine), AutoFormatExpression
   GetCurrencyCode, Validate("No.") Init() past (archive restore, Copy Document, RecreateSalesLines),
@@ -9,7 +9,7 @@ description: >-
   Copy Document), délky Text (LC0044, PC0020), guard OnModifyRecord jako invarianty, OnAfterCheckSalesDoc vs
   OnBeforeIsApprovedForPosting, Job No. dodávka vs faktura, dvojí archivace při emailu (Mail Management),
   WorkDate při účtování z kódu, deník výstupu a kapacity výroby z kódu (Validate(Type) maže No., zmetky, tiché
-  atomické Item Jnl.-Post přes manuální bind OnBeforeCode). Načti u polí na dokladech, postingu, archivace,
+  atomické Item Jnl.-Post přes manuální bind OnBeforeCode), způsob platby bez Validate (protiúčet, pokladna CZP). Načti u polí na dokladech, postingu, archivace,
   kopie a emailu dokladu.
 user-invocable: true
 ---
