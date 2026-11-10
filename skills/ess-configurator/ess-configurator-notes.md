@@ -512,14 +512,16 @@ připojeného podstromu na root rodiče; (2) evaluátor ať kořen odvozuje ze s
 > 2026-11-10, Alumistr BC-TEST (Alumistr SE), balíček `CLAUDE_CONFIGURATOR` (COEBS 28.0.41, COALU 28.0.81). Mechaniku apply
 > jsem ověřil ve zdrojáku `Config. Package Management` / `Config. XML Exchange` (w1-28). Import do cíle zatím nikdo nezkoušel.
 
-**Tabulky (25):** COEBS 63140–63142, 63144–63155, šablony 63158–63160, **63164** čítač čísel parametrů (bez něj cíl znovu
-použije čísla smazaných parametrů, C15) a 63166 filtry Vyhledání. Z COALU CNC tabulky 52008–52012 (podmínky, řádky, pozice,
+**Tabulky (26):** COEBS 63140–63142, 63144–63156 (včetně 63156 `Configurator Setup`), šablony 63158–63160, **63164** čítač
+čísel parametrů (bez něj cíl znovu použije čísla smazaných parametrů, C15) a 63166 filtry Vyhledání. Z COALU CNC tabulky 52008–52012 (podmínky, řádky, pozice,
 strany, makra). Pole tableextensions (COALU na řádcích BOM / Routing / SL) jdou automaticky se svou tabulkou.
 **Záměrně vynecháno:**
 - 63143 `Variant Configuration` – hodnoty variant jsou bez `Item Variant` a kusovníků ATEBS v cíli k ničemu.
-- 63156 `Configurator Setup` – import je upsert, přepsal by číselné řady cíle.
 - 63161 / 63162 – runtime sessions API.
 - 63157 / 63163 / 63165 – mají `TableType = Temporary`.
+
+`Configurator Setup` je v balíčku na přání uživatele. Je to jediný záznam a import ho v cíli přepíše, včetně číselných řad
+konfigurací a šablon. Když má cíl vlastní řady, smaž před importem řádek 63156 z balíčku.
 
 **Nastavení pro import:**
 - Apply jede ve dvou průchodech. Nejdřív se do všech tabulek vloží záznamy jen s PK poli, pak se doplní ostatní pole a
@@ -529,14 +531,16 @@ strany, makra). Pole tableextensions (COALU na řádcích BOM / Routing / SL) jd
 - `OnValidate` se řídí příznakem `Validate Field` u každého pole (`EvaluateTextToFieldRef(…, Validate)`), u PK polí už v prvním
   průchodu. Přidání tabulky zapne *Zahrnout* i *Ověřit* u všech polí. Hromadná akce na vypnutí není: *Nastavit zahrnuto*
   validaci zase zapne.
-- U konfigurátoru validace import rozbije:
-  - `No.` definice zavolá `TestManual` číselné řady.
-  - `Status` spustí certifikaci nad řádky, které jsou zatím prázdné.
-  - `Line Type` textového vzorce přidělí nové `Expression No.`.
-  - `Parameter Type` maže hodnoty.
-  - Vazby potomků spustí `CheckChildLink`.
+- U konfigurátoru validace import rozbije (těla triggerů ověřena v COEBS master a76683f):
+  - `No.` definice: `NoSeries.TestManual("Configuration Nos.")` a vymaže `No. Series`.
+  - `Item No.` definice: `Item.Get` spadne, když zboží v cíli chybí, a `Item Description` přepíše popisem cílového zboží.
+  - `Parameter Type`: při změně typu nuluje `Has Default Value`. Když typ není *Vyhledání v tabulce*, smaže filtry Vyhledání
+    (`DeleteParameterFilters`).
+  - `Line Type` textového vzorce přidělí nové `Expression No.` (C4).
+  - Vazby potomků spustí `CheckChildLink` (C15).
   - K tomu `OnAfterValidateEvent` subscribery cizích appek.
-  Vlastní `OnValidate` má 87 z ~450 polí, takže je vypnuté u **všech** polí.
+  - `Status` definice žádný `OnValidate` nemá.
+  Vlastní `OnValidate` má 86 z 453 polí balíčku, takže je vypnuté u **všech** polí.
 - Bez validace nic nehlásí ani *Ověřit balíček*, protože relace se kontrolují jen u polí s `Validate Field`. Kmenová data proto
   musí v cíli existovat: zboží, pracovní centra / TNG, MJ, číselné řady a stejné verze COEBS / COALU. Pozor na
   `Lookup Param. Filter."Attribute ID"`: je to celočíselné ID atributu, v jiné databázi může patřit jinému atributu.
@@ -548,4 +552,6 @@ strany, makra). Pole tableextensions (COALU na řádcích BOM / Routing / SL) jd
   u každé tabulky.
 - Starší balíček `KONFIGURATOR` v Alumistr BC-TEST (24 tabulek) má validaci všude a triggery nepřeskakuje. Chybí mu CNC a
   obsahuje 63143 / 63156 / API sessions, k importu se nehodí.
+- ⚠️ Akce *Pole* na řádku balíčku znovu volá `InitPackageFields`. Pole, která přibyla s updatem appky, se tak přidají se
+  zapnutou validací. Před každým exportem zkontroluj, že *Počet polí pro ověření* je u všech řádků 0.
 - Jak validaci rychle vypnout u stovek polí: 12.3 v `bc-al-workflow.md` (hromadné přepnutí checkboxu v gridu).
