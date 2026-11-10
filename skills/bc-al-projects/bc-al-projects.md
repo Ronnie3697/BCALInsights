@@ -196,7 +196,12 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   sedí: nákupní dobropis zaúčtuje zápornou spotřebu a `Remaining Qty.` řádku plánování se vrátí (`Use` se záporným množstvím),
   plně vyfakturovaná objednávka je smazaná (`Purchase Order Exists EPEBS` = false). Fix: otevřené Credit Memo / Return Order
   řádky a účtované dobropisy množství přičítají (dobropis z *Get Return Shipment Lines* se přeskočí — vratka ho ještě nese),
-  stejně jako IMEBS `GetJPLQuantity` na prodeji. Příznak „Vytvořit NO" se po přenosu maže, pro novou objednávku ho uživatel
+  stejně jako IMEBS `GetJPLQuantity` na prodeji. ⚠️ Na nákupním dobropisu / vratce jsou `Quantity` i `Qty. to Invoice` **kladné**
+  (znaménko se otáčí až při účtování), takže „odečti Qty. to Invoice všech řádků" dobropis neuvolní. A `Qty. to Invoice` je
+  špatná veličina i pro objednávky (0 při `Qty. to Receive` = 0 → plán se nabídne k objednání podruhé; faktura z *Get Receipt
+  Lines* se započte dvakrát) → otevřené řádky = `Quantity − "Quantity Invoiced"`, fakturační řádek s `Receipt No.` přeskočit
+  (opraveno tamtéž 2026-11-10, testy `GetJPLQuantity_OpenOrderWithNothingToReceive_…`, `…OpenInvoiceFromReceiptLines…`).
+  Příznak „Vytvořit NO" se po přenosu maže, pro novou objednávku ho uživatel
   zaškrtne znovu. `LibraryPurchase.PostPurchaseDocument` číslo faktury dodavatele nedoplní (jen `CreatePurchHeader`) → objednávce
   z reportu nastav `Vendor Invoice No.` sám; `LibraryWarehouse.CreateLocation` nemá inventory posting setup → pro účtování
   `CreateLocationWithInventoryPostingSetup`. (2026-11-10, prod-ep-projectBase-bc `features/salesQuotes`, testy `GetJPLQuantity_*`
