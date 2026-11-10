@@ -561,6 +561,9 @@ bez ceníku (`IsPriceUpdateNeeded`, ruční sleva) včetně hromadných objedná
   Whse. Jnl. jinou chybou).
 - Diagnostika: stav ber v **base MJ per Item + Variant + Location** (ILE `Open=true, Positive=true`,
   minus rezervace) a porovnej s `Quantity (Base)` řádku deníku, ne s Quantity v MJ řádku.
+- Položka s `Job Purchase = true` (nákupní doklad s projektem) má filtr užší: navíc `Job No.` + `Job Task No.` +
+  `Document Type` + `Document No.` → nákupní vratka s projektem se bez `Applies-to Entry` na běžnou zásobu nevyrovná,
+  i když zboží skladem je (5.x26 v `bc-al-projects.md`).
 - ⚠️ `Item Journal Line.Validate("Unit of Measure Code")` **přepíše `Qty. per Unit of Measure`**
   hodnotou z Item Unit of Measure (`UOMMgt.GetQtyPerUnitOfMeasure`). Vlastní qty-per (např. délkové
   kusy komponenty z Cutting Planu) přiřazuj **až po** Validate UoM a pak znovu `Validate(Quantity)`,

@@ -416,6 +416,19 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   `Job Post-Line.OnBeforeCheckItemQuantityPurchCredit(var PurchaseHeader, var PurchaseLine, var IsHandled)` → `IsHandled` pro Skip projekt
   s navázaným rozpočtovým řádkem (vlastní kontrola `CheckReturnedQtyOnInventoryForProject` zůstává). `Purch. Post Invoice` má ještě vlastní
   `PurchPostInvoiceEvents.RunOnBeforeCheckItemQuantityPurchCredit`, ale event na `Job Post-Line` stačí.
+- ⚠️ **Položka vratky s projektem nese `Job Purchase = true` a vyrovnává se JEN na položky téhož projektu a téhož dokladu** (w1-28
+  `Item Journal Line.CopyFromPurchLine`: `if "Job No." <> '' then "Job Purchase" := true`; `Item Jnl.-Post Line.
+  ApplyItemLedgEntrySetFilters`: u `"Job Purchase"` navíc filtr `Job No.` + `Job Task No.` + `Document Type` + `Document No.`). Standard
+  s tím počítá — před vratkou zaúčtuje kladný reverz spotřeby se stejným číslem dokladu a vratka se vyrovná na něj. Když IMEBS reverz
+  vypne (`IsHandled` u Skip projektu s navázaným řádkem), nemá se vratka bez pevného vyrovnání na co vyrovnat, zůstane otevřená záporná →
+  `VerifyOnInventory` → *„You have insufficient quantity of Item … on inventory."* (jen při `Prevent Negative Inventory`; bez něj projde
+  a nechá otevřenou zápornou položku vedle otevřené příjmové — proto testy v CI prošly). Funguje jen dobropis s `Appl.-to Item Entry`
+  (*Získat účtované řádky pro stornování*; přímý `Get`, filtry se nepoužijí). Ručně pořízený dobropis s projektovými poli padá
+  (X-ESSENCE CRONUS CZ, dobropis 1024, zboží 1018, 2026-11-10 — rozbor ze zdrojáku, na datech neověřeno). Oprava v IMEBS: pro vratku
+  Skip projektu s navázaným řádkem `ItemJournalLine."Job Purchase" := false` v `Purch.-Post.OnBeforeItemJnlPostLine` (var, před
+  `RunItemJnlPostLine`; `Job No.` na položce zůstává) + test se zapnutým `Inventory Setup."Prevent Negative Inventory"`. Zatím
+  neimplementováno. Po opravě zůstane legitimní stejná hláška u zboží rezervovaného pro prodejku (vyrovnat jde jen
+  `Remaining Quantity − Reserved Quantity`).
 - **Standard u vratky s projektem** (`Purch.-Post.PostItemJnlLine`, w1-28: `PostJobConsumptionBeforePurch := ItemJnlLine.IsPurchaseReturn()`
   → `PostItemJnlLineJobConsumption` běží **před** zaúčtováním položky vrácení, `PurchItemLedgEntryNo = 0`) chce odúčtovat spotřebu z příjmu
   (kladná korekce s projektem + záporná Usage přes `PrepareJobLine`) a bez ní spadne na `Appl.-from Item Entry` — tj. zboží, které projekt
