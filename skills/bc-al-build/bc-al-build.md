@@ -696,7 +696,7 @@ Zachyceno 2026-09-30, prod-ess-configurator-bc release 15114 (28.0.28), stage �
 
 ### 7.23 Lokální testovací kontejner — autotesty před merge, bez admina (BcContainerHelper)
 
-PR buildy testy nespouští (7.15), takže první běh nových testů je až na masteru. Lokální Docker kontejner
+PR buildy testy nespouští (7.15), takže první běh nových testů je až na masteru — ⚠️ **neplatí pro každé repo**: cust-sonnentor-bc je v PR buildu pouští (PR 9940, buildy 29348 a 29373 nad `refs/pull/9940/merge`: 607 a 608 testů, 2026-11-11; počet ověř MCP `testplan_show_test_results_from_build_id`). Lokální běh po push má smysl dál (výsledek dřív, jiná minor verze BC než CI). Lokální Docker kontejner
 s test toolkitem to obejde: repo se do něj nahraje, otestuje a appky se zase odinstalují. **Reprodukuje CI věrně**:
 prod-ess-configurator-bc master eeba4b9 v něm spadl na **stejných 2 testech se stejnými hláškami** jako master build 28617
 a opravená větev prošla (2026-10-05, BC 28.4 cz, BcContainerHelper 6.1.18).

@@ -847,7 +847,7 @@ notes repo má vlastní režim (7.7).
 pusť autotesty. Ať pushujeme větev, která pak nespadne na testech po PR, a zároveň ať se nezdržujeme čekáním na testy po
 každé malé změně."*; pořadí upraveno 2026-10-09: *„Když napíšu push, tak pushni a pak pusť autotesty. Kdyby náhodou vyhořel
 noťas, tak ať je ta větev aspoň online a aktuální."*). Platí pro každý pokyn, který vede k push (`pushni`, `oboje`,
-„commitni a pushni", „pošli to na server"…). PR buildy testy nespouští (7.15 v `bc-al-build.md`), bez toho by nový test
+„commitni a pushni", „pošli to na server"…). PR buildy testy spouštět nemusí (liší se per repo, 7.23 v `bc-al-build.md`), bez toho by nový test
 poprvé běžel až na masteru. Starší znění always-on věty („autotesty před každým push“) se čte stejně — pořadí určuje tahle
 sekce.
 

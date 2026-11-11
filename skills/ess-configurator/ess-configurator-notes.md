@@ -294,8 +294,14 @@ zadání `docs/Configurator - Aritmetika v textových formulích….md`):
     větev `Source Parameter Line No.`, která se sleduje.
   - Stejná díra: operandy řádku `Formula` (`{= …}`) ve výchozím textu leží v `Action Formula Line` s `Field Type = Text Expression`,
     ale závislosti filtrují jen `Default Value`.
-  - Oprava (nenaimplementováno): v obou procedurách zrušit filtr `Condition Line No.` u textových vzorců a do závislostí přidat
-    operandy `Text Expression` se `Source Type = Parameter`.
+  - **Opraveno ve větvi `CondTextFormulaDependency`** (worktree `prod-ess-configurator-bc-condtextdep`, 2026-11-11, zatím
+    necommitnuto). V obou procedurách padl filtr `Condition Line No.` u textových vzorců. Závislosti berou `Action Formula Line`
+    s `Field Type` `Default Value|Text Expression`. Testy jsou v `Cascade Dependent Tests` a `Config. Engine Tests`
+    (znovu načtená varianta, Přepočítat, `{= SIRKA * 2}`).
+  - Ověřeno na Alumistr BC-DEV CRONUS CZ (dev COEBS 28.0.41.1, konfigurace `CLAUDE-KOOP`, objednávka 101049). Před opravou
+    zůstal `RAL-2000-MAT` i po Přepočítat, po opravě `RAL-3000-MAT`, `RAL-3000-LESK` a výraz 200 → 300.
+  - Důsledek: parametr se vzorcem jen na jedné podmínce je odvozený celý. Ruční přepis jeho hodnoty změna vstupu i Přepočítat
+    nahradí výchozí hodnotou splněné podmínky, stejně jako u číselných vzorců.
 - ⚠️ **Kopie konfigurace nulovala systémové parametry ve vzorcích** — `TryRemapParamLineNo` přepsal každé
   `Parameter Line No.`, které není v mapě parametrů, na 0; `QUANTITY` (−1) ani CNC `X/Y/Z` tam nejsou → kopie
   `WINGS * QUANTITY` dala `WINGS *` → po trimu operátoru `WINGS` (test čekal „10 KS", přišlo „5 KS"). Platilo
@@ -369,7 +375,10 @@ Ušetří to hádání nad zdrojákem, když řešíš, jestli změna vyžaduje 
 2026-11-04: všude 0 → A/B na nabídkách nejsou z konfigurátoru. Po upgradu na COZLK s 67458 jsou statiky v kódových polích →
 filtr `'CL Parameter A Value COZLK' IS '<>'''''` / `'Parameter A Value COZLK' IS '<>'''''`; ordinál enumu `52410` zůstává
 (je uložený ve vzorcích, nepřečíslovat). **Testovací konfigurace bez číselné řady:** definici založ přes
-editovatelnou `63177` s ručním `No.` (na kartě 63141 je `No.` jen z `Configuration Nos.`); v editoru vzorce do *Hodnota* parametr
+editovatelnou `63177` s ručním `No.` (na kartě 63141 je `No.` jen z `Configuration Nos.`). I ruční `No.` ale chce existující
+záznam `Configurator Setup` (`OnValidate` volá `Get` + `TestManual`). Bez něj karta i 63177 hlásí *„Nastavení konfigurátoru
+neexistuje“*. Prázdný záznam založí otevření stránky **63195** (`InsertIfNotExists`), s prázdnou řadou pak ruční číslo projde
+(Alumistr BC-DEV CRONUS CZ, 2026-11-11); v editoru vzorce do *Hodnota* parametr
 nepiš (chyba „Zadejte platnou číselnou hodnotu…“), vyber ho přes `…`. CRONUS CZ `TEST67458` (1936-S, `IF SIRKA > 0` → CL Parametr A
 = (SIRKA), Výška 1970) dala přes COZLK 28.0.99.0 + PMEBS 28.0.7.6 řádky 1970/800 a nově založený rastr 1970/555. (PBI 67458.)
 
