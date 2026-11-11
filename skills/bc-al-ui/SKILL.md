@@ -1,15 +1,15 @@
 ---
 name: bc-al-ui
 description: >-
-  BC/AL UI patterny stránek (sekce 4): RunModal vs Run, výběr na RoleCenter, OnDrillDown vs OnLookup, ConfirmManagement
-  default, factbox Rec.Reset maže SubPageLink, CaptionClass cache i '3,' popisek, expression control (AL0270), modify()
-  cizí pageextension, smyčka v OnAfterGet*Record, Visible = Rec.pole v pageextension, MultiLine / RichContent / control
-  add-in, procedura se jménem metody Rec (AL0604), LookupMode jen pro čtení, filtr partu z OnOpenPage, DelayedInsert =
-  prázdné SystemId, CurrPage.Update(false) v OnValidate, ListPart přes RunModal pod TestPage, stránka bez SourceTable;
+  BC/AL UI patterny stránek (sekce 4): RunModal vs Run, výběr na RoleCenter, OnDrillDown vs OnLookup, ConfirmManagement, factbox Reset maže SubPageLink, CaptionClass cache i '3,' popisek, expression control (AL0270), modify()
+  cizí pageextension, smyčka OnAfterGet*Record, Visible = Rec.pole, MultiLine / RichContent / control
+  add-in, procedura = metoda Rec (AL0604), LookupMode jen pro čtení, filtr partu z OnOpenPage, DelayedInsert =
+  prázdné SystemId, CurrPage.Update(false) v OnValidate, ListPart RunModal pod TestPage, stránka bez SourceTable;
   phone klient: dlaždice (Brick / DropDown / 5 controlů, sloty), událost add-inu ze schované stránky (aria-hidden/inert),
-  klepnutí na řádek = náhled, CardPageId v režimu zobrazení, ListPart s CardPageId (dědí SubPageView), chyba OnValidate
+  klepnutí = náhled, CardPageId jen zobrazení, ListPart s CardPageId (dědí SubPageView), chyba OnValidate
   jen křížek, InstructionalText, \ v Message, add-in mezera; Rec prázdného listu z filtrů; prázdný výčet (HideValue);
-  kostky (User ID Filter, drill-down, pořadí). Načti u page, partů, kostek a výběrů.
+  kostky (User ID Filter, drill-down, pořadí); víc DownloadFromStream z akce = jen poslední (ZIP). Načti u page,
+  partů, kostek a výběrů.
 user-invocable: true
 ---
 

@@ -930,3 +930,17 @@ prohlížeč to nevyřeší. `CurrReport.Preview()` odliší jen náhled.
 
 (2026-11-06 / 2026-11-10, cust-sonnentor-bc *Disposal Protocol SON* — uživatelé rušili tisk a řádky zůstaly označené. Nasazeno
 jen shození příznaku subscriberem; kompilace ověřená, testy napsané, v klientu ani v kontejneru zatím neběželo.)
+
+### 4.32 Víc `DownloadFromStream` v jedné akci = webový klient doručí jen POSLEDNÍ soubor
+
+Akce, která po sobě zavolá `DownloadFromStream` pro několik souborů (smyčka „jeden soubor na zboží"), v BC web klientu
+**nestáhne všechny**: do *Stažených souborů* dorazí jen ten poslední, bez chyby a bez dotazu prohlížeče na povolení více
+stažení. Že přijde poslední, a ne první, ukazuje na klienta BC (každé další stažení přepíše čekající předchozí), ne na
+blokaci v Chrome. Autotest to neodhalí (download v testu neběží), chytí to jen ruční zkouška.
+
+- Víc souborů z jedné akce doručuj **jako ZIP** (`Data Compression`: `CreateZipArchive` → `AddEntry(InStream, název)` pro
+  každý soubor → `SaveZipArchive(TempBlob)` → jeden `DownloadFromStream`). Jeden soubor klidně bez zipu.
+- Všechny soubory nejdřív sestav a stahuj až nakonec, ať chyba v kterémkoli z nich nepošle uživateli neúplnou sadu.
+
+(2026-11-11, cust-alumistr-bc 62959, BC-DEV BC 29.1, Chrome: tisk CNC z hlavičky VZ se třemi zbožími, dorazil jen třetí
+soubor `Zábradlí Štíhlé 70_80.csv`.)
