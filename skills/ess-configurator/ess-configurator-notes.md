@@ -294,14 +294,32 @@ zadání `docs/Configurator - Aritmetika v textových formulích….md`):
     větev `Source Parameter Line No.`, která se sleduje.
   - Stejná díra: operandy řádku `Formula` (`{= …}`) ve výchozím textu leží v `Action Formula Line` s `Field Type = Text Expression`,
     ale závislosti filtrují jen `Default Value`.
-  - **Opraveno ve větvi `CondTextFormulaDependency`** (worktree `prod-ess-configurator-bc-condtextdep`, 2026-11-11, zatím
-    necommitnuto). V obou procedurách padl filtr `Condition Line No.` u textových vzorců. Závislosti berou `Action Formula Line`
-    s `Field Type` `Default Value|Text Expression`. Testy jsou v `Cascade Dependent Tests` a `Config. Engine Tests`
-    (znovu načtená varianta, Přepočítat, `{= SIRKA * 2}`).
-  - Ověřeno na Alumistr BC-DEV CRONUS CZ (dev COEBS 28.0.41.1, konfigurace `CLAUDE-KOOP`, objednávka 101049). Před opravou
-    zůstal `RAL-2000-MAT` i po Přepočítat, po opravě `RAL-3000-MAT`, `RAL-3000-LESK` a výraz 200 → 300.
-  - Důsledek: parametr se vzorcem jen na jedné podmínce je odvozený celý. Ruční přepis jeho hodnoty změna vstupu i Přepočítat
-    nahradí výchozí hodnotou splněné podmínky, stejně jako u číselných vzorců.
+  - **Opraveno v tasku 67803** (IN-013595), větev `CondTextFormulaDependency` (worktree `prod-ess-configurator-bc-condtextdep`, 2026-11-11). První
+    verze (b943a68): v obou procedurách padl filtr `Condition Line No.`, závislosti berou `Action Formula Line` s `Field Type`
+    `Default Value|Text Expression`.
+  - Code review první verze ukázalo, že ručně napsaný text pod jinou podmínkou (BARVA = NA) pak Přepočítat i změna vstupu
+    smazaly. Kdyby nebyl další parametr, rebuild by se na prázdném zastavil. Uživatel zvolil variantu „platí jen splněná
+    podmínka“:
+    - Přetížení `GetDependentParameterLineNos(…; ParameterValues)` počítá vzorec / kopii na podmínce jen se splněnou podmínkou.
+      Hrana přes zdroj podmínky zůstává, takže přepnutí podmínky se propíše.
+    - `IsDerivationActive(ConfigNo; ParamLineNo; Values)` rozhoduje, jestli odvození parametru platí.
+    - Přepočítat jde po kandidátech v **pořadí řazení** a splnění podmínky posuzuje s hodnotami spočítanými před parametrem,
+      ne se starými. Bez toho by podmínka na odvozeném parametru (`IF COPY = 2`) rozhodovala podle zastaralé hodnoty.
+    - Satisfied cache per hledání = `Dictionary of [Text, Boolean]` s klíči `param|cond` a `param|*`.
+  - Druhé review (747d8e2) ukázalo pasti sekvenčního Přepočítat. Platí obecně pro každý selektivní přepočet:
+    - Kandidáta **deaktivovaného** novými hodnotami smazat, jinak zůstane v bufferu a uloží se do varianty (a `FindExistingVariant`
+      ho počítá → duplicitní varianta). Master to řešil smazáním všech kandidátů + `RebuildMissingParameters` (přeskočí deaktivované).
+    - Přepočítat i kandidáta, jehož odvození platilo **se starými hodnotami** (snímek před smyčkou). Jinak zůstane hodnota spočítaná
+      pod podmínkou, kterou nové hodnoty vypnuly.
+    - Po prvním kandidátovi, který zůstane prázdný, další jen smazat a nestavět. Přestavba po změně hodnoty se na prvním prázdném
+      zastaví. Pokračování by na skrytém parametru bez hodnoty skončilo chybou `VerifyHiddenParameterHasValue` uprostřed Přepočítat.
+    - Vzorec brát jen u parametru svého typu (číselný = Integer/Decimal, textový = Text). `DeleteAllFormulas` při změně typu maže
+      jen vzorce s `Condition Line No.` = 0, ty na podmínkách zůstanou.
+  - Ověřeno na Alumistr BC-DEV CRONUS CZ (dev COEBS 28.0.41.2, konfigurace `CLAUDE-KOOP`, objednávka 101049):
+    - Pod NA přežije `VLASTNI TEXT` změnu vstupu i Přepočítat.
+    - Po návratu na RAL naskočí vzorec.
+    - Ruční přepis pod platným vzorcem Přepočítat vrátí na vzorec, výraz 200 → 400.
+  - Kontejner první verze: 1198/0.
 - ⚠️ **Kopie konfigurace nulovala systémové parametry ve vzorcích** — `TryRemapParamLineNo` přepsal každé
   `Parameter Line No.`, které není v mapě parametrů, na 0; `QUANTITY` (−1) ani CNC `X/Y/Z` tam nejsou → kopie
   `WINGS * QUANTITY` dala `WINGS *` → po trimu operátoru `WINGS` (test čekal „10 KS", přišlo „5 KS"). Platilo

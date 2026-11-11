@@ -19,7 +19,8 @@ Obsahuje:
 - **5.x24** hromadný výběr SN v *Vybrat položky* (Item Tracking Summary 6500) akcí v pageextension; import SN z Excelu na
   nákup / skladovou příjemku (tracking příjemky žije na řádku NO); přejmenování Warranty Date / Package No.
 - **5.x25** zápis / odebrání SN na řádku dokladu z kódu standardní cestou — `Item Tracking Lines.RegisterItemTrackingLines`
-  s delty, `SetBlockCommit`, částečně dodaný řádek; seznam problémů přes temp `Error Message`
+  s delty, `SetBlockCommit`, částečně dodaný řádek; seznam problémů přes temp `Error Message`; kontrola „SN už je jinde"
+  jen nad přidávanými SN (+ prodaná SN z ILE), zámky skladu stránka hlídá, registrace ne; SN + šarže
 
 ## 5. Specifické objekty a API — Item Tracking
 
@@ -482,6 +483,20 @@ stav položek, rezervace / vazby na VZ i odebrání.
   (Base)` celého řádku a `Validate("Quantity (Base)", 1)` spadne na FieldError (|1| < handled). Takový řádek z kódu neměň (vlastní
   kontrola předem), dodaná SN nikdy neodebírej. Stávající SN řádku pro výpočet delt ber z 337 ve všech stavech + dodaná z ILE
   (u Zlomku `Item Tracking Mgt. ZLK.CollectForSalesLine`).
+- ⚠️ **Kontrola „SN už používá jiný řádek / doklad" jen nad PŘIDÁVANÝMI SN.** Dodané SN nese i řádek faktury z *Načíst řádky
+  dodávky* (`CopyHandledItemTrkgToInvLine` → Prospect položka 337, `Positive = false`, 5.x15) a zdvojené SN může existovat
+  i mimo běh akce → kontrola nad všemi SN řádku zastaví celý doklad kvůli řádku, který se nemění. SN dodané z jiného řádku
+  téhož dokladu už v 337 není (handled část je v 336) → přidávané SN porovnej i s položkami zboží: `Entry Type = Sale`,
+  `Item No.` + `Serial No.`, `CalcSums(Quantity) < 0` = prodané (vratka sumu vrátí na 0). Řádky běhu přeskakuj podle klíče
+  typ + číslo dokladu + číslo řádku, ne jen čísla řádku (veřejná procedura může dostat filtr přes víc dokladů).
+- **Sklad:** stránka v `SetSourceSpec` → `SetWarehouseControls` zamkne SN a množství a nastaví `DeleteIsBlocked`, když sledování
+  řídí sklad (`Item Tracking Management.ItemTrkgIsManagedByWhse`: lokace s *Require Pick*, skladové sledování SN, existující
+  skladová dodávka / vyskladnění). Jsou to jen UI guardy — `RegisterItemTrackingLines` / `WriteToDatabase` je ignorují, kód
+  tak změní SN prodejního řádku a skladový doklad zůstane se starými. Když na tom záleží, hlas takový řádek jako problém.
+- **SN + šarže / balík:** odebrání (−1) hledá stávající řádek sledování přes `SetTrackingFilterFromSpec` (SN + prázdná šarže) →
+  řádek se šarží nenajde, vloží nový −1 a `CheckItemTrackingLine` spadne na base Text002 (celý běh se vrátí, ale s base hláškou);
+  přidání založí SN bez šarže. Zboží, jehož `GetItemTrackingSetup(…, Sale, …)` vrací i `Lot No. Required` / `Package No.
+  Required`, hlas jako problém, nebo šarži / balík nes ze stávající položky.
 - **Seznam problémů před zápisem:** temp `Error Message` → `TempErrorMessage.LogMessage(SalesLine, SalesLine.FieldNo(Pole),
   TempErrorMessage."Message Type"::Error, Text)` (Record ID = řádek, stejná hláška se nezdvojí) a pak
   `TempErrorMessage.ShowErrorMessages(false)` (stránka *Error Messages*, nemodálně; `true` = navíc `Error('')`). Logiku dej do
@@ -492,3 +507,6 @@ stav položek, rezervace / vazby na VZ i odebrání.
 **Ověřeno v BC-DEV 2026-11-04:** přidání (+1) i odebrání (−1) SN, stav Prospect na nabídce / Surplus na objednávce, převod
 nabídky na objednávku SN přenese, Error Messages s Record ID řádku. Řádky sledování zboží s SN, které ještě nejsou skladem,
 se při zavření ptají standardním „Nemáte dostatek zboží… Chcete pokračovat?“ — stejně jako ruční zadání, odpověď Ano nic nemění.)
+Kontrola jen přidávaných SN, sklad a SN + šarže: code review 2026-11-11 (nezávislý agent, ověřeno ze zdroje w1-28 —
+`ItemTrackingManagement.CopyHandledItemTrkgToInvLine`, `ItemTrackingLines.Page.al` `SetWarehouseControls` / `RegisterChange`),
+na prostředí neproklikané.
