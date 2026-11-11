@@ -351,7 +351,10 @@ end;
   pokryje právě ten jeden insert) bypass nastaví sám. Test: `LibraryMarketing.CreateCompanyContact` +
   `Contact.SetHideValidationDialog(true)` + `Contact.CreateVendor()` s `[ModalPageHandler]` na `Select Vendor Templ. List`
   (CI firma má víc šablon dodavatele); vypnutý setup = `asserterror` s hláškou „Manual creation … is not allowed". (2026-11-11,
-  `Cust. Vendor Mgt. Test SOI`, jen kompilace — lokální kontejner bez licence.)
+  `Cust. Vendor Mgt. Test SOI`, jen kompilace — lokální kontejner bez licence.) Na prostředí Soitronu navíc běží Essence
+  Financials `SameContactNoLogicEBS` (`Marketing Setup."Use Contact Nos. EBS"`): na tomtéž eventu dá dodavateli **číslo
+  kontaktu** (bez `IsHandled`, standardní insert pokračuje, bypass tedy funguje) a jeho vlastní guard na `Vendor.OnBeforeInsertEvent`
+  pustí jen dodavatele, k jehož číslu existuje kontakt. V CI ta appka není, takže test číslo dodavatele neassertuje.
 - **cust-soitron-bc: `LibrarySales.CreateCustomer` / `CreateCustomerNo` padá na „Manual creation of customers and vendors is not
   allowed. Enable it in Soitron Setup."** — guard `Cust. Vendor Mgt. SOI` čte `Soitron Setup SOI."Allow Manual Cust./Vend. SOI"`
   a v CI DB je setup prázdný (= false). Platí i pro test appku **CDS.W1** (závisí na Soitron Base W1), ne jen Base.W1 — nový test
