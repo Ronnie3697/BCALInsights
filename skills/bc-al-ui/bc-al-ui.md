@@ -942,13 +942,19 @@ blokaci v Chrome. Autotest to neodhalí (download v testu neběží), chytí to 
   každý soubor → `SaveZipArchive(TempBlob)` → jeden `DownloadFromStream`). Jeden soubor klidně bez zipu.
 - Všechny soubory nejdřív sestav a stahuj až nakonec, ať chyba v kterémkoli z nich nepošle uživateli neúplnou sadu.
 - Diakritika v názvech položek: `CreateZipArchive` volá .NET `ZipArchive(stream, Create)` bez kódování, takže
-  ne-ASCII název zapíše v UTF-8 s příznakem UTF-8 v hlavičce položky (Průzkumník Windows i 7-Zip ho čtou).
-  `OpenZipArchive` bez codepage čte přes `Encoding.GetEncoding(0)`, příznak UTF-8 ale vyhraje. `AddEntry` kopíruje
-  stream hned a `SaveZipArchive` archiv disposne, takže `CloseZipArchive` je až po něm.
-  (Volání bez kódování je vidět ve zdroji `DataCompressionImpl` v System Application 28.5. Příznak UTF-8 ověřen lokálně:
-  .NET `ZipArchive` v pwsh / .NET 10 + Python `zipfile`. Zobrazení v Průzkumníku ani BC autotest zatím neověřeny.)
+  ne-ASCII název zapíše v UTF-8 a v hlavičce položky nastaví příznak UTF-8 (bit 11, flags `0x0808`). Průzkumník
+  Windows i 7-Zip podle příznaku název přečtou správně.
+  ⚠️ **Zpětné čtení v BC:** `OpenZipArchive(…)` bez codepage předá `ZipArchive` výchozí stránku
+  (`Encoding.GetEncoding(0)` = ANSI stránka serveru, např. cp1250). **.NET 8, na kterém BC běží, pak příznak UTF-8 ignoruje** a
+  z `Zábradlí` vrátí `ZĂˇbradlĂ­`. .NET 10 už příznak respektuje. ZIP z BC proto čti přes
+  `OpenZipArchive(InStream, false, 65001)`.
+  (Ověřeno 2026-11-11: autotest v BC 28 kontejneru selhal na rozsypaném názvu; replika v .NET 8.0.17 dala flags
+  0x0808 a čtení přes cp1250 nesmysl, přes 65001 správně.) `AddEntry` kopíruje stream hned a `SaveZipArchive`
+  archiv disposne, takže `CloseZipArchive` je až po něm.
+- Příznak UTF-8 se dá v testu ověřit z bajtů: lokální hlavička `PK` 3 4, horní bajt flagů je 8. bajt hlavičky,
+  bit 11 = `(bajt div 8) mod 2 = 1`.
 - Testovatelně: rozhodnutí CSV / ZIP i obsah dej do `internal Build…Download(…; var TempBlob; var FileName): Boolean`.
-  Akce pak jen zavolá `DownloadFromStream`. Test archiv otevře přes `OpenZipArchive(TempBlob, false)` a `GetEntryList`.
+  Akce pak jen zavolá `DownloadFromStream`. Test archiv otevře přes `OpenZipArchive(InStream, false, 65001)` a `GetEntryList`.
   `ExtractEntry(název, TempBlob)` vrací délku v bajtech, ta se dá porovnat s délkou souboru zapsaného do `Temp Blob`.
 
 (2026-11-11, cust-alumistr-bc 62959, BC-DEV BC 29.1, Chrome: tisk CNC z hlavičky VZ se třemi zbožími, dorazil jen třetí
