@@ -206,6 +206,22 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   z reportu nastav `Vendor Invoice No.` sám; `LibraryWarehouse.CreateLocation` nemá inventory posting setup → pro účtování
   `CreateLocationWithInventoryPostingSetup`. (2026-11-10, prod-ep-projectBase-bc `features/salesQuotes`, testy `GetJPLQuantity_*`
   a `CreateNew_LineInvoicedAndCredited_OrdersWholeQuantityAgain`, kompilace čistá, běh v CI.)
+- ⚠️ **Otevřený záznam `Job Planning Line Invoice` prodejní objednávky (IMEBS `CreateTrackingEntryForSalesDocumentLine`) musí nést
+  množství ŘÁDKU objednávky, ne plán** — řádek plánování může být na víc objednávkách (zvýšený plán, znovu dodávané vrácené
+  množství) a `Qty. Transferred to Invoice` (flowfield = Σ `Quantity Transferred` všech typů dokladů) pak přeroste `Quantity`.
+  Co na tom standard (w1-28) shodí: `Sales Line.OnDelete` → `Job Create-Invoice.DeleteSalesLine` (u Order **bez filtru na Document
+  Type**, jen `Document No.` + `Line No.`) → `JobPlanningLine.UpdateQtyToTransfer` → `Validate("Qty. to Transfer to Invoice",
+  Quantity − Transferred)` záporné = *„Qty. to Transfer to Invoice may not be lower than 0 and may not exceed −N"* → **řádek
+  objednávky nejde smazat**; `Job Planning Line.Validate(Quantity)` → *„Quantity may not be lower than Qty. Transferred to
+  Invoice"* (i z přespotřeby, 5.x28). Účtování faktury to nezastaví (`UpdateQtyToInvoice` počítá z `Qty. Invoiced`). Druhá díra
+  téhož: **faktura přes *Získat řádky dodávky* otevřený záznam objednávky nesnižovala** — hledal se pod číslem faktury
+  (`SalesHeader."No."`), objednávku najdeš přes `Sales Shipment Line` (`Shipment No.` + `Shipment Line No.` → `Order No.` +
+  `Order Line No.`); plně vyfakturovaný řádek objednávky maže `Sales-Post` bez triggeru, takže záznam zůstal navždy. A
+  `GetJPLQuantity` na prodeji počítal otevřenou fakturu z *Získat řádky dodávky* podruhé (filtr `Shipment No.` = '' a
+  `Return Receipt No.` = '', stejně jako Σ v 5.x28). Opraveno v prod-ep-itemManagement-bc `features/misc` 2026-11-11 (hlášení
+  testerky: objednávka nešla smazat, „divné množství"), testy `Job SO Quantity Test IMEBS` (`…TrackingEntriesCarryOrderLine
+  Quantities`, `DeleteOrderLine_PlanningLineOnThreeOrders_…`, `InvoiceFromShipmentLines_PartiallyShippedOrder_…`, `Rerun_OpenInvoice
+  FromShipmentLines_…`); kompilace čistá, běh v CI. Stará data (záznamy s plánem místo množství řádku) oprava nepřepočítá.
 
 ### 5.x23 Undo nákupní příjemky s projektem: standard předpokládá zaúčtovanou spotřebu projektu — „Skip Purchase Consumption" (IMEBS) ho shodí
 
