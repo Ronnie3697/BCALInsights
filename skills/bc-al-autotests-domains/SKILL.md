@@ -5,7 +5,7 @@ description: >-
   Status / Sell-to = Confirm, LibraryJob.UseJobPlanningLine rovnou účtuje, default dimenze s Job Task,
   Job Line Type, Copy Document maže Job No.), prodejní a nákupní doklady (částečné účtování doklad vydá,
   TestStatusOpen na nové instanci, undo dodávky bez dialogu a Correction, Quote → Order s číslem nabídky,
-  kontakt z CreateCustomer, jen záporný řádek), Job Queue (Library - Job Queue, TaskScheduler.CanCreateTask
+  kontakt z CreateCustomer, jen záporný řádek, schvalovací workflow NO s podmínkou a schválením bez UI), Job Queue (Library - Job Queue, TaskScheduler.CanCreateTask
   v CI false), výroba (Dynamic Low-Level Code, cyklický BOM, Library - Manufacturing), cust-soitron-bc
   (CreateVendor, Error label), sešit požadavků (Carry Out vlastní batch, Calculate Plan report 699,
   „There is nothing to create", Req. Worksheet TestPage), CZZ záloha s platbou (release, To Pay), párování

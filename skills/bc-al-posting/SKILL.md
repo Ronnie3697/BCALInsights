@@ -1,16 +1,16 @@
 ---
 name: bc-al-posting
 description: >-
-  BC/AL propagace vlastních polí do účtovaných dokladů, archivu a kopií + účtování z kódu (BC, 3.5–3.6n):
-  Sales Line → Item Jnl. Line → ILE / Whse. Shipment, stejné field ID na archive + posted tabulkách
-  (TransferFields), total řádku při částečném účtování a undo (OnAfterInitFromSalesLine), AutoFormatExpression
-  GetCurrencyCode, Validate("No.") Init() past (archive restore, Copy Document, RecreateSalesLines),
-  OnAfterGetUnitCost, Blob hlavičky = CalcFields + subscriber na přenosu (Sales-Post, archiv, Quote → Order,
-  Copy Document), délky Text (LC0044, PC0020), guard OnModifyRecord jako invarianty, OnAfterCheckSalesDoc vs
+  BC/AL pole dokladů → účtované doklady, archiv a kopie + účtování z kódu (3.5–3.6o): Sales Line → ILE /
+  Whse. Shipment, stejné field ID na archive + posted (TransferFields), total řádku při částečném účtování /
+  undo (OnAfterInitFromSalesLine), AutoFormatExpression GetCurrencyCode, Validate("No.") Init() past (archive
+  restore, Copy Document, RecreateSalesLines), OnAfterGetUnitCost, Blob hlavičky (CalcFields + subscriber na
+  každém přenosu), délky Text (LC0044, PC0020), guard OnModifyRecord jako invarianty, OnAfterCheckSalesDoc vs
   OnBeforeIsApprovedForPosting, Job No. dodávka vs faktura, dvojí archivace při emailu (Mail Management),
-  WorkDate při účtování z kódu, deník výstupu a kapacity výroby z kódu (Validate(Type) maže No., zmetky, tiché
-  atomické Item Jnl.-Post přes manuální bind OnBeforeCode), způsob platby bez Validate (protiúčet, pokladna CZP). Načti u polí na dokladech, postingu, archivace,
-  kopie a emailu dokladu.
+  WorkDate při účtování z kódu, výstup / kapacita výroby z kódu (Validate(Type) maže No., zmetky, tiché Item
+  Jnl.-Post), způsob platby bez Validate (protiúčet, pokladna CZP), vlastní podmínka schvalovacího workflow
+  (stav do DB v OnBeforeIsPurchaseApprovalsWorkflowEnabled, schválení v OnBeforeReleasePurchaseDoc). Načti u
+  polí dokladů, postingu, archivace, kopie, emailu a schvalování.
 user-invocable: true
 ---
 
