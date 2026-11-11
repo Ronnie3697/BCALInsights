@@ -424,11 +424,20 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   `VerifyOnInventory` → *„You have insufficient quantity of Item … on inventory."* (jen při `Prevent Negative Inventory`; bez něj projde
   a nechá otevřenou zápornou položku vedle otevřené příjmové — proto testy v CI prošly). Funguje jen dobropis s `Appl.-to Item Entry`
   (*Získat účtované řádky pro stornování*; přímý `Get`, filtry se nepoužijí). Ručně pořízený dobropis s projektovými poli padá
-  (X-ESSENCE CRONUS CZ, dobropis 1024, zboží 1018, 2026-11-10 — rozbor ze zdrojáku, na datech neověřeno). Oprava v IMEBS: pro vratku
-  Skip projektu s navázaným řádkem `ItemJournalLine."Job Purchase" := false` v `Purch.-Post.OnBeforeItemJnlPostLine` (var, před
-  `RunItemJnlPostLine`; `Job No.` na položce zůstává) + test se zapnutým `Inventory Setup."Prevent Negative Inventory"`. Zatím
-  neimplementováno. Po opravě zůstane legitimní stejná hláška u zboží rezervovaného pro prodejku (vyrovnat jde jen
-  `Remaining Quantity − Reserved Quantity`).
+  (X-ESSENCE CRONUS CZ, dobropis 1024, zboží 1018, 2026-11-10 — rozbor ze zdrojáku, na datech neověřeno). **Opraveno v IMEBS
+  (prod-ep-itemManagement-bc `features/misc`, 2026-11-11):** subscriber `Purch.-Post.OnBeforeItemJnlPostLine(var ItemJournalLine,
+  PurchaseLine, …)` — běží před `PostItemJnlLineJobConsumption` i `RunItemJnlPostLine`, až za `OriginalItemJnlLine := ItemJnlLine` — pro
+  `"Job Purchase"` + `IsPurchaseReturn()` (dobropis, vratka i záporný řádek objednávky; poplatky a fakturace dříve vydané vratky mají
+  `Quantity` 0 a neprojdou) + Skip projekt s navázaným řádkem dá `"Job Purchase" := false`; `Job No.` na položce zůstává. `Job
+  Purchase` čte base jen ve filtru vyrovnání, v kopii do ILE a v `Applied Entry to Adjust` (undo příjemky / vratky ho jen nastavují) —
+  jiný vedlejší efekt vypnutí nemá. Testy `ReturnLinkedPurchase_PreventNegativeInventory_*` (`Prevent Negative Inventory = Yes` na
+  kartě zboží, ať test nezávisí na Inventory Setup CI; vratka zavřená + `Item Application Entry` na položku příjmu, u šarže na příjem
+  téže šarže). Kompilace app i test čistá, běh až v CI. Po opravě zůstane legitimní stejná hláška u zboží rezervovaného pro prodejku
+  (vyrovnat jde jen `Remaining Quantity − Reserved Quantity`). Neřešeno: `Undo Return Shipment Line` nastavuje `Job Purchase := true`
+  taky (storno vratky Skip projektu).
+  ⚠️ Stávající testy vratek (`…NotShippedQuantity…`) před opravou procházely s nevyrovnanou vratkou (podle zdrojáku se na ni vyrovnal
+  až `PostPositiveAdjustment` „z jiné zásoby“ a dodávka brala z položky příjmu) — asserty na počet položek a usage to nepoznají. U
+  účtování zboží assertuj i vyrovnání (`Open`, `Item Application Entry`).
 - **Standard u vratky s projektem** (`Purch.-Post.PostItemJnlLine`, w1-28: `PostJobConsumptionBeforePurch := ItemJnlLine.IsPurchaseReturn()`
   → `PostItemJnlLineJobConsumption` běží **před** zaúčtováním položky vrácení, `PurchItemLedgEntryNo = 0`) chce odúčtovat spotřebu z příjmu
   (kladná korekce s projektem + záporná Usage přes `PrepareJobLine`) a bez ní spadne na `Appl.-from Item Entry` — tj. zboží, které projekt
