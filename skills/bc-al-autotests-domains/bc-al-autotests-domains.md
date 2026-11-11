@@ -342,9 +342,16 @@ end;
   i bez stránky, test potřebuje `[ConfirmHandler]` (Reply z globální proměnné, otázku si ulož na assert). (2026-10-02)
 - **cust-soitron-bc: `LibraryPurchase.CreateVendor` / `CreateVendorNo` padá na „Vendors can only be created from a customer using
   the Create Vendor action."** — `Cust. Vendor Mgt. SOI` (SingleInstance) blokuje přímý `Vendor.Insert` při `GuiAllowed()` (v runneru
-  true); `Allow Manual Cust./Vend. SOI` v setupu na to nemá vliv (řídí jen zákazníky). Dodavatele v testu zakládej přes one-shot
+  true); `Allow Manual Cust./Vend. SOI` v setupu přímý insert nepovolí (řídí zákazníky a od 2026-11-11 i cestu z kontaktu, viz
+  níže). Dodavatele v testu zakládej přes one-shot
   bypass: `CustVendorMgt.SetAllowVendorInsert(true); LibraryPurchase.CreateVendor(Vendor); SetAllowVendorInsert(false)` (vzor
   `BusinessUnitAssignTest`). Lokální kompilace to nechytí, až CI. (2026-10-05, build 28636, `QB Buffer Test SOI`.)
+  **Z kontaktu (*Vytvořit jako dodavatele*) to při zapnutém `Allow Manual Cust./Vend. SOI` jde:** subscriber na
+  `Contact.OnBeforeVendorInsert` (base ho volá v `CreateVendorFromTemplate` těsně před `Vend.Insert(true)`, takže one-shot příznak
+  pokryje právě ten jeden insert) bypass nastaví sám. Test: `LibraryMarketing.CreateCompanyContact` +
+  `Contact.SetHideValidationDialog(true)` + `Contact.CreateVendor()` s `[ModalPageHandler]` na `Select Vendor Templ. List`
+  (CI firma má víc šablon dodavatele); vypnutý setup = `asserterror` s hláškou „Manual creation … is not allowed". (2026-11-11,
+  `Cust. Vendor Mgt. Test SOI`, jen kompilace — lokální kontejner bez licence.)
 - **cust-soitron-bc: `LibrarySales.CreateCustomer` / `CreateCustomerNo` padá na „Manual creation of customers and vendors is not
   allowed. Enable it in Soitron Setup."** — guard `Cust. Vendor Mgt. SOI` čte `Soitron Setup SOI."Allow Manual Cust./Vend. SOI"`
   a v CI DB je setup prázdný (= false). Platí i pro test appku **CDS.W1** (závisí na Soitron Base W1), ne jen Base.W1 — nový test
