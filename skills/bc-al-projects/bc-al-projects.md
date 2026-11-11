@@ -216,7 +216,12 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   Invoice"* (i z přespotřeby, 5.x28). Účtování faktury to nezastaví (`UpdateQtyToInvoice` počítá z `Qty. Invoiced`). Druhá díra
   téhož: **faktura přes *Získat řádky dodávky* otevřený záznam objednávky nesnižovala** — hledal se pod číslem faktury
   (`SalesHeader."No."`), objednávku najdeš přes `Sales Shipment Line` (`Shipment No.` + `Shipment Line No.` → `Order No.` +
-  `Order Line No.`); plně vyfakturovaný řádek objednávky maže `Sales-Post` bez triggeru, takže záznam zůstal navždy. A
+  `Order Line No.`). Objednávka vyfakturovaná samostatnou fakturou v systému **zůstává** (`Sales-Post.PostUpdateInvoiceLine` jen
+  zvedne `Quantity Invoiced`; maže ji až dávka *Delete Invoiced Sales Orders*), objednávku fakturovanou z ní samé maže
+  `DeleteAfterPosting` přes `SalesLine.DeleteAll()` bez triggeru — v obou případech musí otevřený záznam snížit účtování samo.
+  Ověřeno na datech X-ESSENCE (2026-11-12): plán 10, záznam objednávky 10 + faktura z dodávek 10 + dobropis −3 = 17 → hláška
+  „…may not exceed −7" při mazání další objednávky. ⚠️ U Skip projektu jde množství řádku objednávky s kontraktem **přepsat
+  z UI** (IMEBS `OnBeforeTestSalesLine` → `Handled`), mimo Skip ho `TestJobPlanningLine` blokuje. A
   `GetJPLQuantity` na prodeji počítal otevřenou fakturu z *Získat řádky dodávky* podruhé (filtr `Shipment No.` = '' a
   `Return Receipt No.` = '', stejně jako Σ v 5.x28). Opraveno v prod-ep-itemManagement-bc `features/misc` 2026-11-11 (hlášení
   testerky: objednávka nešla smazat, „divné množství"), testy `Job SO Quantity Test IMEBS` (`…TrackingEntriesCarryOrderLine
