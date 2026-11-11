@@ -294,7 +294,7 @@ zadání `docs/Configurator - Aritmetika v textových formulích….md`):
     větev `Source Parameter Line No.`, která se sleduje.
   - Stejná díra: operandy řádku `Formula` (`{= …}`) ve výchozím textu leží v `Action Formula Line` s `Field Type = Text Expression`,
     ale závislosti filtrují jen `Default Value`.
-  - **Opraveno ve větvi `CondTextFormulaDependency`** (worktree `prod-ess-configurator-bc-condtextdep`, 2026-11-11). První
+  - **Opraveno v tasku 67803** (IN-013595), větev `CondTextFormulaDependency` (worktree `prod-ess-configurator-bc-condtextdep`, 2026-11-11). První
     verze (b943a68): v obou procedurách padl filtr `Condition Line No.`, závislosti berou `Action Formula Line` s `Field Type`
     `Default Value|Text Expression`.
   - Code review první verze ukázalo, že ručně napsaný text pod jinou podmínkou (BARVA = NA) pak Přepočítat i změna vstupu
