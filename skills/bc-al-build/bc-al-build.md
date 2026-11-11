@@ -947,7 +947,9 @@ ED Item Sales Disponibility 28.0.0, Essence Shopify Connector 28.0.6 (závislost
   automation `…/companies(<id>)/extensions` (`isInstalled`, `publishedAs`) — `get_installed_apps` (admin API) ukazuje jen nainstalované
   a starý build v něm „zmizí" bez hlášky. Odinstalované závislé appky vrať `POST …/extensions(<packageId>)/Microsoft.NAV.install` (204).
   Stažení symbolů z dev endpointu (`…/dev/packages?…&versionText=X`) vrací **nejnovější publikovaný** balíček, ne verzi X → obsah
-  odpublikovaného buildu už nezjistíš.
+  odpublikovaného buildu už nezjistíš. `versionText` = **minimum**: vyšší než nainstalovaná verze → **404** (minimum z `app.json`
+  repa nad stavem prostředí). Dev build pak minima srovnej v kopii `app.json` na nainstalované verze a kompiluj proti symbolům
+  z prostředí — 0 chyb = nic z novější verze nevoláš (2026-11-11, Alumistr TEST2: Opticutter 28.0.10 → 28.0.0, COEBS 28.0.41 → 28.0.39).
   **Dev build neznámého původu → porovnej symboly, než publikuješ.** Token z `d365bc-admin get_microsoft_entra_id_token` (aud
   `api.businesscentral.dynamics.com`) projde i na dev endpoint: `curl -4 -H @hdr "https://api.businesscentral.dynamics.com/v2.0/<tenant>/<env>/dev/packages?publisher=…&appName=…&versionText=<nainstalovaná>&appId=<guid>"`
   vrátí symbol nainstalovaného buildu (`Version` v `NavxManifest.xml` ověř, viz výš). Python diff `SymbolReference.json` (rekurzivně
