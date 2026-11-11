@@ -941,11 +941,12 @@ blokaci v Chrome. Autotest to neodhalí (download v testu neběží), chytí to 
 - Víc souborů z jedné akce doručuj **jako ZIP** (`Data Compression`: `CreateZipArchive` → `AddEntry(InStream, název)` pro
   každý soubor → `SaveZipArchive(TempBlob)` → jeden `DownloadFromStream`). Jeden soubor klidně bez zipu.
 - Všechny soubory nejdřív sestav a stahuj až nakonec, ať chyba v kterémkoli z nich nepošle uživateli neúplnou sadu.
-- Diakritika v názvech položek je OK: `CreateZipArchive` volá .NET `ZipArchive(stream, Create)` bez kódování, takže
+- Diakritika v názvech položek: `CreateZipArchive` volá .NET `ZipArchive(stream, Create)` bez kódování, takže
   ne-ASCII název zapíše v UTF-8 s příznakem UTF-8 v hlavičce položky (Průzkumník Windows i 7-Zip ho čtou).
   `OpenZipArchive` bez codepage čte přes `Encoding.GetEncoding(0)`, příznak UTF-8 ale vyhraje. `AddEntry` kopíruje
   stream hned a `SaveZipArchive` archiv disposne, takže `CloseZipArchive` je až po něm.
-  (Ověřeno ve zdroji `DataCompressionImpl` v System Application 28.5.)
+  (Volání bez kódování je vidět ve zdroji `DataCompressionImpl` v System Application 28.5. Příznak UTF-8 ověřen lokálně:
+  .NET `ZipArchive` v pwsh / .NET 10 + Python `zipfile`. Zobrazení v Průzkumníku ani BC autotest zatím neověřeny.)
 - Testovatelně: rozhodnutí CSV / ZIP i obsah dej do `internal Build…Download(…; var TempBlob; var FileName): Boolean`.
   Akce pak jen zavolá `DownloadFromStream`. Test archiv otevře přes `OpenZipArchive(TempBlob, false)` a `GetEntryList`.
   `ExtractEntry(název, TempBlob)` vrací délku v bajtech, ta se dá porovnat s délkou souboru zapsaného do `Temp Blob`.
