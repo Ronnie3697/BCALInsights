@@ -4,7 +4,7 @@ description: >-
   Essence Configurator — napojení zákaznických rozšíření Alumistr COALU / Zlomek COZLK na další moduly (BC/AL):
   kusovník konfigurované varianty v Alternative Prod. BOM ATEBS a pořizovací / jednotková cena prodejního řádku
   (Variant Code vs Price Variant Code PMALU, Cost Mgt. ALU, OnAfterGetUnitCost, OnAfterUpdateUnitPrice vs cenový
-  vzorec akce, práce z TNG: Alternative Routing ATEBS, TimeFactor, Ceny subdodavatele), pole EM Cutting Plan na řádku kusovníku a komponentě VZ (Qty. of Pcs. validuj poslední, slučování
+  vzorec akce, práce z TNG: Alternative Routing ATEBS, TimeFactor, Ceny subdodavatele), pole EM Cutting Plan na řádku kusovníku a komponentě VZ (V2 od 28.0.10: Quantity per = kusy, Length = kus, slučování
   komponent přes Length, Length v jednotce optimalizace, plocha započtená dvakrát), Parametr A/B akčního řádku →
   EPB Pricing Matrix (ValidateAndUpdateUoM přepíše MJ, HasMatrixUnitOfMeasure, osy jako Code[50] Parameter A/B
   Value PMEBS, FormatAxisValue / TryGetAxisNumber), eventy kopie konfigurace pro zákaznická data řádků akcí
@@ -48,8 +48,9 @@ EM Alternative BOM and Routing (ATEBS).
 - **Vlastní cena řádku vs. cenový vzorec konfigurátoru:** `Sales Line.OnAfterUpdateUnitPrice`
   přežije přepočty base i Pricing Matrix, ale vzorec akce validuje `Unit Price` přímo — bez
   pravidla přednosti se ceny „přetahují".
-- **EM Cutting Plan: `Qty. of Pcs.` validuj jako poslední** (po `Qty. per Piece`), nulu
-  nevaliduj — jinak `Quantity per` zůstane na mezivýsledku.
+- **EM Cutting Plan od 28.0.10 (V2): `Quantity per` = Qty. of Pcs., `Length` = Qty. per Piece,
+  vzorec výpočtu `Length`**, pořadí validací je jedno, chybějící hodnotu na 1 doplní jen volající;
+  jiný vzorec výpočtu řádku = pole se jen uloží. Do 28.0.8 platilo „`Qty. of Pcs.` validuj poslední".
 - ⚠️ **Parametr A/B na prodejním řádku jde přes EPB Pricing Matrix a může přepsat MJ řádku**
   (`ValidateAndUpdateUoM`); od PMEBS 28.0.6 jen u zboží s maticovou MJ.
 - **Kopie konfigurace dává rozšířením jen tři eventy** (`OnAfterCopyBOMActionLine`,

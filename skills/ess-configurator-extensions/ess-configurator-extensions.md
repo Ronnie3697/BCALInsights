@@ -74,7 +74,25 @@ kalkulaci. Konfigurace s `Def. Routing Status` *Nový* (všechny na Alumistr BC-
 
 ## C8. Řádek kusovníku z konfigurátoru a pole EM Cutting Plan (Alumistr)
 
-`Configurator Events COALU.OnBeforeInsertProdBOMLine` přenáší z akčního řádku kusovníku `Qty. of Pcs.` a `Qty. per Piece`
+⚠️ **Od EM Cutting Plan 28.0.10 (CuttingPlanV2, PR 9954, 2026-11-11) platí jiný model — všechno níž o triggerech, pořadí
+validací, `CalcQtyFieldsCUEBS`, `GetLengthTypeConstant` a `Length` komponenty platí jen do 28.0.8.** V2 (`Component Quantity Mgt.
+CUEBS`, model A): řádek kusovníku i komponenta mají **`Quantity per` = Qty. of Pcs., `Length` = Qty. per Piece (v MJ řádku),
+*Calculation Formula* = `Length`**; standard pak spočítá `Quantity` = `Length` × `Quantity per` a `Expected Quantity` = totéž ×
+potřeba VZ. Oba triggery polí volají totéž `UpdateFromPieceFields`, které bere **obě pole z recordu** → pořadí validací je jedno.
+**Nic nedoplňuje na 1:** jen Qty. of Pcs. = `Length` 0 = nulová spotřeba; chybějící hodnotu musí doplnit volající. `UpdateFromPieceFields`
+**skončí bez změny, když vzorec výpočtu není prázdný ani `Length`** (pole se jen uloží) — a COEBS `TransferBOMLineCalcFormula` na řádek
+před `OnBeforeInsertProdBOMLine` přenese vzorec a rozměry řádku akce (sloupce na stránce akce defaultně skryté), u vzorce `Length`
+navíc subscriber CUEBS na `Length` / `Quantity per` (`SyncPieceFieldsFromStandard`) naplní pole kusů z `Quantity per` / `Length`.
+Refresh VZ: standard přenese `Quantity per` / `Length` / vzorec, CUEBS `CopyPieceFieldsFromBOMLine` dopočte pole kusů. Typ délky MJ
+přenos nepotřebuje (jen *Cut Length (mm)* a optimalizace); u zboží s *Optimize Material* chce CUEBS základní MJ na řádku i komponentě.
+`MinValue = 0` na polích kusů záporný výsledek z kódu nezastaví (MinValue se při `Validate` z kódu nekontroluje). `.app` z feedu
+obsahuje zdroják (`src/src/Component/…`) — rychlá kontrola, co přesně běží. **Zlomek COZLK** (větev `67632_CuttingPlanV2`,
+2026-11-11): chybějící hodnota z akce se vzorcem `Length` (`Quantity per` = kusy, `Length` = kus), jinak 1; akce s jiným vzorcem
+(L×W, Weight, Fixed Quantity) a řádek typu *Production BOM* = jen uložit; minimum EM Cutting Plan 28.0.10.0. Testy 52421 kontrolují
+`Quantity per`, `Length`, vzorec, `Quantity` řádku kusovníku a `Expected Quantity` komponenty. **COALU (Alumistr) na V2 zatím
+upravený není** — jeho pořadí „Qty. of Pcs. poslední" a spoléhání na výchozí 1 z CUEBS na V2 nesedí.
+
+**Do 28.0.8:** `Configurator Events COALU.OnBeforeInsertProdBOMLine` přenáší z akčního řádku kusovníku `Qty. of Pcs.` a `Qty. per Piece`
 do polí EM Cutting Plan na `Production BOM Line` (tableext `Production BOM Line CUEBS`, repo `prod-em-cuttingPlan-bc`).
 Oba jejich `OnValidate` přepočítávají `Quantity per`, **každý jinak**:
 
@@ -140,7 +158,8 @@ komponenty VZ z 2026-10-07 mají `Length` 3,5 / 4 (metry). Diagnostika: page ins
 a na *Nastavení výroby* (`Optimaliz. Length Type CUEBS`, `SystemModifiedAt`) — sloupec *Délka* je v gridu komponent skrytý. Tisk CNC
 datové věty (COALU, 62959) bere od 2026-10-27 délku právě odsud (komponenta s `Note ALU` = pozice).
 
-⚠️ **EM Cutting Plan od PR 9737 (#66996, master 2026-10-14, 28.0.6.1) počítá plochu na komponentě VZ dvakrát.**
+⚠️ **EM Cutting Plan od PR 9737 (#66996, master 2026-10-14, 28.0.6.1) do 28.0.8 počítá plochu na komponentě VZ dvakrát**
+(V2 od 28.0.10 výpočet nahradil a MJ ani `Qty. per Unit of Measure` nemění — podle zdroje, na prostředí neověřeno).
 `Prod. Order Component CUEBS.CalcQtyFieldsCUEBS` dřív nastavoval `Quantity per := Qty. of Pcs.` (kusy) a `Qty. per Unit of Measure :=
 Qty. per Piece` (m² na kus). Nově dává `Quantity per := Qty. of Pcs. × Qty. per Piece` (m² celkem), ale `Qty. per Unit of Measure` nechal
 na m² na kus, takže `Expected Qty. (Base)` = m² × m²/kus. K tomu `Item."Rounding Precision" = 1` (sklo v M2) zaokrouhlí `Expected
