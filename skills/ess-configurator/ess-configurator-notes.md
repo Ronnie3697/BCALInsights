@@ -306,6 +306,15 @@ zadání `docs/Configurator - Aritmetika v textových formulích….md`):
     - Přepočítat jde po kandidátech v **pořadí řazení** a splnění podmínky posuzuje s hodnotami spočítanými před parametrem,
       ne se starými. Bez toho by podmínka na odvozeném parametru (`IF COPY = 2`) rozhodovala podle zastaralé hodnoty.
     - Satisfied cache per hledání = `Dictionary of [Text, Boolean]` s klíči `param|cond` a `param|*`.
+  - Druhé review (747d8e2) ukázalo pasti sekvenčního Přepočítat. Platí obecně pro každý selektivní přepočet:
+    - Kandidáta **deaktivovaného** novými hodnotami smazat, jinak zůstane v bufferu a uloží se do varianty (a `FindExistingVariant`
+      ho počítá → duplicitní varianta). Master to řešil smazáním všech kandidátů + `RebuildMissingParameters` (přeskočí deaktivované).
+    - Přepočítat i kandidáta, jehož odvození platilo **se starými hodnotami** (snímek před smyčkou). Jinak zůstane hodnota spočítaná
+      pod podmínkou, kterou nové hodnoty vypnuly.
+    - Po prvním kandidátovi, který zůstane prázdný, další jen smazat a nestavět. Přestavba po změně hodnoty se na prvním prázdném
+      zastaví. Pokračování by na skrytém parametru bez hodnoty skončilo chybou `VerifyHiddenParameterHasValue` uprostřed Přepočítat.
+    - Vzorec brát jen u parametru svého typu (číselný = Integer/Decimal, textový = Text). `DeleteAllFormulas` při změně typu maže
+      jen vzorce s `Condition Line No.` = 0, ty na podmínkách zůstanou.
   - Ověřeno na Alumistr BC-DEV CRONUS CZ (dev COEBS 28.0.41.2, konfigurace `CLAUDE-KOOP`, objednávka 101049):
     - Pod NA přežije `VLASTNI TEXT` změnu vstupu i Přepočítat.
     - Po návratu na RAL naskočí vzorec.
