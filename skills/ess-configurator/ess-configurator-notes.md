@@ -279,6 +279,23 @@ zadání `docs/Configurator - Aritmetika v textových formulích….md`):
   `Action Formula Line`, projdi všechny `Copy*FormulaLines` a ověř, že každý filtr tvůj kontext
   buď mapuje, nebo vyloučí (`SetFilter("Condition Line No.", '<>0')` + config-level kopie zvlášť).
 - Šablony parametrů textové vzorce nenesou → `CopyFormulasToTemplate` řádky `Text Expression` vynechá.
+- ⚠️ **Výchozí text z textového vzorce na PODMÍNCE se po změně vstupního parametru nepřepočítá** (COEBS 28.0.41 = master
+  a76683f; analýza 2026-11-11, Alumistr BC-TEST, konfigurace 0079 / kopie 0103, parametr KOOP-BARVA-TEXT). Textový vzorec
+  výchozí hodnoty se dá dát na parametr (`Condition Line No.` 0) i na podmínku (4fe0683 / PR 9533, 2026-09-18). Závislosti
+  a *Přepočítat* ale pořád filtrují `TextFormulaLine.SetRange("Condition Line No.", 0)`. Platí to pro
+  `Config. Condition Mgt.GetDependentParamLineNosInt` (smazání závislých po změně hodnoty) i pro `GetDerivedParameterLineNos`
+  (akce *Přepočítat*). Číselné vzorce (`Action Formula Line`) podmínku nefiltrují.
+  - Důsledek: parametr `IF BARVA-AL = RAL → {RAL-CISLO:Value} {RAL-POVRCH:Value}` se při první konfiguraci postaví dobře,
+    protože se staví v pořadí. Změna RAL-CISLO ve znovu otevřené variantě ho ale nesmaže a *Přepočítat* ho nebere jako
+    odvozený, takže zůstane starý text. Ten pak teče do textových vzorců kusovníku / TNG / prodejního řádku (barva kooperace).
+  - Engine i ListPart před sjednocením (`eeba4b9^1`) vyplněný řádek nikdy znovu nevyhodnotí, jen smažou závislé. Nejde tedy
+    o regresi sjednocení, nefungovalo to od zavedení vzorců na podmínce.
+  - Obejití zákazníka: vnořené podmínky `IF RAL-CISLO <> '' → IF RAL-POVRCH <> ''`. Podmínka se zdrojem = vstup jde přes
+    větev `Source Parameter Line No.`, která se sleduje.
+  - Stejná díra: operandy řádku `Formula` (`{= …}`) ve výchozím textu leží v `Action Formula Line` s `Field Type = Text Expression`,
+    ale závislosti filtrují jen `Default Value`.
+  - Oprava (nenaimplementováno): v obou procedurách zrušit filtr `Condition Line No.` u textových vzorců a do závislostí přidat
+    operandy `Text Expression` se `Source Type = Parameter`.
 - ⚠️ **Kopie konfigurace nulovala systémové parametry ve vzorcích** — `TryRemapParamLineNo` přepsal každé
   `Parameter Line No.`, které není v mapě parametrů, na 0; `QUANTITY` (−1) ani CNC `X/Y/Z` tam nejsou → kopie
   `WINGS * QUANTITY` dala `WINGS *` → po trimu operátoru `WINGS` (test čekal „10 KS", přišlo „5 KS"). Platilo
@@ -355,6 +372,12 @@ filtr `'CL Parameter A Value COZLK' IS '<>'''''` / `'Parameter A Value COZLK' IS
 editovatelnou `63177` s ručním `No.` (na kartě 63141 je `No.` jen z `Configuration Nos.`); v editoru vzorce do *Hodnota* parametr
 nepiš (chyba „Zadejte platnou číselnou hodnotu…“), vyber ho přes `…`. CRONUS CZ `TEST67458` (1936-S, `IF SIRKA > 0` → CL Parametr A
 = (SIRKA), Výška 1970) dala přes COZLK 28.0.99.0 + PMEBS 28.0.7.6 řádky 1970/800 a nově založený rastr 1970/555. (PBI 67458.)
+
+⚠️ **Posun parametru dolů končí na `Sort Order` 999 999.** `Configuration Parameters COEBS.MoveParameter` (od 7448d6b, 2025-12)
+hledá souseda `SetRange("Sort Order", Current + 1, 999999)`. `OnInsert` parametru ale přiděluje max + 10000 bez stropu, takže
+konfigurace s ~100 a víc parametry (nebo s mezerami po přesunech) má pořadí přes milion. Parametr, jehož dolní soused leží za
+999 999, hlásí „Tento parametr je již na posledním místě.“ Posun nahoru funguje (`0 .. Current - 1`). Alumistr BC-TEST 0103
+(2026-11-11): max 1 080 000, dolů nejde KOOP_HORIZONTAL (990 000) a všechno za ním.
 
 **Sort Order ≠ Line No.** V lookupu operandu vidíš u systémových parametrů sloupec
 *Pořadí řazení* se zápornými čísly (`QUANTITY` −10000, CNC `X1` −20000 … `Z` −19970) —
