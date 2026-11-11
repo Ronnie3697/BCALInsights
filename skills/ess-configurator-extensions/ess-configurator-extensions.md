@@ -233,7 +233,15 @@ z PMEBS → stejný tvar i zaokrouhlení na 5 míst). Pravidla napojení:
   odmítne (jinak by se vzorec tiše smazal a uložil se kód `{WIDTH} * 3`).
 - **A i B z konfigurátoru najednou:** A jen přiřadit (`CheckAndNormalizeParameterAValue`), validovat B — jako PMEBS
   `ReapplyMatrixFields`. `Validate(A)` a pak `Validate(B)` u Equal + zboží bez prodejní MJ založí zbytečný rastr *nové A × staré B*.
-- Číselné vzorce dodají dál jen čísla; kategorie ze vzorce by chtěly textové vzorce (`{PARAM:Value}`) — samostatný PBI.
+- **Vzorec Parametru A/B = textový vzorec** (od 2026-11-11, COALU i COZLK): číselný editor (Action Formula Line 63148) nabízí jen
+  parametry Integer/Decimal (`TableRelation` + `OnLookup` filtr v COEBS) → kategorii z parametru nedá. `...` proto otevírá
+  `TextFormulaEvalMgt.EditTextFormula` (63155) se stejnými klíči a stejným Field Type; kategorie `{BARVA:Value}`, číslo z řádku
+  *Vzorec* (`{= SIRKA / 2}`). Výsledek `EvaluateTextFormula` → `CheckAndNormalizeAxisValue` (čísla invariantně, kód velkými, > 50
+  znaků = chyba). ⚠️ Řádek *Vzorec* má v COEBS výchozí *Decimal Places* 0 (`Format(x, 0, '<Precision,n:n><Standard Format,9>')`)
+  → 62.5 by bylo `63`; rozšíření nastaví 5 subscriberem `OnAfterValidateEvent` pole `"Line Type"` tabulky Text Formula Line podle
+  Field Type (editor plní Field Type už v `OnNewRecord`). Převod starých číselných vzorců je bezeztrátový: operandy textového výrazu
+  jsou tytéž `Action Formula Line` s Field Type *Text Expression* a `Expression No.` (PK je nemá) → nový Text Formula Line typu
+  *Vzorec* (`Insert(true)` přidělí Expression No.) + `Modify` operandů; upgrade s vlastním tagem.
 - **Okno nasazení:** starý COALU nad novým PMALU píše do obsolete polí řádku kusovníku, které nový PMALU nečte → upgrade COALU
   ty řádky dožene (řádek po řádku, jen zbytek z okna). Nasazovat PMEBS → PMALU + COALU naráz; minimum `EPB Pricing Matrix`
   v app.json zvednout až na **první publikovanou** verzi s 67458 (dev buildy `28.0.7.x` v `.alpackages`, 7.11 v `bc-al-build.md`).
