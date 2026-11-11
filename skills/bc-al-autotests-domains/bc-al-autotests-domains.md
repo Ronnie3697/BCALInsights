@@ -228,6 +228,12 @@ NEmodifikuje). Směr částky: odchozí platba dodavateli z výpisu má na řád
   Nabídku pro převod zakládej s unikátním číslem mimo řadu (`Init` + `"No." := <GUID kód>` + `Insert(true)`, v Zlomku
   `Library - Zlomek ZLK.CreateSalesHeader`). (2026-09-29, cust-zlomek-bc master build 28530,
   `Sales Comment Tests ZLK.MakingOrderFromQuoteCarriesComments`.)
+- **Quote → Order a *Archive Quotes*:** při hodnotě *Question* volá `Sales-Quote to Order.ArchiveSalesQuote` →
+  `ArchiveManagement.ArchiveSalesDocument`, který položí `Confirm` a ukáže `Message` → test bez handleru spadne. Při *Always*
+  archivuje bez dotazu (`ArchSalesDocumentNoConfirm`). Testy s `LibrarySales.QuoteMakeOrder` proto v `Initialize` nastavují
+  `"Archive Quotes" := Never` (před `Commit` a `LibrarySetupStorage.Save`). Hodnotu v CI firmě (CRONUS CZ) jsem neověřil,
+  cust-zlomek-bc to tak dělá ve všech testech převodu (`Sales Header Fields Tests ZLK`, `Sales Comment Tests ZLK`, od 2026-11-11
+  i `Position Tracking Tests ZLK` — našel to code review).
 - **`LibrarySales.CreateCustomer` si založí firemní kontakt + Contact Business Relation sám** (Marketing Setup v CRONUS má
   `Bus. Rel. Code for Customers`). Když v testu založíš k tomu zákazníkovi DALŠÍ kontakt přes `LibraryMarketing.CreateCompanyContact`
   + `CreateBusinessRelationBetweenContactAndCustomer` a použiješ ho jako Sell-to Contact dokladu, `Sales Header` OnInsert →
