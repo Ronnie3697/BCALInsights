@@ -375,6 +375,10 @@ Assert.ExpectedErrorCode('Dialog');
   navázanou usage hlásí `Expected 1, Actual 0` s cizím `Ledger Entry No.` — v hlášce jsou vidět jen filtry assertu, ne příčina.
   Lokálně to projde, dokud test helpery nekombinuje; chytil až CI (build 29039, prod-ep-itemManagement-bc). Filtry zužující množinu
   (`Quantity > 0` u příjmů, když existují i vratky stejného `Entry Type`) dávej do helperu hned. (2026-10-22)
+  Totéž obráceně: **test, který po helperu hledá stejnou proměnnou vlastními `SetRange`, musí taky začít `Reset()`.** Filtry
+  helperu (`QB Line ID` + `Line Type`) přežijí a záznam, který mezitím o hledanou hodnotu přišel (řádek plánování, kterému
+  zpracování smazalo `QB Line ID`), už nenajdeš — hláška *„There is no Project Planning Line within the filter"* vypíše i
+  zbytkové filtry, podle nich se to pozná. (2026-11-11, cust-soitron-bc build 29413, `QB Buffer Version Test SOI`.)
 - **`LibraryInventory.CreateItemJournalLineInItemTemplate` / `SelectItemJournalBatchName` bere PRVNÍ list šablony (`FindFirst`)**,
   ne „svůj" list. List, který dřívější test téhož codeunitu založil přes `CreateItemJournalBatch` (náhodné jméno `GU00000xxx`
   z `GenerateGUID` se řadí před výchozí list CI firmy) a přepnul do zvláštního režimu (IMEBS *Project Consumption* = řádek musí
