@@ -257,6 +257,12 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   standardní reverz spotřeby (2 Negative Adjmt. s projektem, Σ 0). Undo v testu bez dialogu jako u dodávky: `PurchRcptLine.
   SetRecFilter()` + `Undo Purchase Receipt Line.SetHideDialog(true)` + `.Run(PurchRcptLine)`; řádek k undo hledej
   `SetRange(Correction, false)`. Kompilace app i test čistá (alc 17 + CodeCop/PTE/UICop/ALCops, ruleset z blobu), běh v CI.
+  ⚠️ **Korekční položka zboží z undo NESE projekt, i když řádek deníku má `Job No.` prázdné** (CI build 29372, 2 testy: *Project No.
+  must be equal to '' in Item Ledger Entry*): řádek s `Correction = true` jde v `Item Jnl.-Post Line.Code` větví `UndoQuantityPosting`
+  → `InitCorrItemLedgEntry(OldItemLedgEntry, NewItemLedgEntry)` **klonuje vyrovnávanou položku** (Job No. / Job Task No. /
+  Job Purchase, sledování…) a jen otočí množství — pole řádku deníku se do korekční položky nedostanou. Platí i pro běžné undo bez
+  projektu (korekce = zrcadlo původní položky). Assert v testu proto `TestField("Job No.", Job."No.")`, ne `''`; že spotřeba
+  neproběhla, ověřuj přes chybějící Negative Adjmt. / JLE, ne přes projekt na korekci. Base App 28.0 i 28.6 stejné. (2026-11-11)
 
 ### 5.x24 Spotřeba projektu z prodejní dodávky (IMEBS `CreateJobLedgerEntryFromSalesLine`): víc příjemek, víc položek zboží na příjemce, tracking
 
