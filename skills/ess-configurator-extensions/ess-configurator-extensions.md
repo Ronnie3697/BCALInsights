@@ -63,8 +63,10 @@ koexistuje, rozhodni pravidlo (vzorec má přednost = subscriber musí poznat ř
 cena (i cena ze vzorce konfigurátoru) po každé změně množství zmizí. Alumistr IN-017919 (PBI 67834, 2026-11-12, větev
 `67834_KeepUnitPriceOnQtyChange`): místo výjimek v `Cost Mgt. ALU` dotaz na úrovni pole — `Sales Line ALU` `modify(Quantity)`:
 `OnBeforeValidate` uloží `Rec."Unit Price"` do globální proměnné tableextension (Before i After běží na téže instanci, vzor COEBS slevy),
-`OnAfterValidate` při `CurrFieldNo = FieldNo(Quantity)` + `GuiAllowed()` + `xRec.Quantity <> 0` + změněné ceně položí Confirm (výchozí *Ne*),
-*Ne* = `Validate("Unit Price", původní)`. Kontrola po celém přecenění pokryje i ceník s min. množstvím, Pricing Matrix i SK pobočku. Cenu
+`OnAfterValidate` při `CurrFieldNo = FieldNo(Quantity)` + `GuiAllowed()` + změněné ceně položí Confirm (výchozí *Ne*),
+*Ne* = `Validate("Unit Price", původní)`. **I první zadání množství na novém řádku** — guard „předchozí množství 0" by nechal tiše
+přepsat cenu napsanou nebo nakonfigurovanou před množstvím (přesně nahlášený případ); daň: ceník s min. množstvím se zeptá už při prvním
+množství. Kontrola po celém přecenění pokryje i ceník s min. množstvím, Pricing Matrix i SK pobočku. Cenu
 zdrojového řádku konfigurátor po změně množství znovu nenastavuje (`RecalcAttachedLinesOnSourceLineModify` přegeneruje jen navázané řádky),
 takže odpověď platí; navázané řádky se ale mažou a zakládají znovu, jejich ruční ceny se ztratí dál. Kompilace s analyzery čistá, testy
 (TestPage + ConfirmHandler, `Sales Line Price Tests ALU`) zatím neběžely.
