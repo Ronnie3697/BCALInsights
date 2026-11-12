@@ -58,6 +58,16 @@ parametru). ⚠️ Konfigurátor ale na akcích prodejního řádku s vzorcem na
 (`SL Action Cond. Mgt. COEBS` — `InitNewSalesLineFromAction` pro nové řádky, `ApplyCurrentLineOverrides` pro zdrojový řádek), mimo
 `UpdateUnitPrice` → vyhraje, kdo byl poslední: vzorec při vytvoření/přepočtu akcí, vlastní cena po další změně množství / MJ. Když obojí
 koexistuje, rozhodni pravidlo (vzorec má přednost = subscriber musí poznat řádek s cenovým vzorcem) — jinak se ceny „přetahují".
+⚠️ **Subscriber, který na `OnAfterUpdateUnitPrice` cenu vždy nastaví, vyřadí standardní ochranu ruční ceny.** Base při přecenění z pole
+`Quantity` bez nalezeného ceníku cenu nepřepíše (`IsPriceUpdateNeeded`, 5.x21 v `bc-al-blanket.md`), jenže event běží i tehdy, takže ruční
+cena (i cena ze vzorce konfigurátoru) po každé změně množství zmizí. Alumistr IN-017919 (PBI 67834, 2026-11-12, větev
+`67834_KeepUnitPriceOnQtyChange`): místo výjimek v `Cost Mgt. ALU` dotaz na úrovni pole — `Sales Line ALU` `modify(Quantity)`:
+`OnBeforeValidate` uloží `Rec."Unit Price"` do globální proměnné tableextension (Before i After běží na téže instanci, vzor COEBS slevy),
+`OnAfterValidate` při `CurrFieldNo = FieldNo(Quantity)` + `GuiAllowed()` + `xRec.Quantity <> 0` + změněné ceně položí Confirm (výchozí *Ne*),
+*Ne* = `Validate("Unit Price", původní)`. Kontrola po celém přecenění pokryje i ceník s min. množstvím, Pricing Matrix i SK pobočku. Cenu
+zdrojového řádku konfigurátor po změně množství znovu nenastavuje (`RecalcAttachedLinesOnSourceLineModify` přegeneruje jen navázané řádky),
+takže odpověď platí; navázané řádky se ale mažou a zakládají znovu, jejich ruční ceny se ztratí dál. Kompilace s analyzery čistá, testy
+(TestPage + ConfirmHandler, `Sales Line Price Tests ALU`) zatím neběžely.
 
 **Práce z TNG v nákladu (Alumistr, task 67244, 2026-11-04, větev `UnitCostFromRouting_67244`, docs `67244_…md`):** `CalculateFromProdBOM`
 přičte k `ComponentMargin` Σ operací `Run Time × Direct Unit Cost × TimeFactor(MJ řádku) / (TimeFactor(MJ centra) × Lot Size)` — jen při
