@@ -295,6 +295,15 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   `app.json` upravený pro kontejner (verze 28.0.18.7, minimum EP Base 28.0.41.0 → 28.0.0.0, protože `bc28` má EP Base 28.0.24.1)
   a v `git status` vypadá jako součást úkolu. Do commitu nepatří (verze 7.8, snížené minimum závislosti) — verzi a minima přepisuj jen
   v kopii (jako krok `epebs`). (prod-ep-itemManagement-bc task 67360, 2026-11-12.)
+  **Zákaznické repo bez vlastního kontejneru ve sdíleném `bc28`** (cust-jiri-bc EUDR, 2026-11-12): Essence závislosti v `.alpackages`
+  zákaznického repa jsou často **jen symboly** (`unzip -l` → 0 souborů `.al`, jen `NavxManifest.xml` + `SymbolReference.json`, desítky KB)
+  → `Publish-BcContainerApp` je nenainstaluje. Zdroj = `git archive origin/master app | tar -x` z lokálního klonu produktového repa
+  (pracovní strom klonu bývá na cizí větvi — nesahat, jen `git fetch`), `Compile-AppInBcContainer` + publish dev endpointem v pořadí
+  závislostí, pak hlavní a test appka. Před tím porovnej `idRanges` se zákaznickými appkami v kontejneru (kolize = install spadne),
+  cizí zákaznické appky na dobu běhu odinstaluj (`try` / `finally` jako výše) a po běhu **všechno nahrané odinstaluj a odpublikuj**
+  (`Sync-NAVApp -Mode Clean` + `Unpublish-NAVApp`), ať produktová appka navíc neovlivní testy cizího projektu. Test appka s `SkipTests`
+  v `app.json` (konvence repa) → do kontejneru kopie s `"preprocessorSymbols": []`. Skript `…\Extensions\bc28\jiri-eudr-tests\
+  run-jiri-eudr-tests.ps1` (kroky `deps,build,run,clean`), 13 testů ~10 min včetně kompilace Essence Distribution Base.
 - AL-Go for GitHub: má built-in test step
 - Lokálně: VS Code task nebo `bc-test-runner` extension
 - **Lokální testovací kontejner pro všechna repa** (Docker + BcContainerHelper bez admina, závislosti z NuGetu, nahrát → testy →

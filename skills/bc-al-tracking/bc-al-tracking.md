@@ -21,6 +21,9 @@ Obsahuje:
 - **5.x25** zápis / odebrání SN na řádku dokladu z kódu standardní cestou — `Item Tracking Lines.RegisterItemTrackingLines`
   s delty, `SetBlockCommit`, částečně dodaný řádek; seznam problémů přes temp `Error Message`; kontrola „SN už je jinde"
   jen nad přidávanými SN (+ prodaná SN z ILE), zámky skladu stránka hlídá, registrace ne; SN + šarže
+- **5.x26** fyzická inventura se šaržemi — lokace s přihrádkami bez skladového sledování nemá `Exp. Invt. Order Tracking`
+  a dokončení objednávky ho nečte; `InsertLine` je holý `Insert()` (PK vč. Package); `Order Line No.` v `Rec.-Finish.OnAfterCode`;
+  vlastní dělení řádku záznamu podle šarží (přebytek, Essence Warehouse `Expected Quantity (Base) EBS`), test bez knihoven
 
 ## 5. Specifické objekty a API — Item Tracking
 
@@ -510,3 +513,44 @@ se při zavření ptají standardním „Nemáte dostatek zboží… Chcete pokr
 Kontrola jen přidávaných SN, sklad a SN + šarže: code review 2026-11-11 (nezávislý agent, ověřeno ze zdroje w1-28 —
 `ItemTrackingManagement.CopyHandledItemTrkgToInvLine`, `ItemTrackingLines.Page.al` `SetWarehouseControls` / `RegisterChange`),
 na prostředí neproklikané.
+
+### 5.x26 Fyzická inventura se šaržemi — `Exp. Invt. Order Tracking`, přihrádky bez skladového sledování, dělení řádků záznamu
+
+- **Očekávané sledování (`Exp. Invt. Order Tracking`, 6026) vzniká jen někde.** `Phys. Invt. Order Line.CalcQtyAndTrackLinesExpected`
+  (w1-28) ho pro řádek s *Use Item Tracking* nejdřív smaže a pak plní: lokace bez *Bin Mandatory* → z položek zboží
+  (`ProcessItemLedgerEntry`), lokace s přihrádkami **a** skladovým sledováním (`PhysInvtTrackingMgt.GetTrackingNosFromWhse`) → ze
+  skladových položek přihrádky (`ProcessWarehouseEntry`). **Lokace s přihrádkami bez skladového sledování šarží → nic** (jen event
+  `OnCalcQtyAndTrackLinesExpectedOnPhysInvtTrackingNotGet`). Vlastní kód, který do tabulky zapisuje, tam tedy obvykle nic nenajde.
+- **`Phys. Invt. Order-Finish` ji v tom samém případě vůbec nečte** (`IsBinMandatoryNoWhseTracking`): rozdíl po šaržích počítá za
+  zboží + varianta + lokace **napříč všemi přihrádkami** — očekávané z položek zboží do data účtování (`UpdateBufferFromItemLedgerEntries`),
+  zaznamenané ze všech řádků záznamu všech řádků objednávky té skupiny — a rozpouští ho do řádků objednávky
+  (`CreateReservationEntries(…, false, "Quantity (Base)")`). Šarže přidělená řádku záznamu tak rozhoduje jen o tom, **které**
+  šarži se přičte / odečte; přihrádku šarže BC z položek zboží nezná (ILE přihrádku nemá).
+- **`ExpInvtOrderTracking.InsertLine(Doc, Line, ItemTrackingSetup, Qty)` je holé `Insert()`** (PK `Order No`, `Order Line No.`,
+  `Serial No.`, `Lot No.`, `Package No.`). Kontrolu existence dělej podle celého PK (i Package) — pořadí parametrů vlastního
+  `Exists…(…, LotNo, SerialNo)` hlídej, prohozené SN/šarže filtrují `Serial No. = šarže` a nenajdou nic. Víc řádků záznamu jednoho
+  řádku objednávky se stejnou šarží (ruční dělení, HU řádky, rozdělení podle šarží) = druhý insert spadne na *already exists* při
+  **dokončení záznamu**; sečti je (`CalcSums("Quantity (Base)")` přes řádky se stejným `Order Line No.` + sledováním) a vlož jednou.
+- **V `Phys. Invt. Rec.-Finish.OnAfterCode` má každý neprázdný řádek záznamu vyplněné `Order Line No.`** (standard ho v cyklu
+  zapsal `Modify()`; Essence Warehouse u HU detailu páruje přes `OnBeforeGetSamePhysInvtOrderLine` i podle HU) → ber řádek
+  objednávky odtud, ne `FindFirst` podle zboží / lokace / přihrádky.
+- **Essence Warehouse a řádek záznamu:** `OnBeforeInsertEvent` nuluje `Expected Quantity (Base) EBS` (DB event běží i při
+  `Insert(false)`) → při zakládání kopie řádku ho nastav **po** insertu + `Modify(false)`; `OnBeforeModifyEvent` přepočítá rozdíl.
+  Pole je `Access = Internal` → appka bez závislosti na EBS ho čte / píše přes `RecordRef` + `Data Type Management.FindFieldByName`
+  (bez EBS v prostředí se nic nestane). Při dělení řádku drž **součet** očekávaného množství (zbytek na poslední díl), jinak EBS
+  rozdíl zkreslí.
+- **Automatické přidělení šarží řádkům záznamu (FIFO) — co se rozbije u přebytku:** přebytek nad všechny volné šarže nedávej na
+  nový řádek se šarží, kterou už řádek dostal (vznikne dvojice řádků se stejnou šarží ve stejné přihrádce → insert výše spadne); přičti
+  ho k šarži (nejmladší) v rámci dělení. Řádek, pro který předchozí řádky vyčerpaly všechnu zásobu, musí dostat záložní šarži,
+  jinak zůstane prázdný a dokončení spadne na kontrole šarže. Šarže zadané ručně / předchozím během na témže záznamu odečti z
+  dostupnosti předem. Dělení počítej v `Quantity (Base)` (ILE `Remaining Quantity` je v základní MJ).
+- **Test bez TestPage a OnPrem knihoven:** `Library - Inventory.CreatePhysInvt*` jsou `[Scope('OnPrem')]` → Cloud test appka si
+  hlavičku objednávky / záznamu založí `Init` + `Insert(false)` (`No.` z `CreateGuid`), řádek záznamu `Validate("Item No.")`
+  (převezme lokaci z hlavičky záznamu) + `Validate(Quantity)` + `Insert(true)`, řádek objednávky `Init` + `Insert(false)`; dokončení
+  `Phys. Invt. Rec.-Finish` (`SetHideProgressWindow(true)` + `Run(Header)` jako statement); zásoba šarží = surové ILE (`Open`,
+  `Remaining Quantity`, `Posting Date` pro FIFO). Výpočet dělení vytáhni do veřejné procedury nad temp `Invt. Order Tracking`
+  (`Qty. Recorded (Base)` / `Qty. Expected (Base)`, `Line No.` = pořadí) a testuj ho napřímo.
+
+(2026-11-12, cust-jiri-bc EUDR `Physical Inventory Mgt. DRJIR` + `Phys. Invt. Lot Tests DRJIR` — 13 testů prošlo v kontejneru bc28
+28.2 cz; zdroj w1-28 `PhysInvtOrderLine.Table.al`, `PhysInvtOrderFinish.Codeunit.al`, `PhysInvtRecFinish.Codeunit.al`,
+`ExpInvtOrderTracking.Table.al`, Essence Warehouse master `PhysicalInventoryEBS.Codeunit.al`.)
