@@ -277,6 +277,17 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   IMEBS s `Line Type IMEBS` (5.x29 v `bc-al-projects.md`) — kontejner měl 28.0.16.0 → AL0118, IMEBS přeložen z `features/misc`.
   Past: `powershell -File skript.ps1 -Steps a,b` předá pole jako **jeden** string → `-contains 'a'` false a skript nic neudělá s exit 0;
   parametr ber jako string a `-split ','`. První plný běh: 370 testů, 0 failů, ~10 min. (cust-soitron-bc PBI 67819.)
+  ⚠️ **Testy produktové appky (EP Base) v `bc28` s nainstalovaným Soitronem = falešné faily:** 131 ze 146 testů EP Base spadlo na
+  *Manual creation of customers and vendors is not allowed. Enable it in Soitron Setup.* (subscriber Soitron Base W1 už při
+  `CreateCustomer` / `CreateVendor`). Na dobu běhu zákaznické appky **odinstaluj bez `-DoNotSaveData`** (`Uninstall-NAVApp -Tenant
+  default -Name … -Version … -Force` v `Invoke-ScriptInBcContainer`, závislé první; data i publikace zůstanou) a ve `finally` je
+  `Install-NAVApp` vrať (základ první) → 146/146, běh ~3 min; IMEBS a TimeSheets nainstalované zůstaly a nevadily. Když v kontejneru
+  už běží build produktové appky ze stejného working tree (`diff -rq` kopie zdrojáků druhé seance proti repu), stačí přeložit a
+  dev endpointem nahrát jen test appku. Úklid test appky nahrané dev endpointem: `UnPublish-BcContainerApp -unInstall
+  -doNotSaveData -doNotSaveSchema` ji odinstaloval a pak spadl na *Object reference not set to an instance of an object* (zůstala
+  publikovaná) → dokonči `Sync-NAVApp -Mode Clean -Force` + `Unpublish-NAVApp -Tenant default -Name … -Version …` v jedné
+  `Invoke-ScriptInBcContainer` relaci. Skript: kopie `run-soitron-tests.ps1` s `$base` pod `C:\ProgramData\BcContainerHelper\
+  Extensions\bc28\` (sdílená složka). (prod-ep-projectBase-bc task 67360, 2026-11-12.)
 - AL-Go for GitHub: má built-in test step
 - Lokálně: VS Code task nebo `bc-test-runner` extension
 - **Lokální testovací kontejner pro všechna repa** (Docker + BcContainerHelper bez admina, závislosti z NuGetu, nahrát → testy →
