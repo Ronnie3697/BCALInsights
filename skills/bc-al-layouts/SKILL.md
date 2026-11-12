@@ -1,20 +1,20 @@
 ---
 name: bc-al-layouts
 description: >-
-  BC/AL layouty reportů (Business Central, sekce 12.1f–12.1i, 12.5): Word layout (.docx) přes MCP bc-word-layout a
-  skilly al-word-layout* (inspect → edit → validate → preview, co server neumí), repeater w15:dataBinding vs
-  w:dataBinding (Word SaveAs2), RDLC tablix sloupce skriptem (TablixCell = sloupec, ColSpan, Hidden, BOM + CRLF),
-  RDLC layout reportextension (alc při kompilaci přegeneruje `<DataSets>` ze symbolů, CI s jinou verzí vendora →
-  „refers to the field", dvě verze appky v .dependencies, sonda sloupce AL0155), Word layout štítků psaný skriptem
-  (namespace vazeb = název reportu, WordMergeDataItem bez repeateru, aliasy #Nav, zip s lomítky, jeden štítek na
-  stránku hRule exact), obrázek z Blob a Essence Document Attachments (SharePoint Drive Item ID → „image stream does
-  not contain valid image"), barcode fonty IDAutomation (C128 / UPCEAN, velikost písma = šířka kódu), GS1-128 / FNC1
-  vlastním encoderem, kontrolní číslice EAN. Načti u Word / RDLC layoutů, reportextension layoutu a štítků s
+  BC/AL layouty a datasety reportů (Business Central, 12.1f–12.1j, 12.5): Word layout (.docx) přes MCP
+  bc-word-layout a skilly al-word-layout* (inspect → edit → validate → preview), repeater w15:dataBinding vs
+  w:dataBinding, RDLC tablix sloupce skriptem (TablixCell, ColSpan, Hidden, BOM + CRLF), RDLC layout reportextension
+  (alc přegeneruje `<DataSets>` ze symbolů, jiná verze vendora v CI → „refers to the field", sonda AL0155), sloupce do
+  datasetu CZL sestav reportextensionem (závislost Core Localization Pack, RoundLoop u 31187, obsolete pole, Ready2Run
+  .app v artifact cache), Word layout štítků skriptem (namespace vazeb = název reportu, WordMergeDataItem, aliasy #Nav,
+  zip s lomítky, hRule exact), obrázek z Blob a Document Attachments (SharePoint Drive Item ID → „image stream does
+  not contain valid image"), barcode fonty IDAutomation (velikost písma = šířka kódu), GS1-128 / FNC1 vlastním
+  encoderem, kontrolní číslice EAN. Načti u Word / RDLC layoutů, datasetu a reportextension sestav a štítků s
   čárovými kódy.
 user-invocable: true
 ---
 
-# BC/AL — Layouty reportů: Word, RDLC, štítky (sekce 12.1f–12.1i, 12.5)
+# BC/AL — Layouty reportů: Word, RDLC, štítky (sekce 12.1f–12.1j, 12.5)
 
 **Zdroj pravdy:** `bc-al-layouts.md` ve stejném adresáři jako tenhle `SKILL.md`
 (adresář skillu = „Base directory" hlášený při načtení; cestu skládej odtud, ne přes `..`). Tenhle skill je jen wrapper —

@@ -3,13 +3,15 @@
 > Vyčleněno 2026-11-12 z `bc-al-workflow.md` (soubor přesáhl 1000 řádků). Původní číslování (12.1f–12.1i, 12.5) zůstalo
 > kvůli odkazům „viz 12.x"; zbytek sekce 12 (build, analyzery, ruleset, runtime errory) je dál v `bc-al-workflow.md`.
 > Načítej, když řešíš: Word layout reportu (ručně i přes MCP `bc-word-layout`), RDLC layout reportu nebo reportextension,
-> štítky s čárovými kódy (barcode fonty, GS1-128).
+> sloupce do datasetu sestavy (i CZ lokalizace, 12.1j), štítky s čárovými kódy (barcode fonty, GS1-128).
 
 Obsahuje:
 - **12.1f** Word layout: opakovací sekce potřebuje `w15:dataBinding`
 - **12.1g** RDLC tablix (Excel export): přidání sloupců skriptem místo Report Builderu
 - **12.1h** RDLC layout reportextension: `alc` při kompilaci přegeneruje `<DataSets>` podle symbolů
 - **12.1i** Word layouty přes MCP `bc-word-layout` + skilly `al-word-layout*`, ne ručním OOXML
+- **12.1j** Sloupce do datasetu CZL sestavy reportextensionem: přímá závislost na CZ lokalizaci, `RoundLoop` u 31187,
+  obsolete pole ze zadání, zdroj sestavy z Ready2Run `.app` v artifact cache
 - **12.5** Word layout štítků generovaný skriptem + barcode fonty / GS1-128 (BC online)
 
 ---
@@ -123,6 +125,38 @@ Od 2026-11-04 je v Claude Code (scope user) MCP server **`bc-word-layout`**
   = tisk v BC sandboxu; validace serveru je ověřená na BC 28, jiné verze neověřené.
 - Když tool chybí v nabídce, server nestartoval (`CONNECT_TIMEOUT`, 7.2 v `bc-al-tools.md`) → restart
   seance / `/mcp` reconnect; `claude mcp list` musí ukázat `bc-word-layout … Connected`.
+
+### 12.1j Sloupce do datasetu CZL sestavy reportextensionem (bez layoutu) — závislost, dataitem, obsolete pole, zdroj sestavy
+
+RFC „přidat pole do datasetu, layout neřešit" (sloupce si pak umístí konzultant do vlastního layoutu). Co platí
+(2026-11-12, cust-alumistr-bc 67569 / 67595 — *Sales Quote CZL* 31186, *Sales Order Confirmation CZL* 31187,
+*Purchase Order CZL* 31185):
+
+- **CZ sestavy jsou objekty appky *Core Localization Pack for Czech*** (`267b59d3-7302-44c5-ba77-c87000380514`) →
+  `reportextension` zkompiluje jen appka, která ji má jako **přímou** závislost (`28.0.0.0`; v Essence CI je v CZ
+  artifactu, z NuGetu se nestahuje). Bere-li se část polí z jiné appky (Pricing Matrix), potřebuje závislost
+  **i ta extension**, ve které je druhý `reportextension` — tranzitivně přes base appku nestačí.
+- **Dataitem řádků:** 31186 a 31185 tisknou přímo z `Sales Line` / `Purchase Line` → `add("Sales Line")`.
+  ⚠️ **31187 dataitem `Sales Line` v `OnPreDataItem` hned `CurrReport.Break()`** a řádky tiskne `RoundLoop` (Integer),
+  který v `OnAfterGetRecord` kopíruje `TempSalesLine` (`Sales-Post.GetSalesLines`) do `"Sales Line"` → sloupce patří do
+  `add(RoundLoop)` a čtou `"Sales Line".<pole>`; sloupec na `Sales Line` by se nikdy nevytiskl. Extension pole v temp
+  kopii jsou (kopie celého záznamu). Vzor i v `prod-ess-configurator-bc/appCZ` (`Sales Order Conf. CZL COECZ`).
+- **Názvy sloupců s affixem** (`Color_SalesLine_ALU`, `ParameterA_SalesLine_PMALU`) — tytéž sestavy rozšiřuje víc appek
+  (Essence Configurator CZ `PrintParametersCOECZ`), stejné jméno sloupce ve dvou rozšířeních by se tlouklo.
+- **Pole ze zadání zkontroluj na `ObsoleteState`.** PBI psané podle starších dat jmenovalo Decimal `Parameter A/B PMEBS` /
+  `PMALU`, které jsou od 67458 `Pending` → `AL0432` warning = Essence CI fail. Do datasetu jdou nástupci
+  `Parameter A/B Value …` (Code[50] — v layoutu text, ne číslo); odchylku napiš do MD ticketu i uživateli.
+- **Popisky přes `FieldCaption`**, ne Labely: resolvuje `CaptionClass` (`PMEBS,A` = *Název par. A* z *Nastavení prodeje
+  a pohledávek*, `1,2,1` = popisek globální dimenze) v jazyce sestavy → žádné nové trans-unity v XLIFF. Data řádku
+  formátuj jako sestava sama (`Format("Requested Receipt Date")`, prázdné datum = prázdný text). Oprávnění
+  reportextension nepotřebuje, `Description` nemá (AL0124, 1.4 v `bc-al-style.md`) → účel `//` komentářem.
+- **Zdroj CZL sestavy lokálně:** `C:\bcartifacts.cache\onprem\<ver>\cz\Applications\CoreLocalizationPackForCzech\Source\
+  Microsoft_Core Localization Pack for Czech.app` je **Ready2Run obal** — NAVX hlavička (40 B) + ZIP, ve kterém je jen
+  `readytorunappmanifest.json`, vnitřní `<guid>_<verze>_<n>.app` a DLL; `src/` ani `SymbolReference.json` tam nejsou a
+  `unzip -l` na `*.al` nic nenajde. Vnitřní `.app` je znovu NAVX + ZIP (offset 40): `src/Src/Reports/*.Report.al`, layouty
+  i `SymbolReference.json`. Postup: `tail -c +41 obal.app > o.zip && unzip o.zip '<guid>_*.app'`, totéž na vnitřní `.app`.
+  Vnitřní `.app` jde rovnou do dočasné package cache jako symbol (`Application="28.4.0.0"` pod umbrellou 28.5 projde, 7.19
+  v `bc-al-build.md`); cust-alumistr `.alpackages` CZ pack vůbec nemá.
 
 ### 12.5 Word layout štítků generovaný skriptem + barcode fonty / GS1-128 (BC online)
 

@@ -27,7 +27,7 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
 | `bc-al-integrations.md` | Shopify Connector, HttpClient na SaaS, SecretText/Isolated Storage, Business Events / Power Automate, vlastní API page pro zápis, Dataverse/CDS sync (5.y2, sekce 11) |
 | `bc-al-workflow.md` | dokumentace vč. uživatelské příručky, co číst před editem, verifikace a analyzery (sekce 8, 9, 12) |
 | `bc-al-xliff.md` | lokalizace / XLIFF — NAB AL Tools, trans-unit ID hash (FNV-1a), `%n` v přeložených labelech, duplicitní trans-unity po merge (sekce 6, vyčleněno 2026-10-22) |
-| `bc-al-layouts.md` | layouty reportů — Word layout přes MCP `bc-word-layout`, repeater `w15:dataBinding`, RDLC tablix skriptem, `<DataSets>` layoutu reportextension v CI, štítky skriptem, barcode fonty, GS1-128 (sekce 12.1f–12.1i, 12.5; vyčleněno 2026-11-12) |
+| `bc-al-layouts.md` | layouty reportů — Word layout přes MCP `bc-word-layout`, repeater `w15:dataBinding`, RDLC tablix skriptem, `<DataSets>` layoutu reportextension v CI, sloupce do datasetu CZL sestav, štítky skriptem, barcode fonty, GS1-128 (sekce 12.1f–12.1j, 12.5; vyčleněno 2026-11-12) |
 | `bc-al-tools.md` | nástroje (alc, al-mcp, BC source), nová appka, git/PR, Azure DevOps (sekce 7.1–7.10) |
 | `bc-al-build.md` | NuGet dependencies, test symboly, kolize ID, major bump, Essence CI build & deploy gotchas, lokální testovací kontejner, ruční nasazení PTE do sandboxu, Dev publish závislostí do sdíleného kontejneru a do SaaS sandboxu přes altool (sekce 7.11–7.26) |
 | `bc-al-autotests.md` | automatizované testy — povinnost, kanonický vzor, libraries, handlery, TestPage, `asserterror`, obecné gotchas |
