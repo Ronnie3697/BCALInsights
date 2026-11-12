@@ -263,6 +263,20 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   `Get-AzKeyVaultSecret` je ale pro agenta v auto-mode zablokované klasifikátorem (Credential Exploration) → licenci a heslo musí dát
   uživatel. Šablona `Test-Repo.ps1` (7.23) tu není nainstalovaná (`C:WorkingFolderALc-test-container` neexistuje), jen `bc28`.
   Compile-check test appek bez kontejneru: 28.5.54151 test sada ve scratchpadu soitron seance `21fb1877…/scratchpad/cache/`.
+  **Vyřešeno 2026-11-12:** uživatel dodal novou licenci (`Downloads\Essence.28.0.Latest.bclicense`) → `Import-BcContainerLicense
+  -containerName bc28 -licenseFile … -restart`. Heslo `admin` neznal ani uživatel (dva pokusy přes nativní okno → dev endpoint `401
+  Unauthorized`; uživatel v kontejneru existuje, `Get-NAVServerUser` přes `Invoke-ScriptInBcContainer` = *Enabled*). **Neznámé heslo
+  v testovacím kontejneru = vlastní testovací uživatel:** `New-BcContainerBcUser -containerName bc28 -Credential <PSCredential s náhodným
+  heslem> -PermissionSetId SUPER -ChangePasswordAtNextLogOn:$false` (jde přes `docker exec`, žádné stávající heslo netřeba), credential
+  `Export-Clixml` (DPAPI) vedle kontejneru — heslo agent nikdy nevypisuje. Nativní okno pro zadání hesla uživatelem funguje z Bash přes
+  `powershell.exe -NoProfile -File x.ps1` s `$Host.UI.PromptForCredential(...)`. Postup běhu bez `Test-Repo.ps1`: kopie working tree do
+  složky sdílené s kontejnerem → `Compile-AppInBcContainer -appSymbolsFolder … -UpdateSymbols` (symboly verze kontejneru) → Essence
+  závislosti `Publish-BcContainerApp -sync -install -upgrade` (Global), zákaznické appky `-useDevEndpoint -syncMode ForceSync` (Tenant;
+  nainstalovaný build bývá daleko za masterem a destruktivní změna schématu — zkrácené pole — normální sync zastaví) →
+  `Run-TestsInBcContainer -extensionId <test app> -detailed -XUnitResultFileName … -returnTrueIfAllPassed`. Master Soitronu potřebuje
+  IMEBS s `Line Type IMEBS` (5.x29 v `bc-al-projects.md`) — kontejner měl 28.0.16.0 → AL0118, IMEBS přeložen z `features/misc`.
+  Past: `powershell -File skript.ps1 -Steps a,b` předá pole jako **jeden** string → `-contains 'a'` false a skript nic neudělá s exit 0;
+  parametr ber jako string a `-split ','`. První plný běh: 370 testů, 0 failů, ~10 min. (cust-soitron-bc PBI 67819.)
 - AL-Go for GitHub: má built-in test step
 - Lokálně: VS Code task nebo `bc-test-runner` extension
 - **Lokální testovací kontejner pro všechna repa** (Docker + BcContainerHelper bez admina, závislosti z NuGetu, nahrát → testy →
