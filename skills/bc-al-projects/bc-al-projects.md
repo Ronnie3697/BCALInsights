@@ -237,6 +237,17 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   `Sales-Get Return Receipts.SetSalesHeader` + `CreateInvLines(ReturnRcptLine)`; řádek nese `Job Contract Entry No.` i `Return
   Receipt No.`, první řádek dokladu je popisný („Return Receipt No. …:“) → hledat `Type = Item`. (2026-11-12, test
   `Rerun_OpenCreditMemoFromReturnReceiptLines_CountsReturnedQuantityOnce`, 102/102 v `bc28`.)
+  **Změna množství řádku objednávky → otevřený záznam ji následuje (tamtéž, 2026-11-12, rozhodnutí uživatele):** subscriber `Sales Line.
+  OnAfterValidateEvent Quantity` (`IsTemporary` exit; platí z UI i z kódu, na `CurrFieldNo` nezáleží) → jen `Order` s `Job Contract
+  Entry No.`, řádek už v DB (`Get`; `GenerateSalesOrderJobLines` validuje `Quantity` **před** `Validate("Job Contract Entry No.")`
+  a záznam zakládá až po `Modify` — `CreateTrackingEntryForSalesDocumentLine` umí i existující záznam přepsat, takže srážka nehrozí).
+  Záznam = `Quantity − "Quantity Invoiced"` (shodné s cestou účtování, která odečítá `Qty. to Invoice`), ≤ 0 → `Delete(true)`,
+  chybí a > 0 → založit znovu (nastavení na 0 a zpět). Částky z řádku plánování jedním helperem (`SetTrackingEntryQuantity`, dřív
+  3 kopie). `UpdateQtyToTransfer` řádku plánování se nevolá (jako generátor); zvýšení nad plán hlídá kontrola při vydání (5.x28).
+  MJ se nepřevádí — ani účtování (`Qty. to Invoice` v MJ prodejního řádku), změna MJ na Skip řádku zůstává neošetřená. Testy
+  `ChangeOrderLineQuantity_*` (snížení + nový převod rozdílu, zvýšení po částečné fakturaci s reopen, 0 a zpět); 105/105 v `bc28`,
+  hlavní appka čistě s CodeCop / PTE / UICop + rulesetem Essence. Z kódu `TestJobPlanningLine` nic nehlídá (`CurrFieldNo = 0`) a
+  `CheckItemAvailable` řádek s kontraktem přeskakuje → `Validate(Quantity)` v testu bez handlerů.
 
 ### 5.x23 Undo nákupní příjemky s projektem: standard předpokládá zaúčtovanou spotřebu projektu — „Skip Purchase Consumption" (IMEBS) ho shodí
 
