@@ -288,6 +288,13 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   publikovaná) → dokonči `Sync-NAVApp -Mode Clean -Force` + `Unpublish-NAVApp -Tenant default -Name … -Version …` v jedné
   `Invoke-ScriptInBcContainer` relaci. Skript: kopie `run-soitron-tests.ps1` s `$base` pod `C:\ProgramData\BcContainerHelper\
   Extensions\bc28\` (sdílená složka). (prod-ep-projectBase-bc task 67360, 2026-11-12.)
+  Stejně **test appka IMEBS** (`run-imebs-tests.ps1` vedle Soitron skriptu: jen test appka proti IMEBS buildu v kontejneru, Soitron
+  odinstalovaný na dobu běhu, úklid `Uninstall-NAVApp -DoNotSaveData` + `Sync-NAVApp -Mode Clean` + `Unpublish-NAVApp` rovnou, bez
+  `UnPublish-BcContainerApp`): 101/101, ~4 min. Že nainstalovaný build odpovídá working tree, ověř `diff -rq` kopie zdrojáků, ze které se
+  přeložil, proti `app/src`. ⚠️ **Krok `imebs` Soitron skriptu kompiluje `app/` repa tak, jak je** → v working tree IMEBS zůstal
+  `app.json` upravený pro kontejner (verze 28.0.18.7, minimum EP Base 28.0.41.0 → 28.0.0.0, protože `bc28` má EP Base 28.0.24.1)
+  a v `git status` vypadá jako součást úkolu. Do commitu nepatří (verze 7.8, snížené minimum závislosti) — verzi a minima přepisuj jen
+  v kopii (jako krok `epebs`). (prod-ep-itemManagement-bc task 67360, 2026-11-12.)
 - AL-Go for GitHub: má built-in test step
 - Lokálně: VS Code task nebo `bc-test-runner` extension
 - **Lokální testovací kontejner pro všechna repa** (Docker + BcContainerHelper bez admina, závislosti z NuGetu, nahrát → testy →
