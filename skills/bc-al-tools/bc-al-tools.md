@@ -870,8 +870,10 @@ pushni podle zbytku 7.7b a skonči.
 4. **Jen v rámci push** — ne po každé změně, ne u samotného `commitni`, ne po kompilaci a ne „pro ověření“ po dokončení
    implementace (pokyn uživatele 2026-10-09: *„Proč rovnou pouštíš autotesty? To máš dělat, až napíšu push.“*). **Ani nově
    napsané nebo upravené testy se předem „pro jistotu“ nespouští** — stačí je zkompilovat, případné chyby v nich se opraví
-   až po běhu u push (pokyn uživatele 2026-10-06: *„Chyby v testech se prostě opraví až na konci.“*). `-TestCodeunit <id>`
-   jen při opravě testu, který v tom běhu spadl; po pushi opravy pak znovu celé repo.
+   až po běhu u push (pokyn uživatele 2026-10-06: *„Chyby v testech se prostě opraví až na konci.“*).
+   **Oprava spadlého testu, která sahá jen na test, se po pushi ověří jen tím testem** — `Test-Repo.ps1 … -TestCodeunit <id>
+   -TestFunction <název>`, ne znovu celé repo (pokyn uživatele 2026-11-12, cust-alumistr-bc 67834: *„stačilo pustit jen ten
+   jeden test“*; zbytek repa prošel v běhu, kde test spadl, a kód se nezměnil).
 
 Nikdy `rebase` místo merge bez pokynu (přepisuje historii větve, kterou může mít kolega stažen) a nikdy `--force`.
 Case-only kolize složek po merge zkontroluj `git ls-tree -r HEAD --name-only | sort -f | uniq -di` (7.10).
