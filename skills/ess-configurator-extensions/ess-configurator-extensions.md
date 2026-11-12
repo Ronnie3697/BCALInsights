@@ -86,11 +86,14 @@ navíc subscriber CUEBS na `Length` / `Quantity per` (`SyncPieceFieldsFromStanda
 Refresh VZ: standard přenese `Quantity per` / `Length` / vzorec, CUEBS `CopyPieceFieldsFromBOMLine` dopočte pole kusů. Typ délky MJ
 přenos nepotřebuje (jen *Cut Length (mm)* a optimalizace); u zboží s *Optimize Material* chce CUEBS základní MJ na řádku i komponentě.
 `MinValue = 0` na polích kusů záporný výsledek z kódu nezastaví (MinValue se při `Validate` z kódu nekontroluje). `.app` z feedu
-obsahuje zdroják (`src/src/Component/…`) — rychlá kontrola, co přesně běží. **Zlomek COZLK** (větev `67632_CuttingPlanV2`,
-2026-11-11): chybějící hodnota z akce se vzorcem `Length` (`Quantity per` = kusy, `Length` = kus), jinak 1; akce s jiným vzorcem
-(L×W, Weight, Fixed Quantity) a řádek typu *Production BOM* = jen uložit; minimum EM Cutting Plan 28.0.10.0. Testy 52421 kontrolují
-`Quantity per`, `Length`, vzorec, `Quantity` řádku kusovníku a `Expected Quantity` komponenty. **COALU (Alumistr) na V2 zatím
-upravený není** — jeho pořadí „Qty. of Pcs. poslední" a spoléhání na výchozí 1 z CUEBS na V2 nesedí.
+obsahuje zdroják (`src/src/Component/…`) — rychlá kontrola, co přesně běží. **Zlomek COZLK** (větev `67545_CuttingPlanV2_COZLK`
+z masteru, 2026-11-12, mergnutá i do `67458_ParametersCode50`): chybějící hodnota z akce se vzorcem `Length` (`Quantity per` = kusy,
+`Length` = kus), jinak 1 kus / 1 na kus; akce s jiným vzorcem (L×W, Weight, Fixed Quantity) a řádek typu *Production BOM* = jen
+uložit; minimum EM Cutting Plan 28.0.10.0. Testy 52421 kontrolují `Quantity per`, `Length`, vzorec, `Quantity` řádku kusovníku a
+`Expected Quantity` komponenty. ⚠️ **Náklady z kusovníku po V2:** kód, který násobí náklad komponenty `ProdBOMLine."Quantity per"`,
+po V2 počítá jen kusy → u řádku se vzorcem výpočtu brát `Quantity` (= `Quantity per` × `Length`), bez vzorce dál `Quantity per`
+(řádek importovaný bez validace nemá `Quantity` dopočtené) — Zlomek `Cost Mgt. ZLK.GetCostQuantity`. **COALU (Alumistr)** převedl
+Adam Iral v PR 9953 (#67545): chybějící Qty. per Piece = 1; samotné Qty. per Piece bez kusů tam dá `Quantity per` 0 (COZLK = 1 kus).
 
 **Do 28.0.8:** `Configurator Events COALU.OnBeforeInsertProdBOMLine` přenáší z akčního řádku kusovníku `Qty. of Pcs.` a `Qty. per Piece`
 do polí EM Cutting Plan na `Production BOM Line` (tableext `Production BOM Line CUEBS`, repo `prod-em-cuttingPlan-bc`).
