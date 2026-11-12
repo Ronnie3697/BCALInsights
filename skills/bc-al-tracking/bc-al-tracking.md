@@ -588,7 +588,11 @@ Požadavek „vlastní tlačítko *Přiřadit č. šarže*, které skládá šar
   globálu, `<akce>.Invoke()`, `OK().Invoke()`; assert `Reservation Entry` po zavření (`SetSourceFilter`). Kontrolní test „standardní
   *Assign Lot No.* dá číslo bez prefixu" chytí subscriber, který by zůstal navázaný napořád. Jiný zdroj (vratka z prodeje): chybu
   akce nech dojít z handleru a chyť `asserterror Line.OpenItemTrackingLines()`, `Commit()` po GIVEN.
+- **TestPage spustí i SKRYTOU akci, když `Visible` stojí na proměnné stránky** (`Visible = AssignLotNoSONVisible`, v `OnOpenPage`
+  false): `.Visible()` vrátí false, `.Invoke()` přesto proběhne `OnAction` → chyba z handleru se chytí. Ověřeno v kontejneru (T8, vratka
+  z prodeje), stejně jako 5.x24 (`Visible = SelectedQuantityEditable`). Opačná zkušenost z `ess-configurator-variants.md` se týká akce
+  s literálem `Visible = false` (ShortcutKey) — ta se nevyvolá. Kontrola zdroje v `OnAction` je tedy testovatelná přes TestPage.
 
 (2026-11-12, cust-sonnentor-bc PBI 62835 `Lot No. Assign Mgt. SON`, `Test Lot No. Assign SON`; zdroj w1-28 `ItemTrackingLines.Page.al`,
-`WarehouseReceiptLine.Table.al`, `ItemJnlLineReserve.Codeunit.al`, `ItemJnlPostLine.Codeunit.al`. **Jen kompilace** (alc 18.1 +
-CodeCop / UICop / PTE / ALCops), testy ani klient zatím neověřené.)
+`WarehouseReceiptLine.Table.al`, `ItemJnlLineReserve.Codeunit.al`, `ItemJnlPostLine.Codeunit.al`. Testy 9/9 v lokálním kontejneru
+bctest28 (BC 28.4 cz), celé repo 622/622; dev build na Sonnentor BC-DEV2, v klientu zatím neproklikané.)
