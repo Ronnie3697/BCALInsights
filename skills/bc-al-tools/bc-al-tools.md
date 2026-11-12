@@ -253,7 +253,7 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   na něj; u vlastního upraveného `.rdl` je alc normalizace neškodná (nech ji, repo pak sedí s tím, co generuje
   kompilátor). (2026-10-22, cust-jiri-bc / cust-jiri-w1-bc, akční cena v exportu nabídky.) **Platí i pro layouty
   `reportextension`** — a protože se dataset bere ze symbolů v package cache, CI s jinou verzí base appky (dvě verze
-  v `.dependencies`, vítězí nejvyšší) vyrobí layout s jiným `<DataSets>` než lokální build → 12.1h v `bc-al-workflow.md`.
+  v `.dependencies`, vítězí nejvyšší) vyrobí layout s jiným `<DataSets>` než lokální build → 12.1h v `bc-al-layouts.md`.
 
 ### 7.2 Čtení symbolů z `.alpackages` — al-mcp-server
 

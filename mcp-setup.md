@@ -14,7 +14,7 @@
 | `bc-code-intelligence` | [`bc-code-intelligence-mcp`](https://github.com/JeremyVyska/bc-code-intelligence-mcp) (Jeremy Vyska) | BC knowledge base + specialisté („Sam Coder"), workflow (krok 4 startup checklistu) | žádná |
 | `azure-devops` | [`@azure-devops/mcp`](https://github.com/microsoft/azure-devops-mcp) (Microsoft) | tickety, PR, pipelines, wiki, search v org `essencebs` (7.9 v `bc-al-tools.md`) | PAT **read-only** v `MCP_PAT\DevOpsPAT.txt`, spouští launcher (krok 3) |
 | `d365bc-admin` | [`@demiliani/d365bc-admin-mcp`](https://github.com/demiliani/D365BCAdminMCP) | BC Admin Center API — prostředí, nainstalované appky, sessions, storage, update window | Entra login při prvním volání |
-| `bc-word-layout` | NuGet [`BcWordLayout.Mcp`](https://github.com/TKapitan/bc-word-layout-mcp) (Tomáš Kapitán, .NET tool, **ne npm**) | Word layouty reportů: 30 toolů inspect / create / insert field, label, repeater / validate / preview (PDF přes Word COM); doprovodné skilly `al-word-layout*` (krok 1b; 12.1i v `bc-al-workflow.md`) | žádná |
+| `bc-word-layout` | NuGet [`BcWordLayout.Mcp`](https://github.com/TKapitan/bc-word-layout-mcp) (Tomáš Kapitán, .NET tool, **ne npm**) | Word layouty reportů: 30 toolů inspect / create / insert field, label, repeater / validate / preview (PDF přes Word COM); doprovodné skilly `al-word-layout*` (krok 1b; 12.1i v `bc-al-layouts.md`) | žádná |
 | `playwright` (volitelné) | `@playwright/mcp` | browser automatizace (BC web klient, dokumentace) | žádná |
 | `businesscentral` (draft) | oficiální MS MCP server `mcp.businesscentral.dynamics.com` | data z BC přes API pages | Entra OAuth → viz `bc-al-mcp-server.md` |
 

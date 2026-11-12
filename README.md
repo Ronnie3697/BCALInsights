@@ -27,6 +27,7 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
 | `bc-al-integrations.md` | Shopify Connector, HttpClient na SaaS, SecretText/Isolated Storage, Business Events / Power Automate, vlastní API page pro zápis, Dataverse/CDS sync (5.y2, sekce 11) |
 | `bc-al-workflow.md` | dokumentace vč. uživatelské příručky, co číst před editem, verifikace a analyzery (sekce 8, 9, 12) |
 | `bc-al-xliff.md` | lokalizace / XLIFF — NAB AL Tools, trans-unit ID hash (FNV-1a), `%n` v přeložených labelech, duplicitní trans-unity po merge (sekce 6, vyčleněno 2026-10-22) |
+| `bc-al-layouts.md` | layouty reportů — Word layout přes MCP `bc-word-layout`, repeater `w15:dataBinding`, RDLC tablix skriptem, `<DataSets>` layoutu reportextension v CI, štítky skriptem, barcode fonty, GS1-128 (sekce 12.1f–12.1i, 12.5; vyčleněno 2026-11-12) |
 | `bc-al-tools.md` | nástroje (alc, al-mcp, BC source), nová appka, git/PR, Azure DevOps (sekce 7.1–7.10) |
 | `bc-al-build.md` | NuGet dependencies, test symboly, kolize ID, major bump, Essence CI build & deploy gotchas, lokální testovací kontejner, ruční nasazení PTE do sandboxu, Dev publish závislostí do sdíleného kontejneru a do SaaS sandboxu přes altool (sekce 7.11–7.26) |
 | `bc-al-autotests.md` | automatizované testy — povinnost, kanonický vzor, libraries, handlery, TestPage, `asserterror`, obecné gotchas |
@@ -62,6 +63,7 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
   5.x, 5.x2, 5.x2b, 5.x15 (Item Tracking) → `bc-al-tracking.md` (2026-10-07, `bc-al-objects.md` by znovu přesáhl 1000 řádků).
   5.x5, 5.x9, 5.x21 (hromadné objednávky, sešit požadavků, přepočet ceny) → `bc-al-blanket.md` (2026-10-19, `bc-al-objects.md` přesáhl 1000 řádků).
   Sekce 6 (lokalizace, XLIFF) → `bc-al-xliff.md` (2026-10-22, `bc-al-workflow.md` přesáhl 1000 řádků).
+  12.1f–12.1i + 12.5 (layouty reportů: Word, RDLC, štítky) → `bc-al-layouts.md` (2026-11-12, `bc-al-workflow.md` znovu přesáhl 1000 řádků).
   5.z3, 5.z5 (+ nová 5.z7, CZZ zálohy) → `bc-al-advance-cz.md` (2026-11-03, `bc-al-objects.md` by přesáhl 1000 řádků).
   Test appka jako projekt (app.json, ruleset, symboly, kompilace, běh, CI) → `bc-al-autotests-infra.md` a doménové
   gotchas (projekty, doklady, Job Queue, výroba) → `bc-al-autotests-domains.md` (2026-10-09, `bc-al-autotests.md`
@@ -329,6 +331,7 @@ stabilních pravidel. **Notes soubory zůstávají zdrojem pravdy.**
 | `bc-al-integrations` | `bc-al-integrations.md` | Shopify Connector, HttpClient/SecretText na SaaS, Power Automate, Dataverse sync |
 | `bc-al-workflow` | `bc-al-workflow.md` | dokumentace + uživatelská příručka, analyzery, ruleset |
 | `bc-al-xliff` | `bc-al-xliff.md` | XLIFF / NAB AL Tools, trans-unit ID, `%n` v přeložených labelech, AL0479 po merge |
+| `bc-al-layouts` | `bc-al-layouts.md` | Word / RDLC layouty reportů, MCP `bc-word-layout`, štítky s čárovými kódy, GS1-128 |
 | `bc-al-tools` | `bc-al-tools.md` | alc, symboly, nová appka, git/PR, ADO |
 | `bc-al-build` | `bc-al-build.md` | NuGet, test symboly, kolize ID, major bump, CI build/deploy |
 | `bc-al-autotests` | `bc-al-autotests.md` | testy + netriviální funkčnost |

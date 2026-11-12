@@ -2,14 +2,12 @@
 name: bc-al-workflow
 description: >-
   BC/AL dokumentace a verifikace: dokumentace PBI/Task → docs/*.md, uživatelská příručka / prezentace featury v
-  HTML se screenshoty (base64, focení BC přes Claude in Chrome, timeout screenshotu, inline chyba pole); co
-  číst před editem (hlavička, app.json, .alpackages = binární ZIP → al-mcp, permission set); Word layouty
-  (MCP bc-word-layout + skilly al-word-layout*, repeater w15:dataBinding, štítky skriptem, barcode fonty, GS1-128 / FNC1), RDLC tablix sloupce skriptem
-  (TablixCell = sloupec, ColSpan, Hidden), layout reportextension (alc při kompilaci přegeneruje `<DataSets>` ze symbolů, CI s jinou verzí vendora → „refers to the field", sonda sloupce AL0155); build a analyzery AA/CA/PTE/LC
-  (verifikace všech dotčených appek, failOn warning), XML doc komentáře (LC0072, & = AL0640), runtime errory
-  bez spekulačních smyček, Essence ruleset per projekt (*Ruleset*.json vedle app.json). Načti u
-  dokumentace ticketu, příručky, před netriviálním editem, u warningů a analyzerů. (XLIFF / překlady →
-  bc-al-xliff.)
+  HTML se screenshoty (base64, focení BC přes Claude in Chrome, timeout screenshotu, inline chyba pole, úklid
+  dočasné appky ve Správě rozšíření — výběr řádku skáče); co číst před editem (hlavička, app.json, .alpackages =
+  binární ZIP → al-mcp, permission set); build a analyzery AA/CA/PTE/LC (verifikace všech dotčených appek,
+  failOn warning), XML doc komentáře (LC0072, & = AL0640), runtime errory bez spekulačních smyček, Essence ruleset
+  per projekt (*Ruleset*.json vedle app.json). Načti u dokumentace ticketu, příručky, před netriviálním editem, u
+  warningů a analyzerů. (XLIFF / překlady → bc-al-xliff; Word / RDLC layouty a štítky → bc-al-layouts.)
 user-invocable: true
 ---
 
@@ -18,7 +16,7 @@ user-invocable: true
 **Zdroj pravdy:** `bc-al-workflow.md` ve stejném adresáři jako tenhle `SKILL.md`
 (adresář skillu = „Base directory" hlášený při načtení; cestu skládej odtud, ne přes `..`). Tenhle skill je jen wrapper —
 pravidla níže jsou výcuc; detail, struktura dokumentace a
-příklady jsou v souboru. Sekce 6 (XLIFF) je od 2026-10-22 ve skillu `bc-al-xliff`.
+příklady jsou v souboru. Sekce 6 (XLIFF) je od 2026-10-22 ve skillu `bc-al-xliff`, layouty reportů (12.1f–12.1i, 12.5) od 2026-11-12 ve skillu `bc-al-layouts`.
 
 ## Co udělat
 
@@ -28,6 +26,7 @@ příklady jsou v souboru. Sekce 6 (XLIFF) je od 2026-10-22 ve skillu `bc-al-xli
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
 3. Sousední témata: překlady / XLIFF (NAB AL Tools, trans-unit ID, AL0479) → `bc-al-xliff` (6.1–6.4);
+  Word / RDLC layouty reportů, štítky s čárovými kódy → `bc-al-layouts` (12.1f–12.1i, 12.5);
   kompilace z CLI, al-mcp, GitHub source, git/PR → `bc-al-tools`
   (7.1–7.3, 7.7); NuGet dependencies, CI build faily → `bc-al-build` (7.11+); moderní patterny a Cloud target → `bc-al-style` (10);
   CZ↔EN terminologie → `bc-al-objects` (5.z4).
@@ -71,14 +70,3 @@ příklady jsou v souboru. Sekce 6 (XLIFF) je od 2026-10-22 ve skillu `bc-al-xli
 - **12.4** Essence build bere **první `*Ruleset*.json` (case-insensitive)
   rekurzivně ve složce s `app.json`**; `ruleSetPath` v `app.json` = AL0124; `.vscode` je
   gitignored, `.code-workspace` řídí jen editor. `failOn = 'warning'`.
-- **12.1i** Word layout (.docx) nejdřív přes MCP `bc-word-layout` a skill `al-word-layout`
-  (inspect → edit → validate → preview); ruční OOXML (12.1f, 12.5) jen pro to, co tooly
-  neumí (hide-if-empty, repeater v hlavičce, štítky s barcode fontem). Preview ≠ tisk v BC.
-- **12.5** Word layout psaný skriptem: namespace vazeb = název reportu, každá skupina
-  ne-alfanumerických znaků → jedno `_`, **ID a token ber z `.al` skriptem** (přečíslovaný
-  report = prázdný tisk bez chyby; ověř, že `alc` nechal tvůj `customXml/item1.xml`).
-  Struktura jako MS layouty: hlavní dataitem bez repeateru (`WordMergeDataItem`), repeater
-  jen pro vnořený, aliasy `#Nav: /<dataitem>/<sloupec>`. Zip položky s lomítky, jeden
-  štítek na stránku přes řádek tabulky s `hRule="exact"`. GS1-128 přes System App nejde
-  (bez FNC1) → vlastní Code 128 encoder pro font `IDAutomationC128*`; kontrolní číslici
-  EAN font dopočítá → validuj GS1 mod 10 před tiskem.
