@@ -1,7 +1,7 @@
 ---
 name: bc-al-tracking
 description: >-
-  BC/AL Item Tracking (šarže, SN, Reservation Entry 337, Tracking Specification 336; 5.x–5.x26):
+  BC/AL Item Tracking (šarže, SN, Reservation Entry 337, Tracking Specification 336; 5.x–5.x27):
   Item Tracking Lines (6510) a eventy ručního řádku (OnBeforeOnInsertRecord/OnModifyRecord), Assign
   Serial No. / Create Customized SN (OnAfterAssignNewTrackingNo), předvyplnění šarže (= číslo projektu),
   SN zboží bez auto řádku, výběr šarže z akce na 6510, source pole Prod. Order
@@ -9,9 +9,9 @@ description: >-
   Quantity to Create, FEFO a prošlé šarže (Strict Expiration), Lot Specific vs. prodej do mínusu, Entry
   No. AutoIncrement, dobropis s Appl.-from Item Entry, Item Jnl.-Check Line po smazání rezervací,
   převodka bez Order No., SetTrackingFilterFrom… SN+Lot, Item Tracking Setup
-  temp, hromadný výběr SN v Item Tracking Summary, import SN z Excelu na NO / příjemku, zápis
+  temp, výběr víc SN v Item Tracking Summary, import SN z Excelu, zápis
   SN z kódu (RegisterItemTrackingLines), Warranty Date / Package Caption, fyz. inventura (Exp. Invt. Order
-  Tracking). Načti u šarží, SN, 6510, 337, převodek, fyz. inventury.
+  Tracking). Formát Assign Lot No. (OnBeforeAssignNewLotNo). Načti u šarží, SN, 6510, převodek, inventur.
 user-invocable: true
 ---
 

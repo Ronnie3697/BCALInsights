@@ -24,6 +24,8 @@ Obsahuje:
 - **5.x26** fyzická inventura se šaržemi — lokace s přihrádkami bez skladového sledování nemá `Exp. Invt. Order Tracking`
   a dokončení objednávky ho nečte; `InsertLine` je holý `Insert()` (PK vč. Package); `Order Line No.` v `Rec.-Finish.OnAfterCode`;
   vlastní dělení řádku záznamu podle šarží (přebytek, Essence Warehouse `Expected Quantity (Base) EBS`), test bez knihoven
+- **5.x27** vlastní formát čísla šarže v akci na 6510 — protected `AssignLotNo()` + manuálně bindovaný
+  `OnBeforeAssignNewLotNo`; kontext stránky v `protected var`; zdroj příjemky = řádek nákupu, deník zboží = typ šablony
 
 ## 5. Specifické objekty a API — Item Tracking
 
@@ -554,3 +556,39 @@ na prostředí neproklikané.
 (2026-11-12, cust-jiri-bc EUDR `Physical Inventory Mgt. DRJIR` + `Phys. Invt. Lot Tests DRJIR` — 13 testů prošlo v kontejneru bc28
 28.2 cz; zdroj w1-28 `PhysInvtOrderLine.Table.al`, `PhysInvtOrderFinish.Codeunit.al`, `PhysInvtRecFinish.Codeunit.al`,
 `ExpInvtOrderTracking.Table.al`, Essence Warehouse master `PhysicalInventoryEBS.Codeunit.al`.)
+
+### 5.x27 Vlastní formát čísla šarže v akci na 6510 — protected `AssignLotNo()` + manuálně bindovaný `OnBeforeAssignNewLotNo`; viditelnost akce podle zdroje
+
+Požadavek „vlastní tlačítko *Přiřadit č. šarže*, které skládá šarži jinak (RRMMDD_<řada šarží zboží>), standardní nechat":
+
+- **Logiku standardu nekopíruj** (`AssignLotNoToExistingLines`, `ZeroLineExists`, `NextEntryNo`, `CalculateSums` jsou `local`).
+  `AssignLotNo()` je na stránce **`protected procedure`** (w1-28) → pageextension ji zavolá z vlastní akce a standard udělá
+  všechno sám (nový řádek na nedefinované množství, nebo doplnění šarže do vybraných řádků bez šarže, `TempItemTrackLineInsert`,
+  `UpdateTrackingDataSetWithChange`).
+- Číslo podstrčí subscriber `Item Tracking Lines.OnBeforeAssignNewLotNo(var TrackingSpecification; var IsHandled; var
+  SourceTrackingSpecification; FunctionsSupplyVisible)` → `Validate("Lot No.", …)` + `IsHandled := true`. Codeunit se subscriberem
+  má **`EventSubscriberInstance = Manual`** a `OnAction` dělá `BindSubscription` na lokální proměnnou → `AssignLotNo()` →
+  `UnbindSubscription`. Standardní akce *Assign Lot No.* jde přes tentýž event bez vazby, takže dál dává čisté číslo z řady. Zboží
+  ber ze `SourceTrackingSpecification."Item No."` (nastavené vždy v `SetSourceSpec`).
+- **Kontext stránky je v `protected var`:** `SourceTrackingSpecification`, `CurrentSourceType`, `FunctionsSupplyVisible` /
+  `FunctionsDemandVisible`, `InsertIsBlocked`, `Item`, `ItemTrackingCode`. `SetSourceSpec` běží před otevřením stránky → `Visible`
+  vlastní akce = globál pageextension nastavený v `OnOpenPage`. Akce `addafter("Assign Lot No.")` sedí ve skupině `FunctionsSupply`
+  (`Visible = FunctionsSupplyVisible`), ale promovaný `actionref` skupinu nedědí → `FunctionsSupplyVisible` patří i do vlastní
+  podmínky. Stejnou kontrolu zopakuj v `OnAction` (TestPage invokne i skrytou akci, 5.x24) a jako standard `if InsertIsBlocked then exit;`.
+- **Zdroj podle místa otevření:** skladová příjemka otevírá 6510 nad **řádkem nákupu** (`Warehouse Receipt Line.OpenItemTrackingLines`
+  → `PurchLineReserve.CallItemTracking`), takže `Source Type = Database::"Purchase Line"` pokryje nákupní doklad i příjemku (vratka
+  z prodeje přes příjemku = `Sales Line`, převodka = `Transfer Line`). **Item Journal Line: `Source Subtype` = `Entry Type`,
+  `Source ID` = název šablony** (`Item Jnl. Line-Reserve.InitFromItemJnlLine`) → „jen deník zboží" = `Item Journal Template.Type =
+  Item` (výstup, spotřeba, přeřazení i fyzická inventura jsou tatáž tabulka 83, liší se typ šablony). `Get` šablony s
+  `CopyStr("Source ID", 1, MaxStrLen(Name))`, jinak PlatformCop **PC0013** (Code[20] do PK Code[10]).
+- Karta informací o šarži po zaúčtování = standardní `Item Tracking Code."Create Lot No. Info on posting"` (`Item Jnl.-Post Line` →
+  `ItemTrackingMgt.CreateLotNoInformation`), žádný kód.
+- Testy: `PurchaseLine.OpenItemTrackingLines()` / `WarehouseReceiptLine.OpenItemTrackingLines()` /
+  `ItemJournalLine.OpenItemTrackingLines(false)` → `[ModalPageHandler]` na `TestPage "Item Tracking Lines"`: `<akce>.Visible()` do
+  globálu, `<akce>.Invoke()`, `OK().Invoke()`; assert `Reservation Entry` po zavření (`SetSourceFilter`). Kontrolní test „standardní
+  *Assign Lot No.* dá číslo bez prefixu" chytí subscriber, který by zůstal navázaný napořád. Jiný zdroj (vratka z prodeje): chybu
+  akce nech dojít z handleru a chyť `asserterror Line.OpenItemTrackingLines()`, `Commit()` po GIVEN.
+
+(2026-11-12, cust-sonnentor-bc PBI 62835 `Lot No. Assign Mgt. SON`, `Test Lot No. Assign SON`; zdroj w1-28 `ItemTrackingLines.Page.al`,
+`WarehouseReceiptLine.Table.al`, `ItemJnlLineReserve.Codeunit.al`, `ItemJnlPostLine.Codeunit.al`. **Jen kompilace** (alc 18.1 +
+CodeCop / UICop / PTE / ALCops), testy ani klient zatím neověřené.)
