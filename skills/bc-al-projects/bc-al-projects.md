@@ -227,6 +227,16 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   testerky: objednávka nešla smazat, „divné množství"), testy `Job SO Quantity Test IMEBS` (`…TrackingEntriesCarryOrderLine
   Quantities`, `DeleteOrderLine_PlanningLineOnThreeOrders_…`, `InvoiceFromShipmentLines_PartiallyShippedOrder_…`, `Rerun_OpenInvoice
   FromShipmentLines_…`); kompilace čistá, běh v CI. Stará data (záznamy s plánem místo množství řádku) oprava nepřepočítá.
+  **Osiřelé otevřené záznamy** (objednávka už neexistuje, záznam ano → nafouknuté `Qty. Transferred to Invoice`, Soitron `QB Buffer
+  Compare Mgt. SOI.HasOpenDocuments` / `QB Buffer Regenerate Mgt. SOI.CheckNoSalesDocument` hlásí neexistující doklad) vznikaly před
+  opravou dvěma cestami: faktura z dodávek záznam nesnižovala a *Delete Invoiced Sales Orders* pak objednávku smazal bez triggeru;
+  záznam s plánem větším než řádek po úplné fakturaci zbyl a `DeleteAfterPosting` smazal objednávku (`DeleteAll` bez triggeru). Po
+  opravě vzniknou jen tehdy, když se množství řádku objednávky liší od záznamu — změna `Quantity` (nebo MJ) řádku Skip projektu z UI
+  (IMEBS `OnBeforeTestSalesLine` → `Handled` od první verze; standard `Sales Line.TestJobPlanningLine` jinak blokuje změnu Typu, No.,
+  lokace, množství, MJ, varianty, cen z UI, z kódu při `CurrFieldNo = 0` nic). Test dobropisu z *Získat řádky příjemky vratky*:
+  `Sales-Get Return Receipts.SetSalesHeader` + `CreateInvLines(ReturnRcptLine)`; řádek nese `Job Contract Entry No.` i `Return
+  Receipt No.`, první řádek dokladu je popisný („Return Receipt No. …:“) → hledat `Type = Item`. (2026-11-12, test
+  `Rerun_OpenCreditMemoFromReturnReceiptLines_CountsReturnedQuantityOnce`, 102/102 v `bc28`.)
 
 ### 5.x23 Undo nákupní příjemky s projektem: standard předpokládá zaúčtovanou spotřebu projektu — „Skip Purchase Consumption" (IMEBS) ho shodí
 
