@@ -18,6 +18,7 @@ Obsahuje:
 - **3.6k** Platba / refundace zákazníka z kódu přes `Gen. Journal Line`: zákazník s vlastním plátcem = Confirm → `SetHideValidation(true)`
 - **3.6l** Výstup a kapacita výroby z kódu: `Validate(Type)` maže `No.`, zmetky na výstupním řádku, tiché atomické účtování přes manuální bind `Item Jnl.-Post.OnBeforeCode`, `Increment Batch Name`, řádek spotřeby z kódu ztrácí dimenze zakázky po `Validate("Location Code")` (`CreateProdDim`)
 - **3.6n** Způsob platby na dokladu, jehož platby účtuje vlastní kód: přiřazením, ne `Validate` (protiúčet → druhé vyrovnání, Cash Desk CZP → pokladní doklad), CZL QR dotaz při vydání
+- **3.6o** Vlastní podmínka schvalovacího workflow dokladu (pole hlavičky jako event condition): workflow čte doklad z DB → stav uložit v `Approvals Mgmt.OnBeforeIsPurchaseApprovalsWorkflowEnabled`; dokončené schválení = `OnBeforeReleasePurchaseDoc` se stavem Pending Approval
 
 ## 3. Event Subscribery — propagace polí (3.5–3.6f)
 
@@ -745,3 +746,37 @@ Test: způsob platby z `LibraryERM.CreatePaymentMethodWithBalAccount` → zaúč
 na protiúčet způsobu platby `Assert.RecordIsEmpty(GLEntry)`, položka zákazníka zavřená platbou integrace.
 (2026-11-10, prod-ess-dotykackaConnector-bc PBI 63075, `Dotykacka Receipt Doc. DCEBS.InitHeader`; zdroje Base App 28.5,
 Cash Desk CZP 28.1, CZL 28.5; test zkompilovaný, běh v kontejneru zatím ne.)
+
+### 3.6o Vlastní podmínka schvalovacího workflow dokladu (pole hlavičky jako event condition) — workflow čte doklad z DB
+
+Zadání typu „objednávka z rozpočtu projektu je schválená sama, navýšení nad limity schvaluje vedoucí projektu“ jde postavit
+na **standardním workflow** (šablona *Purchase Order Approval Workflow*, schvalovatel *Salesperson/Purchaser*): vlastní pole
+hlavičky (enum stavu) jako podmínka prvního kroku, konzultant jen doplní filtr. Vlastní šablona v kódu netřeba. Co platí (w1-28):
+
+- **Podmínky se vyhodnocují nad ULOŽENÝM záznamem.** `Workflow Management.EvaluateConditionOnTable(SourceRecordId, …)` dělá
+  `LookupRecRef.Get(SourceRecordId)` + `SetView(<podmínka>)` + `Find()` — hodnota nastavená jen v paměti předaného recordu se
+  neuplatní. Stav proto počítej a **ukládej** (`Modify(false)` na `var` recordu, ať volající drží čerstvou instanci) těsně před kontrolou.
+- **Jeden hook pro všechny kontroly nákupního dokladu:** `Approvals Mgmt.OnBeforeIsPurchaseApprovalsWorkflowEnabled(var PurchaseHeader;
+  var Result; var IsHandled)` — volá ho `IsPurchaseHeaderPendingApproval` (ruční vydání přes `PerformManualCheckAndRelease`,
+  `CheckPurchaseReleaseRestrictions` → `PrePostApprovalCheckPurch` před účtováním) i `CheckPurchaseApprovalPossible` (akce *Odeslat
+  žádost o schválení*; `OnSendPurchaseDocForApproval` za ním vyhodnotí podmínky znovu z DB). Purchase Order page ho při zobrazení
+  nevolá (jen v akcích). Uložení stavu se při zablokovaném vydání odroluje s chybou — na kartě proto zobrazuj stav spočítaný živě
+  (proměnná v `OnAfterGetCurrRecord`), uložené pole je jen pro workflow, archiv a seznamy. Prodejní `IsSalesApprovalsWorkflowEnabled`
+  OnBefore event v w1-28 nemá.
+- **Dokončené schválení:** odpověď *Release Document* volá `Release Purchase Document.PerformManualCheckAndRelease` →
+  `OnBeforeReleasePurchaseDoc(var PurchaseHeader; PreviewMode; …; var IsHandled; …)` se `Status = "Pending Approval"` — tam převezmi
+  „schválené“ hodnoty (částky řádků) a stav. Pojistka: žádná `Approval Entry` (`Table ID`, `Record ID to Approve`) ve stavu
+  Created/Open. Ruční vydání čekajícího dokladu standard blokuje *Record Restriction* (odpověď šablony, hláška „You cannot use %1 for
+  this action.“), ne `IsPurchaseHeaderPendingApproval` — ta při `Status <> Open` vrací false.
+- **Hlavičku v `OnBeforeReleasePurchaseDoc` hned ulož**, ne jen přiřaď: při `Purchases & Payables Setup."Calc. Inv. Discount"`
+  dělá release po `Purch.-Calc.Discount` `PurchaseHeader.Get(…)` a změny v paměti zahodí.
+- Hodnoty, které se kopírovat nesmí (schválená částka řádku): reset v `Purchase Line.OnBeforeInsertEvent` (platforma ho volá i u
+  `Insert(false)` — Copy Document, obnova z archivu, přegenerování řádků); nastavuj je jen z eventu tvorby řádku a po schválení.
+- Podmínka workflow v testu: `WorkflowStepArgument.SetEventFilters(StrSubstNo('<?xml …><ReportParameters><DataItems><DataItem
+  name="Purchase Header">%1</DataItem><DataItem name="Purchase Line">%2</DataItem></DataItems></ReportParameters>',
+  WorkflowSetup.Encode(Header.GetView(false)), WorkflowSetup.Encode(Line.GetView(false))))` — stejně staví podmínky šablona
+  (`BuildPurchHeaderTypeConditionsText`). Recept testu v `bc-al-autotests-domains.md`.
+
+(2026-11-11, cust-soitron-bc PBI 67819 `Project PO Approval Mgt. SOI` + eventy EPEBS `…OnBeforeModify` při tvorbě řádku NO z řádku
+plánování; zdroje w1-28 `WorkflowManagement`, `ApprovalsMgmt`, `ReleasePurchaseDocument`, `WorkflowResponseHandling`; kompilace čistá,
+běh testů zatím ne.)

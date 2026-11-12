@@ -245,6 +245,21 @@ NEmodifikuje). Směr částky: odchozí platba dodavateli z výpisu má na řád
 
 - **CI firma (CRONUS CZ) má zapnuté `Location Mandatory`** → nákupní/prodejní řádek typu Zboží bez lokace padá na „Location Code must have a value in Purchase Line … It cannot be zero or empty“ (standardní kontrola, žádný vlastní kód). Test, který generuje objednávku z řádku plánování (EPEBS `Job Trans.Purch.Orders`), proto zakládá řádek typu **G/L Account** (`LibraryJob.CreateJobPlanningLine(JobTask, Schedule, GLAccountType, LibraryERM.CreateGLAccountWithPurchSetup(), Qty, JPL)` — overload s číslem a množstvím má Job Task jako PRVNÍ parametr) nebo dá řádku Zboží lokaci; lokálně bez Location Mandatory projde i Item. (2026-10-12, cust-soitron-bc build 28813, `Logistic Officer Test SOI`.)
 
+- **Schvalovací workflow nákupní objednávky v testu (vlastní podmínka, schválení bez UI)** — recept podle MS `WF Demo Purch. Order
+  Approvals` (134180, StefanMaron `w1-28/BaseApp/Test/Tests-Workflow/`): `LibraryWorkflow.CopyWorkflowTemplate(Workflow,
+  WorkflowSetup.PurchaseOrderApprovalWorkflowCode())` → první krok `SetRange("Function Name", WorkflowEventHandling.
+  RunWorkflowOnSendPurchaseDocForApprovalCode())` → `WorkflowStepArgument.Get(WorkflowStep.Argument)` + `SetEventFilters(<XML podmínky>,
+  3.6o v `bc-al-posting.md`)` → `LibraryWorkflow.SetWorkflowDirectApprover(Workflow.Code)` → `EnableWorkflow` →
+  `LibraryDocumentApprovals.SetupUsersForApprovals(ApproverUserSetup)` (aktuální uživatel s Approver ID). Odeslání
+  `if ApprovalsMgmt.CheckPurchaseApprovalPossible(PH) then ApprovalsMgmt.OnSendPurchaseDocForApproval(PH)` (Message „An approval
+  request has been sent.“ → `[MessageHandler]`), schválení `LibraryDocumentApprovals.UpdateApprovalEntryWithCurrUser(PH.RecordId())` +
+  `ApprovalsMgmt.ApproveRecordApprovalRequest(PH.RecordId())` → doklad Released. Zablokované vydání: `asserterror ReleasePurchaseDocument.
+  PerformManualRelease(PH)` + *This document can only be released when the approval process is complete.* `Initialize` jako MS:
+  `LibraryWorkflow.DisableAllWorkflows()` + `UserSetup.DeleteAll(false)` v každém testu, `BindSubscription(LibraryJobQueue)` jednou v
+  suite initu (notifikace by plánovaly job queue). `Library - Workflow` je v *Application Test Library*, `Library - Document Approvals`
+  v *Tests-TestLibraries*; šablony MS-* jsou v CI firmě založené (MS `CreateEnabledWorkflow` je čte bez `InitWorkflow`).
+  (2026-11-11, cust-soitron-bc `Project PO Approval Test SOI`, kompilace čistá, běh zatím ne.)
+
 ### Doklad jen se záporným řádkem = „Celková částka faktury musí být 0 nebo větší" PŘED vlastní kontrolou
 
 Test, který účtuje doklad obsahující **jen záporný řádek** (uplatnění poukazu, sleva, oprava),

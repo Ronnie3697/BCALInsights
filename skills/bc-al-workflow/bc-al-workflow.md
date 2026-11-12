@@ -59,9 +59,15 @@ Pokud `docs/` ještě neexistuje, vytvoř ji. **Žádná podsložka
    sekci pak vynech).
 5. **Odkazy v popisu** — přepiš odkazy z HTML descriptionu (Dataverse
    incident, BC Job Planning Line, BC Job, …) jako Markdown linky.
-6. **Příklad využití v reálu** — co uživatel reálně udělá, krok po kroku
+6. **Jak to funguje** — přesná pravidla chování z pohledu uživatele a konzultanta, ne zadání ani
+   příklad: kterých dokladů / záznamů se to týká, kdy se co vyplní, přepočítá, uloží a vynuluje, pořadí
+   podmínek, hranice (rovnost limitu, prázdné nastavení, měna, DPH), co se děje při chybě, zamítnutí nebo
+   ruční změně, chování s nastavením a bez něj, co jde do archivu a účtovaných dokladů. Ověř proti kódu,
+   ne podle zadání. (Pokyn uživatele 2026-11-12, cust-soitron-bc 67819: dokumentace měla zadání,
+   nastavení, příklad a technickou část, ale chyběl přesný popis fungování.)
+7. **Příklad využití v reálu** — co uživatel reálně udělá, krok po kroku
    (golden path + případné edge case scénáře).
-7. **Technická dokumentace** — **jen pokud se reálně dělaly** nové objekty
+8. **Technická dokumentace** — **jen pokud se reálně dělaly** nové objekty
    nebo nová pole:
    - Tabulka nových objektů (typ, ID, název, krátký popis funkčnosti)
    - Tabulka nových polí (tabulka, ID, jméno, typ, popis)
