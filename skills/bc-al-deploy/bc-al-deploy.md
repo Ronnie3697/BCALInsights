@@ -327,6 +327,14 @@ ED Item Sales Disponibility 28.0.0, Essence Shopify Connector 28.0.6 (závislost
   Pouze nová pole a objekty na straně buildu znamenají, že Synchronize projde (Alumistr BC-DEV 2026-11-13: PMALU / COALU +
   `Parameter A/B Value` Code[50], `Optim. Requirement COALU`; jedna metoda v prostředí navíc, `BuildCNCSentenceForProdOrder`,
   je jen přejmenování na `…Line`). Stejný diff po publishi (0/0) potvrdí, že v prostředí je opravdu nový build.
+- ⚠️ **Dev publish STEJNÉ verze nespustí Upgrade codeunit — BC appku přeinstaluje a běží Install codeunit.** Když nový build
+  přináší převod dat (Upgrade codeunit + upgrade tag) a Install codeunit volá `UpgradeTag.SetAllUpgradeTags()` (vzor „čerstvá
+  instalace nepřevádí"), převod se v prostředí označí za hotový, i když neproběhl. Staré hodnoty zůstanou v obsolete polích,
+  nová pole zůstanou prázdná a pozdější vyšší verze převod přeskočí (tag je už nastavený). Nastalo na Alumistr BC-DEV 2026-11-13:
+  dev 29.0.0.0 (před merge) → 29.0.0.0 s 67458 (Parametr A/B Decimal → Code[50] v PMALU / COALU, číselné vzorce os → textové).
+  Uživatel to tam nechal být, převod na datech neověřen, chování podle install / reinstall logiky BC. **Před publishem buildu
+  s novým Upgrade codeunitem nad dev build stejné verze** buď zvedni verzi v kopii `app.json` (7.8, upgrade proběhne; F5 z VS Code
+  s verzí z repa pak hlásí „newer version installed"), nebo to řekni uživateli předem.
 - **Essence závislosti z dependency-cache lokálního testovacího kontejneru** (`C:\ProgramData\BcContainerHelper\Extensions\<kontejner>\dependency-cache\…`,
   7.23) jdou do sandboxu dev-publishnout stejně, v pořadí závislostí (EM Alternative BOM and Routing, EM MRP Replenishment, EM Net Make
   to Order, EM Production Batch Planning — v manifestu `<Dependencies />`, jen Application 28.0). `get_installed_apps` (d365bc-admin)

@@ -260,7 +260,9 @@ cust-alumistr-bc, bumpy 25/26→27 „yml_File_v27" a 27→28, 2026-07-10):
    `N.x`; jinak range `[N.0, N.1)` nic nenajde (7.17). Appky s `Application 28.0.0.0` se v BC 29.1 sandboxu nainstalují i
    upgradují normálně. Subcontracting má na MSSymbols / MSApps `29.0.54011.55644` → minimum `29.0.0.0` s artifactem
    `29.0/cz/latest` je OK. Ověření bez CI: symboly MS 29.1 z dev endpointu sandboxu + Essence deps (7.26 v `bc-al-deploy.md`),
-   alc 18.1 + CodeCop / PTE / UICop + Essence ruleset → base, PMALU, CDS a COALU 0 chyb, 0 warningů.
+   alc 18.1 + CodeCop / PTE / UICop + Essence ruleset → base, PMALU, CDS a COALU 0 chyb, 0 warningů. Test appky (Test Runner,
+   Tests-TestLibraries, System Application Test Library `29.0.0.0`): na MSSymbols je zatím jen řada `29.0.54011.55644` (29.1 ne),
+   pod `Application` 29.1 z prostředí to nevadí (7.19), 0 chyb / 0 warningů i u tří test appek.
 
 ### 7.15 Essence build: faily testů shazují build (od 2026-07-15) — „zelený" master nic nedokazoval
 
