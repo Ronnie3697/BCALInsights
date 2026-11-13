@@ -789,3 +789,15 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   deltu dorovnávej v `OnBeforeInsert` / `OnBeforeModify` tableextension (pole přiřazená tam se zapíšou s operací, žádný
   další Modify), vracení v `OnBeforeDelete`. Odmítnutý Confirm = explicitní `Error(label)` (konvence Soitron).
   (2026-11-02, cust-soitron-bc PBI 67428 `Project Reserve Mgt. SOI`, testy `Project Reserve Test SOI`; kompilace čistá, běh v CI.)
+- **`Validate("Unit Cost")` / `Validate("Unit Cost (LCY)")` na řádku plánování spadne, jakmile je řádek převedený na prodejní doklad**
+  — oba triggery volají `ValidateModification` → `TestField("Qty. Transferred to Invoice", 0)` (w1-28, `OnBeforeValidateModification`
+  má `IsHandled`). Přepočet nákladu výnosového (Billable) řádku z kódu (např. z nákladového řádku přes vazbu IMEBS) proto u řádků už na
+  prodejní objednávce / faktuře přeskoč nebo ohlas, jinak shodí celou akci. `Unit Cost (LCY)` u zboží se Standard costing přepočet do
+  `Unit Cost` (měna projektu) vynechá, jinak `ConvertAmountToFCY` + `UpdateAllAmounts`.
+- **Archiv projektu (`Job Archive Management`, w1-28) kopíruje řádky plánování přes `TransferFields` oběma směry** (archivace:
+  `Init` + `TransferFields` + `Insert()`; obnova: `Init` + `TransferFields` + `Insert(true)`; i úloha a projekt) → vlastní pole
+  `Job Planning Line` bez stejného ID na `Job Planning Line Archive` se při archivaci ztratí a obnova projektu je vrátí prázdná.
+  Stačí tableextension na `Job Planning Line Archive` se stejnými ID a typy (FlowFieldy ne) + pageextension archivní stránky; eventy
+  `OnStoreJobOnBeforeInsertJobPlanningLineArchive` / `OnRestoreJobPlanningLinesOnBeforeInsertJobPlanningLine` jen pro mapování.
+  EP Project Base 28.0.37 tableextension na archiv řádků nemá → žádné EPEBS pole řádku (dodavatel, platební podmínky, DPH skupiny, tendr,
+  nákupní měna / cena) se nearchivuje. (2026-11-13, ověření požadavku „nákupní měna a částka na řádku plánování", prod-ep-projectBase-bc.)
