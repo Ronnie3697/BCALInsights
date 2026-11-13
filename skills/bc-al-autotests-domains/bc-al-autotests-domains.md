@@ -194,6 +194,15 @@ NEmodifikuje). Směr částky: odchozí platba dodavateli z výpisu má na řád
   helper, který řádek dokladu hledá `SetRange(Type, Item)` + `FindFirst`, u zdrojového scénáře spadne na „The Sales Line does not
   exist". Hledej podle `"Job Contract Entry No."` plánovacího řádku + `Assert.RecordCount(SalesLine, 1)`. (tamtéž,
   `Sales Plan Qty Chk Test IMEBS.ReleaseOrder_SkipProject_ResourceLinkedBudgetAbovePlan_Never_Releases`.)
+- **IMEBS `Project Item Management IMEBS.CreatePurchaseJobPlanningLines` (navázaný nákladový řádek z fakturovatelného) čte
+  `Essence Projects Setup EPEBS` přes `Get`** → v CI / čisté DB *„The Essence Projects Setup does not exist. Identification fields and
+  values: Primary Key=''"* hned v GIVEN (všechny testy codeunitu, ~0,6 s). Nový test codeunit, který vazbu zakládá, potřebuje v suite
+  initu `if not Setup.Get() then begin Setup.Init(); Setup.Insert(true); end;` před `Commit()` (vzor `Sales Plan Qty Chk Test IMEBS`
+  ještě s `LibrarySetupStorage.Save`). Lokální dev DB setup má, tak se to ukáže až v kontejneru / CI. (2026-11-13, `Linked Line Cost
+  Test IMEBS`, 4 z 4 testů v `bc28`.)
+- **Rychlý „převedeno do faktury" bez prodejního dokladu:** `Job Planning Line Invoice` s `Document Type = Invoice`, unikátním
+  `Document No.`, `Line No.` 10000 a `Quantity Transferred` <> 0 přes `Insert(false)` → FlowField `Qty. Transferred to Invoice` <> 0
+  a standard `ValidateModification` změnu ceny řádku odmítne. Stačí na testy přeskočení / hlášky „řádek je ve faktuře". (tamtéž.)
 
 ## Prodejní a nákupní doklady
 

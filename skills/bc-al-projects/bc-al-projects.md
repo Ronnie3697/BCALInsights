@@ -801,3 +801,24 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   `OnStoreJobOnBeforeInsertJobPlanningLineArchive` / `OnRestoreJobPlanningLinesOnBeforeInsertJobPlanningLine` jen pro mapování.
   EP Project Base 28.0.37 tableextension na archiv řádků nemá → žádné EPEBS pole řádku (dodavatel, platební podmínky, DPH skupiny, tendr,
   nákupní měna / cena) se nearchivuje. (2026-11-13, ověření požadavku „nákupní měna a částka na řádku plánování", prod-ep-projectBase-bc.)
+  Doplněno ve větvi `features/salesQuotes` (task 66675): `Job Plan. Line Archive EPEBS` (tableextension 71058682) + pageextension na
+  `Job Planning Archive Lines` (5182); test archivace + obnovy prošel v kontejneru.
+- **Pořizovací cena odvozená z vlastního pole (nákupní cena v jiné měně) musí přežít standardní přenačtení ceny.** `UpdateAllAmounts` →
+  `UpdateUnitCost` vezme u zboží cenu z karty / SKU a `FindPriceAndDiscount` použije ceník, kdykoli `RetrieveCostPrice` vrátí true (změna
+  No., Quantity, Location, Variant, UoM; u zdroje Work Type). Hook = `Job Planning Line.OnAfterFindPriceAndDiscount(var JPL, xJPL,
+  CalledByFieldNo)` — volá se jen uvnitř větve s přenačtením, takže stačí v něm nastavit `Unit Cost` + `Unit Cost (LCY)` (LCY přes
+  `ExchangeAmtFCYToLCY("Currency Date", …, "Currency Factor")`) a dál standard dopočte Total Cost. Kontrolní test „bez vlastního pole
+  změna množství vrátí cenu z karty" ověří, že test opravdu přeceňuje (ruční `Unit Cost` 55 → `Validate(Quantity)` → 40 z karty).
+- **Standardní pořizovací cenu řádku („jako při založení") bez změny prodejní ceny:** dočasná kopie (`Temp := Rec`), manuálně bindovaný
+  subscriber `OnBeforeRetrieveCostPrice` → `ShouldRetrieveCostPrice := true; IsHandled := true` jen pro `IsTemporary()`, `Temp.UpdateAllAmounts()`,
+  pak `Rec.Validate("Unit Cost", Temp."Unit Cost")`. Nezacyklí se: cenová kalkulace V16 `ApplyPrice` ceník jen `SetPrice`-uje, `ValidatePrice`
+  volá jen ruční výběr ceny (`Pick`). `Job Planning Line - Price.SetPrice` pro nákup: u **zboží** plní jen `Direct Unit Cost (LCY)` (pořizovací
+  cena zůstane z karty), u zdroje `Unit Cost`, u účtu jen nenulovou cenu z ceníku (jinak zůstane). (2026-11-13, EP Base `Plan. Line Purch.
+  Price EPEBS` / `Plan. Line Std. Cost EPEBS`, task 66675, 11 testů v kontejneru.)
+- **Výnosový řádek navázaný IMEBS vazbou na nákladový** (`Linked Line Cost IMEBS.UpdateLinkedBillableUnitCost`): `Unit Cost` =
+  `Total Cost` nákladového řádku / `Quantity` výnosového (stejné celkové náklady, rozdílné MJ nevadí); řádek s `Qty. Transferred to Invoice`
+  <> 0 přeskočit (viz bullet o `ValidateModification` výš) a z UI ohlásit. Spouští ji událost EP Base `OnAfterApplyPurchasePrice` (řádek ještě
+  neuložený — `Total Cost` v paměti) a zpracování verze Quote Builderu v Soitronu po potvrzení nákladového řádku (porovnání výnosového
+  řádku sleduje jen prodejní cenu, takže by jinak zůstal se starým nákladem). Po změně jiného řádku v DB z `OnValidate` stránky řádků
+  plánování: `CurrPage.SaveRecord()` + `Update(false)`, jinak řádek navázaného výnosu v listu drží staré hodnoty (jen když aktuální
+  řádek už v DB je, 4.17 v `bc-al-ui.md`).

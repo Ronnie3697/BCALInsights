@@ -233,3 +233,18 @@ vypadá to jako chybějící překlad, ale `.cs-CZ.xlf` je kompletní. Diagnóza
 smazat (je ignorovaný, nikdo jiný ho nemá) a ručně vedený `.cs-CZ.xlf` přejmenovat na `<AppName>.cs-CZ.xlf` přes `git mv`
 (obsah beze změny; kompilátor bere všechny `.xlf` ve složce podle `target-language`, název je jen konvence).
 (2026-10-23, cust-soitron-bc CDS.W1, task 67287.)
+
+### 6.6 České popisky standardu (Base App) pro uživatelskou příručku — `Base Application.Source.zip` v artifact cache, ne `.app`
+
+Uživatelský postup v dokumentaci ticketu má používat přesné české popisky z UI (8 v `bc-al-workflow.md`). U vlastních polí jsou
+v `.cs-CZ.xlf` repa, u standardních polí a stránek ne. `Microsoft_Base Application.app` (i CZ varianta v `.alpackages` nebo
+artifact cache) překlady **neobsahuje** (`unzip -l … | grep xlf` = nic). Jsou v
+`c:\bcartifacts.cache\onprem\<ver>\cz\Applications\BaseApp\Source\Base Application.Source.zip` →
+`Translations/Base Application.cs-CZ.xlf` (~79 MB, rozbal jen ten soubor). Kontext unitu není v poznámce `Xliff Generator`, ale
+v poznámce `Developer`: `(Namespace=…)(LookupHint=Table Job Planning Line - Field Unit Cost - Property Caption)`. Skript (node) hledá
+`LookupHint=([^)]*)\)` a vypíše `<source>` → `<target>` do UTF-8 souboru pro Read tool (6.1). Příklady (BC 28.2 cz): Job Planning Line
+`Unit Cost` = **Pořizovací cena**, `Total Cost` = **Náklady celkem**, `Unit Price` = **Jednotková cena**, `Planning Date` = **Datum
+plánování**, `Qty. Transferred to Invoice` = **Transf. množ. k fakturaci**, `Line Type` Budget / Billable = **Plán** / **Fakturovatelné**;
+stránky *Řádky plánování projektu*, *Archivní řádky plánování projektu*, *Archiv projektu*, akce *Archivovat projekt*, *Obnovit*.
+Vlastní překlady pak sjednoť s tímto názvoslovím (v tasku 66675 se tak „jednotkové náklady" opravily na „pořizovací cena").
+(2026-11-13, prod-ep-projectBase-bc / prod-ep-itemManagement-bc / cust-soitron-bc task 66675.)
