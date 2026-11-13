@@ -5,7 +5,8 @@ description: >-
   NuGet v2-0 (MajorMinor + LatestMatching; dedupe minim per GUID → stejná verze deps ve všech app.json),
   symboly test frameworku z MSSymbols feedu, CZ packy od BC 28 pod ID s .cz. infixem, Compile AL Apps bez
   ##[error] (PTE0012), kolize object ID po merge (rozhodují nasazená data), major bump checklist (app.json,
-  BC_ARTIFACT, bump jen zákaznických appek – Essence deps zůstávají na N−1), faily testů shazují build, squash
+  BC_ARTIFACT, bump jen zákaznických appek – Essence deps zůstávají na N−1, licence nového majoru u staré šablony
+  = 404), faily testů shazují build, squash
   merge → falešné konflikty, Subcontracting ≥ 28.3 (falešné AL0118/AL0132), Deploy Staging sync 'Add' / ForceSync
   maže data / obsolete dvoufázově, typ pole v ostré appce (nová pole + DataTransfer), smíchané řady MS symbolů
   (AL0132 bez AL1022), release SaaS (altool .NET 10, 409 = souběžný deploy). Lokální testovací kontejner a ruční
@@ -51,7 +52,10 @@ build logů jsou v souboru. Vyčleněno z `bc-al-tools.md` 2026-09-01, číslov�
 - **7.14** Major bump: všechny `app.json` (version/platform/application
   `N.0.0.0`, runtime +1, minima in-repo a Microsoft deps `N.0.0.0`; Essence
   produkty bez `N.x` na feedu zůstávají na `N−1` minimech), `azure-pipelines.yml`
-  (`BC_ARTIFACT`, `Version.Major`), ověř externí deps na feedu.
+  (`BC_ARTIFACT`, `Version.Major`), ověř externí deps na feedu. Repo na staré
+  šabloně (`ALBuildPipeline.yml@master`) chce na share `Essence.<N>.0.Latest.bclicense`;
+  chybí-li, padá *Prepare docker environment* na 404 v `Download-File.ps1` (není to
+  výpadek MS). Šablona `v2-0` licenci nepoužívá.
 - **7.15** Faily testů shazují build (od 2026-07-15) — červený master po
   nesouvisejícím PR = zpřísněná šablona, faily jsou reálné.
 - **7.16** Squash merge → falešné konflikty a **three-dot diff lže**; co větev

@@ -263,6 +263,19 @@ cust-alumistr-bc, bumpy 25/26→27 „yml_File_v27" a 27→28, 2026-07-10):
    alc 18.1 + CodeCop / PTE / UICop + Essence ruleset → base, PMALU, CDS a COALU 0 chyb, 0 warningů. Test appky (Test Runner,
    Tests-TestLibraries, System Application Test Library `29.0.0.0`): na MSSymbols je zatím jen řada `29.0.54011.55644` (29.1 ne),
    pod `Application` 29.1 z prostředí to nevadí (7.19), 0 chyb / 0 warningů i u tří test appek.
+6. **Stará šablona pipeline chce Essence licenci pro nový major.** `ALBuildPipeline.yml@essence_templates` z větve `master`
+   (cust-alumistr-bc) staví build kontejner přes `CreateBCContainer.yml` s licencí z `BC_LICENSE_FILE` (variable group
+   `BCBuildCommonVariables`). Za `$MajorVersion$` dosadí major artefaktu, takže pro BC 29 chce
+   `…/essencefiles/licenses/Essence.29.0.Latest.bclicense`. Ten na share nebyl, a tak krok *Prepare docker environment* spadl
+   po 40 s na `Download-File.ps1:83 … 404 (The specified resource does not exist.)`, hned po řádku `Using license file …`.
+   Vypadá to jako výpadek Microsoftu nebo BcContainerHelperu, ale index artefaktů, `Get-BcArtifactUrl` i pull image v tomtéž logu
+   prošly a BC 28 build téhož repa den předtím `Essence.28.0.Latest.bclicense` stáhl bez problému. Šablona `v2-0`
+   (`ALBuildPipeline2.yml`; na ní jedou všechna ostatní BC 29 repa: EF, Distribution, CLA, documentEmail…) kompiluje přes
+   CompilerFolder a testovací kontejner zakládá `CreateBCContainer2.ps1` **bez licence** (`License File:` prázdné; build 29453
+   prod-ef-dms-bc na 29.0 zelený na stejném agentovi hodinu předtím). Před bumpem repa na staré šabloně proto ověř, že licence
+   nového majoru na share je (správce DevOps), nebo repo převeď na `v2-0`. Převod mění kompilaci, testy a deploy, takže o něm
+   rozhoduje uživatel. Lokální testovací kontejner (7.23 v `bc-al-deploy.md`) Essence licenci nepoužívá a tuhle chybu neodhalí;
+   353 testů Alumistru v něm prošlo i s licencí z artefaktu. (2026-11-13, cust-alumistr-bc PR 9985, build 29454.)
 
 ### 7.15 Essence build: faily testů shazují build (od 2026-07-15) — „zelený" master nic nedokazoval
 
