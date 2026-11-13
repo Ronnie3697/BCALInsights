@@ -528,6 +528,15 @@ na prostředí neproklikané.
   zaznamenané ze všech řádků záznamu všech řádků objednávky té skupiny — a rozpouští ho do řádků objednávky
   (`CreateReservationEntries(…, false, "Quantity (Base)")`). Šarže přidělená řádku záznamu tak rozhoduje jen o tom, **které**
   šarži se přičte / odečte; přihrádku šarže BC z položek zboží nezná (ILE přihrádku nemá).
+- **Kudy jdou šarže ze záznamu do objednávky:** `Rec.-Finish` přenese na řádek objednávky jen součet (`Qty. Recorded (Base)`)
+  a řádku záznamu zapíše `Order Line No.`; řádek objednávky pole šarže nemá. Šarže se do objednávky dostanou až v `Order-Finish`,
+  a to jen jako **rozdíly** po šaržích (nalezeno − očekáváno) → `Reservation Entry` (Prospect, `Source Type` = `Phys. Invt. Order
+  Line`); `ShowItemTrackingLines` chce objednávku ve stavu Finished, do té doby jen `ShowPhysInvtRecordingLines`. `Order-Post`
+  hlídá `Pos. Qty. − Neg. Qty. = Quantity (Base)` (`DifferenceErr`). **Nalezené šarže nezapisuj do `Exp. Invt. Order Tracking`
+  s množstvím = nalezené** („převod do objednávky"): tam, kde se tabulka čte, vynuluje rozdíl šarže, kterou systém nezná →
+  chybí sledování → zaúčtování spadne na `DifferenceErr`. Essence Warehouse tabulku čte v *Make Phys. Invt. Recording* (řádky
+  záznamu po šaržích) a v návrhu přesunů po dokončení (`FillTmpCompensationBufferNeg/Pos`; nalezené šarže mimo očekávané si
+  doplní s očekávaným 0) — falešné „očekávané" řádky mu rozdíl šarže schovají.
 - **`ExpInvtOrderTracking.InsertLine(Doc, Line, ItemTrackingSetup, Qty)` je holé `Insert()`** (PK `Order No`, `Order Line No.`,
   `Serial No.`, `Lot No.`, `Package No.`). Kontrolu existence dělej podle celého PK (i Package) — pořadí parametrů vlastního
   `Exists…(…, LotNo, SerialNo)` hlídej, prohozené SN/šarže filtrují `Serial No. = šarže` a nenajdou nic. Víc řádků záznamu jednoho
@@ -555,7 +564,8 @@ na prostředí neproklikané.
 
 (2026-11-12, cust-jiri-bc EUDR `Physical Inventory Mgt. DRJIR` + `Phys. Invt. Lot Tests DRJIR` — 13 testů prošlo v kontejneru bc28
 28.2 cz; zdroj w1-28 `PhysInvtOrderLine.Table.al`, `PhysInvtOrderFinish.Codeunit.al`, `PhysInvtRecFinish.Codeunit.al`,
-`ExpInvtOrderTracking.Table.al`, Essence Warehouse master `PhysicalInventoryEBS.Codeunit.al`.)
+`ExpInvtOrderTracking.Table.al`, Essence Warehouse master `PhysicalInventoryEBS.Codeunit.al`; 2026-11-13 doplněno
+`PhysInvtOrderPost.Codeunit.al`.)
 
 ### 5.x27 Vlastní formát čísla šarže v akci na 6510 — protected `AssignLotNo()` + manuálně bindovaný `OnBeforeAssignNewLotNo`; viditelnost akce podle zdroje
 
