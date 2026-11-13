@@ -312,6 +312,13 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   (`Sync-NAVApp -Mode Clean` + `Unpublish-NAVApp`), ať produktová appka navíc neovlivní testy cizího projektu. Test appka s `SkipTests`
   v `app.json` (konvence repa) → do kontejneru kopie s `"preprocessorSymbols": []`. Skript `…\Extensions\bc28\jiri-eudr-tests\
   run-jiri-eudr-tests.ps1` (kroky `deps,build,run,clean`), 13 testů ~10 min včetně kompilace Essence Distribution Base.
+  **cust-sonnentor-bc v `bc28` (28.2 cz) zatím nejde** (2026-11-13, 65662): Essence závislosti v `.alpackages` jsou jen symboly a hlavní
+  appka potřebuje Essence Shopify Connector novější než plný 28.0.4.0 (AL0282 / AL0284 na `ShpfyMetafieldMgmt`) a Dotykačku ≥ 28.0.8
+  (AL0280 `OnAfterBuildProductJson`; plná 28.0.7.0 leží v `cust-sonnentor-bc_MPRI/.alpackages`), ED Advanced Lot Handling ≥ 27 (lokální
+  klon stojí na 26.0). Připravený skript `…\Extensions\bc28\sonnentor-tests\run-sonnentor-tests.ps1` (kroky `soitron-off,deps,deps2,build,
+  run,clean,soitron-on`, Soitron se na dobu běhu odinstaluje, zúžená test appka bez Dotykačky a Lot Handling) dojede po doplnění zdrojáků
+  (`git fetch` + `git archive` repa Shopify Connectoru / Dotykačky). Do té doby jen compile-check: alc 18.1 nad kopií proti `.alpackages`
+  (MS 28.5.54976) + test sada 28.5.54151 ze scratchpadu (`…/d14147d5bd29ebf9/aecfe55d-…/scratchpad/testsym/`) — obě appky čistě.
 - AL-Go for GitHub: má built-in test step
 - Lokálně: VS Code task nebo `bc-test-runner` extension
 - **Lokální testovací kontejner pro všechna repa** (Docker + BcContainerHelper bez admina, závislosti z NuGetu, nahrát → testy →

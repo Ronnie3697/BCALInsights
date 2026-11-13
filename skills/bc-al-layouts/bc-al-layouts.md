@@ -228,6 +228,13 @@ psaný skriptem (node generuje `document.xml` + customXml, PowerShell zipuje), b
 - **Prázdný prvek GS1 je neplatný** — AI (10) bez šarže vytiskne `(10)(30)…`, což čtečka odmítne. Prvky bez
   hodnoty vynechej (lot, množství 0, datum 0D) a FNC1 oddělovač dávej jen za prvek proměnné délky, po kterém
   ještě něco následuje.
+- **Generátor layoutu se rozejde s commitnutým `.docx`, když se ladí ručně.** U Sonnentoru se font GS1 doladil
+  (`IDAutomationC128M` / `C128S` 8 pt) přímo v `.docx`, generátor v `docs/tools/` (necommitnutý) zůstal na `C128XS` 11 pt —
+  regenerace by ladění tiše vrátila. Před regenerací vygeneruj nezměněným skriptem do scratchpadu a porovnej `word/document.xml`
+  s `git show HEAD:…docx` po normalizaci (seřadit atributy v tagu, zahodit `w:id`); až při 0 rozdílech proveď změnu. Číslo pod
+  EAN-13 kódem navíc: font `IDAutomationUPCEAN*` číslice tiskne sám, samostatný textový sloupec EAN je duplicitní. (2026-11-13, 65662)
+- **Dataset Word štítku v testu bez rendereru:** `Report.SaveAs(ReportId, '', ReportFormat::Xml, OutStream, RecRef)` → text přes
+  `InStream.ReadText` + `StrPos` na hodnotu (GS1 řetězec, kód z atributu); layout ani barcode fonty se nevykreslují. (65662)
 - **Název objektu max 30 znaků** (`Prod. Order Transport Label SON` = 31 → `Prod.Order …`), AA0215 pak
   chce soubor podle zkráceného názvu (`ProdOrderCommercialLbl.Report.al`).
 - `Library - Item Tracking.CreateProdOrderItemTracking` je od 27.0 deprecated (AL0432) → stejná signatura
