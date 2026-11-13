@@ -144,6 +144,14 @@ Distribution Base a ED Item Sales Disponibility; v `bctest28b` 321/321. 2026-10-
   cust-alumistr-bc 66845 nad COEBS větví `66845_ConditionTreeFromStructure`, 218 testů, 7:49, v kontejneru po běhu nezůstal
   build 28.0.99.0. Varianta (a) je jednodušší (žádná kopie skriptu k udržování), (b) se hodí, když produktová appka
   v kontejneru nejde přeložit ze zdrojáků nebo chceš testovat přesně konkrétní hotový `.app`.
+- **Repo na novém BC majoru (29) = samostatný kontejner mimo pool.** Appky s `application 29.0.0.0` se do `bctest28*` (28.4)
+  nenainstalují. `New-TestContainer.ps1 -ContainerName bctest29 -Version 29.1` (OnPrem cz 29.1.57326.57497, stejný build jako
+  Alumistr BC-DEV; 29.0 = 29.0.54011.55407), pak `Test-Repo.ps1 -RepoPath <repo> -ContainerName bctest29`. Do `settings.json`
+  `containerNames` ho **nepřidávej**, jinak by do něj padaly i běhy BC 28 rep. Docker Desktop si skript nestartuje (to umí jen
+  `Start-TestContainer`), tak ho nejdřív nastartuj (wrapper s `Invoke-Docker version` a čekáním). Po startu Dockeru naběhne
+  i celý pool BC 28 (restart policy), takže běží 4 kontejnery po 8 GB. Časy: vytvoření ~22 min, Essence závislosti 28.x
+  z feedu (`Application 28.0`) se v BC 29.1 nainstalují bez úprav. cust-alumistr-bc větev `yml_File_v29`: 353 testů, 0 failů,
+  11:05 (z toho kompilace 4:43, testy 4:51). (2026-11-13.)
 
 ### 7.24 Ruční nasazení PTE z NuGetu do SaaS sandboxu (Automation API) — dev build stejné appky, AVS0109
 
