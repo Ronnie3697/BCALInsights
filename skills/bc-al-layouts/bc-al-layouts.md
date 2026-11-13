@@ -233,6 +233,16 @@ psaný skriptem (node generuje `document.xml` + customXml, PowerShell zipuje), b
   regenerace by ladění tiše vrátila. Před regenerací vygeneruj nezměněným skriptem do scratchpadu a porovnej `word/document.xml`
   s `git show HEAD:…docx` po normalizaci (seřadit atributy v tagu, zahodit `w:id`); až při 0 rozdílech proveď změnu. Číslo pod
   EAN-13 kódem navíc: font `IDAutomationUPCEAN*` číslice tiskne sám, samostatný textový sloupec EAN je duplicitní. (2026-11-13, 65662)
+- **Náhled Word layoutu bez MCP a bez BC:** vygeneruj kopii `.docx` se vzorovými hodnotami přímo v `customXml/item1.xml`
+  (Word vázané content controly ukáže s těmi hodnotami, obrázek = base64 v elementu sloupce), převeď přes Word COM
+  (`Documents.Open` read-only → `ExportAsFixedFormat(pdf, 17)`, `ComputeStatistics(2)` = počet stran) a PDF na PNG přes
+  WinRT `Windows.Data.Pdf` z PowerShellu (`PdfDocument.LoadFromFileAsync` → `GetPage(i).RenderToStreamAsync`, AsTask
+  přes reflexi na `WindowsRuntimeSystemExtensions`) — poppler / PyMuPDF na stroji nejsou. Barcode fonty IDAutomation
+  lokálně chybí (vykreslí se text), skutečný tisk ověř v BC. (2026-11-14, cust-sonnentor-bc report 54808 Gift Voucher SON.)
+- **`w:trHeight w:hRule="exact"` nezahrnuje horní/dolní `w:tcMar` buňky ani silný rámeček tabulky** — karta „jedna
+  stránka" s `tcMar` 340 twips a dvojitým rámečkem byla o ~600 twips vyšší než exact výška, obsah se ořízl a prázdný
+  odstavec za tabulkou vyrobil druhou stránku. Okraje buňky nahoře/dole dej 0 (mezeru udělej odstavcem s `w:line`
+  `lineRule="exact"`) a exact výšku nech ~200 twips pod výškou těla stránky. (Ověřeno ve Wordu, 2026-11-14, 54808.)
 - **Dataset Word štítku v testu bez rendereru:** `Report.SaveAs(ReportId, '', ReportFormat::Xml, OutStream, RecRef)` → text přes
   `InStream.ReadText` + `StrPos` na hodnotu (GS1 řetězec, kód z atributu); layout ani barcode fonty se nevykreslují. (65662)
 - **Název objektu max 30 znaků** (`Prod. Order Transport Label SON` = 31 → `Prod.Order …`), AA0215 pak
