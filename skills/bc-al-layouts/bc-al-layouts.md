@@ -217,10 +217,20 @@ psaný skriptem (node generuje `document.xml` + customXml, PowerShell zipuje), b
   95–106 → chr(v+100) (FNC1 = Ê 202, Start C = Í 205, Stop = Î 206). GS1: FNC1 za startem a za každým
   prvkem proměnné délky (AI 10, 30), AI 02 = GTIN-14 (EAN zleva nulami), AI 15 = `<Year,2><Month,2><Day,2>`.
   Ručně ověřitelné vektory do testu: `FNC1 0201` → check 8, `FNC1 10AB` → check 5.
-- **Kontrolní číslici EAN font dopočítá sám** — `IDAutomationUPCEAN*` vytiskl `…22561`, zatímco Item Reference
-  držel `…22560`; čárový kód a tištěný text se rozešly bez chyby. Před tiskem ověř GS1 mod 10 (váhy 3,1,3,1…
-  zprava, `(10 − Σ mod 10) mod 10`) a špatný EAN zastav chybou s očekávanou číslicí (`ValidateEANCheckDigit`).
-  Testovací EANy musí mít platnou kontrolní číslici (`8591234567893`, `18591234567890`, `12345670`).
+- **Kontrolní číslici EAN přepíše enkodér, ne font** — `IDA 1D EAN13 Encoder` / `EAN8 Encoder` volá .NET
+  `IDAutomation.Linear.FontEncoder.EAN13` / `EAN8`, který poslední číslici vstupu zahodí a připojí dopočítanou:
+  `8004145022560`, `…561`, `…563` i `800414502256` dají stejné `x(0A4BE5*KMMPQL(`. Čárový kód i číslice pod
+  ním (jsou součástí glyfů) pak ukazují jiné číslo, než drží Item Reference, a nic nespadne. Před tiskem ověř
+  GS1 mod 10 (váhy 3,1,3,1… zprava, `(10 − Σ mod 10) mod 10`) a podle zadání buď zastav chybou, nebo varuj.
+  **Tisk uloženého čísla včetně špatné číslice:** ve výstupu enkodéru je kontrolní číslice znak před koncovým
+  `(`, v pravé sadě `K` = 0 … `T` = 9 (`chr(75 + číslice)`); nahraď ho uloženou číslicí (`8004145022563` →
+  `x(0A4BE5*KMMPQN(`, EAN-8 `12345678` → `(1234*PQRS(`). Formát EAN-13: znak úvodní číslice (`p` + číslice),
+  `(`, 6 číslic levé půlky v sadě A `0–9` / B `A–J` podle parity, `*`, 6 číslic sady C `K–T`, `(`. Takový EAN
+  čtečka nepřečte (kontrolní číslice je povinná část symbologie), GS1-128 s ním se přečte (Code 128 má vlastní
+  mod 103). Enkodér si lze spustit lokálně: `Add-Type` na `IDAutomation.LinearFontEncoder.dll` z artifact
+  cache (`…/Service/Add-ins/BarCodeFont/`), `(New-Object IDAutomation.Linear.FontEncoder).EAN13('…')`.
+  Testovací EANy pro běžné testy musí mít platnou kontrolní číslici (`8591234567893`, `18591234567890`,
+  `12345670`). (2026-11-13, cust-sonnentor-bc 65662, `GS1 Barcode Mgt. SON.KeepStoredCheckDigit`.)
 - **Rozměry na štítku 100×50 mm:** EAN-13 ve fontu M při 13 pt ≈ 40 mm → ve sloupci 31 mm se zalomí (zbytek
   čar na dalším řádku) a vytlačí zbytek obsahu za `hRule="exact"` výšku (GS1 řádek zmizí). EAN 10 pt + sloupec
   ≥ 37 mm, GS1-128 `C128S`/`C128M` 8 pt (~75 mm pro 38 symbolů), Arial 7–11 pt. Přetečený čárový kód poznáš
