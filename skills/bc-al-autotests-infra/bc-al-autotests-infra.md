@@ -288,6 +288,14 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   publikovaná) → dokonči `Sync-NAVApp -Mode Clean -Force` + `Unpublish-NAVApp -Tenant default -Name … -Version …` v jedné
   `Invoke-ScriptInBcContainer` relaci. Skript: kopie `run-soitron-tests.ps1` s `$base` pod `C:\ProgramData\BcContainerHelper\
   Extensions\bc28\` (sdílená složka). (prod-ep-projectBase-bc task 67360, 2026-11-12.)
+  **Od 2026-11-13 leží `run-epebs-tests.ps1` přímo v `…\Extensions\bc28\`** (vedle IMEBS a Soitron skriptu) s kroky `main,build,run,clean`:
+  `main` přeloží EP Base z working tree s verzí nainstalovaný build + 1 v revizi jen v kopii (`-EnableCodeCop -EnableUICop` + ruleset
+  repa s externím includem staženým vedle kopie, **bez** PerTenantExtensionCop — ID 71058660+ dává PTE0001 *must be within 50000..99999*),
+  `Publish-BcContainerApp -upgrade` (IMEBS i Soitron zůstanou nainstalované), pak test appka, běh se Soitronem odinstalovaným a úklid přes
+  `Sync-NAVApp -Mode Clean` + `Unpublish-NAVApp`. Pořadí pro změnu napříč EP Base → IMEBS → Soitron: EP Base `main,build,run,clean`, IMEBS
+  `app,build,run,clean` (před tím smaž staré `*Essence Project Base_*.app` ze `symbols` a `main-symbols` IMEBS, ať kompilace nevezme starou
+  verzi), Soitron `soi,test,run` (bez kroku `imebs`, ten by kompiloval nižší verzi než nainstalovanou). EP Base 157 testů ~6 min, IMEBS 109.
+  (task 66675.)
   Stejně **test appka IMEBS** (`run-imebs-tests.ps1` vedle Soitron skriptu: jen test appka proti IMEBS buildu v kontejneru, Soitron
   odinstalovaný na dobu běhu, úklid `Uninstall-NAVApp -DoNotSaveData` + `Sync-NAVApp -Mode Clean` + `Unpublish-NAVApp` rovnou, bez
   `UnPublish-BcContainerApp`): 101/101, ~4 min. Že nainstalovaný build odpovídá working tree, ověř `diff -rq` kopie zdrojáků, ze které se
