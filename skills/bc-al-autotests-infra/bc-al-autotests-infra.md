@@ -295,6 +295,14 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   `app.json` upravený pro kontejner (verze 28.0.18.7, minimum EP Base 28.0.41.0 → 28.0.0.0, protože `bc28` má EP Base 28.0.24.1)
   a v `git status` vypadá jako součást úkolu. Do commitu nepatří (verze 7.8, snížené minimum závislosti) — verzi a minima přepisuj jen
   v kopii (jako krok `epebs`). (prod-ep-itemManagement-bc task 67360, 2026-11-12.)
+  **Krok `app` v `run-imebs-tests.ps1`** (`-StepList app,build,run,clean`) to tak dělá: kopie `app/`, verze = nainstalovaný build + 1
+  v revizi a minimum EP Base 28.0.0.0 jen v kopii, `Publish-BcContainerApp -sync -install -upgrade` (stejnou verzi znovu nahrát nejde;
+  upgrade nechá závislý Soitron nainstalovaný), pak stará IMEBS `.app` pryč ze složky symbolů test appky. ⚠️ Od té chvíle je v `bc28`
+  vyšší verze, než má working tree — krok `imebs` Soitron skriptu s verzí z `app.json` by byl downgrade; má verzi zvedat v kopii stejně.
+  Kompilace s `-EnableCodeCop -EnablePerTenantExtensionCop -EnableUICop -rulesetFile <ruleset repa>` spadla na **`AL1033 … external
+  rulesets are not allowed`** (include `essence-default.ruleset.json` z blobu; 7.1 v `bc-al-tools.md`) → skript include stáhne vedle kopie
+  (`Invoke-WebRequest`, TLS 1.2) a v kopii rulesetu přepíše URL na lokální cestu; alc 17.0 v kontejneru pak projde bez varování.
+  `Compile-AppInBcContainer` má i přepínač `-enableExternalRulesets` (neověřeno). LinterCop tím pokrytý není. 105/105, ~6 min.
   **Zákaznické repo bez vlastního kontejneru ve sdíleném `bc28`** (cust-jiri-bc EUDR, 2026-11-12): Essence závislosti v `.alpackages`
   zákaznického repa jsou často **jen symboly** (`unzip -l` → 0 souborů `.al`, jen `NavxManifest.xml` + `SymbolReference.json`, desítky KB)
   → `Publish-BcContainerApp` je nenainstaluje. Zdroj = `git archive origin/master app | tar -x` z lokálního klonu produktového repa

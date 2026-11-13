@@ -528,6 +528,25 @@ na prostředí neproklikané.
   zaznamenané ze všech řádků záznamu všech řádků objednávky té skupiny — a rozpouští ho do řádků objednávky
   (`CreateReservationEntries(…, false, "Quantity (Base)")`). Šarže přidělená řádku záznamu tak rozhoduje jen o tom, **které**
   šarži se přičte / odečte; přihrádku šarže BC z položek zboží nezná (ILE přihrádku nemá).
+- **⚠️ Omezení standardu v téže větvi: zboží ve víc přihrádkách nejde zaúčtovat.** Buffer rozdílů má jeden `Line No.` na šarži —
+  u šarží z položek zboží je to **první řádek objednávky zboží** (`UpdateBufferFromItemLedgerEntries(PhysInvtOrderLine)`) — a
+  `CreateReservationEntries` ho dává do `Source Ref. No.`, ne řádek, pro který rozpouští (parametr `LineNo` v těle nepoužije);
+  `MaxQtyToTransfer` = absolutní množství řádku bez znaménka a neodečítá se. Manko v druhé přihrádce tak skončí jako sledování
+  prvního řádku a zaúčtování druhého spadne na *„You must assign a lot number for item …"*. Se skladovým sledováním šarží
+  (očekávané po přihrádkách, větev `AllBufferLines`) stejné počítání projde. Ověřeno testem v kontejneru (bc28, 28.2 cz).
+- **`Item Tracking Code.Validate("Lot Specific Tracking", true)` zapne i `Lot Warehouse Tracking`** (OnValidate, w1-28; stejně
+  SN). Výchozí nastavení kódu sledování je tedy *se* skladovým sledováním a větev „přihrádky bez skladového sledování" nastane jen
+  při ručním vypnutí. V testu (`LibraryItemTracking.CreateItemTrackingCode(…, false, true)` validuje) nastav `Lot Warehouse
+  Tracking` explicitně oběma směry a assertni ho, jinak test „bez skladového sledování" potichu běží se skladovým.
+- **Kudy jdou šarže ze záznamu do objednávky:** `Rec.-Finish` přenese na řádek objednávky jen součet (`Qty. Recorded (Base)`)
+  a řádku záznamu zapíše `Order Line No.`; řádek objednávky pole šarže nemá. Šarže se do objednávky dostanou až v `Order-Finish`,
+  a to jen jako **rozdíly** po šaržích (nalezeno − očekáváno) → `Reservation Entry` (Prospect, `Source Type` = `Phys. Invt. Order
+  Line`); `ShowItemTrackingLines` chce objednávku ve stavu Finished, do té doby jen `ShowPhysInvtRecordingLines`. `Order-Post`
+  hlídá `Pos. Qty. − Neg. Qty. = Quantity (Base)` (`DifferenceErr`). **Nalezené šarže nezapisuj do `Exp. Invt. Order Tracking`
+  s množstvím = nalezené** („převod do objednávky"): tam, kde se tabulka čte, vynuluje rozdíl šarže, kterou systém nezná →
+  chybí sledování → zaúčtování spadne na `DifferenceErr`. Essence Warehouse tabulku čte v *Make Phys. Invt. Recording* (řádky
+  záznamu po šaržích) a v návrhu přesunů po dokončení (`FillTmpCompensationBufferNeg/Pos`; nalezené šarže mimo očekávané si
+  doplní s očekávaným 0) — falešné „očekávané" řádky mu rozdíl šarže schovají.
 - **`ExpInvtOrderTracking.InsertLine(Doc, Line, ItemTrackingSetup, Qty)` je holé `Insert()`** (PK `Order No`, `Order Line No.`,
   `Serial No.`, `Lot No.`, `Package No.`). Kontrolu existence dělej podle celého PK (i Package) — pořadí parametrů vlastního
   `Exists…(…, LotNo, SerialNo)` hlídej, prohozené SN/šarže filtrují `Serial No. = šarže` a nenajdou nic. Víc řádků záznamu jednoho
@@ -552,10 +571,23 @@ na prostředí neproklikané.
   `Phys. Invt. Rec.-Finish` (`SetHideProgressWindow(true)` + `Run(Header)` jako statement); zásoba šarží = surové ILE (`Open`,
   `Remaining Quantity`, `Posting Date` pro FIFO). Výpočet dělení vytáhni do veřejné procedury nad temp `Invt. Order Tracking`
   (`Qty. Recorded (Base)` / `Qty. Expected (Base)`, `Line No.` = pořadí) a testuj ho napřímo.
+- **End-to-end test až po zaúčtování (Cloud test appka):** zásoba po šaržích = vlastní list deníku (`CreateItemJournalBatchByType`
+  + `CreateItemJournalLine` + `Validate` Posting Date / Location / Bin + `LibraryItemTracking.CreateItemJournalLineItemTracking`
+  + `PostItemJournalLine`), lokace `LibraryWarehouse.CreateLocationWMS(…, BinMandatory, false, …)` + `CreateBin`; řádek objednávky
+  `Validate("Item No.")` + `Validate("Bin Code")` + `Insert(true)` + `CalcQtyAndTrackLinesExpected()` + `Modify(true)` (= akce
+  *Vypočítat očekávané množství*); pak `Rec.-Finish`, `Order-Finish` a `Order-Post` (`SetHideProgressWindow`, `SetSuppressCommit`).
+  Hlavička bez číselných řad → účtovaný doklad má `No.` = číslo objednávky. Ověřuj sledování objednávky po dokončení (`Reservation
+  Entry` se `Source Type` = `Phys. Invt. Order Line`) a po zaúčtování součty ILE po šarži a `Warehouse Entry` po přihrádce.
+  **CZ:** `Order-Post` v CZ lokalizaci účtuje s obecnou obchodní skupinou výchozích šablon pohybu (`Inventory Setup."Def.Tmpl. for
+  Phys.Pos.Adj CZL"` / `…Neg.Adj CZL`, v kontejneru Z-PŘEBYTEK / Z-MANKO) → *„The General Posting Setup does not exist"* pro
+  skupinu zboží z knihovny; test si chybějící `General Posting Setup` (s `Inventory Adjmt. Account`) založí pro všechny obchodní
+  skupiny, bez závislosti na CZL. Všechny kroky před zaúčtováním přitom projdou — chyba vypadá jako problém účtování.
 
 (2026-11-12, cust-jiri-bc EUDR `Physical Inventory Mgt. DRJIR` + `Phys. Invt. Lot Tests DRJIR` — 13 testů prošlo v kontejneru bc28
 28.2 cz; zdroj w1-28 `PhysInvtOrderLine.Table.al`, `PhysInvtOrderFinish.Codeunit.al`, `PhysInvtRecFinish.Codeunit.al`,
-`ExpInvtOrderTracking.Table.al`, Essence Warehouse master `PhysicalInventoryEBS.Codeunit.al`.)
+`ExpInvtOrderTracking.Table.al`, Essence Warehouse master `PhysicalInventoryEBS.Codeunit.al`; 2026-11-13 doplněno
+`PhysInvtOrderPost.Codeunit.al`, `PhysInvtTrackingMgt.Codeunit.al`, `ItemTrackingCode.Table.al` a end-to-end testy
+`Phys. Invt. Post. Tests DRJIR` v bc28; že testy chytí původní chyby, ověřeno vrácením starého kódu v kopii pro kontejner.)
 
 ### 5.x27 Vlastní formát čísla šarže v akci na 6510 — protected `AssignLotNo()` + manuálně bindovaný `OnBeforeAssignNewLotNo`; viditelnost akce podle zdroje
 
