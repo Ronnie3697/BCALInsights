@@ -670,7 +670,7 @@ export cen tam neotestuješ; feature nezapínej, vyber firmu, kde běží. (2026
   - JS výstup ve tvaru `0101…` končí `[BLOCKED: Base64 encoded data]`.
 - **Testovací data do sandboxu radši dočasnou appkou než klikáním** (se svolením k zápisu, viz konec 12.3). Malá appka mimo repo
   (vlastní GUID, rozsah např. 99970–99979, bez závislostí) se stránkou s akcemi „1 kmenová data / 2 zásoby / 3 doklady", nahraná
-  `altool publishapp` (7.26 v `bc-al-build.md`): zboží + MJ + odkazy, kód sledování, deník zboží se SN/šaržemi (`Create Reserv.
+  `altool publishapp` (7.26 v `bc-al-deploy.md`): zboží + MJ + odkazy, kód sledování, deník zboží se SN/šaržemi (`Create Reserv.
   Entry.CreateReservEntryFor` + `CreateEntry`, `Codeunit.Run(Codeunit::"Item Jnl.-Post Batch", …)` na napozicovaném řádku vlastního
   listu), prodej → `Release Sales Document.PerformManualRelease` → `Get Source Doc. Outbound.CreateFromSalesOrderHideDialog` → report
   `Whse.-Shipment - Create Pick` (`SetWhseShipmentLine`, `SetHideValidationDialog(true)`, `UseRequestPage(false)`), nákup →

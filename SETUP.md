@@ -169,7 +169,7 @@ nikdy**, nenabízí je a ani se na ně u push neptá (7.7b). **Přijme →** bod
 `Lokální testovací kontejner: ano — <PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1, autotesty po každém push (7.7b).`
 Rozmyslí si to později → průvodce pusť znovu, krok 9 větu přepíše.
 
-Šablona nástroje a jeho README: `<KLON>\setup\bc-test-container\`, detail a pasti 7.23 v `bc-al-build.md`.
+Šablona nástroje a jeho README: `<KLON>\setup\bc-test-container\`, detail a pasti 7.23 v `bc-al-deploy.md`.
 
 1. **Zjisti a ukaž:** Docker Desktop (`Test-Path "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe"`), mód
    (`docker version --format '{{.Server.Os}}'` = `windows`, když Docker běží), členství v `docker-users` **dvakrát** —

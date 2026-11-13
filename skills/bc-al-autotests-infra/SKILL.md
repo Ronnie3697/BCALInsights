@@ -29,8 +29,8 @@ wrapper. Vyčleněno z `bc-al-autotests.md` 2026-10-09 (1009 řádků / 77 KB, n
    ve skillu `bc-al-autotests` — u psaní nebo opravy testů ho načti spolu s tímhle.
 3. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli, nepřepisuj potichu.
    Nový poznatek → do souboru + commit + push (viz skill `bc-al`).
-4. Sousední témata: symboly test frameworku z MSSymbols feedu, lokální testovací kontejner (7.23)
-   a faily CI buildu → `bc-al-build`; alc z CLI a package cache → `bc-al-tools` (7.1); ruleset
+4. Sousední témata: symboly test frameworku z MSSymbols feedu a faily CI buildu → `bc-al-build`;
+   lokální testovací kontejner (7.23) → `bc-al-deploy`; alc z CLI a package cache → `bc-al-tools` (7.1); ruleset
    konvence → `bc-al-workflow` (12.4).
 
 ## TL;DR
@@ -50,7 +50,7 @@ wrapper. Vyčleněno z `bc-al-autotests.md` 2026-10-09 (1009 řádků / 77 KB, n
 - Kompiluj **kopii** `test/` ve scratchpadu (vedle ní `app/` s logem); testy za `#IF TESTS` ověř kopií
   s přepnutým symbolem.
 - **Po každém vyžádaném push** testy v lokálním kontejneru (`Test-Repo.ps1`, 7.7b v `bc-al-tools`, 7.23
-  v `bc-al-build`), jen kdo kontejner v setupu přijal. Verze Essence závislostí jako CI (NuGet
+  v `bc-al-deploy`), jen kdo kontejner v setupu přijal. Verze Essence závislostí jako CI (NuGet
   `LatestMatching`), ne „co leží v `.alpackages`".
 - Text chyby spadlého testu z CI: REST `_apis/test/Runs/<runId>/results?outcomes=Failed` v přihlášeném
   Chromu; stejné `Document No.` v chybách víc testů = každý spadl a odroloval se.

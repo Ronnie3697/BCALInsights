@@ -1,26 +1,25 @@
 ---
 name: bc-al-build
 description: >-
-  BC/AL dependencies, CI build a deploy z praxe (Business Central, Essence pipeline, 7.11–7.26):
+  BC/AL dependencies, CI build a release deploy z praxe (Business Central, Essence pipeline, 7.11–7.22):
   NuGet v2-0 (MajorMinor + LatestMatching; dedupe minim per GUID → stejná verze deps ve všech app.json),
   symboly test frameworku z MSSymbols feedu, CZ packy od BC 28 pod ID s .cz. infixem, Compile AL Apps bez
   ##[error] (PTE0012), kolize object ID po merge (rozhodují nasazená data), major bump checklist (app.json,
-  BC_ARTIFACT), faily testů shazují build, squash merge → falešné konflikty, Subcontracting ≥ 28.3 (falešné
-  AL0118/AL0132), Deploy Staging sync 'Add' / ForceSync maže data / obsolete dvoufázově, typ pole v ostré appce (nová pole + DataTransfer), smíchané řady MS
-  symbolů (AL0132 bez AL1022), release SaaS (altool .NET 10, 409 = souběžný deploy), test kontejner (Docker),
-  ruční PTE upload (AVS0109), Dev publish deps do kontejneru containers.essencebs.com (dev endpoint), dev
-  publish altool do SaaS sandboxu (osiřelá data, duplicate package ID, ForceSync). Načti při CI/build/release
-  failech, deps z feedu, BC major.
+  BC_ARTIFACT, bump jen zákaznických appek – Essence deps zůstávají na N−1), faily testů shazují build, squash
+  merge → falešné konflikty, Subcontracting ≥ 28.3 (falešné AL0118/AL0132), Deploy Staging sync 'Add' / ForceSync
+  maže data / obsolete dvoufázově, typ pole v ostré appce (nová pole + DataTransfer), smíchané řady MS symbolů
+  (AL0132 bez AL1022), release SaaS (altool .NET 10, 409 = souběžný deploy). Lokální testovací kontejner a ruční
+  nasazení do sandboxu / kontejneru → bc-al-deploy. Načti při CI/build/release failech, deps z feedu, BC major.
 user-invocable: true
 ---
 
-# BC/AL — Dependencies, CI build & deploy (sekce 7.11–7.26)
+# BC/AL — Dependencies, CI build & deploy (sekce 7.11–7.22)
 
 **Zdroj pravdy:** `bc-al-build.md` ve stejném adresáři jako tenhle `SKILL.md`
 (adresář skillu = „Base directory" hlášený při načtení; cestu skládej odtud, ne přes `..`). Tenhle skill je jen wrapper —
 pravidla níže jsou výcuc; detail, příkazy, URL feedů, GUIDy a diagnostika
 build logů jsou v souboru. Vyčleněno z `bc-al-tools.md` 2026-09-01, číslování
-7.x je původní (7.1–7.10 zůstává ve skillu `bc-al-tools`).
+7.x je původní (7.1–7.10 zůstává ve skillu `bc-al-tools`, 7.23–7.26 od 2026-11-13 ve skillu `bc-al-deploy`).
 
 ## Co udělat
 
@@ -32,7 +31,8 @@ build logů jsou v souboru. Vyčleněno z `bc-al-tools.md` 2026-09-01, číslov�
 3. Sousední témata: alc, al-mcp, BC source, git/PR, verzování app.json (7.8),
    Azure DevOps MCP → `bc-al-tools` (7.1–7.10); analyzery a ruleset →
    `bc-al-workflow` (12); test appka, `Tests-TestLibraries`, lokální kompilace a běh testů →
-   `bc-al-autotests-infra`; canonical vzor → `bc-al-autotests`.
+   `bc-al-autotests-infra`; canonical vzor → `bc-al-autotests`; lokální testovací kontejner, ruční
+   nasazení PTE / dev buildů do sandboxu a kontejnerů (7.23–7.26) → `bc-al-deploy`.
 
 ## TL;DR — nejtvrdší pravidla (čísla = sekce v souboru)
 
@@ -49,7 +49,8 @@ build logů jsou v souboru. Vyčleněno z `bc-al-tools.md` 2026-09-01, číslov�
 - **7.13** Kolize ID po merge: přečísluj **nenasazenou** stranu — zeptej se,
   co běží s daty.
 - **7.14** Major bump: všechny `app.json` (version/platform/application
-  `N.0.0.0`, runtime +1, dependencies minima `N.0.0.0`), `azure-pipelines.yml`
+  `N.0.0.0`, runtime +1, minima in-repo a Microsoft deps `N.0.0.0`; Essence
+  produkty bez `N.x` na feedu zůstávají na `N−1` minimech), `azure-pipelines.yml`
   (`BC_ARTIFACT`, `Version.Major`), ověř externí deps na feedu.
 - **7.15** Faily testů shazují build (od 2026-07-15) — červený master po
   nesouvisejícím PR = zpřísněná šablona, faily jsou reálné.

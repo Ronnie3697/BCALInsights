@@ -261,7 +261,7 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   Smartwings licence). Bez nové partner licence (`Import-BcContainerLicense -containerName bc28 -licenseFile <nová>`) testy nepoběží.
   Heslo `admin` a licence jsou v Key Vaultu `EssenceBCKeyVault` (secrety `password`, `licenseFile` — tak je bere `scripts/Local-DevEnv.ps1`),
   `Get-AzKeyVaultSecret` je ale pro agenta v auto-mode zablokované klasifikátorem (Credential Exploration) → licenci a heslo musí dát
-  uživatel. Šablona `Test-Repo.ps1` (7.23) tu není nainstalovaná (`C:WorkingFolderALc-test-container` neexistuje), jen `bc28`.
+  uživatel. Šablona `Test-Repo.ps1` (7.23 v `bc-al-deploy.md`) tu není nainstalovaná (`C:WorkingFolderALc-test-container` neexistuje), jen `bc28`.
   Compile-check test appek bez kontejneru: 28.5.54151 test sada ve scratchpadu soitron seance `21fb1877…/scratchpad/cache/`.
   **Vyřešeno 2026-11-12:** uživatel dodal novou licenci (`Downloads\Essence.28.0.Latest.bclicense`) → `Import-BcContainerLicense
   -containerName bc28 -licenseFile … -restart`. Heslo `admin` neznal ani uživatel (dva pokusy přes nativní okno → dev endpoint `401
@@ -307,7 +307,7 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
 - AL-Go for GitHub: má built-in test step
 - Lokálně: VS Code task nebo `bc-test-runner` extension
 - **Lokální testovací kontejner pro všechna repa** (Docker + BcContainerHelper bez admina, závislosti z NuGetu, nahrát → testy →
-  odinstalovat; reprodukuje CI) → **7.23 v `bc-al-build.md`**, nástroj `<PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1`;
+  odinstalovat; reprodukuje CI) → **7.23 v `bc-al-deploy.md`**, nástroj `<PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1`;
   pouští se **po každém vyžádaném push** (7.7b v `bc-al-tools.md`), jen kdo kontejner v setupu přijal.
 - **VS Code extension AL Test Runner** (James Pearson, `jamespearson.al-test-runner`; dřív tu chybně „luc-vandyck")
   — codelens "Run Test" / "Debug Test", Testing pane, zvýraznění padající řádky, code coverage. **Kontejner nevyrábí**:

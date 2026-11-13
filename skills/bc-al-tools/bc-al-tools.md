@@ -231,7 +231,7 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   `.alpackages` drží Essence appky často jako `…_28.0.0.0.app` z doby založení repa, kód masteru už volá eventy
   novější verze z feedu. Aktuální symboly z feedu leží v **dependency-cache lokálního testovacího kontejneru**
   (`C:\ProgramData\BcContainerHelper\Extensions\<container>\dependency-cache\<packageId>\<verze>\*.app`, plní ho
-  `Test-Repo.ps1`, 7.23 v `bc-al-build.md`) → do dočasné cache zkopíruj `.alpackages` **bez** staré verze té appky a
+  `Test-Repo.ps1`, 7.23 v `bc-al-deploy.md`) → do dočasné cache zkopíruj `.alpackages` **bez** staré verze té appky a
   přidej verzi odtud (dvě verze téže appky v cache = nejisté, kterou alc vezme). (2026-10-06, cust-sonnentor-bc:
   Essence Shopify Connector 28.0.0 v `.alpackages` vs. 28.0.6 v cache kontejneru, `ShpfyMetafieldMgmt.Codeunit.al`.)
   **Totéž u sesterské appky téhož repa:** `AL0118 The name '"Invoicing Email SOI"' does not exist` při kompilaci CDS.W1
@@ -432,7 +432,7 @@ specified at startup. Use the al_addproject tool"; na AL 17 Petr hlásil, že be
   server hlásí úspěch, čti text zprávy. Obecně: `al_run_tests` / `altool runtests` umí vrátit úspěch i při chybě běhu —
   rozhoduje text výsledku (počty passed / failed / skipped a hlášky), nikdy jen `succeeded` / exit kód.
 - ⚠️ **Testy v SaaS sandboxu jen výjimečně, na výslovný pokyn uživatele.** Standard je lokální testovací kontejner (7.23
-  v `bc-al-build.md`) — po vyžádaném push a kdykoli uživatel řekne; sandbox je doplněk, ne náhrada. Že to jde: Alumistr BC-DEV
+  v `bc-al-deploy.md`) — po vyžádaném push a kdykoli uživatel řekne; sandbox je doplněk, ne náhrada. Že to jde: Alumistr BC-DEV
   (2026-11-03) má MS test toolkit nainstalovaný jako `Global` (Test Runner, Library Assert, Any, Library Variable Storage,
   `Application Test Library`, Business Foundation Test Libraries) — **bez** `Tests-TestLibraries` a `System Application Test
   Library`, takže test appka s těmi závislostmi se tam nenainstaluje; pro běh v sandboxu kopie test appky (ve scratchpadu) se
@@ -847,7 +847,7 @@ notes repo má vlastní režim (7.7).
 pusť autotesty. Ať pushujeme větev, která pak nespadne na testech po PR, a zároveň ať se nezdržujeme čekáním na testy po
 každé malé změně."*; pořadí upraveno 2026-10-09: *„Když napíšu push, tak pushni a pak pusť autotesty. Kdyby náhodou vyhořel
 noťas, tak ať je ta větev aspoň online a aktuální."*). Platí pro každý pokyn, který vede k push (`pushni`, `oboje`,
-„commitni a pushni", „pošli to na server"…). PR buildy testy spouštět nemusí (liší se per repo, 7.23 v `bc-al-build.md`), bez toho by nový test
+„commitni a pushni", „pošli to na server"…). PR buildy testy spouštět nemusí (liší se per repo, 7.23 v `bc-al-deploy.md`), bez toho by nový test
 poprvé běžel až na masteru. Starší znění always-on věty („autotesty před každým push“) se čte stejně — pořadí určuje tahle
 sekce.
 
@@ -857,7 +857,7 @@ always-on soubor uživatele má větu `Lokální testovací kontejner: ano …`,
 na znění za pomlčkou nezáleží) = autotesty **nepouštěj nikdy**, neptej se na ně, nenabízej je a neříkej, že chybí —
 pushni podle zbytku 7.7b a skonči.
 
-1. Po merge masteru, kompilaci a **pushi** pusť **celé** testy repa v lokálním kontejneru (7.23 v `bc-al-build.md`), na pozadí:
+1. Po merge masteru, kompilaci a **pushi** pusť **celé** testy repa v lokálním kontejneru (7.23 v `bc-al-deploy.md`), na pozadí:
    `powershell -NoProfile -ExecutionPolicy Bypass -File "<PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1" -RepoPath <kořen repa>`.
    Skript sám nastartuje Docker Desktop i kontejner; výsledek = řádek `SUMMARY: <n> tests, <n> failed` + exit code
    (konfigurátor ~6 min). `<PRACOVNÍ-REPA>` je v always-on souboru uživatele. Skripty jsou kopie šablony

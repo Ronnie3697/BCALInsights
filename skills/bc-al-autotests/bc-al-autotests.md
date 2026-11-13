@@ -240,7 +240,7 @@ Assert.ExpectedErrorCode('Dialog');
   `Assert.ExpectedError`; že se stav nezměnil, testuj o vrstvu níž (engine / codeunit nad bufferem). `MessageHandler`
   pak z `[HandlerFunctions]` vyhoď — dialog nic neuloží a nevyužitý handler test shodí. Pravděpodobná příčina: stránka
   drží odmítnutý text na řádku jako klient (opustit řádek nejde, dokud se neopraví) — příčina neověřená; původní test lokálně
-  spadl stejně jako v CI a přepsaný prošel (7.23 v `bc-al-build.md`, 2026-10-05).
+  spadl stejně jako v CI a přepsaný prošel (7.23 v `bc-al-deploy.md`, 2026-10-05).
   (2026-10-05, prod-ess-configurator-bc `Var. Config Dialog Tests COEBS`, větev `VarConfigDialogTestsFix`.)
 - **Modální `PageType = Worksheet` (i List mimo lookup mode) nemá built-in Cancel.** `TestPage.Cancel().Invoke()`
   v `[ModalPageHandler]` spadne na *„The built-in action = Cancel is not found on the page."* — a reálné BC

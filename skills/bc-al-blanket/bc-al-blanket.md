@@ -52,7 +52,7 @@ Obsahuje:
   `OnPreReport` nejdřív `if UnbindSubscription(X) then;` (opakovaný bind téže instance spadne). Test: report 699 přes
   `SetTemplAndWorksheet` + `InitializeRequest` + `SetTableView` + `UseRequestPage(false)` + `RunModal` **bez
   ConfirmHandleru** (dotaz test shodí), druhý test ruční změna po plánu s handlerem (vazba skončila). Ověřeno v lokálním
-  kontejneru 28.4 (7.23 v `bc-al-build.md`). (2026-10-05, cust-sonnentor-bc PBI 64046, komentář PFIL 24. 9.)
+  kontejneru 28.4 (7.23 v `bc-al-deploy.md`). (2026-10-05, cust-sonnentor-bc PBI 64046, komentář PFIL 24. 9.)
 
 ### 5.x9 Poptávka → Requisition Line → Purchase Line: kde plánování tvoří řádek a jak přenést vlastní pole (BC 28.4)
 
