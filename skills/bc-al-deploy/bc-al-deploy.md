@@ -152,6 +152,10 @@ Distribution Base a ED Item Sales Disponibility; v `bctest28b` 321/321. 2026-10-
   i celý pool BC 28 (restart policy), takže běží 4 kontejnery po 8 GB. Časy: vytvoření ~22 min, Essence závislosti 28.x
   z feedu (`Application 28.0`) se v BC 29.1 nainstalují bez úprav. cust-alumistr-bc větev `yml_File_v29`: 353 testů, 0 failů,
   11:05 (z toho kompilace 4:43, testy 4:51). (2026-11-13.)
+- **Úklid dočasného kontejneru bez admina:** `Remove-BcContainer -containerName <c>` kontejner smaže, ale skončí na `Could not
+  remove C:\ProgramData\BcContainerHelper\Extensions\<c>` (chybí Full Control na ProgramData). Složku (~23 MB test knihoven,
+  certifikát, `my\`) pak smaž z Git Bash `rm -rf`, to projde. Artefakty v `c:\bcartifacts.cache` zůstávají pro další kontejnery.
+  (2026-11-13: `bctmp29` z OnPrem 29.0 cz = artefakt CI, vytvoření 26 min.)
 
 ### 7.24 Ruční nasazení PTE z NuGetu do SaaS sandboxu (Automation API) — dev build stejné appky, AVS0109
 
