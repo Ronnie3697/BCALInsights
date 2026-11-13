@@ -350,6 +350,9 @@ SON, pole Pesticidy, 2026-10-16). Porovnávej text: uložené `ItemAttributeValu
 stranách) proti konstantě z dat zákazníka jako `Label 'Ano', Locked = true` s komentářem, že jde o data; `GetValueInCurrentLanguage()`
 jen pro tisk. V testu atribut s pevným ID založ `ItemAttribute.ID := 83; Insert(false)` (explicitní hodnota do AutoIncrement pole
 projde), hodnotu s `ID := 0` (přidělí SQL) a mapping `Item Attribute Value Mapping` (`Table ID` = `Database::Item`) ručně.
+**Atribut z dat zákazníka ale v kódu neidentifikuj pevným ID** (AutoIncrement = pořadí založení, v jiném prostředí jiné): `SetRange(Name,
+<Locked label>)` — Name je unikátní jen validací (`Key2` unique není), přejmenování = tiše prázdná hodnota; jeden atribut zboží přímo
+`Mapping.Get(Database::Item, ItemNo, AttrId)` (PK). Test: atribut s týmž názvem a `ID := 0`. (cust-sonnentor-bc 65662, 2026-11-13)
 
 ### 5.z DateFormula — možnosti a limity (půlrok NEjde)
 
