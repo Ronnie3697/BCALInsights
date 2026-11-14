@@ -1,15 +1,15 @@
 ---
 name: bc-al-ui
 description: >-
-  BC/AL UI patterny stránek (sekce 4): RunModal vs Run, výběr na RoleCenter, OnDrillDown vs OnLookup, ConfirmManagement, factbox Reset maže SubPageLink, CaptionClass cache i '3,' popisek, expression control (AL0270), modify()
-  cizí pageextension, smyčka OnAfterGet*Record, Visible = Rec.pole, MultiLine / RichContent / control
+  BC/AL UI patterny stránek (sekce 4): RunModal vs Run, výběr na RoleCenter, OnDrillDown vs OnLookup, ConfirmManagement, factbox Reset maže SubPageLink, CaptionClass cache/'3,', expression control (AL0270), modify()
+  cizí pageextension, smyčka OnAfterGet*Record, Visible = Rec.pole, MultiLine / RichContent /
   add-in, procedura = metoda Rec (AL0604), LookupMode jen pro čtení, filtr partu z OnOpenPage, DelayedInsert =
-  prázdné SystemId, CurrPage.Update(false) v OnValidate, ListPart RunModal pod TestPage, stránka bez SourceTable;
-  phone klient: dlaždice (Brick / DropDown / 5 controlů, sloty), událost add-inu ze schované stránky (aria-hidden/inert),
-  klepnutí = náhled, CardPageId jen zobrazení, ListPart s CardPageId (dědí SubPageView), chyba OnValidate
+  prázdné SystemId, Update(false) v OnValidate, ListPart RunModal pod TestPage, stránka bez SourceTable;
+  phone klient: dlaždice (Brick / DropDown / 5 controlů, sloty), sken ze schované stránky (aria-hidden/inert),
+  klepnutí = náhled, CardPageId jen zobrazení, ListPart s CardPageId (SubPageView), chyba OnValidate
   jen křížek, InstructionalText, \ v Message, add-in mezera; Rec prázdného listu z filtrů; prázdný výčet (HideValue);
-  kostky (User ID Filter, drill-down, pořadí); víc DownloadFromStream z akce = jen poslední (ZIP). Načti u page,
-  partů, kostek a výběrů.
+  kostky (User ID Filter, drill-down, pořadí); víc DownloadFromStream = jen poslední (ZIP);
+  čtečka místo akce cizí stránky (Parcels API), TileTeal. Načti u page, partů a kostek.
 user-invocable: true
 ---
 

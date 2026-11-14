@@ -959,3 +959,41 @@ blokaci v Chrome. Autotest to neodhalí (download v testu neběží), chytí to 
 
 (2026-11-11, cust-alumistr-bc 62959, BC-DEV BC 29.1, Chrome: tisk CNC z hlavičky VZ se třemi zbožími, dorazil jen třetí
 soubor `Zábradlí Štíhlé 70_80.csv`.)
+
+### 4.33 Čtečková obdoba stránky cizí appky, jejíž akci nejde zavolat — veřejné API + srovnání se standardem (AC Parcels / Balíkobot)
+
+Akci jiné stránky z AL nespustíš (ani z vlastní stránky, ani z pageextension — ta vidí jen veřejné procedury a `protected var`).
+Když má čtečka umět „totéž co akce *Vytvořit zásilku a vytisknout štítek*", poskládej akci z veřejných procedur appky a
+**výsledek porovnej se záznamem, který vytvořila standardní stránka** (hlavička, řádky, přiřazení, parametry, obsah, stav).
+
+- **Parcels (Aricoma Systems, dřív AUTOCONT AC Parcels) nemá zdroják nikde**: v prostředí ani na `BCNugetPackages` (jen
+  `…_runtime.app`, NAVX bez ZIPu; feed 2026-11 končí na 27.6.48260, prostředí má 28.4) — `SymbolReference.json` ze symbolu
+  z dev endpointu (7.26 v `bc-al-deploy.md`), `DocComments.xml` prázdný, labely bez textů. Vzor složení akce: Kalas
+  `CreateParcel_PAKAL` (cust-kalas-bc `ACParcelsExtension`), typy dokladů: Essence `EW Parcels Base Mgt. PAEBS`
+  (prod-essence-warehouse-parcels-bc).
+- **Postup, který dal stejnou zásilku jako stránka `CreateParcel_aci` (BC-TEST Sonnentor, 2026-11-14):** temp hlavička přes
+  `ParcelMgt_aci.FillTempParcelFromSalesInvoice` / `FillTempParcelFromWhseShipment(DocNo, TempHeader)` (vloží záznam) →
+  `FillTempParcelLines(Header, Lines, NoOfPackages)` (řádek = balík) → `FillTempParcelAssignment(Header, Assign, DocType, DocNo)`
+  → **parametry `FillTempParcelParametersFromSetup(Database::ParcelHeader_aci, 0, Header."No.", agent, služba, Params)`**
+  (stránka ukládá parametry zásilky pod *Table ID* 52068433; `FillTempParcelParameters(Header, <tabulka dokladu>, …)` vrátil 0
+  řádků a zásilka byla bez 11 parametrů šablony) → `AddTempParcelContentFromSourceDoc(TableId, DocNo, Header."No.", Content)` →
+  `AddTempParcelAttachmentsFromSourceDoc` → `CheckParcel` → `CreateParcel2(…, NewParcelHeader)` (už **odešle do Balíkobotu**:
+  stav *Ke svozu*, čísla balíků na řádcích; chyby API jako „Nedorazila adresa příjemce“ vyhodí `Error`, nic se neuloží) →
+  `Commit` → `Report.Run(Report::PrintParcelLabels_aci, false, false, NewParcelHeader)` (bez PrintNode otevře PDF z `pdf.balikobot.cz`).
+- `ParcelDocumentType_aci::"Whse Ship. Header"` = **účtovaná** dodávka ze skladu (ne `"Warehouse Shipment"`). Stránka hlásí chybu,
+  když doklad už je v `ParcelDocumentAssigment_aci` („Doklad %1 %2 je již na zásilce %3“) — zkopíruj kontrolu, jinak vznikne druhá zásilka.
+- Parametry z prodejní objednávky přenáší Parcels při účtování na prodejní dodávku (*Table ID* 110) a fakturu (112), typ 0.
+- **„Faktura objednávky" u dodávek po částech:** faktura se stejným *Číslem objednávky* nemusí fakturovat zboží skenované dodávky
+  (BC-TEST: objednávka se dvěma dodávkami, faktura jen k jedné). Vazbu dodávka → faktura ber přes položky ocenění (`Item Ledger
+  Entry` dodávky → `Value Entry` typu *Sales Invoice*), ne jen přes `Order No.`.
+
+**Phone klient – drobnosti ze stejné práce:**
+- Barvy kostek (`Image` na akci v `cuegroup`): kromě Yellow / Blue / Green / Cyan / Red / Orange / Violet projdou jen **`TileTeal`**
+  a **`TileLightGreen`**; `TileGray`, `TilePink`, `TilePurple`, `TileMagenta`… = `warning AL0482` (s `failOn warning` CI fail).
+  `TileBrickNew` má velké „+“. Akci do cizí `cuegroup` z pageextension nepřidáš — vlastní `cuegroup` `addafter(<cuegroup>)`.
+- Výběr z více záznamů: `List` přes proměnnou stránky s `LookupMode(true)` + `RunModal` z karty čtečky → na telefonu **jedno klepnutí
+  na dlaždici vybere** (bez náhledu), `GetRecord` vrátí řádek. Dlaždice bere fieldgroup `DropDown` (4.22) — `SystemCreatedAt` tam není.
+- „Zpět až na úvodní stránku" ze druhé úrovně: první stránka otevře druhou `RunModal()` a po návratu se zavře, když druhá nastavila
+  příznak (getter `ReturnsToStartPage()`); modální karta na telefonu nemá šipku zpět, kostka *Zpět* je nutná.
+
+(2026-11-14, cust-sonnentor-bc PBI 65206, MKSON 28.0.181.3 na BC-TEST: zásilky ZAS26_00018 / 00019 proti ZAS26_00013 ze standardu.)
