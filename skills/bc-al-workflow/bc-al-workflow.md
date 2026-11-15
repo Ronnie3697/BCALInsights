@@ -596,6 +596,13 @@ export cen tam neotestuješ; feature nezapínej, vyber firmu, kde běží. (2026
   (typicky množství po potvrzení dialogu) ještě není na serveru, i když stránka ukazuje „Uloženo". Na sešitu požadavků
   tak po obnovení zbyl řádek s množstvím 0 a bez vazby. Před navigací **opusť řádek** (klik do jiného řádku nebo pod
   mřížku, počkat 2–3 s) a pak teprve naviguj; po návratu hodnoty zkontroluj. (2026-10-06, BC-DEV CRONUS CZ, příručka 64046.)
+- **Phone klient (čtečka) v maximalizovaném okně:** `resize_window` maximalizované okno nezmenší (vrátí úspěch, `innerWidth`
+  zůstane 1707) a `/phone` se pak rozloží na šířku: pole a kostičky vedle sebe, ořezané. Telefonní layout vynutí
+  `document.documentElement.style.width = document.body.style.width = '420px'` + `dispatchEvent(new Event('resize'))`
+  v hlavním dokumentu; po každém otevření další stránky to zopakuj a foť `zoom` výřezem `[0, 0, 386, výška]`. Úvodní
+  stránka (role center) se takhle rozbije na samotný navigační seznam, tu foť výřezem kostiček v plné šířce. **Popisek
+  `cuegroup` kostiček se na úvodní stránce telefonu nezobrazuje**, v příručce proto nepiš „ve skupině X“, ale barvu
+  a umístění kostičky. (2026-11-15, cust-sonnentor-bc 65206, příručka zásilky na čtečce.)
 - **Sloupce řádků dokladu jsou daleko vpravo** (u vlastních polí za standardními). Kolečko s nimi nehne,
   funguje **tažení vodorovného posuvníku** (`left_click_drag` po ose x) po malých krocích a mezitím screenshot.
   Jména všech sloupců si nejdřív vypiš přes `[role="columnheader"]`, ať víš, kam táhnout.
