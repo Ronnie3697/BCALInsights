@@ -189,6 +189,13 @@ Test musí zahrnout částečné účtování (order i return order) a undo; pln
 fakturace tuhle chybu neodhalí. (2026-09-07, cust-alumistr-bc 65916, code
 review; implementace `SK Branch Mgt. ALU`, zdroje Base Application 28.3.52162.53506.)
 
+**Storno dodávky (prodejní i transferu) zaúčtované přes dodávku ze skladu** přidá do TÉŽE účtované dodávky ze skladu
+kopii řádku s opačným množstvím (`Whse. Undo Quantity.InsertPostedWhseShptLine`: `Copy(Old)`, `Quantity` a `Qty. (Base)`
+:= −Old, `Line No.` mezi původní a další řádek). Hlavička zůstane a žádný příznak storna nemá. Kód, který z účtované
+dodávky ze skladu odvozuje „co se odeslalo“ (`FindFirst` s `Quantity <> 0`), tak vezme i stornovaný řádek → živý zdrojový
+řádek = součet `Qty. (Base)` za `Source Type / Subtype / No. / Line No.` > 0, celá dodávka stornovaná = žádný takový.
+(2026-11-15, cust-sonnentor-bc 65206, review PR 9992; zdroje Base Application 28.5.)
+
 Subscriber typu `OnAfterTransferFields` (nebo `OnBeforeInsertEvent` na cílové
 tabulce) potřebuješ jen v těchto případech:
 

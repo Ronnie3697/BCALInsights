@@ -219,7 +219,10 @@ NEmodifikuje). Směr částky: odchozí platba dodavateli z výpisu má na řád
   "Document No.", "Line No.")` a Validate na ní; chybu ověř `Assert.ExpectedTestFieldError(SalesHeader.FieldCaption(Status),
   Format(SalesHeader.Status::Open))` (MS Assert 130000, BC 24+). Undo dodávky v testu bez dialogu: `SalesShipmentLine.SetRecFilter()`
   + `UndoSalesShipmentLine.SetHideDialog(true)` + `.Run(SalesShipmentLine)` (bez `SetRecFilter` projde `Code()` celou
-  tabulku); `LibrarySales.UndoSalesShipmentLine` existuje, ale tělo (dialog) z MCP nevidíš.
+  tabulku); `LibrarySales.UndoSalesShipmentLine` existuje, ale tělo (dialog) z MCP nevidíš. **Dodávka zaúčtovaná přes
+  dodávku ze skladu:** `SetHideDialog(true)` nestačí – `Undo Posting Management.TestPostedWhseShipmentLine` se zeptá
+  `ItemsPickedQst` vždy, když k řádku existuje účtovaný řádek dodávky ze skladu → test potřebuje `ConfirmHandler`
+  (Reply true). (Zdroj Base Application 28.5; 2026-11-15, cust-sonnentor-bc 65206 `UndoneShipmentIsNotOffered`.)
 - **Undo dodávky označí `Correction = true` i na PŮVODNÍM řádku dodávky** (`Undo Sales Shipment Line.Code`: původní řádek
   dostane `Quantity Invoiced := Quantity`, `Correction := true`, `Modify`; teprve pak `InsertNewShipmentLine` vloží korekční
   řádek se záporným množstvím, taky `Correction = true`). `SetRange(Correction, true) + FindFirst` tedy vrátí původní řádek
