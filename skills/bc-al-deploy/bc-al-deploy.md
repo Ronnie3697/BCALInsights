@@ -44,6 +44,11 @@ o minutu později ji startovací skript kontejneru restartoval → `Compile-AppI
 running*. Šablona proto po startu Dockeru nebo kontejneru chce **90 s nepřetržitě Running** (teplý běh beze změny). Ruční obejití: počkat
 pár minut a pustit `Test-Repo` znovu. A z Git Bash cestu `-RepoPath` dávat v **jednoduchých uvozovkách** — bez nich Bash
 sežere zpětná lomítka (`C:WorkTasksprod-…` → `Resolve-Path` cannot find path).
+⚠️ **`Test-Repo.ps1` testuje pracovní složku, ne commit.** Zdrojáky kopíruje `robocopy` z `-RepoPath` až po startu
+kontejneru a závislostech (zhruba 5–6 min po spuštění). Necommitnutá úprava uložená do té doby se do běhu dostane a výsledek
+pak neodpovídá pushnutému commitu: 2026-11-15 (cust-sonnentor-bc 65206) prošel lokálně test, který v PR padal, protože oprava
+testu byla v pracovní složce dřív, než skript kopíroval. Během běhu po push v repu nic neukládej, nebo výsledek ber jako test
+pracovní složky, a když se liší od CI, porovnej čas úpravy souboru s časem kopírování (před první `Compilation started`).
 ⚠️ **Dva běhy v jednom kontejneru se rozbijí navzájem** (2026-10-09: tři seance — konfigurátor, cust-sonnentor-bc,
 dotykackaConnector — pustily `Test-Repo` do `bctest28` současně): cizí publish/unpublish uprostřed testů → `ERROR DIALOG: You
 tried to invoke the CodeUnit object with the ID 63190 … does not exist`, zbylých 14 test codeunitů neběželo a skript přesto
