@@ -235,6 +235,12 @@ se Opportunity Sync objekty z masteru, ne naopak).
 Když se zákaznické repo zvedá na nový BC major (ověřený pattern z
 cust-alumistr-bc, bumpy 25/26→27 „yml_File_v27" a 27→28, 2026-07-10):
 
+0. **Nejdřív publikuj větev aktuální verze, teprve pak zvedej (interní pravidlo Essence).** Před první změnou bumpu založ
+   z head `origin/master` větev se starým majorem a pushni ji do DevOps (`git push origin origin/master:refs/heads/BC<N−1>`).
+   Větev v repu zůstane pro případný hotfix nebo rebuild verze N−1, kdyby byla potřeba. Jméno drž podle konvence repa
+   (`git ls-remote --heads origin`): většina rep má `BC<major>` (`BC26` / `BC27` v prod-ew-mobileBase, prod-ess-configurator,
+   prod-epb-pricingMatrix, prod-em-cuttingPlan, cust-sonnentor), cust-alumistr-bc má `V28` (= `9ed307e`, poslední PR 9978 před
+   bumpem 28 → 29 v PR 9985, 2026-11-13). Lokální kompilace závislostí v 7.11 / 7.12 počítá s `BC<major>` větví produktu.
 1. **Všechny `app.json` v repu** (i test appky — `Glob **/app.json`):
    - `version`, `platform`, `application` → `N.0.0.0`
    - `runtime` +1 (BC 27 = 16.0, BC 28 = 17.0)
