@@ -137,7 +137,10 @@ Distribution Base a ED Item Sales Disponibility; v `bctest28b` 321/321. 2026-10-
   (`$repoIds`). Ve scratchpadu `git archive HEAD | tar -x -C <combo>\<repo>` (přesně pushnutý stav) + kopie `app/` produktové
   větve jako další složka (`<combo>\<repo>\coebs-66845\app`) a `-RepoPath <combo>\<repo>`. Seřadí base → COEBS → COZLK, testy
   jen testovacím appkám repa (produktová `test/` se nekopíruje). Ověřeno 2026-10-09, cust-zlomek-bc 66711 proti COEBS
-  `66845_ConditionTreeFromStructure`: 173 testů, 0 failů, 7 min (kompilace COEBS ~1,5 min navíc). Kompilační check před push
+  `66845_ConditionTreeFromStructure`: 173 testů, 0 failů, 7 min (kompilace COEBS ~1,5 min navíc). Znovu 2026-11-16,
+  cust-zlomek-bc 66431 (COZLK odebírá nové eventy COEBS `66431_SplitLineHook`): 294 testů, 0 failů, 17 min. Souběžně ve
+  druhém kontejneru poolu běžel celý COEBS z větve (1208 testů). ⚠️ Do dokumentace PBI proto nepiš „testy konzumenta
+  nejdou pustit, dokud nevyjde produktová appka". U 66431 to tam stálo týden a testy mezitím neběžely. Kompilační check před push
   stejně přes alc a temp cache (COEBS proti své MS řadě, konzument proti `.alpackages` repa **bez** starých verzí COEBS +
   čerstvý build, 7.1 v `bc-al-tools.md`).
   **(b) Kopie skriptu s override hotového `.app`:** produktovou appku přelož z větve do scratchpadu a pusť
