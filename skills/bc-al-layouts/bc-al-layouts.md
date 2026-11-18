@@ -152,7 +152,8 @@ RFC „přidat pole do datasetu, layout neřešit" (sloupce si pak umístí konz
   změny (kód kategorie); sdílená procedura v codeunitě appky (`Report Axis Value PMALU`), reportextension ji volá přes globální
   `var`. `Format()` v triggeru / výrazu sloupce sestavy jde podle `CurrReport.FormatRegion` — tak to dělá sama CZL sestava
   (`Formatted_UnitPrice_SalesLine` = `format(…)` po `CurrReport.FormatRegion := LanguageMgt.GetFormatRegionOrDefault("Format Region")`).
-  Ověřuje test datasetu níž (k 2026-11-18 jen zkompilovaný, běh v kontejneru čeká na push).
+  Ověřeno testem datasetu níž v kontejneru BC 29.1: `Format` v codeunitě volané z výrazu sloupce dal u dokladu s *Formátem
+  oblasti* cs-CZ `62,5` a u en-US `62.5` (dva testy, jeden se vždy liší od formátu session; 2026-11-18).
 - **Popisky přes `FieldCaption`**, ne Labely: resolvuje `CaptionClass` (`PMEBS,A` = *Název par. A* z *Nastavení prodeje
   a pohledávek*, `1,2,1` = popisek globální dimenze) v jazyce sestavy → žádné nové trans-unity v XLIFF. Data řádku
   formátuj jako sestava sama (`Format("Requested Receipt Date")`, prázdné datum = prázdný text). Oprávnění
