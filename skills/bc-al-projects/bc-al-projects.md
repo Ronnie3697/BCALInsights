@@ -7,7 +7,7 @@
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
 Obsahuje:
-- **5.x17–5.x27** Projekty (5.x24: spotřeba projektu z prodejní dodávky per tracking a per položka příjmu, pořadí v Sales-Post; 5.x25: přecenění položek projektu; 5.x26: nákupní dobropis / vratka u Skip projektu; 5.x27: spotřeba projektu z deníku zboží; 5.x28: kontrola množství z řádků plánování — standard zvedá Quantity sám, hooky Job Link Usage / OnBeforeUpdateRemainingQuantityFromUse, Σ při vydání dokladu; 5.x31: storno WIP z kódu — číslo dokladu pro `CalcGLWIP`)
+- **5.x17–5.x27** Projekty (5.x24: spotřeba projektu z prodejní dodávky per tracking a per položka příjmu, pořadí v Sales-Post; 5.x25: přecenění položek projektu; 5.x26: nákupní dobropis / vratka u Skip projektu; 5.x27: spotřeba projektu z deníku zboží; 5.x28: kontrola množství z řádků plánování — standard zvedá Quantity sám, hooky Job Link Usage / OnBeforeUpdateRemainingQuantityFromUse, Σ při vydání dokladu; 5.x31: storno WIP z kódu — číslo dokladu pro `CalcGLWIP`; 5.x33: náklad práce zdroje do hlavní knihy — `Job Jnl.-Post Line.OnAfterJobLedgEntryInsert`, řádek finančního deníku z kódu bez DPH)
 
 ### 5.x17 Job Planning Line `Gen. Prod. Posting Group` = zdroj pravdy pro deník projektů; změna default dimenze projektu
 
@@ -868,3 +868,32 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   starého WIP + zaúčtování dokončovacích položek, rozpoznané náklady proti *Job Costs Applied* místo WIP účtu). Automatické storno
   s `JustReverse = true` (Soitron) jen vrátí hlavní knihu do stavu bez WIP — dokončovací položky nezaúčtuje; výsledovka v součtu
   stejná, liší se rozpad na účty. Pozdější ruční 1084 + 1085 nic nezdvojí (není co stornovat, zaúčtují se jen dokončovací položky).
+
+### 5.x33 Náklad práce do hlavní knihy: věcné položky ze spotřeby zdroje v deníku projektů (hook + řádek finančního deníku z kódu, w1-28)
+
+- **Jeden hook pro všechny cesty účtování deníku projektů = `Job Jnl.-Post Line.OnAfterJobLedgEntryInsert(var JobLedgerEntry,
+  JobJournalLine)`** (uvnitř `CreateJobLedgEntry`, u zdroje po `Res. Jnl.-Post Line`, před usage linkem): ruční deník, výkazy práce
+  TSEBS (taky přes `Job Jnl.-Post Batch`), Job Queue, náhled účtování. `Job Jnl.-Post Batch` přiřadí `Document No.` z `Posting No.
+  Series` listu **před** `RunWithCheck`, takže event nese finální číslo dokladu. Spotřeba zdroje = `Type = Resource` + `Entry Type =
+  Usage`; řádky z nákupního dokladu předává standard s **`"Job Posting Only" = true`** (`Job Post-Line.PostJobOnPurchaseLine`; zdroje
+  standard z nákupu přeskakuje, `OnPostJobOnPurchaseLineOnAfterCalcShouldSkipLine` je může pustit) → vynechat, nákup účtuje sám.
+  Týž event odebírá TSEBS (popis JLE z externího výkazu, stav výkazu) — pořadí odběratelů není dané, popis ber z řádku deníku.
+  `Gen. Jnl.-Post Line.RunWithCheck` ve stejné transakci: chyba (povinná dimenze účtu) vrátí i JLE a položku zdroje. `Sequence No.
+  Mgt.ValidateSeqNo` je jen cache per tabulka, vnořené účtování ji nerozbije (legacy i nové číslování). Každý řádek = vlastní G/L
+  Register a transakce. Varianta CLA (vlastní codeunita + blokace standardní akce přes SingleInstance příznak) zbytečná.
+- **Interní řádek finančního deníku z kódu bez DPH** (nevložený `Gen. Journal Line`, jako standard u WIP): `Validate("Account No.")`
+  finančního účtu kopíruje `Gen. Posting Type`, obecné a DPH účtoskupiny z karty, když `CopyVATSetupToJnlLines()` — ten čte příznak
+  z **listu**, má-li řádek šablonu i list, jinak pole řádku `Copy VAT Setup to Jnl. Lines` (InitValue true) — a validuje `Deferral
+  Code` = `Default Deferral Template Code` účtu. Vzor: `"Copy VAT Setup to Jnl. Lines" := false` před validací účtů, neprázdný
+  `Deferral Code` → `Validate("Deferral Code", '')`, `Journal Template Name` / `Journal Batch Name` přiřadit **až na konci**.
+  `ClearPostingGroups()` je `protected`. `CheckGLAcc` řádku testuje *Přímé účtování* jen s vyplněnou šablonou a bez `System-Created
+  Entry` → kontrolu dělej sám (setup, při každém účtování). `Gen. Jnl.-Check Line` při `Journal Templ. Name Mandatory` testuje jen
+  šablonu, list ne. `Job No.` na řádek nedávat: bez `System-Created Entry` z něj `Job Post-Line.PostGenJnlLine` založí druhou JLE.
+  `Validate("Dimension Set ID")` nahradí výchozí dimenze účtů a dopočte globální 1/2. `Validate(Quantity)` volá `Validate(Amount)`.
+- **Test:** `LibraryJob.CreateJobJournalLine(UsageLineTypeBlank(), JobTask, JJL)` + Validate `Type` / `"No."` / `Quantity` a
+  **`"Unit Cost (LCY)"` až po `Quantity`** (množství cenu přepočte z karty) + unikátní `Document No.` (`CreateGuid`); projekt
+  `Validate("Apply Usage Link", false)` (prázdný Line Type s usage linkem = Confirm v `MatchUsageUnspecified`); účtování
+  `Job Jnl.-Post Line.RunWithCheck` bez dialogu. Ochrana proti DPH: nákladový účet z `LibraryERM.CreateGLAccountWithPurchSetup()` +
+  `Direct Posting` → G/L Entry bez `Gen. Posting Type`, `VAT Entry` s číslem dokladu prázdné. `Library Assert` (System App, dep v
+  Soitron testech) nemá `ExpectedTestFieldError` → `ExpectedError(FieldCaption)`. (2026-11-18, cust-soitron-bc Task 67930
+  `Resource Cost Posting SOI`, testy `Resource Cost Posting Test SOI` 9/9, celkem 390/390 v `bc28`.)
