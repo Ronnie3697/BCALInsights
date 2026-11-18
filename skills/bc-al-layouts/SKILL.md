@@ -1,16 +1,16 @@
 ---
 name: bc-al-layouts
 description: >-
-  BC/AL layouty a datasety reportů (Business Central, 12.1f–12.1j, 12.5): Word layout (.docx) přes MCP
-  bc-word-layout a skilly al-word-layout* (inspect → edit → validate → preview), repeater w15:dataBinding vs
-  w:dataBinding, RDLC tablix sloupce skriptem (TablixCell, ColSpan, Hidden, BOM + CRLF), RDLC layout reportextension
-  (alc přegeneruje `<DataSets>` ze symbolů, jiná verze vendora v CI → „refers to the field", sonda AL0155), sloupce do
-  datasetu CZL sestav reportextensionem (závislost Core Localization Pack, RoundLoop u 31187, obsolete pole, Ready2Run
-  .app v artifact cache), Word layout štítků skriptem (namespace vazeb = název reportu, WordMergeDataItem, aliasy #Nav,
-  zip s lomítky, hRule exact), obrázek z Blob a Document Attachments (SharePoint Drive Item ID → „image stream does
-  not contain valid image"), barcode fonty IDAutomation (velikost písma = šířka kódu), GS1-128 / FNC1 vlastním
-  encoderem, kontrolní číslice EAN. Načti u Word / RDLC layoutů, datasetu a reportextension sestav a štítků s
-  čárovými kódy.
+  BC/AL layouty a datasety reportů (BC, 12.1f–12.1j, 12.5): Word layout (.docx) přes MCP bc-word-layout a skilly
+  al-word-layout* (inspect → validate → preview), repeater w15:dataBinding vs w:dataBinding, RDLC tablix sloupce
+  skriptem (TablixCell, ColSpan, Hidden, BOM + CRLF), RDLC layout reportextension (alc přegeneruje `<DataSets>` ze
+  symbolů, jiná verze vendora v CI → „refers to the field", sonda AL0155), sloupce do datasetu CZL sestav
+  reportextensionem (závislost Core Localization Pack, RoundLoop u 31187, obsolete pole, osa podle FormatRegion, test
+  přes SaveAs XML, Ready2Run .app v artifact cache), Word layout štítků skriptem (namespace vazeb = název reportu,
+  WordMergeDataItem, aliasy #Nav, zip s lomítky, hRule exact), obrázek z Blob a Document Attachments (SharePoint Drive
+  Item ID → „image stream does not contain valid image"), barcode fonty IDAutomation (písmo = šířka kódu), GS1-128 /
+  FNC1 vlastním encoderem, kontrolní číslice EAN. Načti u Word / RDLC layoutů, datasetů sestav a štítků s čárovými
+  kódy.
 user-invocable: true
 ---
 

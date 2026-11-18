@@ -146,10 +146,28 @@ RFC „přidat pole do datasetu, layout neřešit" (sloupce si pak umístí konz
 - **Pole ze zadání zkontroluj na `ObsoleteState`.** PBI psané podle starších dat jmenovalo Decimal `Parameter A/B PMEBS` /
   `PMALU`, které jsou od 67458 `Pending` → `AL0432` warning = Essence CI fail. Do datasetu jdou nástupci
   `Parameter A/B Value …` (Code[50] — v layoutu text, ne číslo); odchylku napiš do MD ticketu i uživateli.
+- **Číselná osa Code[50] se do sestavy formátuje, ne kopíruje.** Pricing Matrix ukládá čísla invariantně (`62.5`, `1200`,
+  `NormalizeAxisValue`), takže holý sloupec vytiskne v českém dokladu `62.5` s tečkou, zatímco množství a ceny mají `62,5`
+  (code review 2026-11-16). Sloupec = `PricingMatrixMgt.TryGetAxisNumber(Value, Number)` → `Format(Number)`, jinak hodnota beze
+  změny (kód kategorie); sdílená procedura v codeunitě appky (`Report Axis Value PMALU`), reportextension ji volá přes globální
+  `var`. `Format()` v triggeru / výrazu sloupce sestavy jde podle `CurrReport.FormatRegion` — tak to dělá sama CZL sestava
+  (`Formatted_UnitPrice_SalesLine` = `format(…)` po `CurrReport.FormatRegion := LanguageMgt.GetFormatRegionOrDefault("Format Region")`).
+  Ověřuje test datasetu níž (k 2026-11-18 jen zkompilovaný, běh v kontejneru čeká na push).
 - **Popisky přes `FieldCaption`**, ne Labely: resolvuje `CaptionClass` (`PMEBS,A` = *Název par. A* z *Nastavení prodeje
   a pohledávek*, `1,2,1` = popisek globální dimenze) v jazyce sestavy → žádné nové trans-unity v XLIFF. Data řádku
   formátuj jako sestava sama (`Format("Requested Receipt Date")`, prázdné datum = prázdný text). Oprávnění
   reportextension nepotřebuje, `Description` nemá (AL0124, 1.4 v `bc-al-style.md`) → účel `//` komentářem.
+  ⚠️ **Popisek s `CaptionClass` z textu v nastavení se nepřekládá:** `PMEBS,A` vrátí *Název par. A* z *Nastavení prodeje
+  a pohledávek*, pokud je vyplněný (`Features PMEBS.GetAxisName`), a ten je jeden text. Doklad v angličtině pak má záhlaví
+  ostatních sloupců anglicky a osy česky. Chování cenové matice, ne sestavy → jen napsat do MD.
+- **Test datasetu sestavy bez layoutu:** proměnná `Report "Sales Order Confirmation CZL"` (test appka pak potřebuje přímou
+  závislost na CZL) + `SetTableView(SalesHeader)` po `SetRecFilter` + `InitializeRequest(0, false, false)` +
+  `SaveAs('', ReportFormat::Xml, OutStream)` do `Temp Blob`; text načíst, uříznout vše před `<?xml` (BOM) a
+  `XmlDocument.ReadFrom`. Struktura (podle BCApps `TestLibraries/LibraryReportDataset.Codeunit.al`):
+  `ReportDataSet/DataItems/DataItem[@name]`, vnořené dataitemy znovu v `DataItems`, sloupce `Columns/Column[@name]`. Řádky
+  31187 = `//DataItem[@name="RoundLoop"]`, řádek dokladu poznáš podle `No_SalesLine` (každý řádek jiné zboží). Takový test
+  hlídá i past s `RoundLoop` výš. Bez náhledu sestava volá `Sales-Printed` (Commit) a podle šablon interakcí loguje dokument.
+  (2026-11-18, cust-alumistr-bc 67569, `Report Dataset Tests PMALU` 51974.)
 - **Zdroj CZL sestavy lokálně:** `C:\bcartifacts.cache\onprem\<ver>\cz\Applications\CoreLocalizationPackForCzech\Source\
   Microsoft_Core Localization Pack for Czech.app` je **Ready2Run obal** — NAVX hlavička (40 B) + ZIP, ve kterém je jen
   `readytorunappmanifest.json`, vnitřní `<guid>_<verze>_<n>.app` a DLL; `src/` ani `SymbolReference.json` tam nejsou a
