@@ -142,6 +142,17 @@ BC-TEST2 (Alumistr, split 10 ks se slevou 15 % → oba řádky 0 %) a ve zdrojá
 `UpdateUnitPriceByField`, `PriceCalculationV16.Codeunit.al` `ApplyDiscount`, `SalesLinePrice.Codeunit.al`
 `IsPriceUpdateNeeded`). (2026-10-06, prod-ess-configurator-bc PBI 66392, `Sales Line Split Mgt. COEBS`.)
 
+**Spouštěče přepočtu prodejního řádku a co udělají se zbožím bez ceníku** (w1-28 `SalesLine.Table.al`, `PlanPriceCalcByField`):
+- `No.` → cena z karty (`Price Asset - Item.FillBestLine` = `Item."Unit Price"`, `ConvertAmount` přepočte na MJ / měnu / DPH).
+- `Quantity` (jen při skutečné změně `Quantity` / `Quantity (Base)`) a `Variant Code` → ruční cena **zůstane**.
+- `Unit of Measure Code`, `Quantity (Base)`, `Customer Price Group`, `Customer Disc. Group` (poslední dvě jen `Type = Item`) →
+  cena z karty, ruční cena zmizí.
+- Sleva ve všech případech podle slevových řádků, bez nich 0. Ruční přepsání ceny / slevy samo přepočet nespustí — platí do dalšího spouštěče.
+- Bez nalezené ceny `FillBestLine` vrací `Allow Line Disc.` / `Allow Invoice Disc.` z bufferu řádku → příznaky se nemění.
+- ⚠️ **Past minimálního množství:** cena z řádku ceníku s *Minimum Quantity* 10 po snížení množství na 5 **zůstane** (nic se nenajde
+  + přepočet z Quantity → `IsPriceUpdateNeeded = false`), nevrátí se na cenu z karty. Sleva se naopak vynuluje.
+(2026-11-18, cust-zlomek-bc RFC 67628.)
+
 **Vzor „ruční sleva přežije ruční změnu množství"** (prod-ess-configurator-bc PBI 66392 znovuotevřeno, 2026-10-27):
 - `modify(Quantity)` v tableextension: `OnBeforeValidate` si uloží `Rec."Line Discount %"` do codeunitu v globální proměnné
   tableextension (Before i After běží na téže instanci `Rec`), `OnAfterValidate` ji vrátí `Validate("Line Discount %")`.
@@ -231,7 +242,9 @@ Ověřeno ve zdrojích w1-28 (`SalesLine.Table.al`, `SalesLinePrice.Codeunit.al`
 - ⚠️ **`SetPrice` přepíše `Allow Invoice Disc.`** hodnotou z řádku ceníku (výchozí z hlavičky, typicky Ano), přitom `CopyFromItemCharge`
   dává poplatku záměrně `false` → bez `OnAfterSetPrice` začne poplatek nést fakturační slevu.
 - **Bez ceníku:** `FillBuffer` plní `Unit Price` jen u Item/Resource (`Line Discount %` u všech) a vlastní `FillBestLine` nemá z čeho vzít
-  výchozí cenu → cena 0 při přepočtu z jiného pole než Quantity / Variant Code; sleva `ApplyDiscount` → 0 vždy (5.x21). Dnes poplatek
+  výchozí cenu → cena 0 při přepočtu z jiného pole než Quantity / Variant Code. U poplatku ale přepočet spouští jen `No.` a `Quantity`
+  (MJ a skupiny zákazníka ho plánují jen pro Item / Resource, varianta u poplatku není) → cena se chová jako dnes (nový řádek 0, ruční cena
+  změnu množství přežije), liší se jen sleva: `ApplyDiscount` → 0 vždy (5.x21). Dnes poplatek
   cenotvorbou neprochází, takže ruční cena / sleva přežijí cokoli — „bez ceníku jako dosud" je rozhodnutí, ne default. Výchozí řádek
   z aktuálních hodnot (`OnAfterFillBuffer` + `FillBestLine`) zase podrží slevu, která po změně množství pod *Minimum Quantity* platit nemá.
 - Změna *Datum objednávky* / *Zúčtovací datum* hlavičky ceny řádků **nepřepočítá ani u zboží** (`PriceMessageIfSalesLinesExist` = jen
