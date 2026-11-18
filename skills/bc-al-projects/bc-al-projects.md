@@ -22,6 +22,19 @@ Obsahuje:
   `Get`-em uložené verze (`SetLoadFields("Dimension Value Code")`), Insert = `'' → nová`, Delete = `stará → ''`; filtr `Table ID =
   Database::Job` + `Dimension Code` ze setupu + `IsTemporary` exit. Rename (PK) hodnotu nemění → neřešit.
   (2026-09-30, cust-soitron-bc `Job Type Posting Mgt. SOI.UpdateJobPlanningLinesOnJobTypeChange`, testy `Job Type Posting Test SOI`.)
+- **Dvě cesty k výchozí dimenzi projektu se chovají jinak (w1-28).** `DimensionManagement.SaveDefaultDim` (pole zkratkové / globální
+  dimenze) dělá `Insert()` / `Modify()` / `Delete()` **bez triggerů**, takže `Default Dimension.OnInsert/OnModify` (`UpdateGlobalDimCode`,
+  `DefaultDimOnInsert` → `UpdateJobTaskDim` s dotazem „update the lines?“) neběží; `On*Event` subscribery ano. Dimenze úloh pak řeší
+  `Job.UpdateJobTaskDimension`, který se při `GuiAllowed` a bez `SetHideValidationDialog` ptá (`Confirm(UpdateJobTaskDimQst, false)`)
+  **vždy, i u projektu bez úloh**, a sám aktualizuje jen globální dimenze 1/2 (3+ přes `OnAfterUpdateJobTaskDimension`). Stránka *Výchozí
+  dimenze* a zápis s `(true)` jdou přes triggery, dotaz jen když projekt úlohy má (`Job Task Dimension` smaže a založí znovu).
+  Pole projektu nad hodnotou dimenze ze setupu (Soitron *Typ projektu*): page proměnná čtená z `Default Dimension` v `OnAfterGetCurrRecord`
+  (zdroj pravdy je jeden, ukáže i hodnotu zadanou přes *Dimenze*), lookup `Page.RunModal(0, DimensionValue)` s filtrem Dimension Code +
+  Standard + not Blocked, zápis podle `General Ledger Setup`: zkratková 1–8 → standardní cesta pole (`Validate("Global Dimension 1 Code")`
+  / `ValidateShortcutDimCode(n)`), jinak `Default Dimension` s triggery. Vlastní uložené pole zkratkové dimenze 3/4 plň přiřazením +
+  `ValidateShortcutDimCode`, ne `Validate` — jeho `TableRelation` filtruje `"Global Dimension No."` (`Dimension Value` ho plní v `OnInsert`
+  / `OnRename` a `General Ledger Setup` při změně zkratky). Test lookupu: `TestPage "Job Card"` + `ModalPageHandler` na `Dimension Value
+  List` (`GoToKey` + `OK()`) prošel, `Page.RunModal(0, …)` vrátí `LookupOK`. (2026-11-18, cust-soitron-bc Task 67915, 378/378 v `bc28`.)
 - **Přemapování účto skupiny existujících řádků = vždy z KARTY (Item / Resource / G/L Account `Gen. Prod. Posting Group`), ne
   zpětným překladem přes setup.** První verze (alt skupina starého typu → default → alt nového typu) selhávala při řetězení typů
   (typ bez mapování, dvě default skupiny se stejnou alt, změněný setup nebo karta mezi změnami) a při smazání typu řádky
