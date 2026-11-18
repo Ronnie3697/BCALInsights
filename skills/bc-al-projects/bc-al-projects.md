@@ -7,7 +7,7 @@
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
 Obsahuje:
-- **5.x17–5.x27** Projekty (5.x24: spotřeba projektu z prodejní dodávky per tracking a per položka příjmu, pořadí v Sales-Post; 5.x25: přecenění položek projektu; 5.x26: nákupní dobropis / vratka u Skip projektu; 5.x27: spotřeba projektu z deníku zboží; 5.x28: kontrola množství z řádků plánování — standard zvedá Quantity sám, hooky Job Link Usage / OnBeforeUpdateRemainingQuantityFromUse, Σ při vydání dokladu)
+- **5.x17–5.x27** Projekty (5.x24: spotřeba projektu z prodejní dodávky per tracking a per položka příjmu, pořadí v Sales-Post; 5.x25: přecenění položek projektu; 5.x26: nákupní dobropis / vratka u Skip projektu; 5.x27: spotřeba projektu z deníku zboží; 5.x28: kontrola množství z řádků plánování — standard zvedá Quantity sám, hooky Job Link Usage / OnBeforeUpdateRemainingQuantityFromUse, Σ při vydání dokladu; 5.x31: storno WIP z kódu — číslo dokladu pro `CalcGLWIP`)
 
 ### 5.x17 Job Planning Line `Gen. Prod. Posting Group` = zdroj pravdy pro deník projektů; změna default dimenze projektu
 
@@ -22,6 +22,19 @@ Obsahuje:
   `Get`-em uložené verze (`SetLoadFields("Dimension Value Code")`), Insert = `'' → nová`, Delete = `stará → ''`; filtr `Table ID =
   Database::Job` + `Dimension Code` ze setupu + `IsTemporary` exit. Rename (PK) hodnotu nemění → neřešit.
   (2026-09-30, cust-soitron-bc `Job Type Posting Mgt. SOI.UpdateJobPlanningLinesOnJobTypeChange`, testy `Job Type Posting Test SOI`.)
+- **Dvě cesty k výchozí dimenzi projektu se chovají jinak (w1-28).** `DimensionManagement.SaveDefaultDim` (pole zkratkové / globální
+  dimenze) dělá `Insert()` / `Modify()` / `Delete()` **bez triggerů**, takže `Default Dimension.OnInsert/OnModify` (`UpdateGlobalDimCode`,
+  `DefaultDimOnInsert` → `UpdateJobTaskDim` s dotazem „update the lines?“) neběží; `On*Event` subscribery ano. Dimenze úloh pak řeší
+  `Job.UpdateJobTaskDimension`, který se při `GuiAllowed` a bez `SetHideValidationDialog` ptá (`Confirm(UpdateJobTaskDimQst, false)`)
+  **vždy, i u projektu bez úloh**, a sám aktualizuje jen globální dimenze 1/2 (3+ přes `OnAfterUpdateJobTaskDimension`). Stránka *Výchozí
+  dimenze* a zápis s `(true)` jdou přes triggery, dotaz jen když projekt úlohy má (`Job Task Dimension` smaže a založí znovu).
+  Pole projektu nad hodnotou dimenze ze setupu (Soitron *Typ projektu*): page proměnná čtená z `Default Dimension` v `OnAfterGetCurrRecord`
+  (zdroj pravdy je jeden, ukáže i hodnotu zadanou přes *Dimenze*), lookup `Page.RunModal(0, DimensionValue)` s filtrem Dimension Code +
+  Standard + not Blocked, zápis podle `General Ledger Setup`: zkratková 1–8 → standardní cesta pole (`Validate("Global Dimension 1 Code")`
+  / `ValidateShortcutDimCode(n)`), jinak `Default Dimension` s triggery. Vlastní uložené pole zkratkové dimenze 3/4 plň přiřazením +
+  `ValidateShortcutDimCode`, ne `Validate` — jeho `TableRelation` filtruje `"Global Dimension No."` (`Dimension Value` ho plní v `OnInsert`
+  / `OnRename` a `General Ledger Setup` při změně zkratky). Test lookupu: `TestPage "Job Card"` + `ModalPageHandler` na `Dimension Value
+  List` (`GoToKey` + `OK()`) prošel, `Page.RunModal(0, …)` vrátí `LookupOK`. (2026-11-18, cust-soitron-bc Task 67915, 378/378 v `bc28`.)
 - **Přemapování účto skupiny existujících řádků = vždy z KARTY (Item / Resource / G/L Account `Gen. Prod. Posting Group`), ne
   zpětným překladem přes setup.** První verze (alt skupina starého typu → default → alt nového typu) selhávala při řetězení typů
   (typ bez mapování, dvě default skupiny se stejnou alt, změněný setup nebo karta mezi změnami) a při smazání typu řádky
@@ -822,3 +835,36 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   řádku sleduje jen prodejní cenu, takže by jinak zůstal se starým nákladem). Po změně jiného řádku v DB z `OnValidate` stránky řádků
   plánování: `CurrPage.SaveRecord()` + `Update(false)`, jinak řádek navázaného výnosu v listu drží staré hodnoty (jen když aktuální
   řádek už v DB je, 4.17 v `bc-al-ui.md`).
+
+### 5.x31 Storno WIP z kódu (`Job Calculate WIP.CalcGLWIP`) — číslo dokladu dodává volající, ne codeunit (w1-28)
+
+- **`CalcGLWIP(JobNo, JustReverse, DocNo, PostingDate, NewPostDate)` si číslo dokladu nebere sám** — reverz nezrušených `Job WIP G/L
+  Entry` (`Reverse = true`, `Reversed = false`) účtuje přes `InsertWIPGL` řádky finančního deníku s `"Document No." := DocNo`
+  (`System-Created Entry`, `Gen. Jnl.-Post Line.RunWithCheck`). Volání s `''` (Soitron `Job Close Mgt. SOI.ReverseWIP` při změně stavu
+  na Dokončeno) funguje, jen dokud projekt nemá zaúčtované WIP do věcných položek; pak spadne v `Gen. Jnl.-Check Line.TestDocumentNo`:
+  *„Číslo dokladu musí mít hodnotu … v tabulce Řádek finančního deníku: Název šablony deníku=, Název listu deníku=, Číslo řádku=0"*.
+  Report 1085 *Project Post WIP to G/L* číslo bere takto a vlastní volání má dělat totéž: `General Ledger Setup."Journal Templ. Name
+  Mandatory"` → list `"Job WIP Jnl. Template Name"` / `"Job WIP Jnl. Batch Name"` z G/L Setup, `TestField("No. Series")`,
+  `JobCalculateWIP.SetGenJnlBatch(Batch)` (jinak řádky deníku nedostanou šablonu a `CheckDates` spadne na `Journal Template Name`)
+  + `GetNextNo(Batch."No. Series", PostingDate)`; jinak `Jobs Setup."Job WIP Nos."` (report sám testuje omylem `"Job Nos."`). Číslo
+  ber jen když je co stornovat, ať projekt bez WIP nespotřebuje číslo z řady. `CalcGLWIP` končí hned na začátku, když projekt má
+  `Job WIP G/L Entry` s `Job Complete = true` (WIP dokončení už zaúčtované).
+- **`Job."WIP G/L Posting Date"` (1009) je FlowField** (`min("Job WIP G/L Entry"."WIP Posting Date" where(Reversed = const(false)))`),
+  takže `Job."WIP G/L Posting Date" := 0D; Job.Modify()` uvnitř `CalcGLWIP` do DB nic nezapíše a záznam projektu, který se zrovna
+  validuje (`OnBeforeValidateEvent Status`), konflikt verzí („jiný uživatel změnil záznam") nedostane. Prázdnou hodnotu ověříš až po
+  `CalcFields`. ALCops `DC0002` („Writing to a FlowField") na přiřazení do toho pole upozorní — první verze opravy záznam zbytečně
+  „synchronizovala" vlastním `Modify`, chytil to až analyzer.
+- Test bez výpočtu WIP: `Job WIP G/L Entry` vložený přímo (`Entry No.` = `GetLastEntryNo() + 1`, Job No., dva účty z
+  `LibraryERM.CreateGLAccountNo()` — `CheckJobGLAcc` chce prázdné účto skupiny, `Posting Date` ≤ datum storna, `WIP Entry Amount`,
+  `Reverse = true`, `Insert(false)`), pak `Job.Validate(Status, Completed)` + `Modify(true)` s `[MessageHandler]` (EndingDateChangedMsg);
+  očekávané číslo `NoSeries.PeekNextNo(řada, WorkDate())` před akcí, assert `Reversed` / `Reverse Date` a G/L Entry s Document No.,
+  Job No. a `-WIP Entry Amount`. Větev s povinnou šablonou: G/L Setup `"Journal Templ. Name Mandatory" := true` + vlastní šablona /
+  list s řadou, G/L Entry nese `"Journal Templ. Name"` / `"Journal Batch Name"`; G/L Setup i Jobs Setup přes `LibrarySetupStorage`.
+  (2026-11-18, cust-soitron-bc `Job Close Test SOI`, Base App 28.5; 3 nové testy, 381/381 v `bc28`.)
+- **Standard při dokončení projektu WIP sám neúčtuje ani nestornuje.** `Status := Completed` → `Validate(Complete, true)` →
+  `ChangeJobCompletionStatus` jen přepočte Ending Date (+ `Message`) a smaže skladové požadavky; reopen volá `ReOpenJob` (smaže
+  nezaúčtované WIP, `Job Complete := false`) a hlášku „spusťte Post WIP to G/L". Uzavření WIP = ručně report 1084 *Calculate WIP*
+  (u dokončeného projektu `JobComplete` → WIP 0, rozpoznané = skutečnost, položky `Job Complete`) + 1085 *Post WIP to G/L* (storno
+  starého WIP + zaúčtování dokončovacích položek, rozpoznané náklady proti *Job Costs Applied* místo WIP účtu). Automatické storno
+  s `JustReverse = true` (Soitron) jen vrátí hlavní knihu do stavu bez WIP — dokončovací položky nezaúčtuje; výsledovka v součtu
+  stejná, liší se rozpad na účty. Pozdější ruční 1084 + 1085 nic nezdvojí (není co stornovat, zaúčtují se jen dokončovací položky).
