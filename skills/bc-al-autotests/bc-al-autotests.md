@@ -303,6 +303,14 @@ Assert.ExpectedErrorCode('Dialog');
   (všechny testy kromě prvního červené). Manual-instance codeunity (`Library - Job Queue`, vlastní test codeunit s
   override subscriberem) bindovat **přes lokální proměnnou** testu / helperu — odváže se na konci procedury sama.
   (2026-10-06, cust-soitron-bc build 28703, `QB Buffer Job Queue Test SOI`.)
+- **Subscriber v samotné test codeunitě, když v rozsahu ID test appky není místo pro pomocnou codeunitu:** test codeunit
+  dostane `EventSubscriberInstance = Manual` (vedle `Subtype = Test`) a vlastní `[EventSubscriber]` + veřejný setter
+  hodnoty, kterou subscriber vrací (globální proměnná). Test si vezme **lokální proměnnou téhož typu** (`RestoreSubscriber:
+  Codeunit "Plan Purch Price Test EPEBS"`), zavolá na ní setter, `BindSubscription(RestoreSubscriber)`, akci a
+  `UnbindSubscription`. Instance, ve které běží test runner, nabindovaná není, takže ostatní testy codeunity subscriber
+  nevidí. Prošlo v BC 28 (container `bc28`, CodeCop bez varování): IntegrationEvent `local` v produktové codeunitě
+  s `IsHandled`, 160/160. (2026-11-18, prod-ep-projectBase-bc Task 66675, `Plan Purch Price Test EPEBS`, rozsah
+  71058682–71058699 plný.)
 - **Platformový `Random()` v app kódu dostává v testech seed od `Library - Random`** (`SetSeed` = `Randomize(Seed)` na
   společném generátoru, před každým testem stejný — viz bullet o PK výše). Generátor typu „náhodný kód + kontrola
   unikátnosti + max 20 pokusů" (`GenerateActivationCode` u voucherů) proto v každém testu se stejnou preambulí navrhuje

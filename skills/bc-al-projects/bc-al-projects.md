@@ -828,6 +828,13 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   volá jen ruční výběr ceny (`Pick`). `Job Planning Line - Price.SetPrice` pro nákup: u **zboží** plní jen `Direct Unit Cost (LCY)` (pořizovací
   cena zůstane z karty), u zdroje `Unit Cost`, u účtu jen nenulovou cenu z ceníku (jinak zůstane). (2026-11-13, EP Base `Plan. Line Purch.
   Price EPEBS` / `Plan. Line Std. Cost EPEBS`, task 66675, 11 testů v kontejneru.)
+  **„Jako při založení" u řádku z importu ≠ karta zboží.** Řádek, který založil import (Soitron Quote Builder), vznikl s cenou z importu.
+  Návrat na kartu zboží konzultantku v testu překvapil (600 z QB → ruční 26 USD → smazání → 200 z karty). Produkt proto před standardní
+  hodnotou vyvolá `OnBeforeRestoreUnitCost(var JPL, var UnitCost, var IsHandled)` a zákaznická appka dodá cenu zdroje. Soitron ji bere
+  z **poslední zpracované** verze (`Processed`, nejnovější `SystemCreatedAt`), ne z verze čekající na rozhodnutí. Na planning line je
+  `QB Version No. SOI` už po kontrole nové verze, takže by převzal nepotvrzenou cenu. Výpočet je stejný jako při porovnání verzí
+  (`BuildExpectedLines` + `MatchPlanningLines` + `ExpectedUnitCost`), další verze pak řádek ukáže jako nezměněný. U nákupu v cizí měně
+  vrátí i nákupní měnu a cenu z importu. (2026-11-18, task 66675, `QB Purch. Price Restore SOI`.)
 - **Výnosový řádek navázaný IMEBS vazbou na nákladový** (`Linked Line Cost IMEBS.UpdateLinkedBillableUnitCost`): `Unit Cost` =
   `Total Cost` nákladového řádku / `Quantity` výnosového (stejné celkové náklady, rozdílné MJ nevadí); řádek s `Qty. Transferred to Invoice`
   <> 0 přeskočit (viz bullet o `ValidateModification` výš) a z UI ohlásit. Spouští ji událost EP Base `OnAfterApplyPurchasePrice` (řádek ještě
