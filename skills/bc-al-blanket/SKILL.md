@@ -1,21 +1,19 @@
 ---
 name: bc-al-blanket
 description: >-
-  BC/AL hromadné objednávky, sešit požadavků a přepočet ceny (BC, sekce 5.x5, 5.x9, 5.x21):
-  hromadné nákupní / prodejní objednávky HNO/HPO (Blanket Order No. / Line No.) – vazba řádků NO/PO/sešitu,
-  převzetí ceny a slevy (BlanketOrderIsRelated), ruční navázání = vnořený Validate(Quantity), změna varianty
-  navázaného řádku, Recreate Purch/Sales Lines (TestField Blanket Order No. před přegenerováním,
-  OnAfterRecreate…Line), změny z hlavičky jen ze stránky (CurrFieldNo, GuiAllowed, Link Doc. Date To Posting
-  Date při účtování); Requisition Line OnAfterGetDirectCost, Req. Wksh.-Make Order / Carry Out (dvojí
-  započtení, CopyOrderDateFromPurchHeader na kopii), Calculate Plan bez dotazů (manual bind, report 699);
-  přepočet ceny bez ceníku (IsPriceUpdateNeeded, ruční Line Discount % nepřežije); poptávka → Requisition
-  Line → Purchase Line a přenos vlastních polí (Order Planning, Get Sales Orders, Calculate Plan, NMEBS, EM MRP
-  Replenishment OREBS).
-  Načti u HNO/HPO, sešitu požadavků, plánování a přecenění řádků dokladu.
+  BC/AL hromadné objednávky, sešit požadavků a přepočet ceny (5.x5, 5.x9, 5.x21, 5.x32): HNO/HPO
+  (Blanket Order No. / Line No.) – vazba řádků NO/PO/sešitu, převzetí ceny a slevy (BlanketOrderIsRelated), ruční
+  navázání = vnořený Validate(Quantity), změna varianty navázaného řádku, Recreate Purch/Sales Lines (TestField Blanket
+  Order No., OnAfterRecreate…Line), změny z hlavičky jen ze stránky (CurrFieldNo, GuiAllowed, Link Doc. Date To Posting
+  Date); Requisition Line OnAfterGetDirectCost, Carry Out (dvojí započtení, CopyOrderDateFromPurchHeader), Calculate Plan
+  bez dotazů (manual bind, report 699); přepočet ceny bez ceníku (IsPriceUpdateNeeded, ruční sleva nepřežije); poptávka →
+  Requisition Line → Purchase Line a vlastní pole (Order Planning, Get Sales Orders, Calculate Plan, NMEBS, OREBS); vlastní
+  typ produktu v ceníku (Price Asset Type, poplatek za zboží Charge (Item), OnBeforeVerifyConsistentAssetType).
+  Načti u HNO/HPO, sešitu požadavků, plánování, ceníků a přecenění řádků dokladu.
 user-invocable: true
 ---
 
-# BC/AL — Hromadné objednávky, sešit požadavků a přepočet ceny (sekce 5.x5, 5.x9, 5.x21)
+# BC/AL — Hromadné objednávky, sešit požadavků a přepočet ceny (sekce 5.x5, 5.x9, 5.x21, 5.x32)
 
 **Zdroj pravdy:** `bc-al-blanket.md` ve stejném adresáři jako tenhle `SKILL.md`
 (adresář skillu = „Base directory" hlášený při načtení; cestu skládej odtud, ne přes `..`). Tenhle skill je jen wrapper —
@@ -24,7 +22,7 @@ Vyčleněno z `bc-al-objects.md` 2026-10-19, číslování 5.x je původní.
 
 ## Co udělat
 
-1. **Přečti `bc-al-blanket.md` z adresáře tohoto skillu celý.** Je krátký (~175 řádků). Bez přečtení nejednej.
+1. **Přečti `bc-al-blanket.md` z adresáře tohoto skillu celý.** Je krátký (~240 řádků). Bez přečtení nejednej.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).

@@ -11,6 +11,7 @@ Obsahuje:
 - **5.x5** Requisition Line — `OnAfterGetDirectCost`, Req. Wksh.-Make Order, Carry Out, Calculate Plan bez dotazů
 - **5.x9** Poptávka → Requisition Line → Purchase Line (kde plánování tvoří řádek, přenos vlastních polí)
 - **5.x21** Přepočet ceny bez ceníku (`IsPriceUpdateNeeded`, ruční sleva) a hromadné objednávky HNO/HPO (vazba řádků, Recreate lines, změny z hlavičky)
+- **5.x32** Vlastní typ produktu v ceníku (`Price Asset Type` enumextension) — např. poplatek za zboží (Charge (Item)) na prodejním řádku
 
 ### 5.x5 Requisition Line — `OnAfterGetDirectCost` jako hook „po přecenění" + past v Req. Wksh.-Make Order (BC 28.3)
 
@@ -206,3 +207,33 @@ Header `Location Code` jen hlásí `MessageIf…LinesExist`. **`Variant Code` an
 `Validate(UoM)`) → logika na `OnAfterValidateEvent(Quantity)` se po změně varianty / lokace nespustí. `Purchase Order Subform.Quantity`
 `OnValidate` i `Sales Order Subform.QuantityOnAfterValidate` (Item) volají `CurrPage.SaveRecord()` → subscriber při dalším `SetValue(Quantity)`
 v TestPage vidí v DB stav po předchozím kroku.
+
+### 5.x32 Vlastní typ produktu v ceníku (`Price Asset Type`) — poplatek za zboží (Charge (Item)) s cenou a slevou z ceníku
+
+Ověřeno ve zdrojích w1-28 (`SalesLine.Table.al`, `SalesLinePrice.Codeunit.al`, `PriceAsset.Table.al`, `PriceListLine.Table.al`,
+`PriceCalculationV16.Codeunit.al`) při kontrole RFC cust-zlomek-bc PBI 67628 (2026-11-18):
+
+- **Vzor = Service Cost**, ne G/L Account / Resource: `enumextension 7014 "Serv. Price Asset Type"` (enum 7004 je `Extensible`) +
+  `codeunit 7045 "Price Asset - Service Cost" implements "Price Asset"` + tableextension na `Price List Line` **i** `Price Worksheet
+  Line` s `modify("Product No.") { TableRelation = if ("Asset Type" = const(...)) ... }` — stránky ukazují `Product No.` (drop-down),
+  `Asset No.` s `IsLookupOK` jen při *Use Customized Lookup*. `GetNo` / `GetId` musí plnit `PriceAsset."Table Id"` — z něj *Navrhnout
+  řádky* (`Price Line Filters` → `PriceListManagement.AddLines` přes RecordRef) čte zdrojovou tabulku. Varianta a MJ jsou na stránce
+  samy needitovatelné (`IsAssetItem`, `IsUOMSupported` = Item/Resource). DPH skupinu řádku ceníku doplň v `OnCopyFromAssetTypeElseCase`.
+- **Zákaz typu v nákupním ceníku** = `Price Asset.OnBeforeVerifyConsistentAssetType(var PriceAsset; var IsHandled)` (standard tam
+  blokuje Item Discount Group v nákupu) — volá se z `Validate("Asset Type")` řádku ceníku, sešitu cen i `AddLines`. `CopyLines`
+  filtruje `Price Type` cílového ceníku → prodejní řádky do nákupního ceníku zkopírovat nejdou vůbec.
+- ⚠️ **`OnAfterGetAssetType` na `Sales Line - Price` nestačí:** `Sales Line.UpdateUnitPriceByField` pouští cenotvorbu jen v `case Type of
+  "G/L Account", Item, Resource` → Charge (Item) se k výpočtu nedostane. Brána `IsPriceCalcCalledByField` / `PlanPriceCalcByField` je na
+  typu nezávislá (`HasTypeToFillMandatoryFields`), takže hook jde do `OnUpdateUnitPriceByFieldOnBeforeValidateUnitPrice` (běží pro všechny
+  typy těsně před `Validate("Unit Price")`): veřejné `GetPriceCalculationHandler` + `ApplyDiscount` + `ApplyPrice`. Větve uvnitř case
+  zopakuj sám: rámcovka (`BlanketOrderIsRelated` je **internal** → vlastní `Get` + veřejné `CopyUnitPriceAndLineDiscountPct`) a dobropis
+  z účtovaného dokladu (`"Copied From Posted Doc."` + `IsCreditDocType()` → `CalcUnitPriceUsingUOMCoef`, nepřeceňovat).
+- ⚠️ **`SetPrice` přepíše `Allow Invoice Disc.`** hodnotou z řádku ceníku (výchozí z hlavičky, typicky Ano), přitom `CopyFromItemCharge`
+  dává poplatku záměrně `false` → bez `OnAfterSetPrice` začne poplatek nést fakturační slevu.
+- **Bez ceníku:** `FillBuffer` plní `Unit Price` jen u Item/Resource (`Line Discount %` u všech) a vlastní `FillBestLine` nemá z čeho vzít
+  výchozí cenu → cena 0 při přepočtu z jiného pole než Quantity / Variant Code; sleva `ApplyDiscount` → 0 vždy (5.x21). Dnes poplatek
+  cenotvorbou neprochází, takže ruční cena / sleva přežijí cokoli — „bez ceníku jako dosud" je rozhodnutí, ne default. Výchozí řádek
+  z aktuálních hodnot (`OnAfterFillBuffer` + `FillBestLine`) zase podrží slevu, která po změně množství pod *Minimum Quantity* platit nemá.
+- Změna *Datum objednávky* / *Zúčtovací datum* hlavičky ceny řádků **nepřepočítá ani u zboží** (`PriceMessageIfSalesLinesExist` = jen
+  hláška); změna měny jde přes `RecreateSalesLines` (`Validate("No.")` + `Quantity`) → přecení i poplatek. Karta poplatku ve standardu
+  není, jen editovatelný seznam *Poplatky za zboží* (page 5800).
