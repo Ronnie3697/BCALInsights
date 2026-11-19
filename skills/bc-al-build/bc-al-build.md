@@ -46,6 +46,16 @@ contain a definition for Y'`, i když aktuální zdroják té závislosti dané 
 > 28.0.25 = spadlý build 28404, nepublikováno); task 67634 (2026-11-09) — COEBS 28.0.41
 > opravil `DeleteFormula`, která mazala i vzorce COZLK / COALU → COZLK bez změny kódu
 > **bez bumpu**, COALU zvednuté jen v rámci vlastní opravy v témže tasku.
+>
+> ⚠️ **LatestMatching nemají všechna repa — ověř v logu, než spoléháš na „vezme nejnovější".** Krok „Download
+> Dependencies from NuGet" vypíše režim: `Looking for NuGet package <guid> version X (Earliest match)`. Takové repo
+> bere **nejnižší** publikovanou verzi ≥ minimum, i když feed má novější (`Last version is …` v témže logu), takže
+> konzument nového eventu / codeunitu **musí** minimum zvednout, jinak build spadne. Případ: prod-ep-itemManagement-bc
+> (definice 160, BcContainerHelper 6.1.20) PR 10014, build 29527 (2026-11-19), spuštěný 20 min po vydání EP Base 28.0.46:
+> `Best match … Version 28.0.41` → `AL0118 The name '"Plan. Line Purch. Price EPEBS"' does not exist` (codeunit nový
+> v 28.0.46, PR 10012). Re-queue nepomůže, oprava = minimum `28.0.46.0` v `app.json` appky i testů (test měl
+> `28.0.24.0`, dedupe vzal první nalezený `app`). Pořadí u řetězce produktů (EP Base → IMEBS → Soitron): merge
+> závislosti, počkat na zelený build masteru (= publikace), teprve pak push konzumenta se zvednutým minimem.
 
 **Příznak:** lokálně to „funguje" (máš v `.alpackages` novější symbol nebo jsi ho
 dočasně obešel), ale CI padá na chybějícím poli/proceduře cizí appky. `AL1076 name/
