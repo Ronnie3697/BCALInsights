@@ -310,7 +310,10 @@ Assert.ExpectedErrorCode('Dialog');
   `UnbindSubscription`. Instance, ve které běží test runner, nabindovaná není, takže ostatní testy codeunity subscriber
   nevidí. Prošlo v BC 28 (container `bc28`, CodeCop bez varování): IntegrationEvent `local` v produktové codeunitě
   s `IsHandled`, 160/160. (2026-11-18, prod-ep-projectBase-bc Task 66675, `Plan Purch Price Test EPEBS`, rozsah
-  71058682–71058699 plný.)
+  71058682–71058699 plný.) Znovu 2026-11-19 v COEBS (`Split Line Tests COEBS` 63172 jako spy dvou eventů s gettery,
+  1210/1210): **test rozsah Essence Configuratoru (63170–63199, 63250–63259) je napříč větvemi plný** a samostatná spy
+  codeunit 63251 kolidovala s nemergnutou větví 67894. Volné ID ověřuj přes všechny `refs/remotes/origin/*`, ne jen
+  master — kolize s cizí větví vyskočí až tomu, kdo mergne druhý.
 - **Platformový `Random()` v app kódu dostává v testech seed od `Library - Random`** (`SetSeed` = `Randomize(Seed)` na
   společném generátoru, před každým testem stejný — viz bullet o PK výše). Generátor typu „náhodný kód + kontrola
   unikátnosti + max 20 pokusů" (`GenerateActivationCode` u voucherů) proto v každém testu se stejnou preambulí navrhuje
