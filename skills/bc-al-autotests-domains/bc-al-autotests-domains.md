@@ -318,6 +318,19 @@ CannotBePosted` + `FullVoucherCycleWithReplacementKeepsValueAndExpiration`.)
   problém nemá (codeunit dělá `Rec.Copy(Item2)`). (2026-09-29, cust-alumistr-bc PR 9604 build 28526,
   `CreditMemoCopiedFromPostedInvoiceKeepsInvoicedPrice`; zdroj Base App 28.5 `CalculateLowLevelCode.Codeunit.al`, `MfgItem.TableExt.al`.)
 
+- **Zákaznická appka s „tvrdými“ subscribery na výrobní zakázce → `LibraryManufacturing.CreateAndRefreshProductionOrder` spadne v GIVEN.**
+  Než postavíš test přes refresh, projdi subscribery appky na `Production Order` (`OnAfterInitRecord`, `OnBeforeAssignItemNo`),
+  `Prod. Order Line."Item No."`, `Prod. Order Status Management` a `Refresh Production Order`. cust-ardo-bc: nová zakázka dostane
+  `Validate("Location Code", 'A_FROST')` (v CI firmě lokace není → chyba relace), výrobek musí mít kód sledování `LOTALL` a V/P na
+  7. pozici čísla (base `Create Prod. Order Lines` volá `ProdOrderLine.Validate("Item No.")` → Ardo `Error`), vydání chce jednotkovou
+  cenu, lokaci řádku a posílá testovací e-mail. Číslo zboží z `Library - Inventory` (řada `GL00000001`) to nesplní. Výpočet nad
+  komponentou (množství na batch apod.) proto testuj nad **přímo vloženými** `Prod. Order Line` + `Prod. Order Component`
+  (`Init` + PK z `CreateGuid` + `Insert(false)`) nebo nad temp záznamem a logiku dej do procedury tabulky; validace pole řádku
+  (`Validate("Batch ATARD")` → komponenty) i TestPage `Prod. Order Components` nad takovými záznamy fungují bez hlavičky zakázky.
+  Testy přes refresh nech jen tam, kde je známé, že v CI procházejí. ⚠️ Před větou „testy poběží v CI“ ověř `git ls-files test/`:
+  v Ardo byla `test/src` celá untracked, takže testy z několika seancí nikdy nikde neběžely. (2026-11-19, cust-ardo-bc 67302,
+  ze zdroje; běh neověřen, Ardo nemá kontejner BC 25 AT.)
+
 - **Délka komponenty z EM Cutting Plan přes skutečný refresh VZ** (`LibraryManufacturing.CreateAndRefreshProductionOrder`): Cutting Plan
   při refreshi naplní `Qty. per Piece CUEBS` komponenty z řádku kusovníku a `Length` = `Qty. per Piece` × konstanta z typu délky MJ
   vs. `Manufacturing Setup."Optimaliz. Length Type CUEBS"` (m → mm = 1000). Funkční recept: `Unit of Measure."Length Type CUEBS"`
