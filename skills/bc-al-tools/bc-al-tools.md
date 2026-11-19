@@ -194,7 +194,8 @@ přímo bez čekání na `al: publish` — užitečné pro zpětnou vazbu
   pusť `unix2dos -q <soubor>` (je v Git Bash), nebo drobné edity dělej Edit toolem. Kontrola:
   `tr -cd '\r' < soubor | wc -c` (0 = CR pryč). (2026-09-08, cust-zlomek-bc, rename captionu 65648)
 - **`grep -c $'\r' soubor` v Git Bash vrátí 0 i u CRLF souboru** (grep čte v textovém režimu) → falešné „soubor je LF".
-  Konce řádků počítej `tr -cd '\r' < f | wc -c` nebo v Pythonu `open(p, 'rb').read().count(b'\r\n')`. Python skript, který
+  Opačně lže `grep -c $'\r$'` (s `$`): vrátí počet všech řádků i u LF souboru → falešné „soubor je CRLF" (2026-11-19,
+  cust-zlomek-bc 66431). Konce řádků počítej `git ls-files --eol -- f`, `tr -cd '\r' < f | wc -c` nebo v Pythonu `open(p, 'rb').read().count(b'\r\n')`. Python skript, který
   čte `newline=''` a hledá vzory s `\n`, na CRLF souboru nic nenajde (assert na `count == 1` spadne) → po načtení
   `s = s.replace('\r\n', '\n')`, při zápisu vrať `\r\n`. Edit tool si s CRLF většinou poradí sám (ale viz bullet níž). Skript s apostrofy a `\r`/`\n`
   piš do souboru (Write), ne do Bash heredocu / `python -c`. (2026-10-02, prod-ess-configurator-bc `VariantConfigEngineUnify`)
