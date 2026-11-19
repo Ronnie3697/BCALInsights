@@ -20,6 +20,7 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
 | `bc-al-data.md` | database operace, event subscribery (sekce 2, 3.1–3.4, 3.7–3.10) |
 | `bc-al-posting.md` | propagace vlastních polí do účtovaných dokladů, archivu a kopií — stejné field ID, částečné účtování, Blob + CalcFields, `Validate("No.")` → `Init()` (sekce 3.5–3.6f) |
 | `bc-al-objects.md` | specifické objekty/API — No. Series, Attached to Line No., Job Queue… (sekce 5) |
+| `bc-al-warehouse.md` | sklad — přihrádka SO/PO → skladová příjemka / dodávka, skladový přesun / vyskladnění z kódu (pár Take/Place), jiná MJ ve skladu bez řízeného zaskladnění, nový řádek deníku zboží, skladový doklad v jiné MJ než zdrojový doklad (sekce 5.x22, 5.x26–5.x28, 5.x34; vyčleněno 2026-11-19) |
 | `bc-al-blanket.md` | hromadné objednávky HNO/HPO (vazba řádků, převzetí ceny, Recreate lines, změny z hlavičky), Requisition Line / Carry Out / Calculate Plan, poptávka → sešit požadavků → NO, přepočet ceny bez ceníku (sekce 5.x5, 5.x9, 5.x21) |
 | `bc-al-tracking.md` | Item Tracking — šarže / SN: Item Tracking Lines (6510) a její eventy, předvyplnění šarže, Reservation Entry vs Tracking Specification, source pole VZ, tracking na nabídce a na fakturačním řádku z dodávky (sekce 5.x, 5.x2, 5.x2b, 5.x15) |
 | `bc-al-advance-cz.md` | CZZ zálohy — vazba záloha ↔ doklad a scoped guard, generovaný řádek zálohy z reportu 31012, platba zálohy a účto skupina zákazníka / dodavatele (šablona vs. karta, propojení / odpojení z položek) (sekce 5.z3, 5.z5, 5.z7; vyčleněno 2026-11-03) |
@@ -67,6 +68,7 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
   12.1f–12.1i + 12.5 (layouty reportů: Word, RDLC, štítky) → `bc-al-layouts.md` (2026-11-12, `bc-al-workflow.md` znovu přesáhl 1000 řádků).
   7.23–7.26 (testovací kontejner, ruční nasazení do sandboxu / kontejneru, dev publish) → `bc-al-deploy.md` (2026-11-13, `bc-al-build.md` měl 997 řádků).
   5.z3, 5.z5 (+ nová 5.z7, CZZ zálohy) → `bc-al-advance-cz.md` (2026-11-03, `bc-al-objects.md` by přesáhl 1000 řádků).
+  5.x22, 5.x26–5.x28 (+ nová 5.x34, sklad: přihrádky, skladové aktivity, MJ ve skladu) → `bc-al-warehouse.md` (2026-11-19, `bc-al-objects.md` měl 1000 řádků).
   Test appka jako projekt (app.json, ruleset, symboly, kompilace, běh, CI) → `bc-al-autotests-infra.md` a doménové
   gotchas (projekty, doklady, Job Queue, výroba) → `bc-al-autotests-domains.md` (2026-10-09, `bc-al-autotests.md`
   znovu přesáhl 1000 řádků / 77 KB).
@@ -326,6 +328,7 @@ stabilních pravidel. **Notes soubory zůstávají zdrojem pravdy.**
 | `bc-al-data` | `bc-al-data.md` | DB operace, event subscribery |
 | `bc-al-posting` | `bc-al-posting.md` | vlastní pole na dokladech → archiv, účtované doklady, kopie |
 | `bc-al-objects` | `bc-al-objects.md` | No. Series, Attached to Line No., Job Queue… |
+| `bc-al-warehouse` | `bc-al-warehouse.md` | přihrádky SO/PO → skladové doklady, skladové aktivity z kódu, MJ ve skladu, skladový doklad v jiné MJ |
 | `bc-al-blanket` | `bc-al-blanket.md` | hromadné objednávky HNO/HPO, Requisition Line / Carry Out / Calculate Plan, přepočet ceny bez ceníku |
 | `bc-al-tracking` | `bc-al-tracking.md` | Item Tracking Lines (6510) a eventy, šarže = projekt, Reservation Entry, Prospect vs Surplus |
 | `bc-al-advance-cz` | `bc-al-advance-cz.md` | CZZ zálohy — vazba na doklad, generovaný řádek, platba zálohy a účto skupina, propojení / odpojení |

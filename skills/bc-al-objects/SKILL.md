@@ -5,11 +5,11 @@ description: >-
   kontrola Document No., Unix timestamp, NMEBS vazba SO↔VZ, atributy zboží, DateFormula,
   CaptionClass + Translation Helper, CZ↔EN terminologie, duplicita IČ/DIČ zákazníka/dodavatele, Attached to Line No.,
   VerifyOnInventory, Item Jnl. Line UoM qty-per, Auto Format, Item Charge Assignment, Job Queue z účtování /
-  recurring, camt.053 Data Exchange (merge, Regex), Retention Policy (OnRefreshAllowedTables), Bin Code SO/PO →
-  Whse. doklady (OnAfterGetDefaultBin), přesun z kódu (Bin Code Take, pár Take/Place, základní MJ bez řízeného
-  zaskl.), pole kusovníku → komponenta VZ (OnAfterProdOrderCompInsert, Planning Component → Carry Out). Načti u číselných řad, výroby, Job Queue, bank. importu, přihrádek,
-  skladových aktivit. (Shopify/HTTP → bc-al-integrations; projekty → bc-al-projects; šarže/SN →
-  bc-al-tracking; HNO/HPO, sešit požadavků → bc-al-blanket; CZZ zálohy → bc-al-advance-cz.)
+  recurring, camt.053 Data Exchange (merge, Regex), Retention Policy (OnRefreshAllowedTables), pole kusovníku →
+  komponenta VZ (OnAfterProdOrderCompInsert, Planning Component → Carry Out). Načti u číselných řad, výroby, Job
+  Queue, bank. importu. (Shopify/HTTP → bc-al-integrations; projekty → bc-al-projects; šarže/SN → bc-al-tracking;
+  HNO/HPO, sešit požadavků → bc-al-blanket; CZZ zálohy → bc-al-advance-cz; přihrádky, skladové doklady a aktivity,
+  MJ ve skladu → bc-al-warehouse.)
 user-invocable: true
 ---
 
@@ -22,10 +22,9 @@ cesty) a příklady jsou v souboru.
 
 ## Co udělat
 
-1. **Přečti `bc-al-objects.md` z adresáře tohoto skillu celý.** Vejde se do jednoho Read
-   (~700 řádků / 44 KB, po vyčlenění Shopify + SaaS do `bc-al-integrations.md`
-   2026-09-08); když se výstup ořízne, okamžitě dočti přes `offset`. Bez přečtení
-   nejednej.
+1. **Přečti `bc-al-objects.md` z adresáře tohoto skillu celý.** ~900 řádků / ~75 KB
+   (po vyčlenění skladu do `bc-al-warehouse.md` 2026-11-19) — do jednoho Read se
+   nevejde, oříznutý výstup okamžitě dočti přes `offset`. Bez přečtení nejednej.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
@@ -33,7 +32,8 @@ cesty) a příklady jsou v souboru.
    Automate → `bc-al-integrations` (5.y2, 11); projekty / Job Planning Line → `bc-al-projects` (5.x17–5.x20); Item Tracking
    (šarže, SN, Item Tracking Lines, Reservation Entry) → `bc-al-tracking` (5.x, 5.x2, 5.x2b, 5.x15); hromadné objednávky
    HNO/HPO, Requisition Line / sešit požadavků a přepočet ceny bez ceníku → `bc-al-blanket` (5.x5, 5.x9, 5.x21); CZZ zálohy
-   (vazba na doklad, generovaný řádek, platba a účto skupina) → `bc-al-advance-cz` (5.z3, 5.z5, 5.z7); subscribery a propagace polí →
+   (vazba na doklad, generovaný řádek, platba a účto skupina) → `bc-al-advance-cz` (5.z3, 5.z5, 5.z7); přihrádky SO/PO → skladové
+   doklady, skladové aktivity z kódu, MJ ve skladu → `bc-al-warehouse` (5.x22, 5.x26–5.x28, 5.x34); subscribery a propagace polí →
    `bc-al-data`; Cloud target patterny obecně → `bc-al-style` (10); ověření
    signatur z .app → `bc-al-tools` (7.2, 7.6).
 
@@ -86,3 +86,5 @@ cesty) a příklady jsou v souboru.
   `<C,CZK>` prefix (jen pro page fieldy) → formát `<Precision,x:y><Standard
   Format,0>` slož sám z `Currency."Amount/Unit-Amount Decimal Places"` /
   GL Setup (`Currency.Initialize('')` decimal places **neplní**).
+- **5.x22 / 5.x26–5.x28** Sklad (přihrádka SO/PO → skladové doklady, skladové aktivity z kódu, MJ ve skladu bez řízeného
+  zaskladnění, nový řádek deníku zboží) → skill `bc-al-warehouse` (vyčleněno 2026-11-19).
