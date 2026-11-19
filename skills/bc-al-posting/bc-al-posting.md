@@ -19,6 +19,7 @@ Obsahuje:
 - **3.6l** Výstup a kapacita výroby z kódu: `Validate(Type)` maže `No.`, zmetky na výstupním řádku, tiché atomické účtování přes manuální bind `Item Jnl.-Post.OnBeforeCode`, `Increment Batch Name`, řádek spotřeby z kódu ztrácí dimenze zakázky po `Validate("Location Code")` (`CreateProdDim`)
 - **3.6n** Způsob platby na dokladu, jehož platby účtuje vlastní kód: přiřazením, ne `Validate` (protiúčet → druhé vyrovnání, Cash Desk CZP → pokladní doklad), CZL QR dotaz při vydání
 - **3.6o** Vlastní podmínka schvalovacího workflow dokladu (pole hlavičky jako event condition): workflow čte doklad z DB → stav uložit v `Approvals Mgmt.OnBeforeIsPurchaseApprovalsWorkflowEnabled`; dokončené schválení = `OnBeforeReleasePurchaseDoc` se stavem Pending Approval
+- **3.6p** Částka DPH z externího systému na prodejním dokladu z kódu = rozdíl DPH přes `VAT Amount Line` (jako Statistika); CZL `Sales Line Handler CZL` ho smaže při každém `Insert/Modify/Delete(true)` řádku
 
 ## 3. Event Subscribery — propagace polí (3.5–3.6f)
 
@@ -787,3 +788,36 @@ hlavičky (enum stavu) jako podmínka prvního kroku, konzultant jen doplní fil
 (2026-11-11, cust-soitron-bc PBI 67819 `Project PO Approval Mgt. SOI` + eventy EPEBS `…OnBeforeModify` při tvorbě řádku NO z řádku
 plánování; zdroje w1-28 `WorkflowManagement`, `ApprovalsMgmt`, `ReleasePurchaseDocument`, `WorkflowResponseHandling`; kompilace čistá,
 běh testů zatím ne.)
+
+### 3.6p Částka DPH z externího systému na prodejním dokladu z kódu — rozdíl DPH přes `VAT Amount Line`; CZL ho maže
+
+Doklad z integrace (`Prices Including VAT`, `Unit Price` = brutto) a externí systém posílá i vlastní DPH. Standardní cesta je
+**rozdíl DPH** (`VAT Difference`) stejně jako ruční přepis *Částky DPH* ve Statistice dokladu. Brutto zůstane, BC posune základ.
+Rozdíl jde na zaúčtovaný řádek (`TransferFields`) a přes `Invoice Posting Buffer` do `VAT Entry."VAT Difference"`. Na
+`Sales Line` ho nastavit nejde (pole 104 `Editable = false`, `ClearVATDifference` je `internal`). Ověřeno ve zdrojích w1-28 / cz-28:
+
+- **Postup jako stránka 160 / 576:** všechny řádky založit → `SalesLine.CalcVATAmountLines(0, Header, SalesLine, TempVATAmountLine)`
+  → `TempVATAmountLine.ModifyAll(Modified, false)` → na řádku skupiny `Validate("VAT Amount", externí DPH)`. Trigger nastaví jen
+  `VAT Difference := VAT Amount − Calculated VAT Amount`, setup nekontroluje. Pak `"VAT Base" := "Amount Including VAT" − "VAT Amount"`
+  (to dělá stránka, ne tabulka), `CheckVATDifference(CurrencyCode, SalesSetup."Allow VAT Difference")` a `Modified := true; Modify()`
+  → `SalesLine.UpdateVATOnLines(0, …)` a **pak i `(1, …)`**. Průchod 0 přepočítá částky, `VAT Difference` řádku zapíše až průchod 1.
+  `UpdateVATOnLines` mění jen řádky skupin s `Modified = true` a ukládá přes `Modify()` bez triggerů.
+- **Kontrolu limitu musí udělat tvůj kód.** *Povolit rozdíl DPH* (Sales Setup) a *Max. povolený rozdíl DPH* (GL Setup / měna)
+  hlídá jen `CheckVATDifference` a stránka 576 (ta navíc součet přes všechny skupiny). Release ani `Sales-Post` je znovu
+  nekontrolují. `Validate("VAT Amount")` na skupině s 0 % spadne na `TestField("VAT %")`.
+- **Granularita = skupina dokladu**, ne řádek: klíč `VAT Identifier`, `VAT Calculation Type`, `Tax Group Code`, `Use Tax`,
+  `Positive` (= `Line Amount >= 0`). Kladné a záporné řádky jsou dvě skupiny, externí DPH sčítej po nich. Na řádky se rozdíl
+  rozpočítá poměrem částky, zbytek zaokrouhlení jde na další řádek skupiny.
+- **Co rozdíl smaže:** `UpdateAmounts` při změně `Line Amount` (Quantity, Unit Price, slevy, …), každá validace `VAT Prod. Posting
+  Group` (i nepřímo přes `Gen. Prod. Posting Group`) a změna fakturační slevy (`Calc. Inv. Discount` při vydání). Release
+  (`CalcAndUpdateVATOnLines`) a posting rozdíl drží: součet skupiny zachovají, rozložení mezi řádky se může posunout. Nastavuj ho
+  proto **úplně naposled**.
+- ⚠️ **CZ lokalizace:** `Sales Line Handler CZL` (codeunit 11783) na `OnBeforeInsert/Modify/DeleteEvent` řádku (jen s `RunTrigger`,
+  ne temp) volá `RemoveVATCorrection`. Ta vynuluje `VAT Difference` na **všech** řádcích dokladu a přepočítá je. Jakékoli pozdější
+  `Insert(true)` / `Modify(true)` / `Delete(true)` řádku z kódu nebo úprava řádku na stránce tak rozdíl tiše zahodí. Release a
+  `Sales-Post` řádky ukládají bez triggerů, ty ho nechají.
+
+(2026-11-19, cust-itmr-bc, dotaz na převzetí DPH z externího systému do faktury z G/L Importu; zdroje StefanMaron w1-28 @ c0cbed01,
+cz-28 @ e253af7f: `VATAmountLine.Table.al`, `VATSpecificationSubform.Page.al`, `SalesStatistics.Page.al`, `SalesLine.Table.al`,
+`ReleaseSalesDocument.Codeunit.al`, `SalesPost(Invoice).Codeunit.al`, CZL `SalesLineHandlerCZL.Codeunit.al`. Jen ze zdrojů,
+neimplementováno ani nespuštěno.)
