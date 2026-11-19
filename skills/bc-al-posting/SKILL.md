@@ -1,16 +1,16 @@
 ---
 name: bc-al-posting
 description: >-
-  BC/AL pole dokladů → účtované doklady, archiv a kopie + účtování z kódu (3.5–3.6o): Sales Line → ILE /
+  BC/AL pole dokladů → účtované doklady, archiv a kopie + účtování z kódu (3.5–3.6p): Sales Line → ILE /
   Whse. Shipment, stejné field ID na archive + posted (TransferFields), total řádku při částečném účtování /
-  undo (OnAfterInitFromSalesLine), AutoFormatExpression GetCurrencyCode, Validate("No.") Init() past (archive
-  restore, Copy Document, RecreateSalesLines), OnAfterGetUnitCost, Blob hlavičky (CalcFields + subscriber na
-  každém přenosu), délky Text (LC0044, PC0020), guard OnModifyRecord jako invarianty, OnAfterCheckSalesDoc vs
+  undo (OnAfterInitFromSalesLine), AutoFormatExpression GetCurrencyCode, Validate("No.") Init() past (archiv,
+  Copy Document, Recreate), OnAfterGetUnitCost, Blob hlavičky (CalcFields na každém přenosu), délky Text
+  (LC0044, PC0020), guard OnModifyRecord jako invarianty, OnAfterCheckSalesDoc vs
   OnBeforeIsApprovedForPosting, Job No. dodávka vs faktura, dvojí archivace při emailu (Mail Management),
   WorkDate při účtování z kódu, výstup / kapacita výroby z kódu (Validate(Type) maže No., zmetky, tiché Item
-  Jnl.-Post), způsob platby bez Validate (protiúčet, pokladna CZP), vlastní podmínka schvalovacího workflow
-  (stav do DB v OnBeforeIsPurchaseApprovalsWorkflowEnabled, schválení v OnBeforeReleasePurchaseDoc). Načti u
-  polí dokladů, postingu, archivace, kopie, emailu a schvalování.
+  Jnl.-Post), způsob platby bez Validate (protiúčet, pokladna CZP), podmínka schvalovacího workflow
+  (OnBeforeIsPurchaseApprovalsWorkflowEnabled, OnBeforeReleasePurchaseDoc), DPH z integrace = rozdíl DPH přes
+  VAT Amount Line (CZL ho maže). Načti u polí dokladů, postingu, archivu, kopie, emailu, schvalování a DPH.
 user-invocable: true
 ---
 
