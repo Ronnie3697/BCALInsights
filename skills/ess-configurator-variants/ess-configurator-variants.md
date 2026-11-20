@@ -92,6 +92,15 @@ použití téže varianty to už nenapraví. Chytil code review 2026-09-23 (cust
 `FindOrCreateVariant` dělají Item Variant + hodnoty + text pro tisk + kusovník a postup; od `VariantConfigEngineUnify`
 navíc `Effective Hidden` a `RefreshReusedVariant` u znovu použité varianty (C11, C13).
 
+**Co se při znovupoužití varianty přepočítá a co ne (master 2026-11-20):** `FindOrCreateVariant` u existující varianty volá jen
+`RefreshReusedVariant` (`Effective Hidden` + text pro tisk). Kusovník a TNG postup zůstávají z doby vzniku varianty, takže pole
+plněné z akcí kusovníku / postupu (i vzorcem) chybí u variant vzniklých před nasazením a změna vzorce se u starých variant
+neprojeví. **Přepsání aktuálního řádku** (`ApplyCurrentLineOverrides`, pole `CL …` na podmínce prodejního řádku) se naopak pouští
+po **každém** OK dialogu (`Sales Line Config Mgt.HandleVariantCodeLookup`, bez podmínky na novou variantu) i v enginu
+(`ApplyToSalesLine`, API). Údaj, který má odpovídat každé konfiguraci (i znovupoužité a staré varianty), proto patří do přepsání
+aktuálního řádku na prodejní řádek (vzor COALU `Color COALU` → `Sales Line."Color ALU"`), ne do akce postupu / kusovníku. Variantu
+zadanou do řádku bez dialogu nic nepřepisuje (neověřeno). (Analýza RFC obrázků na úkolovém listu, cust-alumistr-bc, 2026-11-20.)
+
 ⚠️ **`Config. Condition Mgt. COEBS.ValidateParameterValue` u Table Lookup pustí cokoli** (COEBS 28.0.26): větev
 volá `ValidateTableLookupValue`, výsledek zahodí a vrátí `true`; ta navíc filtruje jen základní `Source Table Filter`
 + atributy, **podmínkový** filtr (`GetConditionTableFilter`) ne. V dialogu to nevadí (lookup nabízí jen platné
