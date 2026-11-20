@@ -117,7 +117,9 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   **pre-checkni sám** (tender, Job Ledger Entry projektu, Sales/Purchase Line libovolného typu s `Job No.`) a dej vlastní hlášku,
   jinak akce spadne uprostřed bez textu. (2026-10-05, cust-soitron-bc 66489 — přegenerování QB bufferu, `QB Buffer Regenerate Mgt. SOI`.)
 - **Kde projekt na dokladech JE a kde NENÍ (Essence Project Base 28.0.24, ověřeno al-mcp):** `Job No. EPEBS` (hlavička) mají
-  `Sales Header`, `Sales Header Archive`, `Sales Invoice Header`, `Sales Cr.Memo Header`, `Purchase Header`, `Purch. Inv. Header`;
+  `Sales Header`, `Sales Header Archive`, `Sales Invoice Header`, `Sales Cr.Memo Header`, `Purchase Header`, `Purch. Inv. Header`
+  a od tasku 67929 (2026-11-20, větev `features/salesQuotes`) i **`Purchase Header Archive`** (71058661 + pageextension 71058682 na
+  *Archiv nákupní objednávky*; dřív archivace nákupní objednávky projekt ztrácela, starší verze zůstávají prázdné);
   **`Sales Shipment Header` a `Purch. Rcpt. Header` ho NEMAJÍ** (jen `Tender No. EPEBS`). Zaúčtované příjemky a dodávky projektu tedy
   dohledáš jen přes řádky: `Purch. Rcpt. Line."Job No."` (nákup řádkové `Job No.` nese), `Sales Shipment Line."Job No."` (ruční
   řádky) **nebo `Sales Shipment Line."Job Contract Entry No."`** (dodávky objednávek z QB / IMEBS billable řádků — řádkové `Job No.`
@@ -202,6 +204,17 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   přepíše prodejce. Tendr `Job No. EPEBS` na poptávku nenastavuje, proto helper i v `Tender Management`. Kompilace: EPEBS má
   AppSource range (AppSourceCop), IMEBS PTE range (PTE cop); test IMEBS chce EPEBS ≥ 28.0.24.0 → v temp cache přepsat verzi
   čerstvého EPEBS buildu v kopii `app.json`. `User Setup` v testu: `Init` + `"User ID" := GenerateGUID` + `Insert(true)`.
+- **Zákazník objednávky z IMEBS *Create Sales Order* = plátce projektu (task 67929, 2026-11-20).** Akce (Job Card, *Job Planning Lines*,
+  *Job Planning Lines Part*) předávaly reportu `Job."Sell-to Customer No."` a `CreateSalesOrder` validoval jen Sell-to, plátce tedy přišel
+  z karty zákazníka. Standard ale při účtování faktury z řádků plánování dělá `SalesHeader.TestField("Bill-to Customer No.",
+  Job."Bill-to Customer No.")` (`Job Post-Line.PostInvoiceContractLine`, hook `OnPostInvoiceContractLineOnBeforeCheckBillToCustomer`; při
+  *Task Billing Method* = Multiple customers proti `Job Task`) → projekt s ručně změněným plátcem nešel vyfakturovat. Standard
+  `Job Create-Invoice.CreateSalesHeader` dává Sell-to = Sell-to projektu, Bill-to = Bill-to projektu (`GetCustomerNo`). Rozhodnutí
+  uživatele: objednávka celá na plátce projektu (jako Soitron QB `GenerateSalesOrder`, který Bill-to předával už dřív) → veřejná
+  `GetSalesOrderCustomerNo(Job)` + `CreateSalesOrder` po `Insert(true)` dorovná `Bill-to Customer No.` na plátce projektu (karta plátce B
+  s vlastním plátcem C). `Job.Validate("Bill-to Customer No.")` řetězení přes kartu nedělá (to dělá jen validace Sell-to). Test akce přes
+  `TestPage "Job Card"` + `[RequestPageHandler]` (`CreateNewSalesOrderField.SetValue(true)` + `OK().Invoke()`) + `Commit()` před `Invoke`
+  (request page po zápisech), `[PageHandler]` na *Sales Order* a `[MessageHandler]` z reportu; IMEBS 111/111 v `bc28`.
 - **Množství k objednání z řádku plánování (`Project Functions EPEBS.GetJPLQuantity`) musí vracet dobropisy** — původně plán −
   `Qty. to Invoice` VŠECH otevřených nákupních řádků (i dobropisových a vratkových, ty množství ubíraly místo uvolnily) − účtované
   faktury; účtované dobropisy (`Purch. Cr. Memo Line`, standardní `Job Planning Line No.` 1019) nepočítal vůbec. Po faktuře +
@@ -499,6 +512,19 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   ⚠️ Stávající testy vratek (`…NotShippedQuantity…`) před opravou procházely s nevyrovnanou vratkou (podle zdrojáku se na ni vyrovnal
   až `PostPositiveAdjustment` „z jiné zásoby“ a dodávka brala z položky příjmu) — asserty na počet položek a usage to nepoznají. U
   účtování zboží assertuj i vyrovnání (`Open`, `Item Application Entry`).
+- ⚠️ **„Vráceno dodavateli“ IMEBS počítá jen z `Return Shipment Line`** (`SubtractReturnedQuantities`: řádky dodávky vratky s `Job Planning
+  Line No.` + položky `Document Type = Purchase Return Shipment`). Nákupní dobropis dodávku vratky vytvoří jen při `Purchases & Payables
+  Setup."Return Shipment on Credit Memo"` (*Dodávka vratky při dobropisu*); bez ní má položka vratky `Document Type = Purchase Credit Memo`
+  a číslo účtovaného dobropisu a IMEBS ji nevidí → `CheckReturnedQtyOnInventoryForProject` pustí další vrácení téhož množství a pozdější
+  dodávka prodeje naváže usage na příjem, jehož zboží šlo zpět. Oprava = přičíst i `Purch. Cr. Memo Line` s `Job Planning Line No.` (1019)
+  a jejich položky typu Purchase Credit Memo (zrcadlo prodejního *Return Receipt on Credit Memo* výš). Zjištěno ze zdroje (2026-11-20,
+  cust-soitron-bc 67929 bod 6), **neopraveno**, čeká na rozhodnutí PO; nastavení u Soitronu neověřené.
+- **Prodej Skip projektu nehlídá, kolik se na navázaný nákladový řádek skutečně nakoupilo** (tamtéž): po úplném stornu vyfakturovaného
+  nákupu dobropisem jde výnosový řádek vydat, dodat i vyfakturovat. Jediná vazba při dodávce zboží je `PurchJobPlanningLine.TestField(
+  "Purchase Receipt Exists EPEBS", true)` v `CreateJobLedgerEntryFromSalesLine` – příjemka existuje i po stornu. Kontrola při vydání
+  (`Sales Plan. Qty. Check IMEBS`, 5.x28) srovnává jen s plánem. Služby a neskladové zboží projdou vždy (usage bez vazby), skladové
+  narazí jen na *Prevent Negative Inventory*, když zboží jinde není (jinak dodá z cizí zásoby). Návrh pro PO: kontrola dodáno ≤ přijato −
+  vráceno − spotřebováno na dodávce / vydání (tvrdě, nebo Never / Confirm / Always), zakázala by i dnes povolené „dodáno dřív než přijato“.
 - **Standard u vratky s projektem** (`Purch.-Post.PostItemJnlLine`, w1-28: `PostJobConsumptionBeforePurch := ItemJnlLine.IsPurchaseReturn()`
   → `PostItemJnlLineJobConsumption` běží **před** zaúčtováním položky vrácení, `PurchItemLedgEntryNo = 0`) chce odúčtovat spotřebu z příjmu
   (kladná korekce s projektem + záporná Usage přes `PrepareJobLine`) a bez ní spadne na `Appl.-from Item Entry` — tj. zboží, které projekt

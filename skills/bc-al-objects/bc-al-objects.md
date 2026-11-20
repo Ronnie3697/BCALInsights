@@ -602,6 +602,19 @@ bez ceníku (`IsPriceUpdateNeeded`, ruční sleva) včetně hromadných objedná
   `CreateExchangeRate(Code, WorkDate(), 1, 1)`, pak `Modify(false)` s prázdnými decimal places a rounding precision
   `0.01` / `0.00001` (jinak `Currency.Initialize` spadne na TestField), `SalesHeader.Validate("Currency Code")`.
   (2026-09-10, cust-alumistr-bc 65916, code review `GetAmountFormats`.)
+- **Decimal pole bez `AutoFormatType` je pro BC částka v LCY — se zapnutým *Nastavení financí → Zobrazit měnu* (`Show Currency`)
+  ukáže kód / symbol měny i u množství** („2,00 EUR“ u vlastního `Quantity`, Quote Builder Soitronu po zapnutí funkce finančním
+  ředitelem). MS docs ([Formatting field data](https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/developer/devenv-format-field-data)):
+  bez `AutoFormatType` platí výchozí `AutoFormatType = 1` + prázdný `AutoFormatExpression` (= LCY), *„regardless of whether the
+  AutoFormatExpression or DecimalPlaces properties are set“*; `Amount Auto Format` (347) pak přidá měnu podle `General Ledger Setup."Show
+  Currency"` (*Kód měny LM a CM*, *Symbol LM a CM*, *Jen kód / symbol měny CM*, *Nikdy*). Standard u množství píše obojí:
+  `AutoFormatType = 0; DecimalPlaces = 0 : 5;` (`Purchase Line.Quantity`, w1-28). Pravidlo: každé vlastní Decimal pole, které není
+  částka (množství, procento, poměr), dostane `AutoFormatType = 0`; ceny a částky `AutoFormatType = 2` / `1` + `AutoFormatExpression`
+  se **skutečnou** měnou (cena v nákupní měně bez výrazu ukáže kód LCY). Výraz smí volat proceduru tabulky (`Rec.GetSalesCurrencyCode()`
+  s cache globálního recordu, vzor base `Sales Invoice Line.GetCurrencyCode()`), na page proměnné `AutoFormatExpression = <Code proměnná>`.
+  Týká se i temp tabulek, jejichž pole stránka ukazuje přes record proměnnou. Sken repa: `field(N; X; Decimal)` bez `AutoFormatType`
+  v těle pole + page fieldy nad `Decimal` proměnnými (skript ve scratchpadu, regex přes `{…}` bloky). (2026-11-20, cust-soitron-bc
+  task 67929, bod 5.)
 
 
 ### 5.x8 Item Charge Assignment (Sales) z kódu — `Validate("Qty. to Assign")` padá, když má cílový řádek `Quantity = 0`
