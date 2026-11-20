@@ -8,7 +8,8 @@
 > Prod. BOM ATEBS`, `Price Variant Code PMALU`, `Cost Mgt. ALU`), pole EM Cutting Plan na řádku kusovníku a komponentě
 > VZ (pořadí validace, slučování komponent přes `Length`, jednotka délky, plocha), Parametr A/B z akčního řádku → EPB
 > Pricing Matrix (MJ řádku, osy jako Code[50]), eventy kopie konfigurace pro zákaznická data řádků akcí
-> (`OnAfterCopyBOMActionLine`, `OnAfterCopySLActionLine`, `OnAfterCopyConfiguration`).
+> (`OnAfterCopyBOMActionLine`, `OnAfterCopySLActionLine`, `OnAfterCopyConfiguration`), pole rozšíření na řádku akce TNG
+> → TNG varianty (`OnBefore/OnAfterInsertRoutingLine`, číslování operací, žádný event po posledním řádku, C19).
 >
 > **Obecná AL pravidla platí dál** — `bc-al-style`, `bc-al-data`, `bc-al-ui`, u netriviální funkčnosti `bc-al-autotests`.
 
@@ -18,6 +19,7 @@
 - [C8. Řádek kusovníku z konfigurátoru a pole EM Cutting Plan (Alumistr)](#c8-řádek-kusovníku-z-konfigurátoru-a-pole-em-cutting-plan-alumistr)
 - [C9. MJ z akčního řádku přepíše Pricing Matrix přes Parametr A/B (Alumistr)](#c9-mj-z-akčního-řádku-přepíše-pricing-matrix-přes-parametr-ab-alumistr)
 - [C10. Kopie konfigurace — eventy pro zákaznická data řádků akcí](#c10-kopie-konfigurace--eventy-pro-zákaznická-data-řádků-akcí)
+- [C19. TNG varianty z řádků akcí TNG a pole rozšíření (Alumistr, EM Operation Output Chaining)](#c19-tng-varianty-z-řádků-akcí-tng-a-pole-rozšíření-alumistr-em-operation-output-chaining)
 
 ---
 
@@ -315,3 +317,36 @@ master, nasazeno COALU 28.0.20.3 / PMEBS 28.0.5.0 / COEBS 28.0.22.2.)
   hlásí své odkazy eventem `OnCollectParameterReferences` — detail C15 v `ess-configurator-notes.md`.
 
 (2026-09-24, analýza plánu 65364 nad prod-ess-configurator-bc master 79fc306.)
+
+## C19. TNG varianty z řádků akcí TNG a pole rozšíření (Alumistr, EM Operation Output Chaining)
+
+`Routing Action Cond Mgt. COEBS.ExecuteRoutingActions` (jen při **založení nové varianty**, `CreateVariant`; znovupoužitá varianta
+se stejnými hodnotami jde přes `RefreshReusedVariant`, který TNG nepřegeneruje) založí TNG `<zboží>-<varianta>` a pro každou splněnou
+podmínku zavolá `AddRoutingLines`. Pasti pro rozšíření, které na řádek TNG přenáší vlastní pole:
+
+- **Čísla operací generuje konfigurátor sám — 10, 20, 30… (`IncrementOperationNo` od poslední operace TNG), napříč splněnými
+  podmínkami v jejich pořadí. Pole `Routing Action Line COEBS."Operation No."` (sloupec na stránce akcí i v API) se při tvorbě TNG
+  nepoužívá vůbec.** *Next / Previous Operation No.* COEBS jen kopíruje. Každé pole rozšíření, které odkazuje na operaci, tak míří na
+  číslo ve **vytvořeném** TNG, ne na to, co uživatel vidí v *Operation No.* řádku akce; u víc podmínek TNG se číslo posouvá podle
+  toho, které se splní (bez chyby, jen špatné párování). Uvést v ToolTipu a dokumentaci.
+- Eventy: `OnBeforeInsertRoutingLine(var RoutingLine; var RoutingActionLine; var ParameterValues)` těsně před `Insert(true)` a
+  `OnAfterInsertRoutingLine(var RoutingLine; var RoutingActionLine)` hned po něm. `RoutingLine` je smyčková proměnná COEBS → vlastní
+  zápisy dělej přes lokální record. **Event po posledním řádku TNG neexistuje** (ani ve `Variant Config. Engine`); první krok po
+  všech řádcích je `RegisterAlternativeRouting` → `Alternative Routing ATEBS.Insert(true)` (jen když registrace ještě není), pak
+  `ApplyFinalRoutingStatus` (certifikace). Kontrolu „celé TNG“ jde pověsit na `Alternative Routing ATEBS.OnAfterInsertEvent` —
+  obezlička, běží i při ruční registraci alternativního TNG; čisté řešení = event v COEBS po `AddRoutingLines`.
+- **Pole s validací proti jiné operaci téhož TNG nejde validovat v `OnBeforeInsertRoutingLine`.** EM Operation Output Chaining
+  (`Routing Line OOEBS`, pole 64380 `Reg. Toget. With Op. No. OOEBS` od 28.0.3, předtím 64375) v `OnValidate` dělá `Get` cílové operace
+  (odkaz dopředu 10 → 20 spadne na „does not exist“) a zákaz řetězení čte z DB odkazující řádky (ty vložené později nevidí). Vzor
+  COALU 52005 `Routing Reg. Together COALU` (task 68019): v `OnBefore…` jen přiřadit; v `OnAfter…` `Validate(Pole)` + `Modify(true)`
+  vlastního odkazu, když cíl už existuje, a odkazů dřív vložených řádků, které míří na právě vloženou operaci; na
+  `Alternative Routing ATEBS.OnAfterInsertEvent` chyba pro odkaz na operaci, kterou TNG nemá. Validace OOEBS pak platí celá (bez odkazu
+  na sebe, bez řetězení, *Routing Link Code* z cílové operace). Odkaz na neexistující operaci by OOEBS tiše nikdy neodvedl: operace
+  s vlastním odkazem není spouštěcí (`ItemJournalLineIsPossibleForPostDependedOps`) a s `NoAddDepOpsToOutJnl` vypadne i z rozpadu postupu.
+- Kopie konfigurace řádky akcí TNG kopíruje `TransferFields` → pole tableextension na `Routing Action Line COEBS` jdou s kopií samy.
+- Testy: `ExecuteRoutingActions(ConfigNo, ItemNo, '', ParameterValues)` (TNG `<zboží>-`, `Message` po úspěchu → `MessageHandler`,
+  negativní test bez handleru, chyba padá dřív). Helper pracovišť s číslem z `Library - Random` kolidoval mezi testy téhož codeunitu
+  (stejný seed, pracoviště se neuklízí) → smyčka `until not WorkCenter.Get(...)`.
+
+(2026-11-20, cust-alumistr-bc PBI 68019, větev `68019_RoutingActionRegTogether`; zdroje prod-ess-configurator-bc master 9c40c1f,
+prod-em-operOutputChaining-bc master 1a85060; kompilace app + test 0/0, testy zatím neběžely.)

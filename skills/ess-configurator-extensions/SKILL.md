@@ -1,15 +1,16 @@
 ---
 name: ess-configurator-extensions
 description: >-
-  Essence Configurator — napojení zákaznických rozšíření Alumistr COALU / Zlomek COZLK na další moduly (BC/AL):
-  kusovník konfigurované varianty v Alternative Prod. BOM ATEBS a pořizovací / jednotková cena prodejního řádku
-  (Variant Code vs Price Variant Code PMALU, Cost Mgt. ALU, OnAfterGetUnitCost, OnAfterUpdateUnitPrice vs cenový
-  vzorec akce, práce z TNG: Alternative Routing ATEBS, TimeFactor, Ceny subdodavatele), pole EM Cutting Plan na řádku kusovníku a komponentě VZ (V2 od 28.0.10: Quantity per = kusy, Length = kus, slučování
-  komponent přes Length, Length v jednotce optimalizace, plocha započtená dvakrát), Parametr A/B akčního řádku →
-  EPB Pricing Matrix (ValidateAndUpdateUoM přepíše MJ, HasMatrixUnitOfMeasure, osy jako Code[50] Parameter A/B
-  Value PMEBS, FormatAxisValue / TryGetAxisNumber), eventy kopie konfigurace pro zákaznická data řádků akcí
-  (OnAfterCopyBOMActionLine, OnAfterCopySLActionLine, OnAfterCopyConfiguration). Načti u COALU / COZLK,
-  kusovníku z konfigurátoru, EM Cutting Plan a Pricing Matrix.
+  Essence Configurator — napojení rozšíření Alumistr COALU / Zlomek COZLK (BC/AL): kusovník varianty v Alternative
+  Prod. BOM ATEBS a pořizovací / jednotková cena prodejního řádku (Variant Code vs Price Variant Code PMALU, Cost
+  Mgt. ALU, OnAfterGetUnitCost, OnAfterUpdateUnitPrice vs cenový vzorec akce, práce z TNG: Alternative Routing
+  ATEBS, TimeFactor, Ceny subdodavatele), EM Cutting Plan na řádku kusovníku a komponentě VZ (V2 od 28.0.10:
+  Quantity per = kusy, Length = kus, slučování přes Length, jednotka optimalizace, plocha 2×), Parametr A/B akce →
+  EPB Pricing Matrix (ValidateAndUpdateUoM přepíše MJ, HasMatrixUnitOfMeasure, osy Code[50] Parameter A/B Value
+  PMEBS, FormatAxisValue / TryGetAxisNumber), eventy kopie konfigurace (OnAfterCopyBOMActionLine,
+  OnAfterCopySLActionLine, OnAfterCopyConfiguration), pole z akcí TNG do TNG varianty (operace 10/20/30,
+  OnAfterInsertRoutingLine, EM Operation Output Chaining). Načti u COALU / COZLK, kusovníku a TNG z konfigurátoru,
+  EM Cutting Plan a Pricing Matrix.
 user-invocable: true
 ---
 
