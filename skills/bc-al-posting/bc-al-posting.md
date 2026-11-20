@@ -821,3 +821,22 @@ Rozdíl jde na zaúčtovaný řádek (`TransferFields`) a přes `Invoice Posting
 cz-28 @ e253af7f: `VATAmountLine.Table.al`, `VATSpecificationSubform.Page.al`, `SalesStatistics.Page.al`, `SalesLine.Table.al`,
 `ReleaseSalesDocument.Codeunit.al`, `SalesPost(Invoice).Codeunit.al`, CZL `SalesLineHandlerCZL.Codeunit.al`. Jen ze zdrojů,
 neimplementováno ani nespuštěno.)
+
+### 3.6q Ke kterým fakturám se účtovaný dobropis vztahuje — *Applies-to* nestačí, ber řádky i aktuální vyrovnání
+
+*Typ / Číslo vyrovnání dokladu* na `Sales Cr.Memo Header` je jen to, co uživatel vyplnil před účtováním (ručně i u dobropisu přes
+více faktur) a po pozdějším *Vyrovnat položky* / *Zrušit vyrovnání položek* se nemění. „Dobropis k jedné faktuře“ proto vyhodnocuj
+v okamžiku použití (export, tisk) ze dvou zdrojů:
+
+- **Řádky:** faktura položky zboží z `Appl.-from Item Entry` (u JIRI hotové pole `Appl.-from Invoice No. JIR` z `Item Ledger
+  Entry."Invoice No. EBS"`, plní ho i *Získat účt. řádky pro stornování*). Řádky finančního účtu (bonus) žádnou fakturu nenesou.
+- **Vyrovnání:** položka dobropisu = `Sales Cr.Memo Header."Cust. Ledger Entry No."` (u starých dokladů 0 → dohledat podle `Document
+  Type` + `Document No.` + `Bill-to Customer No.`); `Detailed Cust. Ledg. Entry` `Entry Type = Application`, `Unapplied = false`
+  oběma směry jako stránka *Vyrovnané položky zákazníků* — `"Applied Cust. Ledger Entry No."` je vyrovnávající položka, ne protistrana
+  (detail 3.6m): ≠ dobropis → protistrana je ta položka; = dobropis → protistrany jsou DCLE s `"Applied Cust. Ledger Entry No."` = dobropis
+  a jiným `"Cust. Ledger Entry No."` (klíč `"Applied Cust. Ledger Entry No.", "Entry Type"`). Počítej jen `Document Type = Invoice`.
+- Faktura zaúčtovaná deníkem nemá `Sales Invoice Header` — `Get` selže, rozhodni, kam patří (u JIRI = „jiná faktura“).
+- *Číslo externího dokladu* na účtovaném dobropisu standard nezmění (*Aktualizovat doklad* / page 1354 ho nemá).
+
+(2026-11-20, cust-jiri-bc / cust-jiri-w1-bc PBI 67974, `EDI Cr. Memo Reference EDEBS`; kompilace čistá, bez autotestů — EDI appka
+test appku nemá.)
