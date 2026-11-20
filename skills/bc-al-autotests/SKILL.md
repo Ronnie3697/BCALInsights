@@ -47,7 +47,7 @@ v souboru.
 ## TL;DR — nejtvrdší pravidla
 
 - **Po každém vyžádaném push** (nejdřív push, pak testy) pusť celé testy repa v lokálním Docker
-  kontejneru (`<PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1 -RepoPath <repo>`, 7.7b v `bc-al-tools`,
+  kontejneru (`<PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1 -RepoPath <repo>`, 7.7b v `bc-al-git`,
   7.23 v `bc-al-deploy`); fail = opravit dalším commitem + push. Jen v rámci push, ne po každé změně
   ani po implementaci — PR buildy testy spouštět nemusí (per repo), jinak se fail ukáže až na masteru. Jen kdo kontejner
   v setupu přijal (always-on `Lokální testovací kontejner: ano`); `ne` = autotesty nepouštět ani nenabízet nikdy.

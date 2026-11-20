@@ -27,8 +27,8 @@ příklady jsou v souboru. Sekce 6 (XLIFF) je od 2026-10-22 ve skillu `bc-al-xli
    `bc-al`).
 3. Sousední témata: překlady / XLIFF (NAB AL Tools, trans-unit ID, AL0479) → `bc-al-xliff` (6.1–6.4);
   Word / RDLC layouty reportů, štítky s čárovými kódy → `bc-al-layouts` (12.1f–12.1i, 12.5);
-  kompilace z CLI, al-mcp, GitHub source, git/PR → `bc-al-tools`
-  (7.1–7.3, 7.7); NuGet dependencies, CI build faily → `bc-al-build` (7.11+); moderní patterny a Cloud target → `bc-al-style` (10);
+  kompilace z CLI, al-mcp, GitHub source → `bc-al-tools`
+  (7.1–7.3); git/PR → `bc-al-git` (7.7); NuGet dependencies, CI build faily → `bc-al-build` (7.11+); moderní patterny a Cloud target → `bc-al-style` (10);
   CZ↔EN terminologie → `bc-al-objects` (5.z4).
 
 ## TL;DR — nejtvrdší pravidla (čísla = sekce v souboru)
@@ -37,7 +37,7 @@ příklady jsou v souboru. Sekce 6 (XLIFF) je od 2026-10-22 ve skillu `bc-al-xli
   (žádná podsložka), pořadí: meta → upravené appky → Description → AC → odkazy
   → příklad využití → technická dokumentace (jen když vznikly objekty/pole).
   Identifikátory EN, prózu CZ. Piš až po dokončení implementace; verzi appky
-  nezmiňuj (7.8 v `bc-al-tools`).
+  nezmiňuj (7.8 v `bc-al-git`).
 - **8.1** Uživatelská příručka větší featury (netechnická, pro školení a testery):
   `docs/<PBI-ID>_<Nazev>-uzivatelska-prirucka.html`, **vždy soubor v repu, nikdy
   jen publikovaný artefakt**. Obrázky base64 (soběstačné HTML), terminologie

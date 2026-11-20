@@ -331,7 +331,7 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
 - Lokálně: VS Code task nebo `bc-test-runner` extension
 - **Lokální testovací kontejner pro všechna repa** (Docker + BcContainerHelper bez admina, závislosti z NuGetu, nahrát → testy →
   odinstalovat; reprodukuje CI) → **7.23 v `bc-al-deploy.md`**, nástroj `<PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1`;
-  pouští se **po každém vyžádaném push** (7.7b v `bc-al-tools.md`), jen kdo kontejner v setupu přijal.
+  pouští se **po každém vyžádaném push** (7.7b v `bc-al-git.md`), jen kdo kontejner v setupu přijal.
 - **VS Code extension AL Test Runner** (James Pearson, `jamespearson.al-test-runner`; dřív tu chybně „luc-vandyck")
   — codelens "Run Test" / "Debug Test", Testing pane, zvýraznění padající řádky, code coverage. **Kontejner nevyrábí**:
   appku publikuje přes `launch.json` (nebo PowerShell) a testy pouští přes BcContainerHelper `Run-TestsInBcContainer`

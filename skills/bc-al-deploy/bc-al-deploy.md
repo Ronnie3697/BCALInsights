@@ -2,8 +2,8 @@
 
 > Část rozděleného `bc-al-notes.md`. Sekce **7.23–7.26** vyčleněny z `bc-al-build.md` 2026-11-13 (soubor dosáhl
 > ~1000 řádků — pravidlo dělení viz skill `bc-al`). **7.11–7.22** (NuGet dependencies, test symboly, kolize ID,
-> major bump, CI build, Deploy Staging, release deploy) zůstávají v `bc-al-build.md`, **7.1–7.10** (alc, al-mcp,
-> git/PR, verzování app.json, Azure DevOps MCP) v `bc-al-tools.md` — odkazy „viz 7.11“ apod. bez souboru hledej tam.
+> major bump, CI build, Deploy Staging, release deploy) zůstávají v `bc-al-build.md`, **7.1–7.6** (alc, al-mcp)
+> v `bc-al-tools.md`, **7.7–7.10** (git/PR, verzování app.json, Azure DevOps MCP) v `bc-al-git.md` — odkazy „viz 7.11“ apod. bez souboru hledej tam.
 > Načítej, když řešíš: autotesty v lokálním Docker kontejneru (`Test-Repo.ps1`, BcContainerHelper), ruční nasazení
 > PTE z NuGetu do SaaS sandboxu (Automation API, AVS0109), závislosti jako Dev appky do sdíleného kontejneru
 > `containers.essencebs.com`, dev publish do SaaS sandboxu přes `altool` (osiřelá data, duplicate package ID,
@@ -27,7 +27,7 @@ Nástroj: šablona v notes repu **`setup/bc-test-container/`** (vlastní README)
 `<PRACOVNÍ-REPA>\bc-test-container\` (tam i `Modules\`, `credential.xml`, `settings.json`) — `Install-Helper.ps1`,
 `New-TestContainer.ps1` (kontejner `bctest28`), `Test-Repo.ps1 -RepoPath <repo> [-TestCodeunit <id>] [-KeepApps]`
 (nastartuje Docker Desktop i kontejner; repo bez testovací appky hned skončí). **Agent ho pouští po každém vyžádaném push**
-— nejdřív push, pak testy (7.7b v `bc-al-tools.md`); kdo kontejner v setupu odmítl, tomu se nepouští ani nenabízí.
+— nejdřív push, pak testy (7.7b v `bc-al-git.md`); kdo kontejner v setupu odmítl, tomu se nepouští ani nenabízí.
 ⚠️ Verze šablony do 2026-10-06 volala `Get-BcContainerPath` **před** `Start-TestContainer` → s vypnutým Dockerem běh spadl
 na `failed to connect to the docker API at npipe:////./pipe/dockerDesktopWindowsEngine` + `Get-BcContainerSharedFolders :
 The property 'HostConfig' cannot be found` (exit 1, testy neběžely) místo toho, aby Docker nastartoval. A hned po startu
@@ -91,7 +91,7 @@ Distribution Base a ED Item Sales Disponibility; v `bctest28b` 321/321. 2026-10-
   -auth NavUserPassword -Credential <cred> -includeTestToolkit -includeTestLibrariesOnly -memoryLimit 8G -shortcuts None`
   — první vytvoření ~25 min (artefakt + generic image `ltsc2025`, Hyper-V izolace), AI Test Toolkit v kontejneru už byl.
   Heslo admina generuj náhodně a ulož `Export-Clixml` (DPAPI). Onprem artefakty: 28.3.52162.52222, **28.4.53241.0**, 28.5.54151.0.
-- **Závislosti z `BCNugetPackages` stačí read-only MCP PAT** (`DevOpsPAT.txt`, 7.9 v `bc-al-tools.md`): `Find-BcNuGetPackage
+- **Závislosti z `BCNugetPackages` stačí read-only MCP PAT** (`DevOpsPAT.txt`, 7.9 v `bc-al-git.md`): `Find-BcNuGetPackage
   -nuGetServerUrl https://pkgs.dev.azure.com/essencebs/Projects/_packaging/BCNugetPackages/nuget/v3/index.json -nuGetToken <PAT>
   -packageName (Get-BcNuGetPackageId -publisher … -name … -id …) -version "[<min>,<Major>.<Minor+1>.0.0)" -select Latest` vrátí
   `feed, packageId, version` (= MajorMinor + LatestMatching pipeline, 7.11; ~1 s), `Get-BcNuGetPackage … -select Exact` balíček

@@ -20,7 +20,7 @@ user-invocable: true
 (adresář skillu = „Base directory" hlášený při načtení; cestu skládej odtud, ne přes `..`). Tenhle skill je jen wrapper —
 pravidla níže jsou výcuc; detail, příkazy, URL feedů, GUIDy a diagnostika
 build logů jsou v souboru. Vyčleněno z `bc-al-tools.md` 2026-09-01, číslování
-7.x je původní (7.1–7.10 zůstává ve skillu `bc-al-tools`, 7.23–7.26 od 2026-11-13 ve skillu `bc-al-deploy`).
+7.x je původní (7.1–7.6 zůstává ve skillu `bc-al-tools`, 7.7–7.10 od 2026-11-20 ve skillu `bc-al-git`, 7.23–7.26 od 2026-11-13 ve skillu `bc-al-deploy`).
 
 ## Co udělat
 
@@ -29,8 +29,8 @@ build logů jsou v souboru. Vyčleněno z `bc-al-tools.md` 2026-09-01, číslov�
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
-3. Sousední témata: alc, al-mcp, BC source, git/PR, verzování app.json (7.8),
-   Azure DevOps MCP → `bc-al-tools` (7.1–7.10); analyzery a ruleset →
+3. Sousední témata: alc, al-mcp, BC source → `bc-al-tools` (7.1–7.6); git/PR, verzování app.json (7.8),
+   Azure DevOps MCP → `bc-al-git` (7.7–7.10); analyzery a ruleset →
    `bc-al-workflow` (12); test appka, `Tests-TestLibraries`, lokální kompilace a běh testů →
    `bc-al-autotests-infra`; canonical vzor → `bc-al-autotests`; lokální testovací kontejner, ruční
    nasazení PTE / dev buildů do sandboxu a kontejnerů (7.23–7.26) → `bc-al-deploy`.

@@ -2,9 +2,9 @@
 
 > Část rozděleného `bc-al-notes.md`. Sekce **7.11–7.19** vyčleněny z `bc-al-tools.md`
 > 2026-09-01 (soubor přestal jít přečíst jedním Readem — pravidlo dělení viz skill
-> `bc-al` / rozcestník `bc-al-notes.instructions.md`). **7.1–7.10** (alc, al-mcp,
-> BC source, AL-Go, nová appka, source závislé appky, git/PR, verzování app.json,
-> Azure DevOps MCP, case-only rename) zůstávají v `bc-al-tools.md`. Archiv
+> `bc-al` / rozcestník `bc-al-notes.instructions.md`). **7.1–7.6** (alc, al-mcp,
+> BC source, AL-Go, nová appka, source závislé appky) zůstávají v `bc-al-tools.md`,
+> **7.7–7.10** (git/PR, verzování app.json, Azure DevOps MCP, case-only rename) v `bc-al-git.md`. Archiv
 > monolitu: `bc-al-notes.archived-2026-06-23.md`.
 > Načítej, když řešíš: NuGet dependencies a minima (MajorMinor / LatestMatching,
 > dedupe per GUID), symboly test frameworku z MSSymbols feedu, kolize object ID

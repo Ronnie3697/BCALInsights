@@ -12,7 +12,7 @@
 |---|---|---|---|
 | `al-mcp-server` | [`al-mcp-server`](https://github.com/StefanMaron/AL-Dependency-MCP-Server) (Stefan Maroň) | symboly z `.alpackages` — objekty, členy, signatury, reference (7.2 v `bc-al-tools.md`) | žádná |
 | `bc-code-intelligence` | [`bc-code-intelligence-mcp`](https://github.com/JeremyVyska/bc-code-intelligence-mcp) (Jeremy Vyska) | BC knowledge base + specialisté („Sam Coder"), workflow (krok 4 startup checklistu) | žádná |
-| `azure-devops` | [`@azure-devops/mcp`](https://github.com/microsoft/azure-devops-mcp) (Microsoft) | tickety, PR, pipelines, wiki, search v org `essencebs` (7.9 v `bc-al-tools.md`) | PAT **read-only** v `MCP_PAT\DevOpsPAT.txt`, spouští launcher (krok 3) |
+| `azure-devops` | [`@azure-devops/mcp`](https://github.com/microsoft/azure-devops-mcp) (Microsoft) | tickety, PR, pipelines, wiki, search v org `essencebs` (7.9 v `bc-al-git.md`) | PAT **read-only** v `MCP_PAT\DevOpsPAT.txt`, spouští launcher (krok 3) |
 | `d365bc-admin` | [`@demiliani/d365bc-admin-mcp`](https://github.com/demiliani/D365BCAdminMCP) | BC Admin Center API — prostředí, nainstalované appky, sessions, storage, update window | Entra login při prvním volání |
 | `bc-word-layout` | NuGet [`BcWordLayout.Mcp`](https://github.com/TKapitan/bc-word-layout-mcp) (Tomáš Kapitán, .NET tool, **ne npm**) | Word layouty reportů: 30 toolů inspect / create / insert field, label, repeater / validate / preview (PDF přes Word COM); doprovodné skilly `al-word-layout*` (krok 1b; 12.1i v `bc-al-layouts.md`) | žádná |
 | `playwright` (volitelné) | `@playwright/mcp` | browser automatizace (BC web klient, dokumentace) | žádná |
@@ -124,7 +124,7 @@ Token **není v žádném konfigu**. Leží jako surový text v `<MCP_PAT>\DevOp
    `essencebs`, expirace max. 90 dní (firemní policy), scopes **jen Read**: Work Items (Read),
    Code (Read), Build (Read), Wiki (Read), Project and Team (Read), Identity (Read).
    **Žádný Write** — PR a zápisy do ADO dělá člověk, agent na 401 nemá nic obcházet
-   (pravidlo 7.9 v `bc-al-tools.md`; tohle je zábrana, ne bug).
+   (pravidlo 7.9 v `bc-al-git.md`; tohle je zábrana, ne bug).
 3. Ulož ho do **`<MCP_PAT>\DevOpsPAT.txt`** — jen surový PAT na jednom řádku, **bez e-mailu a bez
    base64** (launcher si ho zakóduje sám jako base64 `:PAT`, prázdný username ADO bere).
 4. **Co launcher dělá při startu seance:** přečte `DevOpsPAT.txt` vedle sebe, nastaví

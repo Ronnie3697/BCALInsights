@@ -10,7 +10,7 @@ nahraje, otestuje a appky se zase odinstalují — zákaznické appky sdílí PT
 **V jednom kontejneru vždy jen jeden běh:** `Test-Repo.ps1` si vezme první volný kontejner z poolu a drží jeho zámek
 (`test-run.lock` = soubor otevřený bez sdílení, s pádem procesu se uvolní sám), když jsou všechny obsazené, čeká
 (*All test containers are busy … (bctest28: cust-zlomek-bc (PID …, since …))*). Dva běhy v jednom kontejneru se
-rozbijí navzájem — jeden odpublikuje appky, jejichž testy druhý právě pouští. AI agent je pouští **po každém vyžádaném push** (nejdřív push, pak testy; 7.7b v `bc-al-tools.md`), detail
+rozbijí navzájem — jeden odpublikuje appky, jejichž testy druhý právě pouští. AI agent je pouští **po každém vyžádaném push** (nejdřív push, pak testy; 7.7b v `bc-al-git.md`), detail
 a pasti 7.23 v `bc-al-deploy.md`.
 
 ## Předpoklady (jednorázově, admin)
