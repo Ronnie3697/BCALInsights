@@ -277,11 +277,6 @@ psaný skriptem (node generuje `document.xml` + customXml, PowerShell zipuje), b
   cache (`…/Service/Add-ins/BarCodeFont/`), `(New-Object IDAutomation.Linear.FontEncoder).EAN13('…')`.
   Testovací EANy pro běžné testy musí mít platnou kontrolní číslici (`8591234567893`, `18591234567890`,
   `12345670`). (2026-11-13, cust-sonnentor-bc 65662, `GS1 Barcode Mgt. SON.KeepStoredCheckDigit`.)
-- **Odkaz na zboží typu *Zákazník* nese dvě různé věci:** zákaznický EAN („náhradní EAN“ na dokladech) i interní číslo zboží
-  odběratele (Metro / Makro, EDI `article_id_buyer`). Kdo ho bere jako EAN do sloupce / `article_gtin`, musí ho odlišit — bez nastavení
-  to jde GS1 kontrolou: jen číslice, délka 8 / 12 / 13 / 14 a kontrolní číslice (váhy 3,1,… zprava od předposlední číslice,
-  `(10 − Σ mod 10) mod 10`); jinak fallback na *Čárový kód*. Číslice v Labelu testu hlásí CodeCop AA0240 (1.16 v `bc-al-style.md`) →
-  testovací EANy vracej z lokálních procedur. (2026-11-20, cust-jiri-bc PBI 67739, `Sales Doc. Mgt. JIR.IsValidGTIN`.)
 - **Rozměry na štítku 100×50 mm:** EAN-13 ve fontu M při 13 pt ≈ 40 mm → ve sloupci 31 mm se zalomí (zbytek
   čar na dalším řádku) a vytlačí zbytek obsahu za `hRule="exact"` výšku (GS1 řádek zmizí). EAN 10 pt + sloupec
   ≥ 37 mm, GS1-128 `C128S`/`C128M` 8 pt (~75 mm pro 38 symbolů), Arial 7–11 pt. Přetečený čárový kód poznáš
