@@ -348,5 +348,13 @@ podmínku zavolá `AddRoutingLines`. Pasti pro rozšíření, které na řádek 
   negativní test bez handleru, chyba padá dřív). Helper pracovišť s číslem z `Library - Random` kolidoval mezi testy téhož codeunitu
   (stejný seed, pracoviště se neuklízí) → smyčka `until not WorkCenter.Get(...)`.
 
+- ⚠️ **Číslo TNG varianty = `CopyStr(<zboží> + '-' + <varianta>, 1, 20)`** (`CreateOrUpdateVariantRouting`). Zboží CLAUDE-KOOP + varianta
+  COEBS0004 = 21 znaků → TNG `CLAUDE-KOOP-COEBS000`; další varianta (COEBS0005) dostane totéž číslo, COEBS najde existující TNG,
+  jen připíše operace za poslední (`AddRoutingLines` → `FindLast`) a zaregistruje ho i pro novou variantu. Obě varianty pak sdílí TNG
+  a odkazy na čísla operací míří na operace té první. Starý problém COEBS (ověřeno na Alumistr BC-DEV 2026-11-20).
+- **Ruční test v klientu:** aktivní konfigurace je jen pro čtení (`Editable = IsDraft`) a zpět do Konceptu nejde → *Kopírovat
+  konfiguraci* (seznam 63140) → úprava kopie → *Nastavit jako aktivní* (předchozí aktivní pro zboží se archivuje). Kopie chce
+  *Nastavení konfigurátoru* (63195) → *Čísla konfigurací*, jinak chyba „musí mít hodnotu“. TNG vznikne až po OK v dialogu nové varianty.
+
 (2026-11-20, cust-alumistr-bc PBI 68019, větev `68019_RoutingActionRegTogether`; zdroje prod-ess-configurator-bc master 9c40c1f,
 prod-em-operOutputChaining-bc master 1a85060; kompilace app + test 0/0, testy zatím neběžely.)
