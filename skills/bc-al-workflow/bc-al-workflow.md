@@ -8,7 +8,7 @@
 > — odkazy „viz 6.x" hledej tam.
 > **Layouty reportů (12.1f–12.1i, 12.5 — Word, RDLC, štítky s čárovými kódy)** žijí od 2026-11-12 v `bc-al-layouts.md`
 > (skill `bc-al-layouts`).
-> **Sekce 7 žije mimo tento soubor:** 7.1–7.10 (nástroje, git/PR, Azure DevOps) od 2026-08-03 v `bc-al-tools.md`,
+> **Sekce 7 žije mimo tento soubor:** 7.1–7.6 (nástroje) od 2026-08-03 v `bc-al-tools.md`, 7.7–7.10 (git/PR, Azure DevOps) od 2026-11-20 v `bc-al-git.md`,
 > 7.11–7.19 (NuGet dependencies, CI build, deploy) od 2026-09-01 v `bc-al-build.md` — odkazy „viz 7.x" hledej tam.
 
 Obsahuje:
@@ -92,7 +92,7 @@ Pokud `docs/` ještě neexistuje, vytvoř ji. **Žádná podsložka
   technickou dokumentaci napiš jen jednou (do MD toho hlavního PBI).
 - Odkazy na DevOps work itemy: `https://dev.azure.com/essencebs/Projects/_workitems/edit/<ID>`.
 - Aktuální **verzi appky nezmiňuj** jako součást scope ticketu — verze se
-  mění nezávisle na obsahu (viz 7.8 v `bc-al-tools.md`).
+  mění nezávisle na obsahu (viz 7.8 v `bc-al-git.md`).
 
 **Proč:**
 

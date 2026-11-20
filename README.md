@@ -28,8 +28,9 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
 | `bc-al-integrations.md` | Shopify Connector, HttpClient na SaaS, SecretText/Isolated Storage, Business Events / Power Automate, vlastní API page pro zápis, Dataverse/CDS sync (5.y2, sekce 11) |
 | `bc-al-workflow.md` | dokumentace vč. uživatelské příručky, co číst před editem, verifikace a analyzery (sekce 8, 9, 12) |
 | `bc-al-xliff.md` | lokalizace / XLIFF — NAB AL Tools, trans-unit ID hash (FNV-1a), `%n` v přeložených labelech, duplicitní trans-unity po merge (sekce 6, vyčleněno 2026-10-22) |
-| `bc-al-layouts.md` | layouty reportů — Word layout přes MCP `bc-word-layout`, repeater `w15:dataBinding`, RDLC tablix skriptem, `<DataSets>` layoutu reportextension v CI, sloupce do datasetu CZL sestav, štítky skriptem, barcode fonty, GS1-128 (sekce 12.1f–12.1j, 12.5; vyčleněno 2026-11-12) |
-| `bc-al-tools.md` | nástroje (alc, al-mcp, BC source), nová appka, git/PR, Azure DevOps (sekce 7.1–7.10) |
+| `bc-al-layouts.md` | layouty reportů — Word layout přes MCP `bc-word-layout`, repeater `w15:dataBinding`, RDLC tablix skriptem, `<DataSets>` layoutu reportextension v CI, sloupce do datasetu CZL sestav, štítky skriptem, barcode fonty, GS1-128 (sekce 12.1f–12.1k, 12.5; vyčleněno 2026-11-12) |
+| `bc-al-tools.md` | nástroje (alc, al-mcp, BC source), nová appka, source závislých appek (sekce 7.1–7.6) |
+| `bc-al-git.md` | git commit / push / PR, merge masteru, verzování app.json, Azure DevOps MCP, texty do ADO, case-only rename (sekce 7.7–7.10; vyčleněno 2026-11-20) |
 | `bc-al-build.md` | NuGet dependencies, test symboly, kolize ID, major bump, Essence CI build & release deploy gotchas (sekce 7.11–7.22) |
 | `bc-al-deploy.md` | lokální testovací kontejner, ruční nasazení PTE do sandboxu, Dev publish závislostí do sdíleného kontejneru a do SaaS sandboxu přes altool (sekce 7.23–7.26; vyčleněno 2026-11-13) |
 | `bc-al-autotests.md` | automatizované testy — povinnost, kanonický vzor, libraries, handlery, TestPage, `asserterror`, obecné gotchas |
@@ -69,6 +70,7 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
   7.23–7.26 (testovací kontejner, ruční nasazení do sandboxu / kontejneru, dev publish) → `bc-al-deploy.md` (2026-11-13, `bc-al-build.md` měl 997 řádků).
   5.z3, 5.z5 (+ nová 5.z7, CZZ zálohy) → `bc-al-advance-cz.md` (2026-11-03, `bc-al-objects.md` by přesáhl 1000 řádků).
   5.x22, 5.x26–5.x28 (+ nová 5.x34, sklad: přihrádky, skladové aktivity, MJ ve skladu) → `bc-al-warehouse.md` (2026-11-19, `bc-al-objects.md` měl 1000 řádků).
+  7.7–7.10 (git, PR, verzování app.json, Azure DevOps) → `bc-al-git.md` (2026-11-20, `bc-al-tools.md` měl 1006 řádků).
   Test appka jako projekt (app.json, ruleset, symboly, kompilace, běh, CI) → `bc-al-autotests-infra.md` a doménové
   gotchas (projekty, doklady, Job Queue, výroba) → `bc-al-autotests-domains.md` (2026-10-09, `bc-al-autotests.md`
   znovu přesáhl 1000 řádků / 77 KB).
@@ -162,7 +164,7 @@ ji používá na sibling repa, sdílenou `.alpackages` a zdroje závislých appe
 
 `<TEST-KONTEJNER>` = věta z `SETUP.md` krok 9: `Lokální testovací kontejner: ano — <PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1,
 autotesty po každém push (7.7b).`, nebo `Lokální testovací kontejner: ne — autotesty nepouštěj (SETUP.md krok 9).`
-Bez kontejneru agent autotesty nepouští ani nenabízí nikdy (7.7b v `bc-al-tools.md`); starší znění vět (`… před každým push`,
+Bez kontejneru agent autotesty nepouští ani nenabízí nikdy (7.7b v `bc-al-git.md`); starší znění vět (`… před každým push`,
 `… před push nepouštěj`) platí dál stejně.
 
 ### Claude Code
@@ -337,7 +339,8 @@ stabilních pravidel. **Notes soubory zůstávají zdrojem pravdy.**
 | `bc-al-workflow` | `bc-al-workflow.md` | dokumentace + uživatelská příručka, analyzery, ruleset |
 | `bc-al-xliff` | `bc-al-xliff.md` | XLIFF / NAB AL Tools, trans-unit ID, `%n` v přeložených labelech, AL0479 po merge |
 | `bc-al-layouts` | `bc-al-layouts.md` | Word / RDLC layouty reportů, MCP `bc-word-layout`, štítky s čárovými kódy, GS1-128 |
-| `bc-al-tools` | `bc-al-tools.md` | alc, symboly, nová appka, git/PR, ADO |
+| `bc-al-tools` | `bc-al-tools.md` | alc, symboly, BC source, nová appka |
+| `bc-al-git` | `bc-al-git.md` | git commit / push / PR, merge masteru, verze app.json, Azure DevOps, texty do ADO |
 | `bc-al-build` | `bc-al-build.md` | NuGet, test symboly, kolize ID, major bump, CI build, release deploy |
 | `bc-al-deploy` | `bc-al-deploy.md` | lokální testovací kontejner, ruční PTE / dev publish do sandboxu a kontejnerů |
 | `bc-al-autotests` | `bc-al-autotests.md` | testy + netriviální funkčnost |

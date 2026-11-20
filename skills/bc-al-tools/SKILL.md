@@ -1,31 +1,30 @@
 ---
 name: bc-al-tools
 description: >-
-  BC/AL nástroje, git a Azure DevOps z praxe (BC, AL, sekce 7.1–7.10):
-  alc.exe kompilace z CLI (absolutní cesty, bez Analyzers.Common.dll
-  (AL1003), Git Bash MSYS2_ARG_CONV_EXCL, více package cache, dočasná cache
-  ze sibling rep, UTF-16 logy (falešné 0 errors), Bash heredoc pasti
-  (backslash, apostrof), volné object ID BOM-aware), al-mcp-server (studený
-  start al_packages load, jen signatury → těla na GitHubu, MCP
-  CONNECT_TIMEOUT fix), Object ID Ninja (ruční ID → backend), BC source
-  StefanMaron (w1-/cz-<major>, core.longpaths), AL-Go, nová appka v repu
-  (GUID, idRanges, affix, workspace, permission sety, git worktree), source
-  závislé appky (sibling repo, extrakce z .app), git commit/push/PR nikdy
-  sám + upstream past + ForcePush, verzování app.json, Azure DevOps MCP (org
-  essencebs, PAT read-only záměrně, search_code blob, IPv6 reset), popis PR /
-  PBI jako Markdown blok bez zalamování, case-only rename složky.
-  Načti u kompilace z CLI, symbolů, git / PR / ADO, zakládání appky. (NuGet,
-  CI, deploy → skill bc-al-build.)
+  BC/AL nástroje z praxe (BC, AL, sekce 7.1–7.6): alc.exe kompilace z CLI
+  (absolutní cesty, bez Analyzers.Common.dll (AL1003), Git Bash
+  MSYS2_ARG_CONV_EXCL, více package cache, dočasná cache ze sibling rep,
+  UTF-16 logy (falešné 0 errors), Bash heredoc pasti (backslash, apostrof),
+  volné object ID BOM-aware), al-mcp-server (studený start al_packages load,
+  jen signatury → těla na GitHubu, MCP CONNECT_TIMEOUT fix), Object ID Ninja
+  (ruční ID → backend), BC source StefanMaron (w1-/cz-<major>,
+  core.longpaths), AL-Go, nová appka v repu (GUID, idRanges, affix,
+  workspace, permission sety, git worktree), source závislé appky (sibling
+  repo, extrakce z .app). Načti u kompilace z CLI, symbolů, BC source a
+  zakládání appky. (Git / PR / ADO → skill bc-al-git; NuGet, CI, deploy →
+  skill bc-al-build.)
 user-invocable: true
 ---
 
-# BC/AL — Nástroje, git & Azure DevOps (sekce 7.1–7.10)
+# BC/AL — Nástroje (sekce 7.1–7.6)
 
 **Zdroj pravdy:** `bc-al-tools.md` ve stejném adresáři jako tenhle `SKILL.md`
 (adresář skillu = „Base directory" hlášený při načtení; cestu skládej odtud, ne přes `..`). Tenhle skill je jen wrapper —
 pravidla níže jsou výcuc; detail, příkazy, URL a GUIDy jsou v souboru.
-Sekce **7.11–7.19** (NuGet, test symboly, kolize ID, major bump, Essence
-build/deploy) žijí od 2026-09-01 v `bc-al-build.md` → skill `bc-al-build`.
+Sekce **7.7–7.10** (git commit / push / PR, merge masteru, verzování app.json,
+Azure DevOps, texty do ADO, case-only rename) žijí od 2026-11-20 v `bc-al-git.md`
+→ skill `bc-al-git`; **7.11–7.19** (NuGet, test symboly, kolize ID, major bump,
+Essence build/deploy) od 2026-09-01 v `bc-al-build.md` → skill `bc-al-build`.
 
 ## Co udělat
 
@@ -34,7 +33,8 @@ build/deploy) žijí od 2026-09-01 v `bc-al-build.md` → skill `bc-al-build`.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
-3. Sousední témata: dependencies, CI build, deploy → `bc-al-build` (7.11–7.19);
+3. Sousední témata: git, PR, verzování app.json, Azure DevOps → `bc-al-git`
+   (7.7–7.10); dependencies, CI build, deploy → `bc-al-build` (7.11–7.19);
    analyzery a ruleset → `bc-al-workflow` (12); test appka a její symboly →
    `bc-al-autotests-infra`; přidělování object ID → `bc-al-style` (1.12); affixy a
    permission sety nové appky jsou tady (7.5).
@@ -70,18 +70,3 @@ build/deploy) žijí od 2026-09-01 v `bc-al-build.md` → skill `bc-al-build`.
   `git worktree` + `mklink /J .alpackages`.
 - **7.6** Source závislé appky: sibling repo `C:\WorkTasks\prod-*` →
   extrakce `.app` (40B hlavička + ZIP) → al-mcp fallback.
-- **7.7 ⛔** `git commit` / `push` / PR / merge do master **nikdy bez
-  výslovného pokynu** (výjimka: notes repo BCALInsights). **Vyžádaný push**
-  = merge masteru + kompilace → **push** → teprve pak **autotesty celého repa
-  v lokálním kontejneru** (`<PRACOVNÍ-REPA>\bc-test-container\Test-Repo.ps1`,
-  7.7b); fail = opravit dalším commitem + push. Jen v rámci push, ne po každé změně,
-  a jen kdo kontejner má (always-on `Lokální testovací kontejner: ano`; `ne` = nikdy). Nová větev z cizí
-  upstream → `git branch --unset-upstream` nebo vždy `git push -u origin
-  <větev>`. Dev nemá ForcePush → cizí větev zpět nevrátíš.
-- **7.8** `version` v `app.json` neměnit sám; do PR `XX.0.0.0`.
-- **7.9** ADO MCP: org `essencebs`, projekt `Projects`; repo odvoď z CWD /
-  Area Path. **PAT je read-only záměrně — 401 na zápis neobcházet** jiným
-  credentialem, PR zakládá uživatel. `search_code` vrací multi-MB blob →
-  parsuj pythonem. IPv6 reset → `--dns-result-order=ipv4first`.
-- **7.10** Case-only rename složky = obě cesty v merge → detekce
-  `git ls-tree -r HEAD --name-only | sort -f | uniq -di`; rename dvoukrokově.

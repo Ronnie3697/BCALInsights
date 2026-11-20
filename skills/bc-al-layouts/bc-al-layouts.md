@@ -12,6 +12,7 @@ Obsahuje:
 - **12.1i** Word layouty přes MCP `bc-word-layout` + skilly `al-word-layout*`, ne ručním OOXML
 - **12.1j** Sloupce do datasetu CZL sestavy reportextensionem: přímá závislost na CZ lokalizaci, `RoundLoop` u 31187,
   obsolete pole ze zadání, zdroj sestavy z Ready2Run `.app` v artifact cache
+- **12.1k** Úkolový list VZ = standardní *Prod. Order - Job Card* (99000762): tenký dataset, CZ captiony sestav a stránek z xlf
 - **12.5** Word layout štítků generovaný skriptem + barcode fonty / GS1-128 (BC online)
 
 ---
@@ -176,6 +177,32 @@ RFC „přidat pole do datasetu, layout neřešit" (sloupce si pak umístí konz
   i `SymbolReference.json`. Postup: `tail -c +41 obal.app > o.zip && unzip o.zip '<guid>_*.app'`, totéž na vnitřní `.app`.
   Vnitřní `.app` jde rovnou do dočasné package cache jako symbol (`Application="28.4.0.0"` pod umbrellou 28.5 projde, 7.19
   v `bc-al-build.md`); cust-alumistr `.alpackages` CZ pack vůbec nemá.
+
+### 12.1k Úkolový list VZ = standardní *Prod. Order - Job Card* (99000762) — tenký dataset
+
+Když zákazník mluví o „úkolovém listu“ výrobní zakázky, myslí standardní sestavu **99000762 `Prod. Order - Job Card`**, česky
+**„Výr. zakázka - úkolový list“**. Co platí (BC 29.1, 2026-11-20, analýza RFC obrázků na úkolovém listu, cust-alumistr-bc):
+
+- **Dataitemy:** `Production Order` → `Integer` (1 řádek, hlavička) → `Prod. Order Routing Line` (link jen Status + Prod. Order No.
+  = všechny operace všech řádků VZ) → `Prod. Order Component` (link přes `Routing Link Code` operace). **Dataitem řádku VZ chybí.**
+  Komponenta má v datasetu jen Item No., Position, Position 2, Lead Time Offset a Expected Quantity, bez popisu, barvy a délky.
+  ⚠️ **Komponenty jsou navázané jen `Status` + `Prod. Order No.` + `Routing Link Code`, bez `Prod. Order Line No.`** (ověřeno ve
+  zdrojáku `Manufacturing/Document/ProdOrderJobCard.Report.al` z `…\cz\Applications\BaseApp\Source\Base Application.Source.zip`,
+  bez `DataItemTableView` filtru a bez triggeru na dataitemu). U VZ s více řádky se pod operací vypíšou komponenty všech řádků se
+  stejným kódem vazby, komponenta bez kódu jen u operací bez kódu. Do datasetu pak přidej číslo řádku VZ k operaci i komponentě
+  (operace → řádek VZ přes `Routing Reference No.`), nebo komponenty filtruj v `modify` dataitemu reportextension.
+- Zákaznický vzor úkolového listu „po výrobcích“ (hlavička z prodejní objednávky, údaje výrobku, komponenty v blocích) z něj
+  reportextensionem uděláš jen s dohledáním řádku VZ přes `Routing Reference No.` operace a prodejního řádku přes
+  `Sales Production Ref. NMEBS` (5.x3 v `bc-al-objects.md`, vzor COALU `CNC Print Mgt.`). Když je hlavní osa výrobek, ne operace,
+  je vlastní sestava (VZ → řádek VZ → komponenty) jednodušší a standard zůstane beze změny.
+- **Zákazník si udělá vlastní RDL k sestavě** = nahraje ho na *Rozvržení sestav*; sloupce reportextension vidí každý layout
+  sestavy, i uživatelský. Obrázek do sestavy dávej jako bajty v datasetu (Blob sloupec, Media přes `Tenant Media.Content`); u příloh
+  v SharePointu má BC jen Drive Item ID a obsah se musí při tisku stáhnout (12.5).
+- **České captiony standardních sestav a stránek** (pro zadání zákazníkovi): `…\bcartifacts.cache\onprem\<ver>\cz\Applications\
+  BaseApp\Source\Czech language (Czechia).Source.zip` → `Translations/Base Application.cs-CZ.xlf` (~78 MB). Unit najdeš podle
+  poznámky `LookupHint=Report Prod. Order - Job Card - Property Caption)`, `<target>` je o pár řádků výš (awk: pamatuj si poslední
+  `<target`, vypiš ho na řádku s LookupHint). Essence appky mají captiony v `Translations/*.cs-CZ.xlf` svého repa (poznámka
+  `Xliff Generator` = `Page <název> - Property Caption`).
 
 ### 12.5 Word layout štítků generovaný skriptem + barcode fonty / GS1-128 (BC online)
 

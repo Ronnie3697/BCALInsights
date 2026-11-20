@@ -18,7 +18,7 @@ user-invocable: true
 **Zdroj pravdy:** `bc-al-deploy.md` ve stejném adresáři jako tenhle `SKILL.md`
 (adresář skillu = „Base directory" hlášený při načtení; cestu skládej odtud, ne přes `..`). Tenhle skill je jen wrapper —
 pravidla níže jsou výcuc; příkazy, URL, skripty a historie případů jsou v souboru. Vyčleněno z `bc-al-build.md`
-2026-11-13, číslování 7.x je původní (7.11–7.22 zůstává ve skillu `bc-al-build`, 7.1–7.10 ve skillu `bc-al-tools`).
+2026-11-13, číslování 7.x je původní (7.11–7.22 zůstává ve skillu `bc-al-build`, 7.1–7.6 ve skillu `bc-al-tools`, 7.7–7.10 ve skillu `bc-al-git`).
 
 ## Co udělat
 
@@ -27,7 +27,7 @@ pravidla níže jsou výcuc; příkazy, URL, skripty a historie případů jsou 
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli, nepřepisuj potichu. Nový poznatek →
    do souboru + commit + push (viz skill `bc-al`).
 3. Sousední témata: NuGet minima, CI build, Deploy Staging, release deploy (7.11–7.22) → `bc-al-build`; kdy autotesty
-   pouštět (jen po vyžádaném push, 7.7b), alc, git, verzování app.json (7.8) → `bc-al-tools`; psaní testů →
+   pouštět (jen po vyžádaném push, 7.7b), git, verzování app.json (7.8) → `bc-al-git`; alc → `bc-al-tools`; psaní testů →
    `bc-al-autotests`, test appka a její kompilace → `bc-al-autotests-infra`.
 
 ## TL;DR — nejtvrdší pravidla (čísla = sekce v souboru)

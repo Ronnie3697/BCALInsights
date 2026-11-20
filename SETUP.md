@@ -118,7 +118,7 @@ zeptej se. Po souhlasu spusť a ověř `npm ls -g --depth=0`.
 3. Nemá PAT → proveď ho založením tokenu: `https://dev.azure.com/essencebs/_usersSettings/tokens` →
    **New Token**, organizace `essencebs`, expirace max. 90 dní (firemní policy), scopes **jen
    Read**: Work Items, Code, Build, Wiki, Project and Team, Identity. **Žádný Write** — zápisy do
-   ADO a PR dělá člověk, read-only je záměrná zábrana (7.9 v `bc-al-tools.md`).
+   ADO a PR dělá člověk, read-only je záměrná zábrana (7.9 v `bc-al-git.md`).
 4. „Ulož ho do `DevOpsPAT.txt` ve složce `MCP_PAT`": založ prázdný `<MCP_PAT>\DevOpsPAT.txt` a
    otevři ho uživateli (`notepad "<MCP_PAT>\DevOpsPAT.txt"`). Do souboru patří **jen surový PAT
    na jednom řádku** — bez e-mailu a bez base64, launcher si ho zakóduje sám. Výslovně řekni:
@@ -150,7 +150,7 @@ Token tak není v žádném konfigu a všechny nástroje sdílí jeden soubor.
 ## Krok 9 — „Chceš lokální kontejner na autotesty?" (`<PRACOVNÍ-REPA>\bc-test-container`)
 
 Agent pouští autotesty repa v lokálním Docker kontejneru **po každém vyžádaném push** (nejdřív push, pak testy; 7.7b
-v `bc-al-tools.md`) — PR buildy testy nespouští a nový test by poprvé běžel až na masteru po merge. Vysvětli to a zeptej se, jestli kontejner
+v `bc-al-git.md`) — PR buildy testy nespouští a nový test by poprvé běžel až na masteru po merge. Vysvětli to a zeptej se, jestli kontejner
 chce. **K otázce rovnou řekni, co to stojí:**
 
 - **RAM:** běžící kontejner si vezme ~7–8,5 GB (limit `memoryLimit` 8 GB) → v počítači doporučeno **≥ 16 GB**. Když se

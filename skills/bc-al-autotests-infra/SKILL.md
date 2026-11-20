@@ -49,7 +49,7 @@ wrapper. Vyčleněno z `bc-al-autotests.md` 2026-10-09 (1009 řádků / 77 KB, n
   zdrojáky → signatury přes al-mcp. MS test knihovny v cache z **jedné minor řady** (jinak `AL1022`).
 - Kompiluj **kopii** `test/` ve scratchpadu (vedle ní `app/` s logem); testy za `#IF TESTS` ověř kopií
   s přepnutým symbolem.
-- **Po každém vyžádaném push** testy v lokálním kontejneru (`Test-Repo.ps1`, 7.7b v `bc-al-tools`, 7.23
+- **Po každém vyžádaném push** testy v lokálním kontejneru (`Test-Repo.ps1`, 7.7b v `bc-al-git`, 7.23
   v `bc-al-deploy`), jen kdo kontejner v setupu přijal. Verze Essence závislostí jako CI (NuGet
   `LatestMatching`), ne „co leží v `.alpackages`".
 - Text chyby spadlého testu z CI: REST `_apis/test/Runs/<runId>/results?outcomes=Failed` v přihlášeném
