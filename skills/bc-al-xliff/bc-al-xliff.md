@@ -222,6 +222,13 @@ Zachyceno: cust-sonnentor-bc 2026-08-03 — merge masteru do feature větve zdvo
 trans-unit `PageExtension 2228984703 - NamedType 3852263291` (`OnlyProdOrderComponentErr`);
 obě strany ho přidaly, každá na jinou pozici v souboru, git to spojil tiše.
 
+**Totéž bez merge — přenos změn vyvinutých proti masteru na větev se starší verzí téže featury.** Rozpracované změny
+(working tree / diff proti masteru) se commitnou na feature větev, kde už leží starší commit stejného úkolu s částí stejných
+unitů → `.xlf` dostane unity podruhé (na konec skupiny), git nic nehlásí, CI spadne na AL0479. Před commitem na jinou větev
+než tu, proti které se vyvíjelo, pusť detekci `uniq -d` výše; oprava = smazat druhý (obsahově shodný) blok. (2026-11-20,
+cust-ardo-bc 67302 — `Planning Component ATARD` Caption + ToolTip `Increase Qty. for Pick %`, commit na `features/edi3`, která
+už měla starší commit Increase Qty, build 29591.)
+
 ### 6.5 Zastaralý `.g.xlf` pod starým názvem appky = LC0091 „Missing translation … en-US" na nových labelech
 
 `Translations/` je v repu typicky s `**/*.g.xlf` v `.gitignore`, takže když se appka přejmenuje (nebo se složka zkopíruje
