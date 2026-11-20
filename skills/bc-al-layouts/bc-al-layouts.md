@@ -186,6 +186,11 @@ Když zákazník mluví o „úkolovém listu“ výrobní zakázky, myslí stan
 - **Dataitemy:** `Production Order` → `Integer` (1 řádek, hlavička) → `Prod. Order Routing Line` (link jen Status + Prod. Order No.
   = všechny operace všech řádků VZ) → `Prod. Order Component` (link přes `Routing Link Code` operace). **Dataitem řádku VZ chybí.**
   Komponenta má v datasetu jen Item No., Position, Position 2, Lead Time Offset a Expected Quantity, bez popisu, barvy a délky.
+  ⚠️ **Komponenty jsou navázané jen `Status` + `Prod. Order No.` + `Routing Link Code`, bez `Prod. Order Line No.`** (ověřeno ve
+  zdrojáku `Manufacturing/Document/ProdOrderJobCard.Report.al` z `…\cz\Applications\BaseApp\Source\Base Application.Source.zip`,
+  bez `DataItemTableView` filtru a bez triggeru na dataitemu). U VZ s více řádky se pod operací vypíšou komponenty všech řádků se
+  stejným kódem vazby, komponenta bez kódu jen u operací bez kódu. Do datasetu pak přidej číslo řádku VZ k operaci i komponentě
+  (operace → řádek VZ přes `Routing Reference No.`), nebo komponenty filtruj v `modify` dataitemu reportextension.
 - Zákaznický vzor úkolového listu „po výrobcích“ (hlavička z prodejní objednávky, údaje výrobku, komponenty v blocích) z něj
   reportextensionem uděláš jen s dohledáním řádku VZ přes `Routing Reference No.` operace a prodejního řádku přes
   `Sales Production Ref. NMEBS` (5.x3 v `bc-al-objects.md`, vzor COALU `CNC Print Mgt.`). Když je hlavní osa výrobek, ne operace,
