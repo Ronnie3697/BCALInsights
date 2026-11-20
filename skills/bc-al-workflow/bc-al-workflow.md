@@ -128,7 +128,12 @@ nedělá** (otevřené business otázky z RFC, ať to testeři hlídají) → te
 k odškrtání. Terminologii ber **z `Translations/*.cs-CZ.xlf`** (captiony polí a akcí), ne
 z hlavy — uživatel musí najít přesně ten popisek, který vidí na obrazovce.
 Captiony standardních objektů jsou v XLIFF **uvnitř `.app`** (`unzip` Base Application / Subcontracting
-→ `Translations/Base%20Application.cs-CZ.xlf`). Pozor, MS XLIFF nemá kontext v poznámce `Xliff Generator`
+→ `Translations/Base%20Application.cs-CZ.xlf`). ⚠️ **Symbolové balíčky v `.alpackages` (NuGet / MSSymbols) `Translations/`
+nemají**, jen `src/*.al`. Český XLIFF je v CZ artefaktu lokálního kontejneru: `C:\bcartifacts.cache\onprem\<verze>\cz\Applications\
+BaseApp\Source\Microsoft_Base Application.app` je Ready2Run obal → `unzip -j` vnitřní `437dbf0e84ff417a965ded2bb9650972_<verze>_….app`
+→ z něj `Translations/Base%20Application.cs-CZ.xlf` (~79 MB, `%20` je v názvu doslova); `<target>` leží pár řádků **nad**
+poznámkou s `LookupHint`, stačí `grep -n -F` + `sed` v Git Bash, Python netřeba (2026-11-20, cust-soitron-bc 67992).
+Pozor, MS XLIFF nemá kontext v poznámce `Xliff Generator`
 (ta je prázdná), ale v `Developer` poznámce jako `(LookupHint=Table Sales Line - Field Unit Cost (LCY) - Property Caption)`.
 Regex `LookupHint=([^)]*)\)` na jménech se závorkou uřízne, ber `LookupHint=(.*?)\)</note>`. Pole s `CaptionClass`
 v XLIFF jako celek nenajdeš (Jednotková cena + `ExclVATTxt` „bez DPH“ z `VAT CaptionClass Mgmt`). Ne každá Essence appka
