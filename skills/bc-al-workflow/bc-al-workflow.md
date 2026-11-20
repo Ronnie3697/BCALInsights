@@ -143,6 +143,12 @@ v příručce to zmiň. (2026-09-29, cust-alumistr-bc prezentace 66389/66397.)
 příručka měsíc psala „Rozcestník synchronizace Dotykačky“ (target `Property AboutTitle` = nadpis teaching tipu), stránka se
 přitom jmenuje *Synchronizace Dotykačky* a „Rozcestník“ uživatel nenajde. V XLIFF filtruj poznámku `Xliff Generator` na
 `- Property Caption` přímo u `Page …` (ne `Control`/`Action`). (2026-10-16, prod-ess-dotykackaConnector-bc.)
+**Název stavu (hodnoty výčtu) ber z `EnumValue … - Property Caption` téhož XLIFF — v dokumentaci i v překladech hlášek a tooltipů.**
+Hodnota `Cancelled` výčtu `QB Process Status SOI` má v cs-CZ target „Zrušeno“, ale dokumentace ticketu a pět přeložených hlášek
+a tooltipů („lze nastavit na Zkontrolováno nebo Stornováno“) psaly „Stornováno“, protože se překládaly samostatně a akce
+*Stornovat nabídku* svádí ke stejnému slovu. Uživatel pak v rozbalovacím seznamu hledá hodnotu, která tam není. Po přidání
+hlášky, která jmenuje stav, grepni target hodnoty výčtu a použij ho doslova (cs i sk). (2026-11-20, cust-soitron-bc 67039,
+připomínky z testu.)
 **Příručka i prezentace „pro laiky“, žádné heslovité psaní** (přání uživatele 2026-10-16, prod-ess-dotykackaConnector-bc –
 heslovitá verze typu „Kontroly: pobočka jen u jedné lokace, barvy #RRGGBB…“ byla nesrozumitelná; zopakováno 2026-10-23 pro
 všechny HTML příručky a prezentace, prod-ew-mobileBase-bc 66453): piš **celými větami**, ne seznamem hesel. Slovníček pojmů na
