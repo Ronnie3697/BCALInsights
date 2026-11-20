@@ -328,7 +328,11 @@ podmínku zavolá `AddRoutingLines`. Pasti pro rozšíření, které na řádek 
   podmínkami v jejich pořadí. Pole `Routing Action Line COEBS."Operation No."` (sloupec na stránce akcí i v API) se při tvorbě TNG
   nepoužívá vůbec.** *Next / Previous Operation No.* COEBS jen kopíruje. Každé pole rozšíření, které odkazuje na operaci, tak míří na
   číslo ve **vytvořeném** TNG, ne na to, co uživatel vidí v *Operation No.* řádku akce; u víc podmínek TNG se číslo posouvá podle
-  toho, které se splní (bez chyby, jen špatné párování). Uvést v ToolTipu a dokumentaci.
+  toho, které se splní (bez chyby, jen špatné párování). **Odkaz z pole rozšíření proto ber jako *Operation No.* jiného řádku akce a na
+  generované číslo ho přelož až při tvorbě TNG.** Data Alumistr SE (BC-TEST, 2026-11-20): 54 ze 71 konfigurací s akcemi TNG má víc
+  podmínek (až 7), 596 ze 667 řádků akcí má *Operation No.* vyplněné (`010`, `0100`, `100` – jiný tvar než generované `10`),
+  35 konfigurací čísluje každou podmínku znovu od `100` (alternativy *KOMPLETACE = …*), uvnitř podmínky je číslo jedinečné
+  (255/255). *Next / Previous Operation No.* nemá vyplněné nikdo (0/667), takže „COEBS je taky jen kopíruje“ není argument.
 - Eventy: `OnBeforeInsertRoutingLine(var RoutingLine; var RoutingActionLine; var ParameterValues)` těsně před `Insert(true)` a
   `OnAfterInsertRoutingLine(var RoutingLine; var RoutingActionLine)` hned po něm. `RoutingLine` je smyčková proměnná COEBS → vlastní
   zápisy dělej přes lokální record. **Event po posledním řádku TNG neexistuje** (ani ve `Variant Config. Engine`); první krok po
@@ -337,12 +341,17 @@ podmínku zavolá `AddRoutingLines`. Pasti pro rozšíření, které na řádek 
   obezlička, běží i při ruční registraci alternativního TNG; čisté řešení = event v COEBS po `AddRoutingLines`.
 - **Pole s validací proti jiné operaci téhož TNG nejde validovat v `OnBeforeInsertRoutingLine`.** EM Operation Output Chaining
   (`Routing Line OOEBS`, pole 64380 `Reg. Toget. With Op. No. OOEBS` od 28.0.3, předtím 64375) v `OnValidate` dělá `Get` cílové operace
-  (odkaz dopředu 10 → 20 spadne na „does not exist“) a zákaz řetězení čte z DB odkazující řádky (ty vložené později nevidí). Vzor
-  COALU 52005 `Routing Reg. Together COALU` (task 68019): v `OnBefore…` jen přiřadit; v `OnAfter…` `Validate(Pole)` + `Modify(true)`
-  vlastního odkazu, když cíl už existuje, a odkazů dřív vložených řádků, které míří na právě vloženou operaci; na
-  `Alternative Routing ATEBS.OnAfterInsertEvent` chyba pro odkaz na operaci, kterou TNG nemá. Validace OOEBS pak platí celá (bez odkazu
-  na sebe, bez řetězení, *Routing Link Code* z cílové operace). Odkaz na neexistující operaci by OOEBS tiše nikdy neodvedl: operace
-  s vlastním odkazem není spouštěcí (`ItemJournalLineIsPossibleForPostDependedOps`) a s `NoAddDepOpsToOutJnl` vypadne i z rozpadu postupu.
+  (odkaz dopředu 10 → 20 spadne na „does not exist“) a zákaz řetězení čte z DB odkazující řádky (ty vložené později nevidí). Odkaz
+  na neexistující operaci by OOEBS tiše nikdy neodvedl: operace s vlastním odkazem není spouštěcí (`ItemJournalLineIsPossibleForPostDependedOps`)
+  a s `NoAddDepOpsToOutJnl` vypadne i z rozpadu postupu.
+- **Vzor COALU 52005 `Routing Reg. Together COALU` (task 68019, po code review):** codeunit `SingleInstance`; `OnAfterInsertRoutingLine`
+  si do dočasné kopie `Routing Action Line COEBS` + slovníků zapíše „řádek akce → generované číslo operace + `SystemId` řádku TNG“;
+  `Alternative Routing ATEBS.OnAfterInsertEvent` jen pro TNG z probíhajícího běhu odkazy přeloží (řádek akce **stejné podmínky**
+  s tím *Operation No.*, jinak jediný v ostatních podmínkách běhu, jinak `Error` s číslem řádku a podmínky), nejdřív všechny přiřadí,
+  pak `Validate` + `Modify(true)` (validace OOEBS celá: bez odkazu na sebe, bez řetězení, *Routing Link Code* z cíle), a stav smaže.
+  Stav SingleInstance přežije `Error` (3.10 v `bc-al-data.md`) → běh platí, jen dokud existuje první vygenerovaný řádek
+  (`GetBySystemId`); rollback ho zneplatní sám. Ruční registrace alternativního TNG se nekontroluje. Hledání jen mezi operacemi
+  běhu zároveň chrání před ořezem čísla TNG níže (odkaz se nechytí operace jiné varianty).
 - Kopie konfigurace řádky akcí TNG kopíruje `TransferFields` → pole tableextension na `Routing Action Line COEBS` jdou s kopií samy.
 - Testy: `ExecuteRoutingActions(ConfigNo, ItemNo, '', ParameterValues)` (TNG `<zboží>-`, `Message` po úspěchu → `MessageHandler`,
   negativní test bez handleru, chyba padá dřív). Helper pracovišť s číslem z `Library - Random` kolidoval mezi testy téhož codeunitu
@@ -357,4 +366,4 @@ podmínku zavolá `AddRoutingLines`. Pasti pro rozšíření, které na řádek 
   *Nastavení konfigurátoru* (63195) → *Čísla konfigurací*, jinak chyba „musí mít hodnotu“. TNG vznikne až po OK v dialogu nové varianty.
 
 (2026-11-20, cust-alumistr-bc PBI 68019, větev `68019_RoutingActionRegTogether`; zdroje prod-ess-configurator-bc master 9c40c1f,
-prod-em-operOutputChaining-bc master 1a85060; kompilace app + test 0/0, testy zatím neběžely.)
+prod-em-operOutputChaining-bc master 1a85060; první verze bctest29 359/0, verze po code review zatím jen kompilace 0/0.)
