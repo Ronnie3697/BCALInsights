@@ -14,6 +14,7 @@ Obsahuje:
 - **5.x27** jiná MJ než základní ve skladu bez řízeného zaskladnění
 - **5.x28** nový řádek deníku zboží z kódu v prázdném listu
 - **5.x34** skladový doklad v jiné MJ než zdrojový doklad — co standard BC 29 unese
+- **5.x35** nákup s projektem v lokaci s přihrádkami — standard odepíše skladovou položku příjmu za spotřebu projektu
 
 ## 5. Specifické objekty a API — sklad
 
@@ -174,4 +175,38 @@ nákup / prodej / výroba jedou v metrech). V BC nespouštěno; co je jen odvoze
   v MJ zdrojového dokladu.
 
 (2026-11-19, cust-alumistr-bc PBI 66601, zdroj BaseApp 29.1 CZ.)
+
+### 5.x35 Nákup s projektem v lokaci s přihrádkami: standard odepíše skladovou položku příjmu za spotřebu projektu, i když spotřeba nevznikla
+
+Ověřeno čtením zdroje w1-28 (`PurchPost`, `WhsePostReceipt`, `WhseActivityPost`, `WhseUndoQuantity`, `UndoPurchaseReceiptLine`,
+`SalesPost`) a eventy v BaseApp 28.4 (al-mcp) při rozboru hlášení z X-ESSENCE 2026-11-20 (prod-ep-itemManagement-bc, IMEBS *Skip
+Purchase Consumption*: zboží 1019 má 3 ks v položkách zboží, 0 v obsahu přihrádky, skladové položky příjemky +3 / −3). V BC nespouštěno,
+oprava zatím neimplementovaná.
+
+- **Spotřebu projektu při příjmu (`PostItemJnlLineJobConsumption`, Negative Adjmt. ILE) a skladový odpis z přihrádky standard dělá
+  odděleně.** Skladový odpis se řídí jen tím, že řádek má `Job No.` — kdo spotřebu vypne (`Purch.-Post.OnPostItemJnlLineJobConsumption`
+  → `IsHandled`), musí vypnout i odpis, jinak zůstane položka zboží skladem (`Remaining Quantity`) a obsah přihrádky 0 → dodávka
+  z přihrádky pak spadne na nedostatek v přihrádce. Tři místa, všechna s `IsHandled` eventem:
+  1. **`Purch.-Post.PostItemJnlLineWhseLine`** (lokace s `Bin Mandatory` bez skladových dokladů; u *Directed Put-away and Pick* přímá
+     faktura / dobropis): po registraci příjmu `RevertWarehouseEntry` = Negative Adjmt. Warehouse Entry z téže přihrádky (`From Bin Code
+     := To Bin Code`), když `Job No. <> ''` a nejde o vratku. Hook `OnBeforeRevertWarehouseEntry(var WarehouseJournalLine; JobNo;
+     PostJobConsumption; var Result; var IsHandled)` — Purchase Line v parametru není, dohledej ji ze `Source Subtype` / `Source No.` /
+     `Source Line No.` skladového řádku (`CreateWhseJnlLine` je plní, řádek v DB při účtování existuje). **Vratka** (credit doc s kladným
+     množstvím, záporný řádek objednávky) naopak přes `CreatePositiveEntry` nejdřív „vrátí spotřebu" do přihrádky a pak ji vratka odebere
+     → přihrádka se nezmění; hook `OnBeforeCreatePositiveEntry(WarehouseJournalLine; JobNo; var Result; var IsHandled)`.
+  2. **`Whse.-Post Receipt`** (*Require Receive*): `PostWhseJnlLine` po každém řádku `ConsumeWarehouseEntryForJobPurchase` (otočený
+     záznam z příjmové přihrádky) a `IsReceiptForJob` navíc **zaskladnění nevytvoří** (posted řádek rovnou *Completely Put Away*,
+     `CreatePutAwayDoc` řádek přeskočí). Obojí jde přes `IsReceiptForJob` → jeden hook `OnBeforeIsReceiptForJob(PostedWhseReceiptLine;
+     var IsReceiptForJob; var IsHandled)` (zdroj = `Source Subtype/No./Line No.` posted řádku); jen odpis bez zaskladnění vypne
+     `OnBeforeConsumeWarehouseEntryForJobPurchase`.
+  3. **`Whse.-Activity-Post`** (zásobové zaskladnění, *Require Put-away* bez *Require Receive*): `IsActivityForJobPurchase` (bez eventu)
+     → `ConsumeWarehouseEntryForJobPurchase` → hook `OnBeforeConsumeWarehouseEntryForJobPurchase(var TempWarehouseJournalLine;
+     WarehouseActivityLine; var Result; var IsHandled)`.
+  Vratka přes skladovou dodávku / zásobové vyskladnění žádnou projektovou větev nemá (`ShouldPostWhseJnlLine` je při `WhseShip` false).
+- **Undo příjemky** (`Whse. Undo Quantity.InsertTempWhseJnlLine`) otáčí **všechny** Warehouse Entry příjemky podle source + `Reference
+  No.` → zrcadlí, co příjem zaúčtoval (+N / −N i jen +N), nic navíc neodepisuje. Undo + nový příjem je tak i cesta, jak srovnat data
+  zaúčtovaná před opravou — na lokaci bez *Directed Put-away and Pick* skladovou položku bez položky zboží standardně zaúčtovat nejde
+  (*Whse. Item Journal* jen Directed).
+- Prodejní strana nic podobného nemá: dodávka (i řádek s `Job Contract Entry No.`) odepisuje přihrádku normálně přes
+  `Sales-Post.ShouldPostWhseJnlLine`; dobropis s vynuceným `ShouldPostItemJnlLine` (IMEBS) vrací zboží do přihrádky řádku.
 

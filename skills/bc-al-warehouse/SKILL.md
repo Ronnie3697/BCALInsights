@@ -1,15 +1,16 @@
 ---
 name: bc-al-warehouse
 description: >-
-  BC/AL sklad (5.x22, 5.x26–5.x28, 5.x34): přihrádka (Bin Code) na řádcích SO/PO a cesta do Whse. Receipt / Shipment
-  (GetDefaultBin, OnAfterGetDefaultBin, Receipt/Shipment Bin Code, OnBeforeWhseReceiptLineInsert, Validate Bin Code =
-  Message); skladový přesun / vyskladnění z kódu (Bin Code na řádku Take bez kontrol, CalcQtyAvailToPick vs
-  CalcQtyAvailToTake, Whse.-Act.-Register (Yes/No) pár Take/Place, Split Line); jiná MJ bez Directed Put-away and Pick
-  (Warehouse Entry a Bin Content v základní MJ, Whse. Jnl.-Register Line, UseBaseQty, CalcBaseQty); nový řádek deníku
-  zboží v prázdném listu (SetUpNewLine); skladový doklad v jiné MJ než zdrojový (Sales / Purchases / Transfer Warehouse
-  Mgt. BC 29, Whse.-Post Receipt / Shipment, Pick Qty., Qty. Picked, Allow Whse. Overpick, inventura v základní MJ, Phys.
-  Invt. Order, Qty. Rounding Precision, Put-away Unit of Measure Code, čtečka OnAfterGetHandheldUoM). Načti u přihrádek,
-  skladových dokladů a aktivit, MJ ve skladu, inventury a čteček.
+  BC/AL sklad (5.x22, 5.x26–5.x28, 5.x34, 5.x35): přihrádka (Bin Code) SO/PO → Whse. Receipt / Shipment (GetDefaultBin,
+  OnAfterGetDefaultBin, Receipt/Shipment Bin Code, OnBeforeWhseReceiptLineInsert, Validate Bin Code = Message); přesun /
+  vyskladnění z kódu (Bin Code na Take bez kontrol, CalcQtyAvailToPick vs CalcQtyAvailToTake, Whse.-Act.-Register
+  (Yes/No) pár Take/Place, Split Line); jiná MJ bez Directed Put-away and Pick (Warehouse Entry a Bin Content v základní
+  MJ, Whse. Jnl.-Register Line, UseBaseQty, CalcBaseQty); nový řádek deníku zboží (SetUpNewLine); skladový doklad v jiné
+  MJ než zdroj (Sales / Purchases / Transfer Warehouse Mgt. BC 29, Whse.-Post Receipt / Shipment, Pick Qty., Qty.
+  Picked, Allow Whse. Overpick, inventura v základní MJ, Phys. Invt. Order, Qty. Rounding Precision, Put-away Unit of
+  Measure Code, OnAfterGetHandheldUoM); nákup s projektem v přihrádce bez spotřeby (RevertWarehouseEntry,
+  ConsumeWarehouseEntryForJobPurchase, IsReceiptForJob). Načti u přihrádek, skladových dokladů a aktivit, MJ ve skladu,
+  inventury a čteček.
 user-invocable: true
 ---
 
