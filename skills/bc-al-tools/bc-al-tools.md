@@ -958,7 +958,10 @@ přijde o formátování. Proto:
 - každý odstavec a každý bod na **jednom řádku**, žádné zalomení uvnitř věty,
 - struktura Markdownem: `###` nadpisy sekcí, `-` body, `**tučně**` jen podstatné (příčina, „do té doby nemergovat“),
   identifikátory objektů, polí a procedur v backtickách, captiony z UI kurzívou,
-- název PR zvlášť v jednořádkovém bloku, work itemy (`#66711`) pod blokem.
+- název PR zvlášť v jednořádkovém bloku, work itemy (`#66711`) pod blokem,
+- **popis PR max 4000 znaků** (limit popisu PR v ADO) – cíl do ~3000, před předáním spočítej (`len()` v pythonu) a
+  počet uveď; tabulky testů, rozhodnutí a review patří do dokumentace MD, v PR jen odkaz. Uživatel to opakoval
+  víckrát, naposledy 2026-11-20 (cust-zlomek-bc PR 66431, návrh přes limit).
 
 Platí pro všechno, co uživatel do ADO vkládá ručně (PR, PBI, Task, Bug, komentáře work itemů i PR threadů).
 
