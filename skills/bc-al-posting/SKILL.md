@@ -10,7 +10,7 @@ description: >-
   (Validate(Type) maže No., zmetky, tiché Item Jnl.-Post), způsob platby bez Validate (protiúčet, pokladna
   CZP), podmínka schvalovacího workflow (OnBeforeIsPurchaseApprovalsWorkflowEnabled,
   OnBeforeReleasePurchaseDoc), DPH z integrace = rozdíl přes VAT Amount Line (CZL ho maže), faktury
-  dobropisu (řádky + vyrovnání DCLE). Načti u polí dokladů, postingu, archivu, kopie, emailu, schvalování,
+  dobropisu (řádky, vyrovnání DCLE). Načti u polí dokladů, postingu, archivu, kopie, emailu, schvalování,
   DPH, vyrovnání.
 user-invocable: true
 ---
