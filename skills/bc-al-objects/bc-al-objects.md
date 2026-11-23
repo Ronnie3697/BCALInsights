@@ -909,3 +909,29 @@ Ověřeno proti zdroji w1-25 (cust-ardo-bc PBI 67302 *Increase Qty. for Pick %*,
 - Před změnou sémantiky vlastního pole grepni jeho čtenáře: `Planned Quantity ATARD` u Ardo čte terminál Ropala (zbývá vyskladnit =
   Planned − Qty. Picked), Item Tracking Lines (množství zakázky) i `Quantity2` (množství na batch). Nové plnění pole = otázka na zákazníka,
   jestli tihle čtenáři mají dostat původní, nebo navýšené množství.
+
+### 5.x36 Vlastní pole prodejního řádku → hlavička a řádek výrobní zakázky: `OnAfterCreateProdOrderFromSalesLine` běží PŘED vznikem řádků VZ
+
+Ověřeno proti zdroji Base Application 29.1 cz (`Manufacturing/Document/CreateProdOrderfromSale.Codeunit.al`, `CreateProdOrderLines.Codeunit.al`,
+`Manufacturing/Inventory/Requisition/MfgCarryOutAction.Codeunit.al`; cust-alumistr-bc PBI 67377, 2026-11-23):
+
+- **`Create Prod. Order from Sale.OnAfterCreateProdOrderFromSalesLine(var ProdOrder; var SalesLine)` (*Plánování prod.objednávky* → vytvoření VZ)
+  se volá hned po naplnění hlavičky a před `ProdOrder.Modify()` — řádky VZ v tu chvíli neexistují** (`CreateProdOrderLines.Copy` jde až po eventu).
+  Subscriber, který tam hledá `Prod. Order Line` (a komponenty) a nastavuje jim pole, nic nenajde a tiše nic neudělá — přesně takový byl přenos
+  `Color ALU` v cust-alumistr-bc (`Event Subscribers ALU`), žádný test ho nepokrýval. Event se hodí jen na **hlavičku**: přiřaď do `var ProdOrder`,
+  uloží ho `Modify` za eventem. Typ objednávky *Objednávka projektu* (zdroj *Prodejní hlavička*, jedna VZ pro celou objednávku) má víc prodejních
+  řádků → hlavičce pole z jednoho řádku nedávej (`ProdOrder."Source Type" = Item`).
+- **Řádek VZ: `Create Prod. Order Lines.OnBeforeProdOrderLineInsert(var ProdOrderLine; var ProductionOrder; SalesLineIsSet; var SalesLine)`** — těsně
+  před `Insert` řádku pro zboží (`CreateProdOrderLineFromItem`) i pro každý prodejní řádek u zdroje *Prodejní hlavička* (`CopyFromSalesOrder`, tam se
+  volá s `true` a aktuálním prodejním řádkem smyčky). Z *Plánování prod.objednávky* přijde prodejní řádek (`SetSalesLine`); při **Aktualizaci VZ
+  (Refresh) s přepočtem řádků** `SalesLineIsSet = false` → řádek VZ pro zboží si hodnotu vezme z hlavičky, jinak by ji Refresh smazal (řádky se
+  zakládají znovu). `ProductionOrder` je in-memory hlavička volajícího, takže vidí i pole nastavená v eventu výše.
+- **Sešit plánování (*Provést hlášené akce*) jde jinudy — `Mfg. Carry Out Action`** (eventy `Carry Out Action` jsou `#if not CLEAN27` obálky):
+  hlavička `OnInsertProdOrderOnBeforeProdOrderInsert(var ProdOrder; ReqLine)` (jen pro řádek, který VZ zakládá; řádky nižších úrovní plánování se
+  přidají do téže VZ), řádek `OnInsertProdOrderLineOnBeforeModifyProdOrderLine(var ProdOrderLine; var RequisitionLine)` (po `Insert` a převodu
+  rezervací, před `Modify()` bez triggeru — zápis v tableextension triggeru by nepřežil, 3.1 v `bc-al-data.md`). Hodnota přijde z řádku sešitu, takže
+  pole musí mít i `Requisition Line` a cesta poptávka → řádek sešitu (5.x9 v `bc-al-blanket.md`).
+- Změna stavu VZ kopíruje hlavičku i řádky `TransferFields` → pole rozšíření přejdou sama.
+- Test: `Create Prod. Order from Sale.SetHideValidationDialog(true)` + `CreateProductionOrder(SalesLine, Released, ItemOrder | ProjectOrder)`
+  (zboží s *Způsob doplnění* = Výrobní zakázka, bez kusovníku stačí); sešit = zboží s pravidlem *Objednávka*, prodej 2 týdny dopředu,
+  `LibraryPlanning.CalcRegenPlanForPlanWksh` + `CarryOutActionMsgPlanWksh`; Refresh = `LibraryManufacturing.RefreshProdOrder(…, CalcLines = true, …)`.

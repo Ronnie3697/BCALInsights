@@ -6,7 +6,8 @@ description: >-
   CaptionClass + Translation Helper, CZ↔EN terminologie, duplicita IČ/DIČ zákazníka/dodavatele, Attached to Line No.,
   VerifyOnInventory, Item Jnl. Line UoM qty-per, Auto Format, Item Charge Assignment, Job Queue z účtování /
   recurring, camt.053 Data Exchange (merge, Regex), Retention Policy (OnRefreshAllowedTables), pole kusovníku →
-  komponenta VZ (OnAfterProdOrderCompInsert, Planning Component → Carry Out). Načti u číselných řad, výroby, Job
+  komponenta VZ (OnAfterProdOrderCompInsert, Planning Component → Carry Out), pole prodejního řádku → hlavička a řádek
+  VZ (OnAfterCreateProdOrderFromSalesLine před řádky, Mfg. Carry Out Action). Načti u číselných řad, výroby, Job
   Queue, bank. importu. (Shopify/HTTP → bc-al-integrations; projekty → bc-al-projects; šarže/SN → bc-al-tracking;
   HNO/HPO, sešit požadavků → bc-al-blanket; CZZ zálohy → bc-al-advance-cz; přihrádky, skladové doklady a aktivity,
   MJ ve skladu → bc-al-warehouse.)
