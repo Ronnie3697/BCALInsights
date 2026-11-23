@@ -700,10 +700,15 @@ jako „spadly testy", přitom testy vůbec neběžely.
 alc **18.1.44** z compiler folderu 29.1 s `Analyzers.Common` + PTE copem a obě appky dostaly `PTE0012` → červený build
 29629 (2026-11-23, PR 10066). ⚠️ **`PTE0012` Hidden v rootovém `<repo>.ruleset.json` pomůže jen VS Code a lokálnímu `alc`**
 (workspace `al.ruleSetPath`) — CI ho nevidí (12.4 v `bc-al-workflow.md`), takže lokální „0 warningů" s rootovým rulesetem
-je falešně čisté. Fix = `*.ruleset.json` **ve složce každé appky s `internalsVisibleTo`** (`W1/CDS.W1/app/soitron-cds-w1.ruleset.json`)
-s `includedRuleSets` na rootový ruleset přes relativní cestu (`../../../soitron-bc.ruleset.json`, řeší se vůči souboru
-rulesetu) + explicitní `PTE0012` Hidden. Ověření jako CI: `alc` 18.1 s `/analyzer:` `Analyzers.Common` + `PerTenantExtensionCop`,
-`/ruleset:<soubor ve složce appky>` + `/enableexternalrulesets` — bez rulesetu `PTE0012` (reprodukce CI), s ním čisto.
+je falešně čisté. **Fix bez dalšího rulesetu (přání uživatele): `"suppressWarnings": ["PTE0012"]` přímo v `app.json`
+appky s `internalsVisibleTo`.** `alc` potlačí i analyzerový nález (nejen `AL*`) — ověřeno přesně jako CI: `alc` 18.1 s `/analyzer:`
+`Analyzers.Common` + `PerTenantExtensionCop`, **bez** `/ruleset:` → bez `suppressWarnings` `PTE0012`, s ním čisto. VS Code JSON
+schéma `app.json` u hodnoty hlásí „Value is not accepted" (nabízí jen `AL…` ID) — jen validace editoru, kompilaci nevadí.
+(`ruleSetPath` v `app.json` naopak nejde, AL0124 — 12.4 v `bc-al-workflow.md`.) Další funkční cesty: `*.ruleset.json` ve složce
+appky (může dědit rootový přes relativní `includedRuleSets`), nebo v `azure-pipelines.yml` přepsat `compileSteps` (výchozí
+`templates\CompileALApps2.yml@essence_templates` s parametry `$(BC_ARTIFACT_JOB)`, `$(appSource)`, `$(perTenantExtension)`,
+`$(externalRulesets)`) a přidat `rulesetFile: '$(System.DefaultWorkingDirectory)\<repo>.ruleset.json'` — ten parametr přebije
+hledání ve složce appky pro všechny projekty (`CompileALApps2.ps1`, v2-0).
 
 **Sada analyzerů se liší per repo a test appka bez rulesetu = CodeCop warning shodí build.** `cust-alumistr-bc` (PR build
 28888, 2026-10-15) kompiluje každou appku s **CodeCop + PerTenantExtensionCop + UICop** (řádek `.\alc.exe … /analyzer:…` v logu
