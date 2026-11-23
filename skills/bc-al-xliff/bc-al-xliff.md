@@ -260,3 +260,17 @@ dodávky“, jak se svádí překládat), *Create Sales Invoice* na řádcích p
 **dodat** / **fakturovat** / **dodat a fakturovat** (malými písmeny), *Posted Sales Invoice* = **Účtovaná prodejní faktura**. Extrakce:
 `unzip -p "<…>/Base Application.Source.zip" "Translations/Base Application.cs-CZ.xlf"` (přesná cesta s mezerou; `grep -o` na název
 ze `unzip -l` mezeru useká a vznikne prázdný soubor) a hledat `LookupHint=Page <stránka> - Action <název akce> - Property Caption`.
+Bez artifact cache: v CZ kontejneru je stejný soubor v **jazykové appce** `C:\Applications\BaseApp\Source\Microsoft_Czech language
+(Czechia).app` → `Translations/Base%20Application.cs-CZ.xlf` (`.app` = 40 B hlavička NAVX + ZIP). U Hyper-V kontejneru `docker cp`
+nejde („filesystem operations against a running Hyper-V container are not supported“) → `docker exec <kontejner> powershell Copy-Item
+… 'C:\ProgramData\BcContainerHelper\Extensions\<kontejner>\'` (sdílená složka) a odtud dál.
+Schvalování nákupního dokladu (2026-11-23, PBI 67819, BC 28.2 cz) — **pozor, svádí to k „žádosti o schválení“**: *Send Approval
+Request* = **Odeslat požadavek ke schvalování**, *Cancel Approval Request* = **Zrušit požadavek ke schvalování**, *Release* = **Vydat**,
+*Reopen* = **Znovu otevřít**, stav *Pending Approval* / *Open* / *Released* = **Čeká na schválení** / **Otevřeno** / **Vydaná**,
+*Requests to Approve* = **Požadavky na schválení**, *Approve* / *Reject* = **Schválit** / **Odmítnout**, *Workflows* = **Workflow**,
+*New Workflow from Template* = **Nové workflow ze šablony**, šablona *Purchase Order Approval Workflow* = **Workflow schvalování nákupní
+objednávky**, událost = **Je požadováno schválení nákupního dokladu.**, odezva = **Vytvořit požadavek ke schvalování pro záznam
+používající typ schvalovatele %1 a %2.**, *Approver Type* = **Typ schvalovatele** (*Salesperson/Purchaser* = **Prodejce/nákupčí**),
+*Approver Limit Type* = **Typ limitu schvalovatele** (*Direct Approver* = **Přímý schvalovatel**), *Approval User Setup* = **Nastavení
+uživatelů schvalování**, *Salespers./Purch. Code* = **Kód prodejce/nákupčího**, *Purchaser Code* = **Kód nákupčího**; hlášky
+**Tento doklad lze vydat pouze po dokončení procesu schvalování.** a **Nákupní %1 %2 musí být schválena a vydána před provedením této akce.**

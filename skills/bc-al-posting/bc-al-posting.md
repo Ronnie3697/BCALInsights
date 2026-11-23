@@ -769,7 +769,7 @@ hlavičky (enum stavu) jako podmínka prvního kroku, konzultant jen doplní fil
 - **Jeden hook pro všechny kontroly nákupního dokladu:** `Approvals Mgmt.OnBeforeIsPurchaseApprovalsWorkflowEnabled(var PurchaseHeader;
   var Result; var IsHandled)` — volá ho `IsPurchaseHeaderPendingApproval` (ruční vydání přes `PerformManualCheckAndRelease`,
   `CheckPurchaseReleaseRestrictions` → `PrePostApprovalCheckPurch` před účtováním) i `CheckPurchaseApprovalPossible` (akce *Odeslat
-  žádost o schválení*; `OnSendPurchaseDocForApproval` za ním vyhodnotí podmínky znovu z DB). Purchase Order page ho při zobrazení
+  požadavek ke schvalování*; `OnSendPurchaseDocForApproval` za ním vyhodnotí podmínky znovu z DB). Purchase Order page ho při zobrazení
   nevolá (jen v akcích). Uložení stavu se při zablokovaném vydání odroluje s chybou — na kartě proto zobrazuj stav spočítaný živě
   (proměnná v `OnAfterGetCurrRecord`), uložené pole je jen pro workflow, archiv a seznamy. Prodejní `IsSalesApprovalsWorkflowEnabled`
   OnBefore event v w1-28 nemá.
@@ -786,10 +786,15 @@ hlavičky (enum stavu) jako podmínka prvního kroku, konzultant jen doplní fil
   name="Purchase Header">%1</DataItem><DataItem name="Purchase Line">%2</DataItem></DataItems></ReportParameters>',
   WorkflowSetup.Encode(Header.GetView(false)), WorkflowSetup.Encode(Line.GetView(false))))` — stejně staví podmínky šablona
   (`BuildPurchHeaderTypeConditionsText`). Recept testu v `bc-al-autotests-domains.md`.
+- **Návod pro konzultanta:** odezva *Vytvořit požadavek ke schvalování…* nemá volbu „bez limitů“. *Typ limitu schvalovatele* má jen
+  *Schvalovatelský řetězec* / *Přímý schvalovatel* / *První kvalifikovaný schvalovatel* / *Konkrétní schvalovatel*. Pro „schvaluje jen
+  nákupčí dokladu“ = *Typ schvalovatele* **Prodejce/nákupčí** + **Přímý schvalovatel** (`CreateApprReqForApprTypeSalespersPurchaser`;
+  řetězec by přidal nadřízené z *Nastavení uživatelů schvalování*). Doklad bez *Kódu nákupčího* odeslání neprojde (`TestField`).
+  České popisky akcí a šablony v `bc-al-xliff.md` 6.6.
 
 (2026-11-11, cust-soitron-bc PBI 67819 `Project PO Approval Mgt. SOI` + eventy EPEBS `…OnBeforeModify` při tvorbě řádku NO z řádku
-plánování; zdroje w1-28 `WorkflowManagement`, `ApprovalsMgmt`, `ReleasePurchaseDocument`, `WorkflowResponseHandling`; kompilace čistá,
-běh testů zatím ne.)
+plánování; zdroje w1-28 `WorkflowManagement`, `ApprovalsMgmt`, `ReleasePurchaseDocument`, `WorkflowResponseHandling`. Testy 13/13
+v lokálním kontejneru BC 28.2 cz, 2026-11-12 a znovu 2026-11-23 na větvi PR.)
 
 ### 3.6p Částka DPH z externího systému na prodejním dokladu z kódu — rozdíl DPH přes `VAT Amount Line`; CZL ho maže
 
