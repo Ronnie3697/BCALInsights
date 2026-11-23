@@ -20,6 +20,8 @@ Obsahuje:
 - **3.6n** Způsob platby na dokladu, jehož platby účtuje vlastní kód: přiřazením, ne `Validate` (protiúčet → druhé vyrovnání, Cash Desk CZP → pokladní doklad), CZL QR dotaz při vydání
 - **3.6o** Vlastní podmínka schvalovacího workflow dokladu (pole hlavičky jako event condition): workflow čte doklad z DB → stav uložit v `Approvals Mgmt.OnBeforeIsPurchaseApprovalsWorkflowEnabled`; dokončené schválení = `OnBeforeReleasePurchaseDoc` se stavem Pending Approval
 - **3.6p** Částka DPH z externího systému na prodejním dokladu z kódu = rozdíl DPH přes `VAT Amount Line` (jako Statistika); CZL `Sales Line Handler CZL` ho smaže při každém `Insert/Modify/Delete(true)` řádku
+- **3.6q** Ke kterým fakturám se účtovaný dobropis vztahuje — řádky + aktuální vyrovnání
+- **3.6r** Vlastní pole řádku plánování projektu na generovaný prodejní řádek: IMEBS objednávka (dva eventy), standardní faktura z řádků plánování (`Job Create-Invoice.OnBeforeInsertSalesLine`) a vlastní cesty zakládání řádků
 
 ## 3. Event Subscribery — propagace polí (3.5–3.6f)
 
@@ -840,3 +842,30 @@ v okamžiku použití (export, tisk) ze dvou zdrojů:
 
 (2026-11-20, cust-jiri-bc / cust-jiri-w1-bc PBI 67974, `EDI Cr. Memo Reference EDEBS`; kompilace čistá, bez autotestů — EDI appka
 test appku nemá.)
+
+### 3.6r Vlastní pole řádku plánování projektu na generovaný prodejní řádek — všechny cesty, které řádek zakládají
+
+Pole z `Job Planning Line` (Soitron *Prodejní popis* Text[350]) se na prodejní řádek samo nedostane, `Sales Line` → `Sales Invoice Line`
+pak už jde stejným field ID (3.6). Zápis patří **až za validace řádku** (`Validate("No.")` dělá `Init()`, 3.6b), jen přiřazením
+bez vlastního `Modify` — volající řádek ukládá sám. Cesty v Essence / Soitron prostředí (w1-28, IMEBS 28.0.37):
+
+- **IMEBS `GenerateSalesOrderJobLines`** (akce *Vytvořit prodejní objednávku*, report `Job Create Sales Order IMEBS`, Soitron QB
+  `GenerateSalesOrder`): `Project Item Management IMEBS.OnGenerateSalesOrderJobLinesOnBeforeModifySalesLine(SalesHeader,
+  JobPlanningLine, var SalesLine)` pro zboží / zdroj / účet a `OnCreateSalesOrderTextLineOnBeforeModifySalesLine` (stejné parametry)
+  pro poznámkové řádky z textových řádků plánování. Oba těsně před `Modify` řádku.
+- **Standardní faktura z řádků plánování** (`Job Create-Invoice.CreateSalesLine`): `OnBeforeInsertSalesLine(var SalesLine; var
+  SalesHeader; Job; JobPlanningLine; JobInvCurrency)` — po všech validacích a na místě, kde standard kopíruje `Description` /
+  `Description 2`, před `Insert(true)`. Subscriber smí deklarovat jen `SalesLine` + `JobPlanningLine`.
+- **Řádky, které zakládá vlastní kód zákaznické appky** (Soitron `Sales Aggregation Mgt. SOI.InsertSummarySalesLine` — souhrnný řádek
+  agregace doplněný po generování objednávky, když ho IMEBS nepřenese, a při vydání faktury z *Kopie řádků dodávky*): žádný event,
+  pole doplnit přímo tam. **Chytil to až autotest** — objednávka z QB měla souhrnný řádek z téhle cesty, ne z IMEBS eventu,
+  a prodejní popis na něm chyběl. Před „hotovo“ proto grepni appku na `Sales Line` `Insert(` mimo standardní generátory.
+- Faktura z *Kopie řádků dodávky* (`InsertInvLineFromShptLine`: `SalesLine := SalesOrderLine`) nese pole řádku objednávky sama.
+
+Prodloužení zdrojového pole (Text[100] → Text[350]) v integrační bufferové tabulce: projdi **lokální proměnné a parametry** typu
+`Text[100]`, kterými hodnota prochází (`Description: Text[100]; Description := BufferLine."Sales Description"` = runtime overflow
+u delšího textu, kompilátor nehlásí chybu, jen AA0139 u přiřazení do pole) a kopie do jiných tabulek s kratším polem dej přes `CopyStr`.
+Porovnání verzí (dlouhý text v kontrolní zprávě Text[250]) hlas jen captionem a prázdnou hodnotu na starých záznamech (pole
+přibylo, data se zpětně neplní) nepovažuj za změnu, jinak nasazení přepne všechny existující řádky do „K potvrzení“.
+(2026-11-23, cust-soitron-bc PBI 67781, `Sales Description Mgt. SOI`; zdroj w1-28 `JobCreateInvoice.Codeunit.al`; 11 testů
+`Sales Description Test SOI` v `bc28`.)

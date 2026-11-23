@@ -403,3 +403,10 @@ end;
   Database::"Soitron Setup SOI")` (vzor `Inv. Payment Status Test SOI`, `Cust. 2Ring Sync Test CWSOI`). Testy, které zákazníka
   nezakládají (`SalesHeader.Init()` bez insertu), projdou a maskují to — v CI spadne jen část codeunitu, chyba je v GIVEN (6–14 ms).
   (2026-11-05, cust-soitron-bc build 29289, 9 testů `Order Status Sync Test CWSOI` + `BC Link Sync Test CWSOI`.)
+- **cust-soitron-bc: QB buffer řádek bez *Invoice Date* na projektu bez *Ending Date* = výnosový řádek plánování s datem založení
+  projektu (skutečné dnešní datum) → objednávka z něj (`Auto Generate Sales Order SOI` / IMEBS `GenerateSalesOrderJobLines`) spadne na
+  „Unhandled UI: Message Shipment Date 11/23/26 is before work date 01/27/28“** (`Sales Line.CheckShipmentDateBeforeWorkDate` z `Validate
+  ("Planned Delivery Date")`). WorkDate CRONUS kontejneru je v roce 2028, `Job."Creation Date"` je `Today()`. Testy, které z QB bufferu
+  generují prodejní doklad, dávají buffer řádkům `"Invoice Date" := WorkDate()` (nebo projektu `Ending Date`); testy jen nad řádky
+  plánování to nepotřebují. Nákladová strana bere `Starting Date` projektu, ten QB testy nastavují na WorkDate. (2026-11-23, PBI 67781,
+  `Sales Description Test SOI`, `bc28`.)

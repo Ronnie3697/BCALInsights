@@ -1,16 +1,16 @@
 ---
 name: bc-al-posting
 description: >-
-  BC/AL pole dokladů → účtované doklady, archiv, kopie + účtování z kódu (3.5–3.6q): Sales Line → ILE /
+  BC/AL pole dokladů → účtované doklady, archiv, kopie + účtování z kódu (3.5–3.6r): Sales Line → ILE /
   Whse. Shipment, stejné field ID archive/posted (TransferFields), total řádku při částečném účtování/undo
   (OnAfterInitFromSalesLine), AutoFormatExpression GetCurrencyCode, Validate("No.") Init() past (archiv, Copy
   Document, Recreate), OnAfterGetUnitCost, Blob hlavičky (CalcFields), délky Text (LC0044, PC0020), guard
   OnModifyRecord, OnAfterCheckSalesDoc vs OnBeforeIsApprovedForPosting, Job No. dodávka vs faktura, dvojí
-  archivace při emailu (Mail Management), WorkDate při účtování z kódu, výstup/kapacita VZ z kódu
-  (Validate(Type) maže No., zmetky, tiché Item Jnl.-Post), způsob platby bez Validate (protiúčet, pokladna
-  CZP), podmínka schvalovacího workflow (OnBeforeIsPurchaseApprovalsWorkflowEnabled,
-  OnBeforeReleasePurchaseDoc), DPH z integrace = rozdíl přes VAT Amount Line (CZL ho maže), faktury
-  dobropisu (řádky, vyrovnání DCLE). Načti u polí dokladů, postingu, archivu, kopie, emailu, schvalování,
+  archivace při emailu, WorkDate při účtování z kódu, výstup/kapacita VZ z kódu (Validate(Type) maže No.,
+  zmetky, tiché Item Jnl.-Post), způsob platby bez Validate (protiúčet, pokladna CZP), podmínka
+  schvalovacího workflow (OnBeforeIsPurchaseApprovalsWorkflowEnabled), DPH z integrace přes VAT Amount
+  Line, faktury dobropisu (řádky, vyrovnání DCLE), pole řádku plánování → prodejní řádek
+  (OnBeforeInsertSalesLine). Načti u polí dokladů, postingu, archivu, kopie, emailu, schvalování,
   DPH, vyrovnání.
 user-invocable: true
 ---

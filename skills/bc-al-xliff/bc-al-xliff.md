@@ -255,3 +255,8 @@ plánování**, `Qty. Transferred to Invoice` = **Transf. množ. k fakturaci**, 
 stránky *Řádky plánování projektu*, *Archivní řádky plánování projektu*, *Archiv projektu*, akce *Archivovat projekt*, *Obnovit*.
 Vlastní překlady pak sjednoť s tímto názvoslovím (v tasku 66675 se tak „jednotkové náklady" opravily na „pořizovací cena").
 (2026-11-13, prod-ep-projectBase-bc / prod-ep-itemManagement-bc / cust-soitron-bc task 66675.)
+Další ověřené popisky (2026-11-23, PBI 67781): *Get Shipment Lines* na prodejní faktuře = **Kopie řádků dodávky** (ne „Získat řádky
+dodávky“, jak se svádí překládat), *Create Sales Invoice* na řádcích plánování = **Vytvořit prodejní fakturu**, volby účtování objednávky
+**dodat** / **fakturovat** / **dodat a fakturovat** (malými písmeny), *Posted Sales Invoice* = **Účtovaná prodejní faktura**. Extrakce:
+`unzip -p "<…>/Base Application.Source.zip" "Translations/Base Application.cs-CZ.xlf"` (přesná cesta s mezerou; `grep -o` na název
+ze `unzip -l` mezeru useká a vznikne prázdný soubor) a hledat `LookupHint=Page <stránka> - Action <název akce> - Property Caption`.
