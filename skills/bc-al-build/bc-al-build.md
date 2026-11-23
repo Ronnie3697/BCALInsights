@@ -695,6 +695,16 @@ se Internal kontraktem se stejně dřív nebo později vrátí → Hidden v rule
 Zachyceno 2026-09-22, prod-ef-advanceCZ-bc build 28371 (master po merge PR 9166) — hodinu to vypadá
 jako „spadly testy", přitom testy vůbec neběžely.
 
+**Bump na BC 29 může `PTE0012` vyvolat i v repu, kde BC 28 build byl čistý.** cust-soitron-bc: master na BC 28
+(alc 17) se stejným `internalsVisibleTo` v CDS.W1 / CDS.CZ hlásil 0 issues (build 29628), PR s bumpem na 29 kompiluje
+alc **18.1.44** z compiler folderu 29.1 s `Analyzers.Common` + PTE copem a obě appky dostaly `PTE0012` → červený build
+29629 (2026-11-23, PR 10066). ⚠️ **`PTE0012` Hidden v rootovém `<repo>.ruleset.json` pomůže jen VS Code a lokálnímu `alc`**
+(workspace `al.ruleSetPath`) — CI ho nevidí (12.4 v `bc-al-workflow.md`), takže lokální „0 warningů" s rootovým rulesetem
+je falešně čisté. Fix = `*.ruleset.json` **ve složce každé appky s `internalsVisibleTo`** (`W1/CDS.W1/app/soitron-cds-w1.ruleset.json`)
+s `includedRuleSets` na rootový ruleset přes relativní cestu (`../../../soitron-bc.ruleset.json`, řeší se vůči souboru
+rulesetu) + explicitní `PTE0012` Hidden. Ověření jako CI: `alc` 18.1 s `/analyzer:` `Analyzers.Common` + `PerTenantExtensionCop`,
+`/ruleset:<soubor ve složce appky>` + `/enableexternalrulesets` — bez rulesetu `PTE0012` (reprodukce CI), s ním čisto.
+
 **Sada analyzerů se liší per repo a test appka bez rulesetu = CodeCop warning shodí build.** `cust-alumistr-bc` (PR build
 28888, 2026-10-15) kompiluje každou appku s **CodeCop + PerTenantExtensionCop + UICop** (řádek `.\alc.exe … /analyzer:…` v logu
 „Compile AL Apps"; seznam ověř tam, ne podle repa výš). Ruleset předá jen projektu, který ho má ve složce (`pricingMatrixExtension/test`
