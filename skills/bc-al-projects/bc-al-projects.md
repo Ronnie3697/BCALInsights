@@ -952,9 +952,11 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
 
 - **`StandardDialog` místo request page reportu**, když řádky určuje filtr stránky. Report tu nic nepřidá. Filtry datové položky
   v dialogu by filtr stránky přepsaly a `SaveValues` by si pamatoval zaškrtnutá „Změnit“ z minula. Parametry drží tabulka
-  s `TableType = Temporary`: každé pole má příznak `Update …` a hodnotu. `OnValidate` hodnoty příznak zaškrtne **i při smazání**:
-  zadání „vyprázdnit pole“ musí jít, a kdyby smazání příznak nezaškrtlo, smazaná hodnota by se tiše ignorovala. Kontrola
-  „aspoň jedno pole“ běží v `OnQueryClosePage`, takže chyba nechá dialog otevřený. Logika žije v codeunitě, testy jdou bez UI.
+  s `TableType = Temporary`: každé pole má příznak `Update …` a hodnotu. **Příznak nastavuje jen uživatel.** Žádné automatické
+  zaškrtnutí v `OnValidate` hodnoty, ani při zadání, ani při smazání, protože příznakem uživatel říká, co se mění. Obě varianty
+  „pohodlného“ zaškrtávání uživatel odmítl: zaškrtnutí při neprázdné hodnotě i zaškrtnutí při každé změně včetně smazání.
+  Kontrola „aspoň jedno pole“ běží v `OnQueryClosePage`, takže chyba nechá dialog otevřený a hodnota bez příznaku se nepotvrdí
+  potichu. Logika žije v codeunitě, testy jdou bez UI.
 - **Označené řádky vs. filtr:** `CurrPage.SetSelectionFilter(Selected)`. Při `Selected.Count() > 1` se berou označené řádky, jinak
   `Filtered.Copy(Rec)`, protože `Copy` nese filtry všech filter groups včetně `RunPageLink`. Jeden označený řádek nejde odlišit
   od kurzoru. Výběr čti přímo ze `Selected`: bývá v marks a kopie je nenese (2.6b v `bc-al-data.md`). V testu výběr nasimuluješ
