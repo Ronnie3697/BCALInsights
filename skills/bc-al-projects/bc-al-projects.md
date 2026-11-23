@@ -35,6 +35,23 @@ Obsahuje:
   `ValidateShortcutDimCode`, ne `Validate` — jeho `TableRelation` filtruje `"Global Dimension No."` (`Dimension Value` ho plní v `OnInsert`
   / `OnRename` a `General Ledger Setup` při změně zkratky). Test lookupu: `TestPage "Job Card"` + `ModalPageHandler` na `Dimension Value
   List` (`GoToKey` + `OK()`) prošel, `Page.RunModal(0, …)` vrátí `LookupOK`. (2026-11-18, cust-soitron-bc Task 67915, 378/378 v `bc28`.)
+- **Uložená kopie zkratkové dimenze 3–8 na projektu / úloze (kvůli filtru a řazení seznamu) = napojit se na VŠECHNA místa, kde
+  standard drží `Global Dimension 1/2 Code` (w1-28).** Pole s vlastním `OnValidate` → `ValidateShortcutDimCode` zapisuje jen samo
+  sebe; dimenze změněná přes *Výchozí dimenze*, *Dimenze úlohy projektu*, novou úlohu, *Kopírovat projekt*, API nebo balíček nechá
+  pole prázdné / staré (Soitron: „Typ projektu se nezobrazuje správně“, filtr seznamu lže). Body: `Default Dimension` / `Job Task
+  Dimension` **`OnAfterInsert/Modify/DeleteEvent` jen při `RunTrigger = true`** (= kde standard volá `UpdateGlobalDimCode` /
+  `UpdateGlobalDim`) → `Get` + pole + `Modify`. Zápisy bez triggerů (`SaveDefaultDim`, `SaveJobTaskDim`, `DeleteDefaultDim`,
+  `JobTaskDim.DeleteAll()` při mazání) přeskoč: jejich volající drží Job / Job Task v paměti s už nastaveným polem a uloží ho
+  sám — druhý zápis by skončil „záznam změnil jiný uživatel“ (vzor 3.9 v `bc-al-data.md`). Dál `Job.OnAfterOnInsert` a `Job
+  Task.OnAfterOnInsert` (běží v insert triggeru po `InitGlobalDimFromDefalutDim` / `InsertJobTaskDim`, pole do `var` recordu bez
+  `Modify`), `Copy Job.OnAfterCopyJobDimensions(SourceJob; var TargetJob)` (dimenze kopíruje `Insert()` bez triggerů, `TargetJob`
+  uloží `Modify()` na konci kopie), `Job.OnAfterUpdateJobTaskDimension` (pole projektu → úlohy po dotazu). Úlohu ukládej
+  `Modify(false)`: `Job Task.OnModify` volá `Job.UpdateOverBudgetValue` = zápis projektu. Změna zkratky v *Nastavení financí*:
+  `OnBeforeValidateEvent "Shortcut Dimension n Code"` (dotaz, `xRec` = stará dimenze) + `OnAfterUpdateDimValueGlobalDimNo(ShortCutDimNo,
+  Old, New)` (běží před `Modify` setupu, nová dimenze v parametru) → `ModifyAll(pole, '', false)` + naplnit z dimenzí. Stará data
+  jednou opravit upgrade codeunitou s upgrade tagem (5.2 v `bc-al-objects.md`). **Test:** izolace testů je po codeunitu → projekty
+  předchozích testů mají pole vyplněná a změna zkratky v setupu helperu se začne ptát („Unhandled UI: Confirm“) → helper nejdřív
+  `ModifyAll` pole na `''`. (2026-11-23, cust-soitron-bc Task 67915, `Job Shortcut Dim. Mgt. SOI`, testy 54503.)
 - **Přemapování účto skupiny existujících řádků = vždy z KARTY (Item / Resource / G/L Account `Gen. Prod. Posting Group`), ne
   zpětným překladem přes setup.** První verze (alt skupina starého typu → default → alt nového typu) selhávala při řetězení typů
   (typ bez mapování, dvě default skupiny se stejnou alt, změněný setup nebo karta mezi změnami) a při smazání typu řádky
