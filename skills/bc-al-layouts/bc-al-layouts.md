@@ -170,6 +170,11 @@ RFC „přidat pole do datasetu, layout neřešit" (sloupce si pak umístí konz
   31187 = `//DataItem[@name="RoundLoop"]`, řádek dokladu poznáš podle `No_SalesLine` (každý řádek jiné zboží). Takový test
   hlídá i past s `RoundLoop` výš. Bez náhledu sestava volá `Sales-Printed` (Commit) a podle šablon interakcí loguje dokument.
   (2026-11-18, cust-alumistr-bc 67569, `Report Dataset Tests PMALU` 51974.)
+  ⚠️ **Dataitem s mezerou v názvu přes `@name` nenajdeš:** `//DataItem[@name="Production Order"]` i `…[@name="Prod. Order
+  Component"]` u *Prod. Order - Job Card* (99000762) v kontejneru BC 29.1 nenašly nic, i když sestava řádky měla (`RoundLoop`
+  bez mezery funguje). Řádek hledej podle vlastního sloupce: `//DataItem[Columns/Column[@name="Note_ProdOrder_ALU"]]`, nezávisle
+  na tom, jak XML dataitem pojmenuje; při neúspěchu vypiš `//DataItem/@name`. (2026-11-23, cust-alumistr-bc 67377, testy 51990
+  a 51974: s `@name` 2 faily, se sloupcem zeleno.)
 - **Zdroj CZL sestavy lokálně:** `C:\bcartifacts.cache\onprem\<ver>\cz\Applications\CoreLocalizationPackForCzech\Source\
   Microsoft_Core Localization Pack for Czech.app` je **Ready2Run obal** — NAVX hlavička (40 B) + ZIP, ve kterém je jen
   `readytorunappmanifest.json`, vnitřní `<guid>_<verze>_<n>.app` a DLL; `src/` ani `SymbolReference.json` tam nejsou a
