@@ -7,7 +7,7 @@
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
 Obsahuje:
-- **5.x17–5.x27** Projekty (5.x24: spotřeba projektu z prodejní dodávky per tracking a per položka příjmu, pořadí v Sales-Post; 5.x25: přecenění položek projektu; 5.x26: nákupní dobropis / vratka u Skip projektu; 5.x27: spotřeba projektu z deníku zboží; 5.x28: kontrola množství z řádků plánování — standard zvedá Quantity sám, hooky Job Link Usage / OnBeforeUpdateRemainingQuantityFromUse, Σ při vydání dokladu; 5.x31: storno WIP z kódu — číslo dokladu pro `CalcGLWIP`; 5.x33: náklad práce zdroje do hlavní knihy — `Job Jnl.-Post Line.OnAfterJobLedgEntryInsert`, řádek finančního deníku z kódu bez DPH)
+- **5.x17–5.x27** Projekty (5.x24: spotřeba projektu z prodejní dodávky per tracking a per položka příjmu, pořadí v Sales-Post; 5.x25: přecenění položek projektu; 5.x26: nákupní dobropis / vratka u Skip projektu; 5.x27: spotřeba projektu z deníku zboží; 5.x28: kontrola množství z řádků plánování — standard zvedá Quantity sám, hooky Job Link Usage / OnBeforeUpdateRemainingQuantityFromUse, Σ při vydání dokladu; 5.x31: storno WIP z kódu — číslo dokladu pro `CalcGLWIP`; 5.x33: náklad práce zdroje do hlavní knihy — `Job Jnl.-Post Line.OnAfterJobLedgEntryInsert`, řádek finančního deníku z kódu bez DPH; 5.x34: hromadná změna řádků plánování — StandardDialog, označené vs. filtr, `Codeunit.Run` per řádek)
 
 ### 5.x17 Job Planning Line `Gen. Prod. Posting Group` = zdroj pravdy pro deník projektů; změna default dimenze projektu
 
@@ -947,3 +947,40 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   `Direct Posting` → G/L Entry bez `Gen. Posting Type`, `VAT Entry` s číslem dokladu prázdné. `Library Assert` (System App, dep v
   Soitron testech) nemá `ExpectedTestFieldError` → `ExpectedError(FieldCaption)`. (2026-11-18, cust-soitron-bc Task 67930
   `Resource Cost Posting SOI`, testy `Resource Cost Posting Test SOI` 9/9, celkem 390/390 v `bc28`.)
+
+### 5.x34 Hromadná změna řádků plánování z akce seznamu: dialog místo request page, výběr vs. filtr, řádek po řádku přes `Codeunit.Run`
+
+- **`StandardDialog` místo request page reportu**, když řádky určuje filtr stránky. Report tu nic nepřidá. Filtry datové položky
+  v dialogu by filtr stránky přepsaly a `SaveValues` by si pamatoval zaškrtnutá „Změnit“ z minula. Parametry drží tabulka
+  s `TableType = Temporary`: každé pole má příznak `Update …` a hodnotu, a `OnValidate` neprázdné hodnoty příznak zaškrtne. Kontrola
+  „aspoň jedno pole“ běží v `OnQueryClosePage`, takže chyba nechá dialog otevřený. Logika žije v codeunitě, testy jdou bez UI.
+- **Označené řádky vs. filtr:** `CurrPage.SetSelectionFilter(Selected)`. Při `Selected.Count() > 1` se berou označené řádky, jinak
+  `Filtered.Copy(Rec)`, protože `Copy` nese filtry všech filter groups včetně `RunPageLink`. Jeden označený řádek nejde odlišit
+  od kurzoru. Výběr čti přímo ze `Selected`: bývá v marks a kopie je nenese (2.6b v `bc-al-data.md`). V testu výběr nasimuluješ
+  `Mark(true)` a `MarkedOnly(true)`.
+- **Přeskočení řádku, který změnu odmítne:** před každým řádkem `Commit()` a pak `if LineCodeunit.Run(Line)`. Codeunit má
+  `TableNo`, parametry dostane setterem na instanci a výsledek vrátí getterem, protože instance po `Run` žije. Bez `Commit` to
+  spadne na „Codeunit.Run is allowed in write transactions only if the return value is not used“.
+  - Klíče nejdřív zkopíruj do temp tabulky a každý řádek pak načti `Get`. Zápis mění filtrovaná pole a `Commit` uvnitř `FindSet`
+    je riskantní.
+  - Validuj čerstvě načtený, neoznačený záznam. Soitron `JPL Location Sync SOI` na označeném záznamu (`Rec.Mark()`)
+    synchronizaci lokace vynechá.
+  - Důvody ulož do temp `Error Message` přes `LogMessage(Rec, 0, Warning, text)` a zobraz `Page.Run(Page::"Error Messages")`.
+    Po tichém `Error('')` je `GetLastErrorText()` prázdné, tak dej vlastní text.
+- **Co validace z kódu dělá jinak než ruční změna na stránce (w1-28):**
+  - `Planned Delivery Date` volá `Validate("Planning Date")`: `ValidateModification` (`Qty. Transferred to Invoice` = 0) a
+    `UpdateAllAmounts`. Cenu z kódu znovu nenačítá, `RetrieveCostPrice(0)` hledá změnu No., Qty, Location ap.
+  - `Location Code` u zboží spustí `UpdateReservation`, `Validate(Quantity)` a skladové požadavky. `CheckItemAvailable` běží jen při
+    `CurrFieldNo`. **`PerformAutoReserve` (Reserve = Always) je jen na stránce**, z kódu neproběhne.
+  - EP Project Base: `Vendor No. EPEBS` přepíše platební podmínku a skupinu DPH podle dodavatele a vymazání dodavatele vymaže
+    i platební podmínku, proto validuj dodavatele před platební podmínkou.
+  - Pravidla pole *Payment Terms Code* (existuje nákupní faktura = `Error`, existuje NO = `Confirm`) jsou v pageextension EP Project
+    Base, ne v tabulce, takže je v hromadné změně zopakuj.
+  - `Create Purchase Order EPEBS` = `TestField("Tender No. EPEBS", '')` a nenulové zbývající množství.
+  - Soitron dotazy na řádek typu Zdroj padají jen při `CurrFieldNo`.
+- **Testy bez dokladů:**
+  - „převedeno do faktury“ = `Job Planning Line Invoice` přes `Insert(false)`;
+  - „existuje NO“ = `Purchase Line` typu Order s `Job No.`, `Job Task No.` a `Job Planning Line No.` přes `Insert(false)`
+    (FlowFieldy `Purchase Order Exists EPEBS` a `Purchase Order No. EPEBS`);
+  - akce přes `TestPage` s `Filter.SetFilter`, `ModalPageHandler` dialogu a `Commit()` před `Invoke`, protože dialog je modální.
+(2026-11-23, cust-soitron-bc PBI 66672, `JPL Mass Update Mgt. SOI` + `JPL Mass Update Line SOI`, 13 testů, 425/425 v `bc28`.)

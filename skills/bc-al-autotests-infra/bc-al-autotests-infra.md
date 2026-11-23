@@ -224,6 +224,16 @@ Dvě verze téže appky v jedné cache (stará `.alpackages` + nový build) = ne
   a s `app/essence.png` + `app/<main>.ruleset.json` vedle kopie (logo `..\app\…`, test ruleset dědí `..\app\…`).
   Repo ruleset s externím includem přes `/enableexternalrulesets` prošel (blob TLS OK).
 
+### Minimum závislosti v test `app.json` vyšší než verze v cache = pole rozšíření „neexistují", bez AL1022
+
+Test `app.json` cust-soitron-bc chtěl Essence Project Base ≥ 28.0.46.0, repo `.alpackages` měla 28.0.0.1 (hlavní `app.json`
+měl v pracovním stromu minimum snížené na 28.0.0.0). alc 18.1 **nehlásil `AL1022`**, jen desítky `AL0132` / `AL0118`
+(*'Record "Job Planning Line"' does not contain a definition for 'Vendor No. EPEBS'*) i v testech, na které nikdo nesáhl.
+Když padají i cizí testy na polích tableextension závislé appky, porovnej minima v test `app.json` s verzemi v cache. Pro
+compile-check sniž minima Essence závislostí v **kopii** test appky (node: `d.publisher.startsWith("Essence") &&
+!d.name.startsWith("Soitron")` → `"28.0.0.0"`), stejně jako to dělá skript kontejneru `bc28` (`Lower-EssenceDependencies`).
+(2026-11-23, cust-soitron-bc 66672.)
+
 ### Re-analýza VS Code po změně `app.json`
 
 Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS Code AL extension **necachuje** změnu okamžitě. Diagnostiky stále hlásí "Codeunit 'Library Assert' is missing" pro již refaktorované kódy. Řešení:

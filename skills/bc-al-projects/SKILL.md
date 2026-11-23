@@ -1,16 +1,16 @@
 ---
 name: bc-al-projects
 description: >-
-  BC/AL projekty (Job / Job Task / Job Planning Line, 5.x17–5.x33): účto skupina řádku plánování do deníku
-  projektů, default dimenze projektu (xRec v OnAfterModifyEvent), Location Code z Job / Job Task jen pro nové
+  BC/AL projekty (Job/Job Task/Job Planning Line, 5.x17–5.x34): účto skupina řádku plánování do deníku
+  projektů, default dimenze projektu (xRec v OnAfterModifyEvent), Location Code z Job/Job Task jen pro nové
   řádky, vazba budget ↔ billable Purch. Job Cont.Entry No.IMEBS, dimenze řádku plánování do Job Journal Line
   (UpdateDimensions po OnAfterCreateDim), návazné doklady (JPL Invoice, Job No. EPEBS), guardy JPL.OnDelete,
-  undo nákupní příjemky s projektem, spotřeba z prodejní dodávky per šarže / SN / položka příjmu
-  (OnAfterInsertShipmentLine), nákupní dobropis / vratka u Skip projektu, spotřeba z deníku zboží
+  undo nákupní příjemky s projektem, spotřeba z prodejní dodávky per šarže/SN/položka příjmu
+  (OnAfterInsertShipmentLine), nákupní dobropis/vratka u Skip projektu, spotřeba z deníku zboží
   (OnAfterPostItemJnlLine), přespotřeba řádku plánování (Job Link Usage, OnBeforeUpdateRemainingQuantityFromUse;
-  Never / Confirm / Always / Keep Original), storno WIP z kódu (CalcGLWIP = TestDocumentNo), náklad práce zdroje
-  do hlavní knihy (OnAfterJobLedgEntryInsert, Gen. Journal Line z kódu bez DPH). Načti u plánovacích řádků,
-  deníků a dokladů projektu.
+  Never/Confirm/Always/Keep Original), storno WIP z kódu (CalcGLWIP→TestDocumentNo), náklad práce zdroje
+  do hlavní knihy (OnAfterJobLedgEntryInsert, Gen. Journal Line z kódu bez DPH), hromadná změna řádků plánování
+  (StandardDialog, Codeunit.Run per řádek). Načti u řádků plánování, deníků a dokladů projektu.
 user-invocable: true
 ---
 

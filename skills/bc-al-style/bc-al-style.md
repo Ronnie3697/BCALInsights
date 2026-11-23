@@ -363,6 +363,11 @@ TempReqLine: Record "Requisition Line" temporary;
 do DB, isolated buffer) a linter to označí. Pojmenuj podle role: `Filter*`,
 `Buffer*`, `Existing*`, `New*`, …
 
+⚠️ **Tabulka s `TableType = Temporary` je temporary i bez klíčového slova `temporary`** — proměnná
+`MassUpdateBuffer: Record "JPL Mass Update Buffer SOI"` dostane **AA0073** (warning → CI fail), musí se jmenovat
+`TempMassUpdateBuffer`. Hlásí to proměnné, ne parametry; parametry pojmenuj stejně, ať se to nemíchá.
+(2026-11-23, cust-soitron-bc 66672, lokální alc 18.1 + CodeCop.)
+
 ### 1.9 `StyleExpr` — `Text`/`Boolean`/`Code` proměnná plněná `Format(PageStyle::X)`, ne string literal (LC0086)
 
 Property `StyleExpr` na page kontrolu **nepřijímá** `PageStyle` enum přímo — akceptuje

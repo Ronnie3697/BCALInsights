@@ -346,6 +346,10 @@ Assert.ExpectedErrorCode('Dialog');
   `OnInsert` → `Validate("Unit of Measure", Item."Base Unit of Measure")`, jen `OnInsertTriggerOnBeforeValidateUoM` IsHandled). Test
   „odkaz bez MJ“ s `Insert(true)` tak ve skutečnosti testuje odkaz základní MJ; prázdnou MJ (data z importu) vyrobíš jen `Insert(false)`.
   Při review ji našel agent, testy procházely dál a jen lhaly v GIVEN. (Task 63116, Dotykačka + cust-sonnentor-bc, 2026-10-16.)
+- **`Error Message.Description` je od BC 25 odstraněné** (`AL0433 … Replaced by "Message" which has an increase in field
+  length. Tag: 25.0`) — text záznamu z `LogMessage` / `LogSimpleMessage` čti z pole **`Message`** (Text[2048]). Na stránce
+  *Error Messages* se control pořád jmenuje `Description` (TestPage `ErrorMessages.Description.Value()` funguje).
+  (2026-11-23, cust-soitron-bc 66672.)
 - **Změna textu Labelu = projdi `Assert.ExpectedError` v testech** — ExpectedError hledá podřetězec, přepsaná hláška shodí test
   až v CI (build 28636: `its check did not pass` → `its check ended with the status`). Po úpravě labelu grepni test appku na
   jeho klíčová slova.
