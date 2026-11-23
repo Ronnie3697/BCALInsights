@@ -869,3 +869,16 @@ Porovnání verzí (dlouhý text v kontrolní zprávě Text[250]) hlas jen capti
 přibylo, data se zpětně neplní) nepovažuj za změnu, jinak nasazení přepne všechny existující řádky do „K potvrzení“.
 (2026-11-23, cust-soitron-bc PBI 67781, `Sales Description Mgt. SOI`; zdroj w1-28 `JobCreateInvoice.Codeunit.al`; 11 testů
 `Sales Description Test SOI` v `bc28`.)
+**Celá sada dokladů (tamtéž, druhé kolo):** dodávka, dobropis, příjemka vratky a archiv = jen pole se stejným ID (3.6); obnova
+z archivu, *Kopírovat doklad* s *Přepočítat řádky*, kopie z archivu a přegenerování řádků = 4 hooky z 3.6b (přiřazení bez podmínky).
+Ověřeno 17 testy v `bc28`. Recept testů bez UI (G/L řádek — bez zásob a lokací, jde dodat, přijmout i fakturovat):
+- archiv: `ArchiveManagement.StoreSalesDocument(SalesHeader, false)` (bez dialogu), verze = `Sales Header Archive` `FindLast`;
+  `RestoreSalesDocument(Archive)` položí jeden Confirm (`GetResponseOrDefault`, i bez rezervací) a `Message` → `ConfirmHandler` +
+  `MessageHandler`;
+- kopie s přepočtem: `SetProperties(false, true, false, false, true, false, false)` + `CopySalesDoc("Posted Invoice", …)`; z archivu
+  navíc `SetArchDocVal("Doc. No. Occurrence", "Version No.")` a `CopySalesDoc("Arch. Order", <číslo objednávky>, …)`; řádek hledej
+  podle typu (kopie z účtovaného dokladu vloží nahoru textový řádek „Faktura č. …“);
+- přegenerování: `SalesHeader.SetHideValidationDialog(true)` + `Validate("Sell-to Customer No.", jiný)` + `Modify(true)`; že řádek
+  opravdu vznikl znovu, ověř změnou `SystemId` (číslo řádku zůstane 10000).
+Pageextension s názvem `"Posted S. Cr. Memo Subf. SOI"` v souboru `PostedSalesCrMemoSubf.PageExt.al` = CodeCop **AA0215** (CI fail) —
+název souboru se odvozuje z názvu objektu bez teček a mezer, zkratky musí sedět s názvem souboru.
