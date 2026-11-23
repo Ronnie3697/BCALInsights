@@ -536,6 +536,33 @@ Zbylých ~95 nálezů se uklidí za večer:
 - **Test ruleset: `LC0015` už nestačí** — nástupce `AC0010` je vlastní ID, musíš ho do test rulesetu
   dopsat zvlášť (u konfigurátoru prosákly 2 nálezy, dokud tam byl jen `LC0015`).
 
+**Úklid cust-soitron-bc (2026-11-23, alc 18.1 + ALCops, Base.W1 na BC 29):**
+- **`LC0092` falešně u objektu, jehož název začíná písmeny affixu.** `"Soitron Setup SOI"` s `mandatoryAffixes: ["SOI"]` →
+  „Object name "tron Setup SOI" should start with an uppercase letter": ALCops odřízne „Soi" ze začátku jako affix (bez ohledu
+  na velikost písmen). Tabulku s daty nepřejmenuješ → komentář + `#pragma warning disable LC0092` před deklaraci objektu,
+  `restore` za poslední `}` souboru.
+- **`PC0033` (duplicitní OData EntityName) i u controlu, jehož pole na stránce vůbec není:** výrazový control
+  `field("CRM Business Unit SOI"; CRMBusinessUnitName)` koliduje s **polem primárního klíče** stejného jména, protože OData
+  (Upravit v Excelu) vystavuje klíčová pole vždy. Fix = přejmenovat control (`"CRM Business Unit Name"`). Hash controlu
+  v ID trans-unitu se změní → nová ID z `.g.xlf` (stejný název controlu = stejný hash napříč stránkami), v `.cs-CZ.xlf`
+  a `.sk-SK.xlf` přepsat `id` i poznámku Xliff Generator, překlady zůstanou; bez toho `LC0091` (chybějící překlad).
+- **`FC0004` (pořadí `Permissions`) = řazení „Sort Permissions" z AZ AL Dev Tools** (zdroj ALCops `PermissionEntryComparer`
+  + `NaturalStringComparer`): `table` a `tabledata` jsou **jedna skupina promíchaná podle názvu** (u stejného názvu `table`
+  před `tabledata`), pak `codeunit`, `page`, `query`, `report`, `xmlport`. Názvy se porovnávají bez mezer, bez ohledu na
+  velikost písmen, čísla numericky („Item 2" < „Item 10"). Blok `table …` ×3 + `tabledata …` ×3 za sebou tedy hlásí FC0004.
+  ALCops má na to code fix (Ctrl+. ve VS Code); hromadně node skriptem s `Intl.Collator('und', {sensitivity: 'accent'})`,
+  kontrola že se množina položek nezměnila, ověření kompilací (FC0004 zmizí).
+- **`alcops.json` ALCops hledá i v nadřazených složkách** — soubor v rootu repa platí pro všechny appky (`W1/Base.W1/app`):
+  s ním `LC0090 … threshold 30`, bez něj výchozí 15 (18 nálezů místo 3). Ověřeno alc 18.1.2842859. Starý `lintercop.json`
+  vedle `app.json` dál nikdo nečte (12.1b).
+- **CodeCop `AA0131` u labelu bez `%1` volaného s argumentem** (`StrSubstNo(ResourceLengthLbl, "QB No.")`, label „Resource
+  length must not exceed 20 characters." s `Comment = '%1 = …'`) — reálná chyba, číslo se do hlášky nedostalo. Fix = `%1` do
+  labelu + `<source>` i `<target>` v každém locale (ID trans-unitu se nemění, 6.3 v `bc-al-xliff.md`).
+- **`LC0090` — refaktor tam, kde čitelnost roste, jinak pragma:** dvě smyčky se zdvojenou kontrolou dokladů → tři procedury
+  (32 → pod práh), `case` podle typu řádku → procedura per typ. Lineární blok devíti „první neprázdná hodnota skupiny"
+  přiřazení (každé `if` ve třetím zanoření stojí 4 body) → `#pragma warning disable LC0090` před `///` komentář procedury,
+  `restore` za její `end;` — vytažení by jen přesunulo deset proměnných do parametrů.
+
 **Lokální ověření test appky** šlo přesně podle 7.12: MS test symboly z `prod-ess-dotykackaConnector-bc/.alpackages`
 (řada 28.1 pod 28.3 Base App bez problémů), **AI Test Toolkit** z MSSymbols feedu
 (`microsoft.aitesttoolkit.symbols.2156302a-…`, verze 28.3.52162.52273) a hlavní appku zkompilovanou
