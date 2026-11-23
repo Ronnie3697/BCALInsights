@@ -203,6 +203,15 @@ NEmodifikuje). Směr částky: odchozí platba dodavateli z výpisu má na řád
 - **Rychlý „převedeno do faktury" bez prodejního dokladu:** `Job Planning Line Invoice` s `Document Type = Invoice`, unikátním
   `Document No.`, `Line No.` 10000 a `Quantity Transferred` <> 0 přes `Insert(false)` → FlowField `Qty. Transferred to Invoice` <> 0
   a standard `ValidateModification` změnu ceny řádku odmítne. Stačí na testy přeskočení / hlášky „řádek je ve faktuře". (tamtéž.)
+- **`Job.Validate("Location Code")` na projektu, který už má úlohy = `Message`** („You have changed Location Code on the project, but
+  it has not been changed on the existing project tasks…", `MessageIfJobTaskExist`, w1-28; potlačí ho jen `SetHideValidationDialog`)
+  → test potřebuje `[MessageHandler]`, projekt bez úloh ho mít nesmí (nevyužitý handler = fail). Totéž `"Bin Code"`. Validace lokace
+  navíc **vždy** volá `SetDefaultBin` (`"Bin Code" := ''`, u *Bin Mandatory* `To-Job Bin Code`) i při stejné hodnotě → vlastní kód,
+  který lokaci projektu plní (výchozí lokace logistika), validuje jen při změně, jinak smaže ručně zvolenou přihrádku. Lokace teče
+  dolů jen při založení: úloha z projektu (`InitLocation(Job)`), řádek plánování **jen typu Item** z úlohy (ne z projektu). Test
+  řádku Item s lokací: `LibrarySales.SetStockoutWarning(false)`; `LibraryJob.CreateJobTask` / `CreateJobPlanningLine` projekt
+  v DB nemění, dokud nejsou položky projektu (`UpdateOverBudgetValue` končí na nulových JLE). (2026-11-23, cust-soitron-bc PBI 66671,
+  `Logistic Officer Test SOI`, 453/453 v `bc28`.)
 
 ## Prodejní a nákupní doklady
 
