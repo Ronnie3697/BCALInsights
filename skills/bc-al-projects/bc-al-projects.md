@@ -952,8 +952,11 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
 
 - **`StandardDialog` místo request page reportu**, když řádky určuje filtr stránky. Report tu nic nepřidá. Filtry datové položky
   v dialogu by filtr stránky přepsaly a `SaveValues` by si pamatoval zaškrtnutá „Změnit“ z minula. Parametry drží tabulka
-  s `TableType = Temporary`: každé pole má příznak `Update …` a hodnotu, a `OnValidate` neprázdné hodnoty příznak zaškrtne. Kontrola
-  „aspoň jedno pole“ běží v `OnQueryClosePage`, takže chyba nechá dialog otevřený. Logika žije v codeunitě, testy jdou bez UI.
+  s `TableType = Temporary`: každé pole má příznak `Update …` a hodnotu. **Příznak nastavuje jen uživatel.** Žádné automatické
+  zaškrtnutí v `OnValidate` hodnoty, ani při zadání, ani při smazání, protože příznakem uživatel říká, co se mění. Obě varianty
+  „pohodlného“ zaškrtávání uživatel odmítl: zaškrtnutí při neprázdné hodnotě i zaškrtnutí při každé změně včetně smazání.
+  Kontrola „aspoň jedno pole“ běží v `OnQueryClosePage`, takže chyba nechá dialog otevřený a hodnota bez příznaku se nepotvrdí
+  potichu. Logika žije v codeunitě, testy jdou bez UI.
 - **Označené řádky vs. filtr:** `CurrPage.SetSelectionFilter(Selected)`. Při `Selected.Count() > 1` se berou označené řádky, jinak
   `Filtered.Copy(Rec)`, protože `Copy` nese filtry všech filter groups včetně `RunPageLink`. Jeden označený řádek nejde odlišit
   od kurzoru. Výběr čti přímo ze `Selected`: bývá v marks a kopie je nenese (2.6b v `bc-al-data.md`). V testu výběr nasimuluješ
@@ -971,7 +974,15 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   - `Planned Delivery Date` volá `Validate("Planning Date")`: `ValidateModification` (`Qty. Transferred to Invoice` = 0) a
     `UpdateAllAmounts`. Cenu z kódu znovu nenačítá, `RetrieveCostPrice(0)` hledá změnu No., Qty, Location ap.
   - `Location Code` u zboží spustí `UpdateReservation`, `Validate(Quantity)` a skladové požadavky. `CheckItemAvailable` běží jen při
-    `CurrFieldNo`. **`PerformAutoReserve` (Reserve = Always) je jen na stránce**, z kódu neproběhne.
+    `CurrFieldNo`. **Automatická rezervace (Reserve = Always) je jen na stránce** (`PerformAutoReserve` po změně No., Variant,
+    Location, Bin, UoM, Quantity, Planning Date, ne po *Planned Delivery Date*), takže z kódu neproběhne. Uživatel ji ale čeká
+    „jako na řádku“, proto ji hromadná změna po změně lokace dělá sama, a to až po uložení všech polí kvůli novému datu.
+    Tabulková `AutoReserve()` nemá `IsHandled` a při neúplné rezervaci dělá `Commit` + `Confirm` + `ShowReservation` (u každého
+    řádku). Proto se volají stejné kroky bez dotazu: `Job Planning Line-Reserve.ReservQuantity` → `Reservation
+    Management.SetReservSource` + `AutoReserve(Full, '', "Planning Date", Qty, QtyBase)` → `Find` → `UpdatePlanned` (+
+    `Modify(false)`). Neúplnou rezervaci hlas jako Information v `Error Message`. Řádek je přitom změněný, nepřeskočený.
+    Test: zboží s `Reserve = Always` (řádek ho převezme v `CopyFromItem`), zásoba přes `CreateLocationWithInventoryPostingSetup` +
+    `CreateItemJournalLineInItemTemplate` + `PostItemJournalLine`, assert `Reserved Quantity`.
   - EP Project Base: `Vendor No. EPEBS` přepíše platební podmínku a skupinu DPH podle dodavatele a vymazání dodavatele vymaže
     i platební podmínku, proto validuj dodavatele před platební podmínkou.
   - Pravidla pole *Payment Terms Code* (existuje nákupní faktura = `Error`, existuje NO = `Confirm`) jsou v pageextension EP Project
@@ -983,4 +994,4 @@ vyplněného deníku. Tři generované cesty je minou (cust-soitron-bc 2026-10-0
   - „existuje NO“ = `Purchase Line` typu Order s `Job No.`, `Job Task No.` a `Job Planning Line No.` přes `Insert(false)`
     (FlowFieldy `Purchase Order Exists EPEBS` a `Purchase Order No. EPEBS`);
   - akce přes `TestPage` s `Filter.SetFilter`, `ModalPageHandler` dialogu a `Commit()` před `Invoke`, protože dialog je modální.
-(2026-11-23, cust-soitron-bc PBI 66672, `JPL Mass Update Mgt. SOI` + `JPL Mass Update Line SOI`, 13 testů, 425/425 v `bc28`.)
+(2026-11-23, cust-soitron-bc PBI 66672, `JPL Mass Update Mgt. SOI` + `JPL Mass Update Line SOI`, 16 testů, 428/428 v `bc28`.)
