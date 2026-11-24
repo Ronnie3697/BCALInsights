@@ -40,6 +40,24 @@ na hlavičce → řádky → skladový doklad):
   `OnBeforeWhseShptLineInsert(var WarehouseShipmentLine)`** (codeunit 5750) — zdrojový řádek tam není parametrem, dohledej
   `Purchase Line.Get(Order, "Source No.", "Source Line No.")`. Alternativa s řádkem v parametru:
   `OnAfterCreateRcptLineFromPurchLine` / `OnAfterCreateShptLineFromSalesLine` (po `Insert`, nutný `Modify(false)`).
+- **Hooky se zdrojovým řádkem v parametru (w1-28, ověřeno zdrojem i testem):** `Purchases Warehouse Mgt.
+  OnPurchLine2ReceiptLineOnAfterUpdateReceiptLine(var WarehouseReceiptLine; var WhseReceiptHeader; PurchaseLine)` a `Sales Warehouse
+  Mgt.OnBeforeCreateShptLineFromSalesLine(var WarehouseShipmentLine; WarehouseShipmentHeader; SalesLine; SalesHeader)` běží **po**
+  `UpdateReceiptLine` / `UpdateShipmentLine` (validace přihrádky hlavičky) a před `CreateReceiptLine` / `CreateShipmentLine` (jen
+  `Shelf No.` + `Insert`) → `Validate("Bin Code", <řádek objednávky>)` tam vydrží. Validace přihrádky řádku příjemky / dodávky
+  z kódu: relace na `Bin` lokace (obsah netřeba), `CheckBinTypeAndCode`, zóna z přihrádky; u dodávky `TestReleased`. IMEBS
+  (task 68077, 2026-11-24): přihrádka řádku objednávky jen pro řádky s projektem (nákup `Job No.`, prodej `Job Contract Entry No.`),
+  ne u *Directed Put-away and Pick* — „přihrádka řádku pro všechny“ by běžný nákup poslala do výchozí přihrádky zboží (nákupní
+  řádek ji z `GetDefaultBin` dostane vždy), ne do příjmové.
+- ⚠️ **Přihrádku prodejního řádku přepíše i `Validate("Variant Code")` a `Validate(Quantity)` z kódu.** `GetDefaultBin()` (→ `Bin
+  Code := ''` a výchozí přihrádka, nebo nic při dodací přihrádce lokace) volají `No.`, `Location Code`, **`Variant Code` bezpodmínečně**
+  (i se stejnou / prázdnou variantou) a **`Qty. to Assemble to Order`**, když `CurrFieldNo` není Quantity / Qty. to ATO — a `Quantity.
+  OnValidate` ho vždy validuje, z kódu s `CurrFieldNo` 0 → reset. Z UI (CurrFieldNo = Quantity) se nic nepřepíše. Kód, který řádek
+  skládá Location → Bin → Variant → Quantity, o přihrádku tiše přijde (IMEBS to dělal od první verze, přihrádka z řádku plánování
+  se na objednávku nikdy nedostala); přihrádku nastavuj **až po všech validacích, těsně před `Modify`**. Ověřeno testem v `bc28`
+  (první verze opravy s přihrádkou hned po variantě spadla — po `Validate(Quantity)` výchozí přihrádka, resp. prázdná). Přihrádka bez obsahu zboží jde na prodejní řádek objednávky jen
+  přiřazením: `Validate` spadne už na platformní kontrole `TableRelation` („…nelze nalézt ve svázané tabulce (Obsah přihrádky)“),
+  před `OnBeforeCheckBinCodeRelation`. (IMEBS `GenerateSalesOrderJobLines_FillFieldsForTypeItem`, task 68077 bod 2.)
 - **`Validate("Bin Code")` na řádku objednávky z kódu / testu = `Message`**: `Bin Code.OnValidate` volá `CheckWarehouse(true)`
   a u typu Objednávka v lokaci s `Require Receive` (nákup) / `Require Shipment` (prodej) bez existujícího řádku skladového
   dokladu skončí `Message(WhseRequirementMsg)` → test potřebuje `[MessageHandler]`; s existujícím řádkem skladového dokladu
