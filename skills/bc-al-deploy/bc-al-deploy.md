@@ -239,6 +239,19 @@ Configurator Ext 28.0.50.
   Dev buildy Alumistr 29.0.0.0 (base, PMALU, CDS, COALU) a `Claude CNC Test Data` zůstaly `isInstalled = true`, teprve potom dev
   publish nových Alumistr buildů. `$filter` s mezerou v URL (`publisher eq '…'`) curl pošle nezakódovaný → prázdné tělo místo JSONu;
   `…/extensions` stáhni celé a filtruj lokálně.
+- **Kdo a z jaké verze spustil operaci v prostředí (update appky, update BC) → surové Admin Center API, ne MCP.**
+  `d365bc-admin get_app_operations` vrací `sourceVersion` / `targetVersion` = null a `createdBy` vůbec nemá. Token
+  z `get_microsoft_entra_id_token` do hlavičkového souboru a `curl -4 -H @hdr`:
+  `GET https://api.businesscentral.dynamics.com/admin/v2.28/applications/BusinessCentral/environments/<env>/apps/<appId>/operations`
+  (`sourceAppVersion`, `targetAppVersion`, `createdBy`, `creatorPrincipalType`) a `…/admin/v2.28/environments/operations`
+  (všechna prostředí tenantu, typy `update` / `environmentAppUpdate` …, appId a verze v `parameters`; u Soitronu historie od
+  12. 8., tedy ~3,5 měsíce). Plánovaný update BC má `createdBy: SYSTEM`. Partner přes GDAP se ukáže jako
+  `user_<objectId bez pomlček>@<doména partnera>`, objectId je z tenantu partnera (Essence `551f37fe-…`) → jméno v Entra
+  admin centru Essence nebo `az ad user show --id <guid>`; vlastní účet poznáš z claimu `aai` v tokenu.
+  **Před major updatem zkontroluj `lastUpdateAttemptResult: failed` v `get_installed_apps`:** neúspěšný update AppSource appky
+  nic neblokuje, appka zůstane na staré verzi a vybuchne až v major updatu, který ji zvednout musí. (2026-11-24, Soitron
+  Prod-SK: Aricoma SK Language Pack 28.0.46665 → 28.5.54151 padal od 30. 9. „for an unknown reason“, na Test-SK tentýž update
+  prošel; update BC 29.1 pak 2× spadl na `CheckMonetization` v `OnUpgradePerDatabase` té appky.)
 
 ### 7.25 Závislosti do sdíleného kontejneru `containers.essencebs.com` jako Dev appky (dev endpoint, UserPassword)
 

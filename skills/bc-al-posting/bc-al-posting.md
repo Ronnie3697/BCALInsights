@@ -796,6 +796,22 @@ hlavičky (enum stavu) jako podmínka prvního kroku, konzultant jen doplní fil
 plánování; zdroje w1-28 `WorkflowManagement`, `ApprovalsMgmt`, `ReleasePurchaseDocument`, `WorkflowResponseHandling`. Testy 13/13
 v lokálním kontejneru BC 28.2 cz, 2026-11-12 a znovu 2026-11-23 na větvi PR.)
 
+**Kontrola cen jen na objednávce obejde faktura z příjemky (*Kopie řádků příjemky* / Get Receipt Lines).** Objednávka se schválí a
+přijme, faktura se vytvoří z příjemky a cena se zvedne na faktuře – stav a workflow navázané jen na `Document Type = Order` fakturu
+nevidí (hlášení testerky Soitronu). Faktura musí dostat stejný stav i workflow (šablona *Workflow schvalování nákupní faktury*,
+MS-PIAPW, stejná událost `RunWorkflowOnSendPurchaseDocForApprovalCode`) a řádek faktury musí převzít „schválenou“ hodnotu řádku
+objednávky. Hook (w1-29 `Purch. Rcpt. Line.InsertInvLineFromRcptLine`): **`OnAfterInsertInvLineFromRcptLine(var PurchLine;
+PurchOrderLine; var NextLineNo; PurchRcptLine)`** běží hned po `PurchLine.Insert()`. `PurchOrderLine` je `Get` z DB, v paměti má jen
+přepočtenou `Direct Unit Cost` / `Line Discount Amount` při rozdílných *Prices Including VAT*. Řádek faktury vzniká `PurchLine :=
+PurchOrderLine`, takže vlastní pole by se přeneslo samo, kdyby ho reset v `Purchase Line.OnBeforeInsertEvent` nemazal. Hodnotu proto
+nastav až v tomhle eventu a ulož `Modify(false)` na `var` recordu (base ho dál nemodifikuje, další iterace ho přepíše přiřazením).
+Poměrně k fakturovanému množství: `× PurchLine.Quantity / PurchOrderLine.Quantity`, zaokrouhlení `Currency.Initialize(PurchLine."Currency
+Code")` → `Amount Rounding Precision`. Ručně zadaný řádek napárovaný akcí *Načíst řádky objednávky* (BC 29 `Matched Order Line
+Mgmt.GetPurchaseOrderLines`) tímhle eventem nejde. Test bez UI: `Purch.-Get Receipt.SetPurchHeader(Invoice)` + `CreateInvLines(PurchRcptLine
+s filtrem Order No.)`; první řádek faktury je popisný („Příjemka č. …“), řádek hledej podle typu. Workflow faktury v testu stejně jako
+u objednávky (`CopyWorkflowTemplate(…, WorkflowSetup.PurchaseInvoiceApprovalWorkflowCode())`), schválení vydá fakturu přes
+`OnBeforeReleasePurchaseDoc` se stavem Pending Approval jako u objednávky. (2026-11-24, cust-soitron-bc PBI 64803; 15/15 testů v `bc28`.)
+
 ### 3.6p Částka DPH z externího systému na prodejním / nákupním dokladu z kódu — rozdíl DPH přes `VAT Amount Line`; CZL ho maže
 
 Doklad z integrace (`Prices Including VAT`, `Unit Price` = brutto) a externí systém posílá i vlastní DPH. Standardní cesta je
