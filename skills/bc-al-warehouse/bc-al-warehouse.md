@@ -180,8 +180,9 @@ nákup / prodej / výroba jedou v metrech). V BC nespouštěno; co je jen odvoze
 
 Ověřeno čtením zdroje w1-28 (`PurchPost`, `WhsePostReceipt`, `WhseActivityPost`, `WhseUndoQuantity`, `UndoPurchaseReceiptLine`,
 `SalesPost`) a eventy v BaseApp 28.4 (al-mcp) při rozboru hlášení z X-ESSENCE 2026-11-20 (prod-ep-itemManagement-bc, IMEBS *Skip
-Purchase Consumption*: zboží 1019 má 3 ks v položkách zboží, 0 v obsahu přihrádky, skladové položky příjemky +3 / −3). V BC nespouštěno,
-oprava zatím neimplementovaná.
+Purchase Consumption*: zboží 1019 má 3 ks v položkách zboží, 0 v obsahu přihrádky, skladové položky příjemky +3 / −3). **Opraveno
+v IMEBS 2026-11-24 (task 68077, `features/misc`)** všemi čtyřmi hooky níže, 7 testů `Skip Cons. Bin Test IMEBS` + 111 stávajících
+v `bc28` zelené (118/118).
 
 - **Spotřebu projektu při příjmu (`PostItemJnlLineJobConsumption`, Negative Adjmt. ILE) a skladový odpis z přihrádky standard dělá
   odděleně.** Skladový odpis se řídí jen tím, že řádek má `Job No.` — kdo spotřebu vypne (`Purch.-Post.OnPostItemJnlLineJobConsumption`
@@ -202,11 +203,30 @@ oprava zatím neimplementovaná.
   3. **`Whse.-Activity-Post`** (zásobové zaskladnění, *Require Put-away* bez *Require Receive*): `IsActivityForJobPurchase` (bez eventu)
      → `ConsumeWarehouseEntryForJobPurchase` → hook `OnBeforeConsumeWarehouseEntryForJobPurchase(var TempWarehouseJournalLine;
      WarehouseActivityLine; var Result; var IsHandled)`.
-  Vratka přes skladovou dodávku / zásobové vyskladnění žádnou projektovou větev nemá (`ShouldPostWhseJnlLine` je při `WhseShip` false).
+  Vratka přes skladovou dodávku / zásobové vyskladnění žádnou projektovou větev nemá (`ShouldPostWhseJnlLine` je při `WhseShip` false)
+  — a k ní se řádek s projektem ani nedostane: `Whse.-Purch. Release` u `Return Order` filtruje `"Job No." = ''`, skladový požadavek
+  nevznikne a vratka s projektem se účtuje vždy přímo z dokladu (cesta 1).
+  ⚠️ Hook 3 běží **až po** `PostSourceDoc` — zaskladnění zásob účtované s fakturou plně vyfakturovanou objednávku už smazalo, `Purchase
+  Line.Get` ze zdroje selže → záložně `Purch. Rcpt. Line` (`Order No.` + `Order Line No.`), nese stejná projektová pole. Standard si
+  `IsActivityForJobPurchase` proto počítá před účtováním.
 - **Undo příjemky** (`Whse. Undo Quantity.InsertTempWhseJnlLine`) otáčí **všechny** Warehouse Entry příjemky podle source + `Reference
   No.` → zrcadlí, co příjem zaúčtoval (+N / −N i jen +N), nic navíc neodepisuje. Undo + nový příjem je tak i cesta, jak srovnat data
   zaúčtovaná před opravou — na lokaci bez *Directed Put-away and Pick* skladovou položku bez položky zboží standardně zaúčtovat nejde
   (*Whse. Item Journal* jen Directed).
 - Prodejní strana nic podobného nemá: dodávka (i řádek s `Job Contract Entry No.`) odepisuje přihrádku normálně přes
-  `Sales-Post.ShouldPostWhseJnlLine`; dobropis s vynuceným `ShouldPostItemJnlLine` (IMEBS) vrací zboží do přihrádky řádku.
+  `Sales-Post.ShouldPostWhseJnlLine`; dobropis s vynuceným `ShouldPostItemJnlLine` (IMEBS) vrací zboží do přihrádky řádku. Deník zboží
+  a deník přeřazení taky ne — `WMS Management.CreateWhseJnlLine` dělá jednu položku skladu na položku zboží, `Job No.` mění jen zdroj
+  (`Job Journal Line`) a referenční doklad.
+- **Test (recept, prošlo v `bc28` 28.2 cz):** `LibraryWarehouse.CreateLocationWMS(Location, true, PutAway, false, Receive, false)` (má
+  i inventory posting setup) + `CreateBin` + **výchozí obsah přihrádky** `CreateBinContent(…, Item."Base Unit of Measure")` +
+  `Validate(Default, true)` → řádek plánování (`Validate("Location Code")` → `FindBin`), nákupní i prodejní řádek (`GetDefaultBin`)
+  dostanou přihrádku samy a zaskladnění ji navrhne do řádku Umístit. Kontrola: Σ `Warehouse Entry."Qty. (Base)"` lokace = Σ
+  `Item Ledger Entry.Quantity` lokace a Σ per přihrádka. `Warehouse Entry."Entry Type"` je **Option** (ne enum), filtr
+  `WarehouseEntry."Entry Type"::"Negative Adjmt."`. Skladová příjemka: `ReleasePurchaseDocument` → `CreateWhseReceiptFromPO` →
+  `PostWhseReceipt` (bez zprávy) → zaskladnění `FindWhseActivityBySourceDoc` → `RegisterWhseActivity`. **Zásobové zaskladnění přes
+  report `Create Invt Put-away/Pick/Mvmt` končí `Message` (počet dokladů), knihovní `CreateInvtPutPickMovement` /
+  `CreateInvtPutPickPurchaseOrder` ho nepotlačí** → report pusť sám s `SuppressMessages(true)` (+ `InitializeRequest(true, false, false,
+  false, false)`, `UseRequestPage(false)`), pak `PostInventoryActivity(Header, false)`. `Purchase Line.Validate("Bin Code")` z kódu
+  v lokaci jen s přihrádkami dialog nedá (`CheckWarehouse(true)`, ověřeno dobropisem; s *Require Receive* `Message`, 5.x22);
+  `Validate("Location Code")` volá `CheckWarehouse` jen při `CurrFieldNo` → z kódu bez dialogu. (2026-11-24, prod-ep-itemManagement-bc 68077.)
 

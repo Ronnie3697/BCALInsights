@@ -19,7 +19,9 @@ Obsahuje:
 - **3.6l** Výstup a kapacita výroby z kódu: `Validate(Type)` maže `No.`, zmetky na výstupním řádku, tiché atomické účtování přes manuální bind `Item Jnl.-Post.OnBeforeCode`, `Increment Batch Name`, řádek spotřeby z kódu ztrácí dimenze zakázky po `Validate("Location Code")` (`CreateProdDim`)
 - **3.6n** Způsob platby na dokladu, jehož platby účtuje vlastní kód: přiřazením, ne `Validate` (protiúčet → druhé vyrovnání, Cash Desk CZP → pokladní doklad), CZL QR dotaz při vydání
 - **3.6o** Vlastní podmínka schvalovacího workflow dokladu (pole hlavičky jako event condition): workflow čte doklad z DB → stav uložit v `Approvals Mgmt.OnBeforeIsPurchaseApprovalsWorkflowEnabled`; dokončené schválení = `OnBeforeReleasePurchaseDoc` se stavem Pending Approval
-- **3.6p** Částka DPH z externího systému na prodejním dokladu z kódu = rozdíl DPH přes `VAT Amount Line` (jako Statistika); CZL `Sales Line Handler CZL` ho smaže při každém `Insert/Modify/Delete(true)` řádku
+- **3.6p** Částka DPH z externího systému na prodejním / nákupním dokladu z kódu = rozdíl DPH přes `VAT Amount Line` (jako Statistika); CZL `Sales/Purchase Line Handler CZL` ho smaže při každém `Insert/Modify/Delete(true)` řádku; u nákupu pojistka `Check Doc. Total Amounts`
+- **3.6q** Ke kterým fakturám se účtovaný dobropis vztahuje — řádky + aktuální vyrovnání
+- **3.6r** Vlastní pole řádku plánování projektu na generovaný prodejní řádek: IMEBS objednávka (dva eventy), standardní faktura z řádků plánování (`Job Create-Invoice.OnBeforeInsertSalesLine`) a vlastní cesty zakládání řádků
 
 ## 3. Event Subscribery — propagace polí (3.5–3.6f)
 
@@ -767,7 +769,7 @@ hlavičky (enum stavu) jako podmínka prvního kroku, konzultant jen doplní fil
 - **Jeden hook pro všechny kontroly nákupního dokladu:** `Approvals Mgmt.OnBeforeIsPurchaseApprovalsWorkflowEnabled(var PurchaseHeader;
   var Result; var IsHandled)` — volá ho `IsPurchaseHeaderPendingApproval` (ruční vydání přes `PerformManualCheckAndRelease`,
   `CheckPurchaseReleaseRestrictions` → `PrePostApprovalCheckPurch` před účtováním) i `CheckPurchaseApprovalPossible` (akce *Odeslat
-  žádost o schválení*; `OnSendPurchaseDocForApproval` za ním vyhodnotí podmínky znovu z DB). Purchase Order page ho při zobrazení
+  požadavek ke schvalování*; `OnSendPurchaseDocForApproval` za ním vyhodnotí podmínky znovu z DB). Purchase Order page ho při zobrazení
   nevolá (jen v akcích). Uložení stavu se při zablokovaném vydání odroluje s chybou — na kartě proto zobrazuj stav spočítaný živě
   (proměnná v `OnAfterGetCurrRecord`), uložené pole je jen pro workflow, archiv a seznamy. Prodejní `IsSalesApprovalsWorkflowEnabled`
   OnBefore event v w1-28 nemá.
@@ -784,12 +786,17 @@ hlavičky (enum stavu) jako podmínka prvního kroku, konzultant jen doplní fil
   name="Purchase Header">%1</DataItem><DataItem name="Purchase Line">%2</DataItem></DataItems></ReportParameters>',
   WorkflowSetup.Encode(Header.GetView(false)), WorkflowSetup.Encode(Line.GetView(false))))` — stejně staví podmínky šablona
   (`BuildPurchHeaderTypeConditionsText`). Recept testu v `bc-al-autotests-domains.md`.
+- **Návod pro konzultanta:** odezva *Vytvořit požadavek ke schvalování…* nemá volbu „bez limitů“. *Typ limitu schvalovatele* má jen
+  *Schvalovatelský řetězec* / *Přímý schvalovatel* / *První kvalifikovaný schvalovatel* / *Konkrétní schvalovatel*. Pro „schvaluje jen
+  nákupčí dokladu“ = *Typ schvalovatele* **Prodejce/nákupčí** + **Přímý schvalovatel** (`CreateApprReqForApprTypeSalespersPurchaser`;
+  řetězec by přidal nadřízené z *Nastavení uživatelů schvalování*). Doklad bez *Kódu nákupčího* odeslání neprojde (`TestField`).
+  České popisky akcí a šablony v `bc-al-xliff.md` 6.6.
 
 (2026-11-11, cust-soitron-bc PBI 67819 `Project PO Approval Mgt. SOI` + eventy EPEBS `…OnBeforeModify` při tvorbě řádku NO z řádku
-plánování; zdroje w1-28 `WorkflowManagement`, `ApprovalsMgmt`, `ReleasePurchaseDocument`, `WorkflowResponseHandling`; kompilace čistá,
-běh testů zatím ne.)
+plánování; zdroje w1-28 `WorkflowManagement`, `ApprovalsMgmt`, `ReleasePurchaseDocument`, `WorkflowResponseHandling`. Testy 13/13
+v lokálním kontejneru BC 28.2 cz, 2026-11-12 a znovu 2026-11-23 na větvi PR.)
 
-### 3.6p Částka DPH z externího systému na prodejním dokladu z kódu — rozdíl DPH přes `VAT Amount Line`; CZL ho maže
+### 3.6p Částka DPH z externího systému na prodejním / nákupním dokladu z kódu — rozdíl DPH přes `VAT Amount Line`; CZL ho maže
 
 Doklad z integrace (`Prices Including VAT`, `Unit Price` = brutto) a externí systém posílá i vlastní DPH. Standardní cesta je
 **rozdíl DPH** (`VAT Difference`) stejně jako ruční přepis *Částky DPH* ve Statistice dokladu. Brutto zůstane, BC posune základ.
@@ -817,6 +824,26 @@ Rozdíl jde na zaúčtovaný řádek (`TransferFields`) a přes `Invoice Posting
   `Insert(true)` / `Modify(true)` / `Delete(true)` řádku z kódu nebo úprava řádku na stránce tak rozdíl tiše zahodí. Release a
   `Sales-Post` řádky ukládají bez triggerů, ty ho nechají.
 
+**Nákupní doklad = totéž** (`Purchase Line.CalcVATAmountLines` / `UpdateVATOnLines`, průchod 1 zapisuje `VAT Difference`, jen
+skupiny s `Modified`; *Allow VAT Difference* je v `Purchases & Payables Setup`). CZL `Purchase Line Handler CZL` má stejné
+`RemoveVATCorrection` na `OnBeforeInsert/Modify/DeleteEvent`. Typická otázka „základ i brutto z dokladu dodavatele, ale obě částky na
+řádek = řádková sleva": řádek nese jen jednu celkovou částku (`Line Amount`), druhou BC dopočte sazbou a rozdíl vnucené druhé částky
+vyloží jako slevu. Řešení: `Prices Including VAT` = Ne, `Direct Unit Cost` = základ, DPH skupiny = DPH dodavatele přes rozdíl DPH →
+brutto = základ + DPH, bez slevy. **Hlídání součtů bez kódu:** `Purchases & Payables Setup."Check Doc. Total Amounts"` (11320) +
+hlavička `"Doc. Amount Incl. VAT"` (11301) / `"Doc. Amount VAT"` (11302). `Purch.-Post.CheckDocumentTotalAmounts` (jen faktura a
+dobropis, jen při `Invoice`) při účtování porovná hlavičku se součty řádků **přesně** a jinak spadne (`OnBeforeCheckDocumentTotalAmounts`
+`IsHandled`). Řádky neupravuje. Hodí se jako pojistka proti tomu, že ruční úprava řádku rozdíl DPH (CZL) tiše zahodí.
+`Validate("Doc. Amount VAT")` hlásí chybu, když se od DPH řádků liší víc, než dovoluje *Max. VAT Difference Allowed*. Při vypnutém
+*Allow VAT Difference* spadne na **jakémkoli** rozdílu. `Validate("Doc. Amount Incl. VAT")` přepíše `"Doc. Amount VAT"` dopočtem
+z řádků, takže DPH dokladu se plní až po něm. Z integrace je bezpečné obě pole přiřadit bez `Validate` a kontrolu nechat na účtování.
+Pole jsou na kartě vidět jen se zapnutou kontrolou. Standardní API v2 `purchaseInvoices` je nevystavuje: `totalAmountIncludingTax`
+je jen dopočtený součet. Prodej obdobu nemá (`Sales Header` žádné `Doc. Amount*` pole nemá). **Došlé doklady** (`Incoming
+Document`) mají `Amount Excl. VAT` / `Amount Incl. VAT` / `VAT Amount` jen informativně, účtování je nekontroluje
+(`Purch.-Post` u došlého dokladu jen nastaví stav). Kontrola `Map Incoming Doc to Purch Doc.VerifyTotals` běží jen při
+vytvoření dokladu z OCR / Data Exchange a porovnává částku ze souboru. Na `Doc. Amount*` hlavičky se nic nepřenáší. (2026-11-24, cust-itmr-bc dotaz; zdroje w1-28 `PurchaseHeader.Table.al` ř. ~2775–2840 a ~7840–7880,
+`PurchasesPayablesSetup.Table.al` `ShouldDocumentTotalAmountsBeChecked`, `PurchPost.Codeunit.al` ř. ~736 a ~900, `PurchaseLine.Table.al`
+`UpdateVATOnLines`; cz-28 CZL `PurchaseLineHandlerCZL.Codeunit.al`. Jen ze zdrojů.)
+
 (2026-11-19, cust-itmr-bc, dotaz na převzetí DPH z externího systému do faktury z G/L Importu; zdroje StefanMaron w1-28 @ c0cbed01,
 cz-28 @ e253af7f: `VATAmountLine.Table.al`, `VATSpecificationSubform.Page.al`, `SalesStatistics.Page.al`, `SalesLine.Table.al`,
 `ReleaseSalesDocument.Codeunit.al`, `SalesPost(Invoice).Codeunit.al`, CZL `SalesLineHandlerCZL.Codeunit.al`. Jen ze zdrojů,
@@ -840,3 +867,43 @@ v okamžiku použití (export, tisk) ze dvou zdrojů:
 
 (2026-11-20, cust-jiri-bc / cust-jiri-w1-bc PBI 67974, `EDI Cr. Memo Reference EDEBS`; kompilace čistá, bez autotestů — EDI appka
 test appku nemá.)
+
+### 3.6r Vlastní pole řádku plánování projektu na generovaný prodejní řádek — všechny cesty, které řádek zakládají
+
+Pole z `Job Planning Line` (Soitron *Prodejní popis* Text[350]) se na prodejní řádek samo nedostane, `Sales Line` → `Sales Invoice Line`
+pak už jde stejným field ID (3.6). Zápis patří **až za validace řádku** (`Validate("No.")` dělá `Init()`, 3.6b), jen přiřazením
+bez vlastního `Modify` — volající řádek ukládá sám. Cesty v Essence / Soitron prostředí (w1-28, IMEBS 28.0.37):
+
+- **IMEBS `GenerateSalesOrderJobLines`** (akce *Vytvořit prodejní objednávku*, report `Job Create Sales Order IMEBS`, Soitron QB
+  `GenerateSalesOrder`): `Project Item Management IMEBS.OnGenerateSalesOrderJobLinesOnBeforeModifySalesLine(SalesHeader,
+  JobPlanningLine, var SalesLine)` pro zboží / zdroj / účet a `OnCreateSalesOrderTextLineOnBeforeModifySalesLine` (stejné parametry)
+  pro poznámkové řádky z textových řádků plánování. Oba těsně před `Modify` řádku.
+- **Standardní faktura z řádků plánování** (`Job Create-Invoice.CreateSalesLine`): `OnBeforeInsertSalesLine(var SalesLine; var
+  SalesHeader; Job; JobPlanningLine; JobInvCurrency)` — po všech validacích a na místě, kde standard kopíruje `Description` /
+  `Description 2`, před `Insert(true)`. Subscriber smí deklarovat jen `SalesLine` + `JobPlanningLine`.
+- **Řádky, které zakládá vlastní kód zákaznické appky** (Soitron `Sales Aggregation Mgt. SOI.InsertSummarySalesLine` — souhrnný řádek
+  agregace doplněný po generování objednávky, když ho IMEBS nepřenese, a při vydání faktury z *Kopie řádků dodávky*): žádný event,
+  pole doplnit přímo tam. **Chytil to až autotest** — objednávka z QB měla souhrnný řádek z téhle cesty, ne z IMEBS eventu,
+  a prodejní popis na něm chyběl. Před „hotovo“ proto grepni appku na `Sales Line` `Insert(` mimo standardní generátory.
+- Faktura z *Kopie řádků dodávky* (`InsertInvLineFromShptLine`: `SalesLine := SalesOrderLine`) nese pole řádku objednávky sama.
+
+Prodloužení zdrojového pole (Text[100] → Text[350]) v integrační bufferové tabulce: projdi **lokální proměnné a parametry** typu
+`Text[100]`, kterými hodnota prochází (`Description: Text[100]; Description := BufferLine."Sales Description"` = runtime overflow
+u delšího textu, kompilátor nehlásí chybu, jen AA0139 u přiřazení do pole) a kopie do jiných tabulek s kratším polem dej přes `CopyStr`.
+Porovnání verzí (dlouhý text v kontrolní zprávě Text[250]) hlas jen captionem a prázdnou hodnotu na starých záznamech (pole
+přibylo, data se zpětně neplní) nepovažuj za změnu, jinak nasazení přepne všechny existující řádky do „K potvrzení“.
+(2026-11-23, cust-soitron-bc PBI 67781, `Sales Description Mgt. SOI`; zdroj w1-28 `JobCreateInvoice.Codeunit.al`; 11 testů
+`Sales Description Test SOI` v `bc28`.)
+**Celá sada dokladů (tamtéž, druhé kolo):** dodávka, dobropis, příjemka vratky a archiv = jen pole se stejným ID (3.6); obnova
+z archivu, *Kopírovat doklad* s *Přepočítat řádky*, kopie z archivu a přegenerování řádků = 4 hooky z 3.6b (přiřazení bez podmínky).
+Ověřeno 17 testy v `bc28`. Recept testů bez UI (G/L řádek — bez zásob a lokací, jde dodat, přijmout i fakturovat):
+- archiv: `ArchiveManagement.StoreSalesDocument(SalesHeader, false)` (bez dialogu), verze = `Sales Header Archive` `FindLast`;
+  `RestoreSalesDocument(Archive)` položí jeden Confirm (`GetResponseOrDefault`, i bez rezervací) a `Message` → `ConfirmHandler` +
+  `MessageHandler`;
+- kopie s přepočtem: `SetProperties(false, true, false, false, true, false, false)` + `CopySalesDoc("Posted Invoice", …)`; z archivu
+  navíc `SetArchDocVal("Doc. No. Occurrence", "Version No.")` a `CopySalesDoc("Arch. Order", <číslo objednávky>, …)`; řádek hledej
+  podle typu (kopie z účtovaného dokladu vloží nahoru textový řádek „Faktura č. …“);
+- přegenerování: `SalesHeader.SetHideValidationDialog(true)` + `Validate("Sell-to Customer No.", jiný)` + `Modify(true)`; že řádek
+  opravdu vznikl znovu, ověř změnou `SystemId` (číslo řádku zůstane 10000).
+Pageextension s názvem `"Posted S. Cr. Memo Subf. SOI"` v souboru `PostedSalesCrMemoSubf.PageExt.al` = CodeCop **AA0215** (CI fail) —
+název souboru se odvozuje z názvu objektu bez teček a mezer, zkratky musí sedět s názvem souboru.

@@ -536,6 +536,61 @@ Zbylých ~95 nálezů se uklidí za večer:
 - **Test ruleset: `LC0015` už nestačí** — nástupce `AC0010` je vlastní ID, musíš ho do test rulesetu
   dopsat zvlášť (u konfigurátoru prosákly 2 nálezy, dokud tam byl jen `LC0015`).
 
+**Úklid cust-soitron-bc (2026-11-23, alc 18.1 + ALCops, Base.W1 na BC 29):**
+- **`LC0092` falešně u objektu, jehož název začíná písmeny affixu.** `"Soitron Setup SOI"` s `mandatoryAffixes: ["SOI"]` →
+  „Object name "tron Setup SOI" should start with an uppercase letter": ALCops odřízne „Soi" ze začátku jako affix (bez ohledu
+  na velikost písmen). Tabulku s daty nepřejmenuješ → komentář + `#pragma warning disable LC0092` před deklaraci objektu,
+  `restore` za poslední `}` souboru.
+- **`PC0033` (duplicitní OData EntityName) i u controlu, jehož pole na stránce vůbec není:** výrazový control
+  `field("CRM Business Unit SOI"; CRMBusinessUnitName)` koliduje s **polem primárního klíče** stejného jména, protože OData
+  (Upravit v Excelu) vystavuje klíčová pole vždy. Fix = přejmenovat control (`"CRM Business Unit Name"`). Hash controlu
+  v ID trans-unitu se změní → nová ID z `.g.xlf` (stejný název controlu = stejný hash napříč stránkami), v `.cs-CZ.xlf`
+  a `.sk-SK.xlf` přepsat `id` i poznámku Xliff Generator, překlady zůstanou; bez toho `LC0091` (chybějící překlad).
+- **`FC0004` (pořadí `Permissions`) = řazení „Sort Permissions" z AZ AL Dev Tools** (zdroj ALCops `PermissionEntryComparer`
+  + `NaturalStringComparer`): `table` a `tabledata` jsou **jedna skupina promíchaná podle názvu** (u stejného názvu `table`
+  před `tabledata`), pak `codeunit`, `page`, `query`, `report`, `xmlport`. Názvy se porovnávají bez mezer, bez ohledu na
+  velikost písmen, čísla numericky („Item 2" < „Item 10"). Blok `table …` ×3 + `tabledata …` ×3 za sebou tedy hlásí FC0004.
+  ALCops má na to code fix (Ctrl+. ve VS Code); hromadně node skriptem s `Intl.Collator('und', {sensitivity: 'accent'})`,
+  kontrola že se množina položek nezměnila, ověření kompilací (FC0004 zmizí).
+- **`alcops.json` ALCops hledá i v nadřazených složkách** — soubor v rootu repa platí pro všechny appky (`W1/Base.W1/app`):
+  s ním `LC0090 … threshold 30`, bez něj výchozí 15 (18 nálezů místo 3). Ověřeno alc 18.1.2842859. Starý `lintercop.json`
+  vedle `app.json` dál nikdo nečte (12.1b).
+- **CodeCop `AA0131` u labelu bez `%1` volaného s argumentem** (`StrSubstNo(ResourceLengthLbl, "QB No.")`, label „Resource
+  length must not exceed 20 characters." s `Comment = '%1 = …'`) — reálná chyba, číslo se do hlášky nedostalo. Fix = `%1` do
+  labelu + `<source>` i `<target>` v každém locale (ID trans-unitu se nemění, 6.3 v `bc-al-xliff.md`).
+- **`LC0090` — refaktor tam, kde čitelnost roste, jinak pragma:** dvě smyčky se zdvojenou kontrolou dokladů → tři procedury
+  (32 → pod práh), `case` podle typu řádku → procedura per typ. Lineární blok devíti „první neprázdná hodnota skupiny"
+  přiřazení (každé `if` ve třetím zanoření stojí 4 body) → `#pragma warning disable LC0090` před `///` komentář procedury,
+  `restore` za její `end;` — vytažení by jen přesunulo deset proměnných do parametrů.
+
+**Úklid všech ALCops info na nulu (cust-soitron-bc Base.W1 + CDS, 2026-11-23, ~420 nálezů):**
+- **~70 % jsou XML dokumentace:** `DC0005` = existující `///` bez `<param>` / `<returns>` (jeden nález na každý chybějící
+  parametr), `DC0007` = veřejný objekt bez `/// <summary>` (i enum, permission set, profil), `DC0004` / `DC0009` = veřejná
+  procedura / event bez dokumentace. Šlo to přes **4 paralelní subagenty s disjunktními sadami souborů** (zadání per soubor
+  vygenerované z logu `alc`: soubor + citovaný řádek deklarace, ne číslo řádku — ostatní editace řádky posouvají), každý
+  jen `///` řádky přes Edit, žádné přepisy celých souborů; hlavní agent mezitím dělal věcné opravy a XLIFF. `///` blok patří
+  **nad atributy** (`[EventSubscriber]`) a těsně nad deklaraci objektu, tedy **za** případnou `#pragma`.
+- **`PC0038` „not all code paths return a value"** u pojmenované návratové hodnoty, která se plní jen ve smyčce, přes `var`
+  parametr (`UpdateLastPaymentDate(…, LastPaymentDate)`) nebo `Evaluate(Value, …)` vedle `exit(0)` → na konec procedury
+  `exit(<proměnná>);`, chování beze změny.
+- **`FC0006` (malá písmena v `Permissions`)** jen u vlastnosti objektu (codeunit, page, report) — ALCops permission sety
+  výslovně vynechává, tam je velikost písmen sémantická (přímé / nepřímé). `RIM` → `rim` na stránce je tedy bezpečné.
+- **`AC0019` (hodnota 0 enumu má mít prázdné jméno)** je nástupce LinterCop `LC0045`: kde už je `#pragma warning disable
+  LC0045`, stačí `disable LC0045, AC0019`; přejmenovat nasazenou hodnotu 0 nejde.
+- **`AC0028` (tooltip na controlu, pole tabulky žádný)** → přesunout tooltip na pole tabulky (i dočasné bufferu). ID
+  trans-unitu se mění z `Page … - Control …` na `Table … - Field …`: překlad převést skriptem (nové `id` + poznámka z `.g.xlf`,
+  `<source>` musí sedět), jinak `LC0091`. `AC0029` (stejný tooltip na controlu i poli) → smazat z controlu i jeho trans-unit.
+- **`AC0017` (tooltip > 200 znaků, 30×) a `AC0015` (tooltip pole nezačíná „Specifies")** → přepsat EN i cs/sk naráz skriptem,
+  který najde trans-unit podle poznámky Xliff Generator (`Table X - Field <název pole> - Property ToolTip`, u tabulek název
+  pole, ne číslo) a přepíše `<source>` i `<target>`; popisky stavů v textu brát z XLIFF hodnot enumu.
+- **`AC0026` (pole mimo stránky bez `AllowInCustomizations`)**: technická pole (GUID, Dimension Set ID, číslo položky
+  přenosu, vazba na hlavičku) `Never`, obchodní data (agregace na účtovaných řádcích, částky rezervy, stav schválení) `AsReadOnly`.
+- **`LC0088`** u parametrů předávaných do `Error Message.LogMessage` / `Integration Table|Field Mapping.CreateRecord` (Option
+  bez enumu) → pragma kolem procedur s komentářem (10.2 v `bc-al-style.md`). **`AA0210`** (filtr na pole bez klíče) u
+  `SetFilter(Quantity, '<>0')` za filtrem na doklad → pragma s komentářem, čte se jen jeden doklad.
+- Kontrola kompilací kopie projektu ve scratchpadu: `alcops.json` z rootu repa dát **nad** kopie (ALCops ho hledá v nadřazených
+  složkách), jinak LC0090 hlásí výchozí práh 15.
+
 **Lokální ověření test appky** šlo přesně podle 7.12: MS test symboly z `prod-ess-dotykackaConnector-bc/.alpackages`
 (řada 28.1 pod 28.3 Base App bez problémů), **AI Test Toolkit** z MSSymbols feedu
 (`microsoft.aitesttoolkit.symbols.2156302a-…`, verze 28.3.52162.52273) a hlavní appku zkompilovanou
