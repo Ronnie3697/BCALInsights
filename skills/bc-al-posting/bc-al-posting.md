@@ -833,8 +833,14 @@ brutto = základ + DPH, bez slevy. **Hlídání součtů bez kódu:** `Purchases
 hlavička `"Doc. Amount Incl. VAT"` (11301) / `"Doc. Amount VAT"` (11302). `Purch.-Post.CheckDocumentTotalAmounts` (jen faktura a
 dobropis, jen při `Invoice`) při účtování porovná hlavičku se součty řádků **přesně** a jinak spadne (`OnBeforeCheckDocumentTotalAmounts`
 `IsHandled`). Řádky neupravuje. Hodí se jako pojistka proti tomu, že ruční úprava řádku rozdíl DPH (CZL) tiše zahodí.
-`Validate("Doc. Amount VAT")` hlásí chybu, když se od DPH řádků liší víc, než dovoluje *Max. VAT Difference Allowed*. Prodej
-obdobu nemá. (2026-11-24, cust-itmr-bc dotaz; zdroje w1-28 `PurchaseHeader.Table.al` ř. ~2775–2840 a ~7840–7880,
+`Validate("Doc. Amount VAT")` hlásí chybu, když se od DPH řádků liší víc, než dovoluje *Max. VAT Difference Allowed*. Při vypnutém
+*Allow VAT Difference* spadne na **jakémkoli** rozdílu. `Validate("Doc. Amount Incl. VAT")` přepíše `"Doc. Amount VAT"` dopočtem
+z řádků, takže DPH dokladu se plní až po něm. Z integrace je bezpečné obě pole přiřadit bez `Validate` a kontrolu nechat na účtování.
+Pole jsou na kartě vidět jen se zapnutou kontrolou. Standardní API v2 `purchaseInvoices` je nevystavuje: `totalAmountIncludingTax`
+je jen dopočtený součet. Prodej obdobu nemá (`Sales Header` žádné `Doc. Amount*` pole nemá). **Došlé doklady** (`Incoming
+Document`) mají `Amount Excl. VAT` / `Amount Incl. VAT` / `VAT Amount` jen informativně, účtování je nekontroluje
+(`Purch.-Post` u došlého dokladu jen nastaví stav). Kontrola `Map Incoming Doc to Purch Doc.VerifyTotals` běží jen při
+vytvoření dokladu z OCR / Data Exchange a porovnává částku ze souboru. Na `Doc. Amount*` hlavičky se nic nepřenáší. (2026-11-24, cust-itmr-bc dotaz; zdroje w1-28 `PurchaseHeader.Table.al` ř. ~2775–2840 a ~7840–7880,
 `PurchasesPayablesSetup.Table.al` `ShouldDocumentTotalAmountsBeChecked`, `PurchPost.Codeunit.al` ř. ~736 a ~900, `PurchaseLine.Table.al`
 `UpdateVATOnLines`; cz-28 CZL `PurchaseLineHandlerCZL.Codeunit.al`. Jen ze zdrojů.)
 
