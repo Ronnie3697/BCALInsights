@@ -19,7 +19,7 @@ Obsahuje:
 - **3.6l** Výstup a kapacita výroby z kódu: `Validate(Type)` maže `No.`, zmetky na výstupním řádku, tiché atomické účtování přes manuální bind `Item Jnl.-Post.OnBeforeCode`, `Increment Batch Name`, řádek spotřeby z kódu ztrácí dimenze zakázky po `Validate("Location Code")` (`CreateProdDim`)
 - **3.6n** Způsob platby na dokladu, jehož platby účtuje vlastní kód: přiřazením, ne `Validate` (protiúčet → druhé vyrovnání, Cash Desk CZP → pokladní doklad), CZL QR dotaz při vydání
 - **3.6o** Vlastní podmínka schvalovacího workflow dokladu (pole hlavičky jako event condition): workflow čte doklad z DB → stav uložit v `Approvals Mgmt.OnBeforeIsPurchaseApprovalsWorkflowEnabled`; dokončené schválení = `OnBeforeReleasePurchaseDoc` se stavem Pending Approval
-- **3.6p** Částka DPH z externího systému na prodejním dokladu z kódu = rozdíl DPH přes `VAT Amount Line` (jako Statistika); CZL `Sales Line Handler CZL` ho smaže při každém `Insert/Modify/Delete(true)` řádku
+- **3.6p** Částka DPH z externího systému na prodejním / nákupním dokladu z kódu = rozdíl DPH přes `VAT Amount Line` (jako Statistika); CZL `Sales/Purchase Line Handler CZL` ho smaže při každém `Insert/Modify/Delete(true)` řádku; u nákupu pojistka `Check Doc. Total Amounts`
 - **3.6q** Ke kterým fakturám se účtovaný dobropis vztahuje — řádky + aktuální vyrovnání
 - **3.6r** Vlastní pole řádku plánování projektu na generovaný prodejní řádek: IMEBS objednávka (dva eventy), standardní faktura z řádků plánování (`Job Create-Invoice.OnBeforeInsertSalesLine`) a vlastní cesty zakládání řádků
 
@@ -796,7 +796,7 @@ hlavičky (enum stavu) jako podmínka prvního kroku, konzultant jen doplní fil
 plánování; zdroje w1-28 `WorkflowManagement`, `ApprovalsMgmt`, `ReleasePurchaseDocument`, `WorkflowResponseHandling`. Testy 13/13
 v lokálním kontejneru BC 28.2 cz, 2026-11-12 a znovu 2026-11-23 na větvi PR.)
 
-### 3.6p Částka DPH z externího systému na prodejním dokladu z kódu — rozdíl DPH přes `VAT Amount Line`; CZL ho maže
+### 3.6p Částka DPH z externího systému na prodejním / nákupním dokladu z kódu — rozdíl DPH přes `VAT Amount Line`; CZL ho maže
 
 Doklad z integrace (`Prices Including VAT`, `Unit Price` = brutto) a externí systém posílá i vlastní DPH. Standardní cesta je
 **rozdíl DPH** (`VAT Difference`) stejně jako ruční přepis *Částky DPH* ve Statistice dokladu. Brutto zůstane, BC posune základ.
@@ -823,6 +823,20 @@ Rozdíl jde na zaúčtovaný řádek (`TransferFields`) a přes `Invoice Posting
   ne temp) volá `RemoveVATCorrection`. Ta vynuluje `VAT Difference` na **všech** řádcích dokladu a přepočítá je. Jakékoli pozdější
   `Insert(true)` / `Modify(true)` / `Delete(true)` řádku z kódu nebo úprava řádku na stránce tak rozdíl tiše zahodí. Release a
   `Sales-Post` řádky ukládají bez triggerů, ty ho nechají.
+
+**Nákupní doklad = totéž** (`Purchase Line.CalcVATAmountLines` / `UpdateVATOnLines`, průchod 1 zapisuje `VAT Difference`, jen
+skupiny s `Modified`; *Allow VAT Difference* je v `Purchases & Payables Setup`). CZL `Purchase Line Handler CZL` má stejné
+`RemoveVATCorrection` na `OnBeforeInsert/Modify/DeleteEvent`. Typická otázka „základ i brutto z dokladu dodavatele, ale obě částky na
+řádek = řádková sleva": řádek nese jen jednu celkovou částku (`Line Amount`), druhou BC dopočte sazbou a rozdíl vnucené druhé částky
+vyloží jako slevu. Řešení: `Prices Including VAT` = Ne, `Direct Unit Cost` = základ, DPH skupiny = DPH dodavatele přes rozdíl DPH →
+brutto = základ + DPH, bez slevy. **Hlídání součtů bez kódu:** `Purchases & Payables Setup."Check Doc. Total Amounts"` (11320) +
+hlavička `"Doc. Amount Incl. VAT"` (11301) / `"Doc. Amount VAT"` (11302). `Purch.-Post.CheckDocumentTotalAmounts` (jen faktura a
+dobropis, jen při `Invoice`) při účtování porovná hlavičku se součty řádků **přesně** a jinak spadne (`OnBeforeCheckDocumentTotalAmounts`
+`IsHandled`). Řádky neupravuje. Hodí se jako pojistka proti tomu, že ruční úprava řádku rozdíl DPH (CZL) tiše zahodí.
+`Validate("Doc. Amount VAT")` hlásí chybu, když se od DPH řádků liší víc, než dovoluje *Max. VAT Difference Allowed*. Prodej
+obdobu nemá. (2026-11-24, cust-itmr-bc dotaz; zdroje w1-28 `PurchaseHeader.Table.al` ř. ~2775–2840 a ~7840–7880,
+`PurchasesPayablesSetup.Table.al` `ShouldDocumentTotalAmountsBeChecked`, `PurchPost.Codeunit.al` ř. ~736 a ~900, `PurchaseLine.Table.al`
+`UpdateVATOnLines`; cz-28 CZL `PurchaseLineHandlerCZL.Codeunit.al`. Jen ze zdrojů.)
 
 (2026-11-19, cust-itmr-bc, dotaz na převzetí DPH z externího systému do faktury z G/L Importu; zdroje StefanMaron w1-28 @ c0cbed01,
 cz-28 @ e253af7f: `VATAmountLine.Table.al`, `VATSpecificationSubform.Page.al`, `SalesStatistics.Page.al`, `SalesLine.Table.al`,
