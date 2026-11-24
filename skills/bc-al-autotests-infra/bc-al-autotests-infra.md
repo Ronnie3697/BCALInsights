@@ -393,6 +393,12 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   Tests-TestLibraries a SysApp Test Library; `Library Assert` zvlášť jen když používáš codeunit `Library Assert`). Pozor při upgradu
   repa na 28: PR „Prevod BC28" u cust-londonPharma-bc z test `app.json` vyhodil Tests-TestLibraries i SysApp Test Library a nechal jen
   `Library Assert` → test appka od té doby nekompilovala a nikdo si nevšiml (CI `runTests: false`). (2026-10-15)
+- **BC 29 na MSSymbols (stav 2026-11-24): CZ country symboly test knihoven, Subcontracting a EU 3-Party Trade Purchase jsou jen
+  ve verzi 29.0.54011.55644, žádná 29.1.** S MS 29.1 symboly z dev endpointu prostředí (`AL: Download Symbols` → `.alpackages`)
+  se hlavní i test appka přeložily bez `AL1022` (29.0 balíčky chtějí jen ≥ 29.0). Sada: Test Runner, Tests-TestLibraries, SysApp
+  Test Library, Application Test Library, Permissions Mock, Library Assert, Library Variable Storage, Any, BF Test Libraries, ID
+  `Microsoft.<Název>.CZ.symbols.<guid>`, verzi ber z `flat2/<id>/index.json` (`grep '"29\.'`, ne `29.1`). Stažené v `%TEMP%\ms29`.
+  (cust-alumistr-bc 68073, nová test appka `cds/test`, alc 18.1.)
 - **MSSymbols 28.4 balíčky jsou malé** (Application Test Library 77 KB, Tests-TestLibraries 57 KB, Library Assert 2,5 KB) —
   je to jen `SymbolReference.json` v zipu, není to pahýl; nehledej „plnou" verzi. Feed vrací **303 redirect** → `curl -sL`
   (bez `-L` 0 bajtů a `End-of-central-directory signature not found`); PowerShell `Invoke-WebRequest` redirect sleduje sám.

@@ -10,10 +10,9 @@ description: >-
   BC29: tokeny expirují 1.1.2027, GQL → .graphql, HttpClientHandler),
   HttpClient SaaS (Allow HttpClient Requests, Win auth OnPrem), Isolated Storage, SecretText
   (Unwrap AL0296, HMAC, SecretStrSubstNo), Power Automate; API page
-  zápis (POST validace, temp OnFindRecord, $filter); Dataverse/CDS (Integration Table Filter
-  Dataverse→BC, Enum→Choice (OptionOrdinalValues), testy @@test@@, reset mapování recreate,
-  Man. Integration Table Mapping); Dotykačka (stockQuantityStatus, display, priceWithVat, EAN filtr); Jira/Tempo
-  (user search, worklog→parent). Načti u Shopify, HTTP, API, Dataverse, Jira.
+  zápis (POST validace, temp OnFindRecord, $filter); Dotykačka (stockQuantityStatus, display, priceWithVat,
+  EAN filtr); Jira/Tempo (user search, worklog→parent); Email modul z PTE (Sent Email Internal pole).
+  Dataverse/CDS sync → skill bc-al-dataverse. Načti u Shopify, HTTP, API, Jira, Dotykačky.
 user-invocable: true
 ---
 
@@ -62,8 +61,5 @@ jsou v souboru. Vyčleněno z `bc-al-objects.md` 2026-09-08, číslování je p�
   + Dataverse prerekvizity (nenacenit jako levné) → pragmaticky queue tabulka
   + API page + BC trigger „When a record is created (V3)"; HTTP trigger v PA
   je Premium.
-- **11.8** Dataverse sync: Integration Table Filter platí **jen Dataverse → BC**
-  (BC → Dataverse jde přes `GetRecordRef` bez filtru); Enum → Choice = Option
-  `Picklist` se stejným pořadím členů + `OptionOrdinalValues` (přenáší se index);
-  testy bez Dataverse přes `@@test@@` připojení a přímé volání
-  `Integration Record Synch.`.
+- **11.8** Dataverse / CDS sync je od 2026-11-24 ve skillu `bc-al-dataverse`
+  (soubor `bc-al-dataverse.md`).

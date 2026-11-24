@@ -25,7 +25,8 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
 | `bc-al-tracking.md` | Item Tracking — šarže / SN: Item Tracking Lines (6510) a její eventy, předvyplnění šarže, Reservation Entry vs Tracking Specification, source pole VZ, tracking na nabídce a na fakturačním řádku z dodávky (sekce 5.x, 5.x2, 5.x2b, 5.x15) |
 | `bc-al-advance-cz.md` | CZZ zálohy — vazba záloha ↔ doklad a scoped guard, generovaný řádek zálohy z reportu 31012, platba zálohy a účto skupina zákazníka / dodavatele (šablona vs. karta, propojení / odpojení z položek) (sekce 5.z3, 5.z5, 5.z7; vyčleněno 2026-11-03) |
 | `bc-al-projects.md` | projekty — Job Planning Line: účto skupina a dimenze do deníku projektů, Location Code, vazba budget ↔ billable, návazné doklady projektu, guardy `OnDelete` (sekce 5.x17–5.x20) |
-| `bc-al-integrations.md` | Shopify Connector, HttpClient na SaaS, SecretText/Isolated Storage, Business Events / Power Automate, vlastní API page pro zápis, Dataverse/CDS sync (5.y2, sekce 11) |
+| `bc-al-integrations.md` | Shopify Connector, HttpClient na SaaS, SecretText/Isolated Storage, Business Events / Power Automate, vlastní API page pro zápis, Jira, Dotykačka (5.y2, sekce 11) |
+| `bc-al-dataverse.md` | Dataverse / CDS synchronizace — filtry mapování, Enum → Choice, reset a vlastní mapování, obousměrné objednávky, faktury, ceníky, úlohy synchronizace po zapnutí, testy bez Dataverse (11.8, 11.8c, 11.8d; vyčleněno 2026-11-24) |
 | `bc-al-workflow.md` | dokumentace vč. uživatelské příručky, co číst před editem, verifikace a analyzery (sekce 8, 9, 12) |
 | `bc-al-xliff.md` | lokalizace / XLIFF — NAB AL Tools, trans-unit ID hash (FNV-1a), `%n` v přeložených labelech, duplicitní trans-unity po merge (sekce 6, vyčleněno 2026-10-22) |
 | `bc-al-layouts.md` | layouty reportů — Word layout přes MCP `bc-word-layout`, repeater `w15:dataBinding`, RDLC tablix skriptem, `<DataSets>` layoutu reportextension v CI, sloupce do datasetu CZL sestav, štítky skriptem, barcode fonty, GS1-128 (sekce 12.1f–12.1k, 12.5; vyčleněno 2026-11-12) |
@@ -71,6 +72,7 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
   5.z3, 5.z5 (+ nová 5.z7, CZZ zálohy) → `bc-al-advance-cz.md` (2026-11-03, `bc-al-objects.md` by přesáhl 1000 řádků).
   5.x22, 5.x26–5.x28 (+ nová 5.x34, sklad: přihrádky, skladové aktivity, MJ ve skladu) → `bc-al-warehouse.md` (2026-11-19, `bc-al-objects.md` měl 1000 řádků).
   7.7–7.10 (git, PR, verzování app.json, Azure DevOps) → `bc-al-git.md` (2026-11-20, `bc-al-tools.md` měl 1006 řádků).
+  11.8 + Dataverse body za 11.11 (+ nová 11.8d) → `bc-al-dataverse.md` (2026-11-24, `bc-al-integrations.md` měl 1021 řádků).
   Test appka jako projekt (app.json, ruleset, symboly, kompilace, běh, CI) → `bc-al-autotests-infra.md` a doménové
   gotchas (projekty, doklady, Job Queue, výroba) → `bc-al-autotests-domains.md` (2026-10-09, `bc-al-autotests.md`
   znovu přesáhl 1000 řádků / 77 KB).
@@ -335,7 +337,8 @@ stabilních pravidel. **Notes soubory zůstávají zdrojem pravdy.**
 | `bc-al-tracking` | `bc-al-tracking.md` | Item Tracking Lines (6510) a eventy, šarže = projekt, Reservation Entry, Prospect vs Surplus |
 | `bc-al-advance-cz` | `bc-al-advance-cz.md` | CZZ zálohy — vazba na doklad, generovaný řádek, platba zálohy a účto skupina, propojení / odpojení |
 | `bc-al-projects` | `bc-al-projects.md` | Job Planning Line, deník projektů, návazné doklady projektu, mazání plánovacích řádků |
-| `bc-al-integrations` | `bc-al-integrations.md` | Shopify Connector, HttpClient/SecretText na SaaS, Power Automate, Dataverse sync |
+| `bc-al-integrations` | `bc-al-integrations.md` | Shopify Connector, HttpClient/SecretText na SaaS, Power Automate, Jira, Dotykačka |
+| `bc-al-dataverse` | `bc-al-dataverse.md` | Dataverse / CDS sync: mapování a filtry, reset, objednávky, faktury, úlohy synchronizace |
 | `bc-al-workflow` | `bc-al-workflow.md` | dokumentace + uživatelská příručka, analyzery, ruleset |
 | `bc-al-xliff` | `bc-al-xliff.md` | XLIFF / NAB AL Tools, trans-unit ID, `%n` v přeložených labelech, AL0479 po merge |
 | `bc-al-layouts` | `bc-al-layouts.md` | Word / RDLC layouty reportů, MCP `bc-word-layout`, štítky s čárovými kódy, GS1-128 |
