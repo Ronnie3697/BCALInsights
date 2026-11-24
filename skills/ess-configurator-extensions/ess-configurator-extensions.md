@@ -183,7 +183,16 @@ Component`, *Vrátit návrh* je vyprázdní; změna stavu VZ je přenese). Kód,
 konfigurace (CNC profil), musí brát `Item No.` **nebo** `Pre-Opt. Orig. Item No.` — jinak po Předoptimalizaci nenajde nic.
 Alumistr IN-015961 (BC-TEST VZ 25-0000742, 2026-11-24): tisk CNC hlásí „Žádná komponenta profilu …-XX-WH … nemá Poznámku
 odpovídající CNC pozici“, všech 5 řezů je na `-60-WH` s původním `-XX-WH`. Diagnostika: inspektor na *Řádky komp. výr.
-zakázky* (5407, URL filtr `'Prod. Order No.'`), stránka pole 65150 nezobrazuje.
+zakázky* (5407, URL filtr `'Prod. Order No.'`), stránka pole 65150 nezobrazuje. Oprava v COALU: komponenta profilu = `Item No.`
+**nebo** `Pre-Opt. Orig. Item No.` = profil (prázdný profil nic), soubor v přílohách VZ (5.x37 v `bc-al-objects.md`).
+**Simulace Předoptimalizace v sandboxu bez Opticutteru:** CP 28.0.10 má **vestavěný optimalizátor** (`Cutting Optimizer CUEBS::"Built-in"`,
+i fallback, když Opticutter selže). Potřeba: profil řezání (Linear, Built-in) na kartě zboží nebo jako výchozí v Nastavení výroby, MJ
+s *Length Type* (m) jako základní MJ profilů, **tyč** = zboží s *Optimize Material*, kusovou MJ bez typu délky s `Qty. per Unit of Measure`
+= délka tyče a *Flushing Method* Ruční / Vychystat + ruční, **zástupná karta** = *Placeholder for optimiz.* bez kusové MJ, `Item Substitution`
+zástupná → tyč s *Interchangeable* (stejná základní MJ a režim řezu); komponenty v základní MJ se vzorcem *Délka*. Postup: Pevně plánovaná
+VZ → *Akce › Předoptimalizace* (*Použít návrhy automaticky*) → *Změna stavu* na Vydaná → *Optimalizovat řezání* (*Bez ohledu na zásoby*).
+Data skriptem (dočasná dev appka): kusovník přes `Validate("Qty. of Pcs. CUEBS")` + `Validate("Qty. per Piece CUEBS")`, VZ přes
+`Create Prod. Order from Sale.CreateProductionOrder(SalesLine, "Firm Planned", ItemOrder)`. (Alumistr BC-DEV 2026-11-24, VZ 101013 → 101012.)
 
 ⚠️ **EM Cutting Plan od PR 9737 (#66996, master 2026-10-14, 28.0.6.1) do 28.0.8 počítá plochu na komponentě VZ dvakrát**
 (V2 od 28.0.10 výpočet nahradil a MJ ani `Qty. per Unit of Measure` nemění — podle zdroje, na prostředí neověřeno).

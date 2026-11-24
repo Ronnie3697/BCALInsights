@@ -935,3 +935,24 @@ Ověřeno proti zdroji Base Application 29.1 cz (`Manufacturing/Document/CreateP
 - Test: `Create Prod. Order from Sale.SetHideValidationDialog(true)` + `CreateProductionOrder(SalesLine, Released, ItemOrder | ProjectOrder)`
   (zboží s *Způsob doplnění* = Výrobní zakázka, bez kusovníku stačí); sešit = zboží s pravidlem *Objednávka*, prodej 2 týdny dopředu,
   `LibraryPlanning.CalcRegenPlanForPlanWksh` + `CarryOutActionMsgPlanWksh`; Refresh = `LibraryManufacturing.RefreshProdOrder(…, CalcLines = true, …)`.
+
+### 5.x37 Soubor do příloh výrobní zakázky z kódu — standard BC 29 (`Prod. Document Attachment Mgt.`), nahrazení podle názvu
+
+- **Přílohy VZ jsou v BC 29 standard** (Base App `Manufacturing/Document/ProdDocumentAttachmentMgt.Codeunit.al`, codeunit 99000783):
+  `Document Attachment` s `Table ID` = 5405, `No.` = číslo VZ, `Document Type` = enumextension *Mfg. Attachment Document Type*
+  (61 Simulated … 64 **Released Production Order**, 65 Finished), `Line No.` 0 (řádek VZ = tabulka 5406 + `Line No.`). Factbox
+  *Doc. Attachment List Factbox* i akce *Přílohy* na stránce vydané VZ jsou ve standardu. Při **změně stavu** VZ standard přílohy
+  zkopíruje k nové VZ (`OnAfterTransProdOrder` → `CopyAttachments`), smazání VZ je smaže.
+- **Uložení z kódu:** `RecRef.GetTable(ProductionOrder); DocumentAttachment.SaveAttachmentFromStream(InStream, RecRef, FileName,
+  false)`. `InitFieldsFromRecRef` doplní klíče přes eventy výrobní codeunity, takže nic neskládej ručně. `AllowDuplicateFileName = true`
+  (i výchozí přetížení se 3 parametry) by ke stejnému názvu přidal `(1)`, `(2)`. Chceš-li **nahradit** soubor z dřívějšího běhu,
+  filtruj `DocumentAttachmentMgmt.SetDocumentAttachmentFiltersForRecRef(Existing, RecRef)` (public) + `SetRange("File Name",
+  FileManagement.GetFileNameWithoutExtension(FileName))` + `"File Extension"` a `DeleteAll(true)`, pak teprve `SaveAttachmentFromStream`.
+- Standardní cesta respektuje i Essence Document Attachments (ABEBS, SharePoint, 12.5 v `bc-al-layouts.md`): ukládá přes eventy
+  `Document Attachment`.
+- Test: `AttachX(ProductionOrder, TempBlob, 'ALUVISTA.csv')` dvakrát + jiná příloha → filtr `Table ID` / `No.` / `Document Type::"Released
+  Production Order"` → `Assert.RecordCount`, obsah přes `DocumentAttachment.GetAsTempBlob` (`Length()`). Ve vydané VZ z testu (Insert
+  hlavičky bez refreshe) to funguje.
+- Ověřeno na Alumistr BC-DEV (BC 29.1, 2026-11-24): druhý tisk nechal jedinou přílohu (`ID` 2, první smazaná), typ dokladu
+  *Vydaná výrobní zakázka*. Se zapnutou SharePoint službou ABEBS ověřené není. (cust-alumistr-bc IN-015961, tisk CNC datových vět
+  do příloh VZ.)
