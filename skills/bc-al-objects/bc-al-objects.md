@@ -936,7 +936,7 @@ Ověřeno proti zdroji Base Application 29.1 cz (`Manufacturing/Document/CreateP
   (zboží s *Způsob doplnění* = Výrobní zakázka, bez kusovníku stačí); sešit = zboží s pravidlem *Objednávka*, prodej 2 týdny dopředu,
   `LibraryPlanning.CalcRegenPlanForPlanWksh` + `CarryOutActionMsgPlanWksh`; Refresh = `LibraryManufacturing.RefreshProdOrder(…, CalcLines = true, …)`.
 
-### 5.x37 Soubor do příloh výrobní zakázky z kódu — standard BC 29 (`Prod. Document Attachment Mgt.`), nahrazení podle názvu
+### 5.x37 Soubor do příloh výrobní zakázky z kódu — standard BC 29 (`Prod. Document Attachment Mgt.`), nahrazení přes příznak, izolovaný běh
 
 - **Přílohy VZ jsou v BC 29 standard** (Base App `Manufacturing/Document/ProdDocumentAttachmentMgt.Codeunit.al`, codeunit 99000783):
   `Document Attachment` s `Table ID` = 5405, `No.` = číslo VZ, `Document Type` = enumextension *Mfg. Attachment Document Type*
@@ -944,15 +944,36 @@ Ověřeno proti zdroji Base Application 29.1 cz (`Manufacturing/Document/CreateP
   *Doc. Attachment List Factbox* i akce *Přílohy* na stránce vydané VZ jsou ve standardu. Při **změně stavu** VZ standard přílohy
   zkopíruje k nové VZ (`OnAfterTransProdOrder` → `CopyAttachments`), smazání VZ je smaže.
 - **Uložení z kódu:** `RecRef.GetTable(ProductionOrder); DocumentAttachment.SaveAttachmentFromStream(InStream, RecRef, FileName,
-  false)`. `InitFieldsFromRecRef` doplní klíče přes eventy výrobní codeunity, takže nic neskládej ručně. `AllowDuplicateFileName = true`
-  (i výchozí přetížení se 3 parametry) by ke stejnému názvu přidal `(1)`, `(2)`. Chceš-li **nahradit** soubor z dřívějšího běhu,
-  filtruj `DocumentAttachmentMgmt.SetDocumentAttachmentFiltersForRecRef(Existing, RecRef)` (public) + `SetRange("File Name",
-  FileManagement.GetFileNameWithoutExtension(FileName))` + `"File Extension"` a `DeleteAll(true)`, pak teprve `SaveAttachmentFromStream`.
+  AllowDuplicateFileName)`. `InitFieldsFromRecRef` doplní klíče přes eventy výrobní codeunity, takže nic neskládej ručně.
+  `AllowDuplicateFileName` (Base App W1 29, `DocumentAttachment.Table.al`): **`true`** (i výchozí přetížení se 3 parametry) =
+  `FindUniqueFileName` → stejný název dostane `Název (1).ext`, `(2)`…; **`false`** = `Validate("File Name")` → `DuplicateErr`
+  *„This file is already attached to the document…"*, když název už na dokladu je.
+- **Nahrazení souboru z dřívějšího běhu: označ si ho, nefiltruj podle názvu.** Název se mění (CSV jednoho zboží vs. ZIP
+  `<číslo VZ>.zip`, přejmenované zboží) a filtr podle názvu by smazal i soubor, který stejně pojmenoval uživatel. Vzor:
+  tableextension na `Document Attachment` s Boolean polem (např. `CNC Print COALU`), smazání
+  `DocumentAttachmentMgmt.SetDocumentAttachmentFiltersForRecRef(Existing, RecRef)` (public) + `SetRange(<příznak>, true)` +
+  `DeleteAll(true)` a nový soubor s `AllowDuplicateFileName = true` (cizí soubor stejného jména zůstane, náš dostane `(1)`).
+- **Příznak nastav před `SaveAttachmentFromStream`:** `DocumentAttachment.Init(); DocumentAttachment."<příznak>" := true;` —
+  `SaveAttachmentFromStream` / `InsertAttachment` záznam neinicializuje (`Init()` dělá až volající, např. `ImportAttachment`), takže
+  hodnota dojde do `Insert(true)` a není potřeba `Modify` po vložení.
+- **Příloha jako vedlejší produkt akce (stažení, tisk) → izolovaný běh.** Chyba přílohy (oprávnění, služba SharePoint ABEBS)
+  nesmí zastavit hlavní akci: malá codeunita s `TableNo` + setter pro blob a název, `if not CU.Run(Rec) then Message(…,
+  GetLastErrorText())`. Neúspěšný běh vrátí i `DeleteAll` staré přílohy, takže hláška má říct, že v přílohách může zůstat starý
+  soubor. **Ne `[TryFunction]`** (zápisy uvnitř se nevracejí; v cloudu zápis v try funkci chyba). `Codeunit.Run` s použitou
+  návratovou hodnotou **nesmí běžet v otevřené zápisové transakci** (runtime chyba, kompilátor ani testy ji nechytí) — volej ho
+  jen z vrstvy akce, před ním nic nezapisuj, testy ať volají vnitřní proceduru přímo (nebo `Commit()` před během) a běh
+  proklikej v BC. Do permission setu přidej codeunitu `= X` (bez toho `Run` tiše vrací false) a `tabledata "Document
+  Attachment" = RIMD`.
 - Standardní cesta respektuje i Essence Document Attachments (ABEBS, SharePoint, 12.5 v `bc-al-layouts.md`): ukládá přes eventy
-  `Document Attachment`.
-- Test: `AttachX(ProductionOrder, TempBlob, 'ALUVISTA.csv')` dvakrát + jiná příloha → filtr `Table ID` / `No.` / `Document Type::"Released
-  Production Order"` → `Assert.RecordCount`, obsah přes `DocumentAttachment.GetAsTempBlob` (`Length()`). Ve vydané VZ z testu (Insert
-  hlavičky bez refreshe) to funguje.
-- Ověřeno na Alumistr BC-DEV (BC 29.1, 2026-11-24): druhý tisk nechal jedinou přílohu (`ID` 2, první smazaná), typ dokladu
-  *Vydaná výrobní zakázka*. Se zapnutou SharePoint službou ABEBS ověřené není. (cust-alumistr-bc IN-015961, tisk CNC datových vět
-  do příloh VZ.)
+  `Document Attachment`. V režimu SharePoint (bez definic) `OnInsertAttachmentOnBeforeImportStream` → `SaveStream` nahraje soubor
+  pod **původním** `FileName` (číslování z `AllowDuplicateFileName` neplatí) a `Import` na tomtéž záznamu (bez `Init`, příznak
+  přežije) přepíše `File Name` původním názvem a kontroluje duplicitu sám (`IsDuplicateFileABEBS` → *„File with the same name
+  already exists…"*). Cizí soubor stejného jména tam tedy uložení shodí — izolovaný běh z bodu výš to zachytí. Smazání souboru ze
+  SharePointu při `DeleteAll(true)` a nahrání stejného jména podruhé jsou neověřené (nahrání do SharePointu rollback nevrátí).
+- Test: `Attach(ProductionOrder, TempBlob, 'ALUVISTA.csv')` dvakrát + soubor uživatele přes holé `SaveAttachmentFromStream` → filtr
+  `Table ID` / `No.` / `Document Type::"Released Production Order"` → `Assert.RecordCount`; obsah porovnej bajtově
+  (`Base64 Convert.ToBase64` z `GetAsTempBlob` vs. stažení), ne jen `Length()`. Ve vydané VZ z testu (Insert hlavičky bez
+  refreshe) to funguje.
+- Ověřeno na Alumistr BC-DEV (BC 29.1, 2026-11-24): druhý tisk nahradil CNC přílohu (ID 3 → 4), starší příloha bez příznaku
+  zůstala a nová dostala `(1)`; `Codeunit.Run` z akce stránky bez chyby. Se zapnutou SharePoint službou ABEBS ověřené není.
+  (cust-alumistr-bc IN-015961, tisk CNC datových vět do příloh VZ.)
