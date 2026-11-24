@@ -952,7 +952,10 @@ Ověřeno proti zdroji Base Application 29.1 cz (`Manufacturing/Document/CreateP
   `<číslo VZ>.zip`, přejmenované zboží) a filtr podle názvu by smazal i soubor, který stejně pojmenoval uživatel. Vzor:
   tableextension na `Document Attachment` s Boolean polem (např. `CNC Print COALU`), smazání
   `DocumentAttachmentMgmt.SetDocumentAttachmentFiltersForRecRef(Existing, RecRef)` (public) + `SetRange(<příznak>, true)` +
-  `DeleteAll(true)` a nový soubor s `AllowDuplicateFileName = true` (cizí soubor stejného jména zůstane, náš dostane `(1)`).
+  `DeleteAll(true)`. Cizí soubor stejného jména nech a svůj očísluj **předem**: `DocumentAttachment.Init();
+  DocumentAttachment.InitFieldsFromRecRef(RecRef); Name := DocumentAttachment.FindUniqueFileName(<bez přípony>, <přípona>);`
+  (obojí public) a ulož pod `Name`. Samotné `AllowDuplicateFileName = true` nestačí — čísluje až uvnitř `InsertAttachment`, ale
+  SharePoint ABEBS (níže) dostane z eventu původní název.
 - **Příznak nastav před `SaveAttachmentFromStream`:** `DocumentAttachment.Init(); DocumentAttachment."<příznak>" := true;` —
   `SaveAttachmentFromStream` / `InsertAttachment` záznam neinicializuje (`Init()` dělá až volající, např. `ImportAttachment`), takže
   hodnota dojde do `Insert(true)` a není potřeba `Modify` po vložení.
@@ -965,15 +968,19 @@ Ověřeno proti zdroji Base Application 29.1 cz (`Manufacturing/Document/CreateP
   proklikej v BC. Do permission setu přidej codeunitu `= X` (bez toho `Run` tiše vrací false) a `tabledata "Document
   Attachment" = RIMD`.
 - Standardní cesta respektuje i Essence Document Attachments (ABEBS, SharePoint, 12.5 v `bc-al-layouts.md`): ukládá přes eventy
-  `Document Attachment`. V režimu SharePoint (bez definic) `OnInsertAttachmentOnBeforeImportStream` → `SaveStream` nahraje soubor
-  pod **původním** `FileName` (číslování z `AllowDuplicateFileName` neplatí) a `Import` na tomtéž záznamu (bez `Init`, příznak
-  přežije) přepíše `File Name` původním názvem a kontroluje duplicitu sám (`IsDuplicateFileABEBS` → *„File with the same name
-  already exists…"*). Cizí soubor stejného jména tam tedy uložení shodí — izolovaný běh z bodu výš to zachytí. Smazání souboru ze
-  SharePointu při `DeleteAll(true)` a nahrání stejného jména podruhé jsou neověřené (nahrání do SharePointu rollback nevrátí).
+  `Document Attachment`. Zdroják `prod-ess-documentAttachments-bc` (master, 2026-11-24), režim SharePoint bez definic:
+  `OnInsertAttachmentOnBeforeImportStream` → `SaveStream` → `SaveInStream` nahraje soubor pod `FileName` z eventu (= název
+  předaný do `SaveAttachmentFromStream`, ne číslovaný) přes Graph `PUT …/root:/<složka>/<č. dokladu>/<soubor>:/content` **bez
+  `conflictBehavior`** → existující soubor stejného jména **přepíše** (nová verze); teprve pak `Import` na tomtéž záznamu (bez
+  `Init`, vlastní pole přežijí) kontroluje duplicitu (`IsDuplicateFileABEBS` → *„File with the same name already exists…"*).
+  Nahrání do SharePointu rollback nevrátí; při jeho chybě `SaveInStream` dělá `Commit()` (zápisy před ním zůstanou).
+  `OnDelete` tableextension ABEBS soubor ze SharePointu **nemaže** (zakomentované, jen pod symbolem `DeleteAttTmp` a jen když na
+  drive item neukazuje jiný záznam) → po smazání přílohy v BC zůstane soubor ve složce SharePointu.
 - Test: `Attach(ProductionOrder, TempBlob, 'ALUVISTA.csv')` dvakrát + soubor uživatele přes holé `SaveAttachmentFromStream` → filtr
   `Table ID` / `No.` / `Document Type::"Released Production Order"` → `Assert.RecordCount`; obsah porovnej bajtově
   (`Base64 Convert.ToBase64` z `GetAsTempBlob` vs. stažení), ne jen `Length()`. Ve vydané VZ z testu (Insert hlavičky bez
   refreshe) to funguje.
-- Ověřeno na Alumistr BC-DEV (BC 29.1, 2026-11-24): druhý tisk nahradil CNC přílohu (ID 3 → 4), starší příloha bez příznaku
-  zůstala a nová dostala `(1)`; `Codeunit.Run` z akce stránky bez chyby. Se zapnutou SharePoint službou ABEBS ověřené není.
+- Ověřeno na Alumistr BC-DEV (BC 29.1, 2026-11-24, služba příloh vypnutá): druhý tisk nahradil CNC přílohu (ID 3 → 4 → 5),
+  starší příloha bez příznaku zůstala a nová dostala `(1)`; `Codeunit.Run` z akce stránky bez chyby. Se zapnutou SharePoint
+  službou ABEBS naživo ověřené není (chování výše je ze zdrojáku).
   (cust-alumistr-bc IN-015961, tisk CNC datových vět do příloh VZ.)
