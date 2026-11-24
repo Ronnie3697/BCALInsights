@@ -879,6 +879,31 @@ export cen tam neotestuješ; feature nezapínej, vyber firmu, kde běží. (2026
 - **Po editaci řádku na kartě VZ hlásí navigace „Leave site?“** i po kliknutí do pole hlavičky; `force` by změnu zahodil. Zavři kartu šipkou
   zpět (uloží), pak ji otevři znovu přes `page=99000829&filter='No.' IS '…'`. `Escape` kartu zavře taky (pozor uprostřed práce).
 
+**Focení příručky v lokálním kontejneru bez Claude in Chrome (Playwright)** (2026-11-24, cust-soitron-bc 64803, kontejner `bc28`):
+- V seanci z VS Code nástroje Claude in Chrome nejsou. Náhrada: `npm i playwright-core` do scratchpadu (bez stahování prohlížeče),
+  `chromium.launchPersistentContext(<profil>, { executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true,
+  viewport 1440×1000, locale 'cs-CZ' })`. Přihlášení NavUserPassword: `#UserName`, `#Password`, `#submitButton`. Heslo dá skriptu
+  PowerShell obal (`Import-Clixml` → `GetNetworkCredential().Password` → proměnná prostředí → `node`), v přepisu ho nikdo nevidí.
+  Uživatel kontejneru, který heslo nezná, si zvolí vlastní v nativním okně (`$Host.UI.PromptForCredential` + `New-BcContainerBcUser`).
+- Web klient je v iframe (`page.frames()`), stránku otevře `?tenant=default&page=<id>&filter='<pole>' IS '<hodnota>'`. Akce:
+  `getByRole('menuitem', { name })`. Akce schované v nabídkách (záložky akcí karty, `Řádek → Funkce`) jsou v DOM až po kliknutí na
+  nabídku. Hledej je skriptem, který klikne na nabídky a vypíše `[role=menuitem]`. Tlačítko request page je **„Ok“**, ne „OK“.
+- **Zavřený prohlížeč s otevřeným dialogem BC = visící relace se zámky.** Další akce pak hlásí „…záznam v tabulce 'Řádek číselné řady'
+  se aktualizuje v transakci provedené jinou relací“. Relace testovacího uživatele vypiš a ukonči přes `Invoke-ScriptInBcContainer`
+  (`Get-NAVServerSession` → `Remove-NAVServerSession`). Klient web se tam ukazuje jako `ClientType Background`, filtr na `WebClient`
+  nic nenajde. Ve skriptu proto dotazy (Ano/Ne) i zprávy odklikávej ve smyčce, než prohlížeč zavřeš.
+- Karta otevřená přes URL je jen pro čtení a editace mřížky skriptem nefungovala ani s tužkou *Upravit*. Data (zdražení, příjem, cena na
+  faktuře) proto měň akcemi dočasné appky a přes UI klikej jen to, co se fotí. Vodorovný posun mřížky: `.freeze-pane-scrollbar` **mřížky,
+  ve které je sloupec**, `scrollLeft` po krocích (max 500 px) + `dispatchEvent(new Event('scroll'))` a po každém kroku znovu poloha
+  hlavičky (`a[role=button]` s textem sloupce). Jeden velký skok i kolečko myši BC vrátí. Oříznutou podmínku workflow přečti z DOM a uveď ji
+  textem pod obrázkem.
+- **Odesílatel = schvalovatel**: požadavek ke schvalování BC schválí hned a doklad vydá. Pro snímek *Čeká na schválení* dej dokladu kód
+  nákupčího jiného uživatele (User Setup s jiným *Kódem prodejce/nákupčího*).
+- **Úklid kvůli autotestům ve stejném kontejneru:** povolená workflow, vyplněné limity v setupu, User Setup a jazyk testovacího uživatele
+  (`User Personalization."Language ID"` — česky = anglické `ExpectedError` v testech nesedí) by rozbily další běh. Workflow s aktivní
+  instancí nejde smazat → nejdřív `ApprovalsMgmt.OnCancelPurchaseApprovalRequest` na čekajících dokladech. Mazání kroků workflow se ptá
+  (Confirm), stačí workflow vypnout. Ověř to celým během testů.
+
 ### 12.4 Essence build — ruleset per projekt konvencí
 
 Essence BC build (`azure-pipelines.yml` → template `ALBuildPipeline2.yml` →
