@@ -174,6 +174,17 @@ komponenty VZ z 2026-10-07 mají `Length` 3,5 / 4 (metry). Diagnostika: page ins
 a na *Nastavení výroby* (`Optimaliz. Length Type CUEBS`, `SystemModifiedAt`) — sloupec *Délka* je v gridu komponent skrytý. Tisk CNC
 datové věty (COALU, 62959) bere od 2026-10-27 délku právě odsud (komponenta s `Note ALU` = pozice).
 
+⚠️ **Předoptimalizace EM Cutting Plan mění `Item No.` komponenty VZ** — zástupnou kartu (`Placeholder for optimiz. CUEBS`,
+např. `AL-00005111-XX-WH`) nahradí zaměnitelnou náhradou s vlastní tyčí (`Item Substitution`, *Interchangeable*, např. `-60-WH`
+= tyč 6 m) přes `Validate("Item No.")`; `Note ALU`, `Length`, kusy i *Cut Length (mm)* zůstanou. Výměna existovala i před V2
+(`ApplyPreOptimizationSuggestion`, původní zboží se nikam neukládalo); **od 28.0.10 (V2) si `Pre-Opt. Mgt. CUEBS.ApplySuggestion`
+pamatuje původní zboží v `Pre-Opt. Orig. Item No. CUEBS` / `Pre-Opt. Orig. Variant CUEBS`** (65150/65151 na `Prod. Order
+Component`, *Vrátit návrh* je vyprázdní; změna stavu VZ je přenese). Kód, který hledá komponentu podle zboží z kusovníku /
+konfigurace (CNC profil), musí brát `Item No.` **nebo** `Pre-Opt. Orig. Item No.` — jinak po Předoptimalizaci nenajde nic.
+Alumistr IN-015961 (BC-TEST VZ 25-0000742, 2026-11-24): tisk CNC hlásí „Žádná komponenta profilu …-XX-WH … nemá Poznámku
+odpovídající CNC pozici“, všech 5 řezů je na `-60-WH` s původním `-XX-WH`. Diagnostika: inspektor na *Řádky komp. výr.
+zakázky* (5407, URL filtr `'Prod. Order No.'`), stránka pole 65150 nezobrazuje.
+
 ⚠️ **EM Cutting Plan od PR 9737 (#66996, master 2026-10-14, 28.0.6.1) do 28.0.8 počítá plochu na komponentě VZ dvakrát**
 (V2 od 28.0.10 výpočet nahradil a MJ ani `Qty. per Unit of Measure` nemění — podle zdroje, na prostředí neověřeno).
 `Prod. Order Component CUEBS.CalcQtyFieldsCUEBS` dřív nastavoval `Quantity per := Qty. of Pcs.` (kusy) a `Qty. per Unit of Measure :=
