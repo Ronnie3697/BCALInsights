@@ -246,8 +246,9 @@ zálohové faktury jen ve stavu Vydaná“ (BC 28.5, ověřeno proklikem na Zlom
 - **Vstupní body na tabulce:** `PrintRecords` → `OnBeforePrintRecords`, `EmailRecords` → `OnBeforeEmailRecords` (obojí s `var`
   výběrem ze `CurrPage.SetSelectionFilter` — kontrola ve vlastní filter group přes `Count()` + `FindFirst` respektuje označení víc
   řádků seznamu), `PrintToDocumentAttachment` → per záloha `OnBeforeDoPrintToDocumentAttachment`. ⚠️ **Záznam v tom eventu nenese
-  filtry výběru** (`DoPrintToDocumentAttachment` dostává kopii hodnotou): kontrola „celého výběru“ v něm prošla celou tabulku a na
-  kartě ZPT2500005 hlásila cizí zálohu ZPT2500002. Tam jen kontrola samotné zálohy.
+  filtry výběru** (ověřen jen příznak: kontrola „celého výběru“ v něm prošla celou tabulku a na kartě ZPT2500005 hlásila cizí zálohu
+  ZPT2500002; příčina neověřená — `DoPrintToDocumentAttachment` dostává záznam hodnotou z kopie `Copy(Rec)`). Tam jen kontrola
+  samotné zálohy.
 - **Celý výběr pro *Připojit jako PDF* předem = pageextension na kartu 31171 i seznam 31170**: `modify(PrintToAttachment) { trigger
   OnBeforeAction() … CurrPage.SetSelectionFilter(X); Check(X); }` — chyba přišla dřív než první příloha (v klientu: výběr K úhradě +
   Nové, příloha u K úhradě nevznikla). Bez toho standard přikládá zálohu po záloze: sestava u každé commitne *Počet tisků*
