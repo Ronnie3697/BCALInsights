@@ -382,7 +382,7 @@ podmínku zavolá `AddRoutingLines`. Pasti pro rozšíření, které na řádek 
   `Alternative Routing ATEBS.OnAfterInsertEvent` jen pro TNG z probíhajícího běhu odkazy přeloží (řádek akce **stejné podmínky**
   s tím *Operation No.*, jinak jediný v ostatních podmínkách běhu, jinak `Error` s číslem řádku a podmínky), nejdřív všechny přiřadí,
   pak `Validate` + `Modify(true)` (validace OOEBS celá: bez odkazu na sebe, bez řetězení; *Routing Link Code*, který OOEBS přepíše
-kódem cíle, se od 2026-11-25 vrací na kód z řádku akce, i prázdný), a stav smaže.
+  kódem cíle, se od 2026-11-25 vrací na kód z řádku akce, i prázdný), a stav smaže.
   Stav SingleInstance přežije `Error` (3.10 v `bc-al-data.md`) → běh platí, jen dokud existuje první vygenerovaný řádek
   (`GetBySystemId`); rollback ho zneplatní sám. Ruční registrace alternativního TNG se nekontroluje. Hledání jen mezi operacemi
   běhu zároveň chrání před ořezem čísla TNG níže (odkaz se nechytí operace jiné varianty).
