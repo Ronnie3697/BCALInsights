@@ -350,6 +350,12 @@ Assert.ExpectedErrorCode('Dialog');
   length. Tag: 25.0`) — text záznamu z `LogMessage` / `LogSimpleMessage` čti z pole **`Message`** (Text[2048]). Na stránce
   *Error Messages* se control pořád jmenuje `Description` (TestPage `ErrorMessages.Description.Value()` funguje).
   (2026-11-23, cust-soitron-bc 66672.)
+- **`Purch. Inv. Aggregator.PropagateOnInsert` nechá na temp `Field Buffer` filtr** (na konci `SetRange("Table ID", …)` +
+  `SetFilter("Field ID", …)` na pár polí agregátu, w1-28; `PropagateOnModify` nechá `SetRange("Table ID", …)`). Test, který
+  týž buffer použije znovu pro `PropagateOnModify` (simulace PATCH), musí udělat **`Reset()` před `DeleteAll`**. Jinak smaže jen
+  část záznamů, helper `RegisterFieldSet` (`FindLast` + 1) pod filtrem nic nenajde a `Insert` spadne na *The record in table Field
+  Buffer already exists. Order='1'*. (2026-11-25, cust-itmr-bc PBI 67999,
+  `Purch. TAS Link Tests ITMR`, kontejner `bc28`.)
 - **Seznam, jehož `OnDrillDown` otevře přes `Page.RunModal` jinou stránku nad týmž záznamem a ta ho uloží: samotné
   `CurrPage.Update(false)` po `RunModal` výrazový sloupec seznamu na TestPage neobnoví** (`AssertEquals … Actual = ''`, i když
   v DB hodnota je). Pomohlo `if Rec.Find('=') then CurrPage.Update(false);` — stejně jako po stromovém seznamu v 4.17

@@ -717,6 +717,10 @@ Když setup dovolí vybrat **libovolné pole** tabulky (osa cenové matice, klí
 - **Postup pro konzultanta:** v balíčku nech zahrnutá jen pole PK a plněné pole. Ostatní zahrnutá pole se při použití přepíšou
   hodnotami z Excelu a u nezaúčtovaných dokladů znovu validují. Z exportovaného Excelu smaž řádky, které se nemají měnit, protože
   prázdná buňka zapíše prázdnou hodnotu.
+- **Totéž API dokladu přes agregát** (11.7a v `bc-al-integrations.md`): `Purch. Inv. Aggregator.TransferFieldsWithValidate` dělá na
+  `Purchase Header` `FieldRef.Validate` bez ohledu na `Editable`, takže pole jen pro čtení v UI jde přes kopii API stránky zapsat.
+  Na agregátu pole `Editable = false` **nemá** (control API stránky by ho zdědil a POST / PATCH by ho nepřijal). Zaúčtovanou fakturu
+  API nezmění (`PropagateOnModify` → *The invoice has been posted and can no longer be modified.*), jen čte.
 - Proklik: `ExtendedDatatype = URL` + `Editable = false` na poli tabulky. Podle poznámky v cust-itmr-bc (`GLImportHeaderCard`) se URL
   jako odkaz kreslí jen na needitovatelném controlu; v klientu jsem to neověřoval.
 - **Test** (`Library - Rapid Start`, v BC 28 v *Application Test Library*): `CreatePackage` → `CreatePackageTable(…, Database::X)` (OnInsert
