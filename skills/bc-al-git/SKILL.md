@@ -4,7 +4,8 @@ description: >-
   BC/AL git, PR a Azure DevOps z praxe (BC, AL, sekce 7.7–7.10): git commit /
   push / PR v pracovních repech nikdy sám (výjimka notes repo), merge
   origin/master na startu seance a před každým commitem / pushem, autotesty
-  v lokálním kontejneru až po vyžádaném push, upstream past nové větve,
+  v lokálním kontejneru až po vyžádaném push, upstream past nové větve, čistá
+  větev v druhém klonu z lokálního repa (origin/master = lokální master),
   ForcePush, verzování app.json (nepovyšovat, do PR XX.0.0.0), Azure DevOps MCP
   (org essencebs, PAT read-only záměrně – 401 neobcházet, search_code blob,
   IPv6 reset), texty do ADO (popis PR max 4000 znaků, PBI, Task, komentáře)

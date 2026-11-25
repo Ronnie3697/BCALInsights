@@ -209,6 +209,34 @@ Když zákazník mluví o „úkolovém listu“ výrobní zakázky, myslí stan
   `<target`, vypiš ho na řádku s LookupHint). Essence appky mají captiony v `Translations/*.cs-CZ.xlf` svého repa (poznámka
   `Xliff Generator` = `Page <název> - Property Caption`).
 
+### 12.1l Zákaz tisku / náhledu / e-mailu dokladu podle stavu (objednávka ve schvalování) — pojistka v sestavě + vstupní body
+
+Požadavek „objednávku ve stavu *Pending Approval* nejde vytisknout, zobrazit v náhledu ani poslat" (Order Confirmation a vlastní
+usage jako Commercial Invoice / Delivery Note = **jedna sestava 1305 s různými layouty**). Co se osvědčilo (BC 28/29, ověřeno testy
+v kontejneru `bctest29` a proklikem):
+
+- **Pojistka přímo v sestavě:** `reportextension` → `modify(Header) { trigger OnAfterPreDataItem() … }` a v něm na dataitem record
+  `Header` přidat filtr `Status <> Pending Approval` ve **vlastní filter group** (2.6c v `bc-al-data.md`, např. 51) → sestava ty doklady
+  vynechá, ať ji spustí kdokoli (Report Layouts, vyhledávání, plánovaný tisk, tělo e-mailu, náhled). Filtr z extension triggeru se
+  **uplatní** (test datasetu přes `SaveAs` XML: ze dvou objednávek se vytiskla jen schválená). Když nezbyde nic, `Error` (jinak prázdný
+  dokument). Kontrola před načtením dat = vynechaným se nezvýší *No. Printed*, nearchivují se, nezaloguje se interakce.
+- **Vstupní body, ať chyba přijde dřív než request page / e-mail:** `Document-Print.OnBeforePrintSalesOrder` (*Print Confirmation*),
+  `OnBeforeDoPrintSalesHeader` (*Email Confirmation*, usage `S.Order`), `OnDoPrintSalesOrderToAttachmentOnBeforeRunSaveAsDocumentAttachment`
+  (*Attach as PDF* — volá se **per doklad**, `ShowNotificationAction = true` jen u jednoho vybraného → chyba; u víc `IsHandled := true`
+  + zpráva). `Document Sending Profile.TrySendToEMail` posílá **e-mail po jednotlivých záznamech** (bez *Combine Email Documents*) —
+  chyba sestavy u prvního neschváleného by zastavila celé odesílání, proto výběr vyfiltrovat **před** voláním.
+- **Výběr ze seznamu (`CurrPage.SetSelectionFilter`) přes marks:** `Count()` marks respektuje (MS příklad u `Mark`), u `IsEmpty()` to
+  dokumentace neuvádí → `Count()` + pragma `LC0081`. `RecordRef.GetTable(Rec)` přenese **marks i filtr z vlastní filter group**
+  (test: 1 záznam ze dvou označených + nevybraný) → `TrySendToEMail` dostane jen vyfiltrovaný výběr.
+- **Karta:** `modify("Print Confirmation") { Enabled = not IsPendingApprovalLPC; }` (i `SendEmailConfirmation`, `AttachAsPDF`) na
+  base akcích v pageextension **funguje** (alc 18 bez varování, TestPage `.Enabled()` false/true, v klientu šedé). Page proměnná z
+  `OnAfterGetCurrRecord` (4.9 v `bc-al-ui.md`). **Seznam** umí vyhodnotit jen aktuální řádek, ne výběr → akce nechat aktivní,
+  ochranu dělá kontrola výš.
+- Pasti z testů: zákaznická appka s `Message` při zakládání prodejního řádku (London Pharma: zboží bez *Pack Size*) shodí každý test
+  přes `LibrarySales.CreateSalesOrder` na „Unhandled UI: Message" → vlastní zboží s vyplněným polem + `CreateSalesHeader` /
+  `CreateSalesLine`. Stav *Pending Approval* v testu stačí přiřadit (`Status :=` + `Modify(false)`), workflow netřeba.
+(2026-11-25, cust-londonPharma-bc 67750, `Document Print LPC`, test codeunit 51899.)
+
 ### 12.5 Word layout štítků generovaný skriptem + barcode fonty / GS1-128 (BC online)
 
 Štítky 100×100 / 100×50 mm s EAN a GS1-128 pro Sonnentor (PBI 65662, 2026-10-02) — Word layout

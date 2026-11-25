@@ -82,6 +82,15 @@ to zašpiní historii i cizí PR — poslední volba.
 - Když rovnou commitnu / pushnu, vede to k nadbytečným reset/rebase
   manévrům na úklid.
 
+**Čistá větev bez rozdělané práce v druhém klonu (`git clone <lokální repo> <repo>-<task>`):** klon z lokální cesty má jako
+`origin/*` **lokální větve původního repa**, ne jeho `origin/*` — `origin/master` v klonu = zastaralý lokální `master` (v
+cust-londonPharma-bc o několik PR pozadu, chyběla celá test appka). Větev zakládej na **SHA `origin/master` původního repa**
+(`git -C <orig> rev-parse origin/master`), pak `git remote set-url origin <ADO URL>`, `git fetch --prune origin`,
+`git branch -f master origin/master`, `git remote set-head origin -a` a smaž zkopírované lokální větve. Změny přenes kopií souborů,
+když `HEAD` původního repa = `origin/master` (patch z `git diff` se kvůli CRLF/LF nemusí aplikovat); ověř `git diff --stat`
+proti původnímu. Do klonu dokopíruj `.alpackages` a `.vscode` (gitignored). Větev zpět do původního repa:
+`git -C <orig> fetch <klon> <větev>:<větev>`. (2026-11-25, cust-londonPharma-bc 67750.)
+
 ### 7.7b Merge masteru — na startu seance a před každým `commitni` / `pushni`
 
 Pokyn uživatele (2026-09-22, cust-alumistr-bc): *„na začátku sessiony mergni master a vyřeš konflikty; a když napíšu

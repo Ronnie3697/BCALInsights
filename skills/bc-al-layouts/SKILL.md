@@ -1,19 +1,18 @@
 ---
 name: bc-al-layouts
 description: >-
-  BC/AL layouty a datasety reportů (BC, 12.1f–12.1k, 12.5): Word layout přes MCP bc-word-layout + skilly al-word-layout*
-  (inspect → validate → preview), repeater w15:dataBinding vs w:dataBinding, RDLC tablix sloupce skriptem (TablixCell,
-  ColSpan, Hidden, BOM + CRLF), RDLC layout reportextension (alc přegeneruje `<DataSets>` ze symbolů, jiná verze vendora
-  v CI → „refers to the field", sonda AL0155), sloupce do datasetu CZL sestav reportextensionem (závislost Core
-  Localization Pack, RoundLoop u 31187, obsolete pole, osa podle FormatRegion, test přes SaveAs XML, Ready2Run .app),
-  Word layout štítků skriptem (namespace vazeb = název reportu, WordMergeDataItem, aliasy #Nav, zip s lomítky, hRule
-  exact), obrázek z Blob a Document Attachments (SharePoint Drive Item ID → „image stream does not contain valid
-  image"), barcode fonty IDAutomation, GS1-128 / FNC1 encoderem, kontrolní číslice EAN, úkolový list VZ (Job
-  Card: tenký dataset, CZ captiony). Načti u Word / RDLC layoutů, datasetů sestav a štítků s čárovými kódy.
+  BC/AL layouty a datasety sestav (12.1f–12.1l, 12.5): Word layout přes MCP bc-word-layout + skilly al-word-layout*,
+  repeater w15:dataBinding, RDLC tablix sloupce skriptem (TablixCell, ColSpan, BOM+CRLF), RDLC reportextension (alc
+  přegeneruje DataSets ze symbolů, jiná verze vendora v CI → „refers to the field", sonda AL0155), sloupce CZL sestav
+  (Core Localization Pack, RoundLoop 31187, obsolete pole, FormatRegion, test SaveAs XML, Ready2Run .app), Word štítky
+  skriptem (namespace = název reportu, WordMergeDataItem, #Nav, hRule exact), obrázek z Blob / Document Attachments
+  (SharePoint Drive Item ID → „image stream"), IDAutomation, GS1-128 / FNC1, kontrolní číslice EAN, úkolový list VZ
+  (Job Card, CZ captiony), zákaz tisku / náhledu / e-mailu podle stavu (Pending Approval: filtr v OnAfterPreDataItem
+  reportextension, Document-Print eventy, Attach as PDF, Enabled akcí). Načti u layoutů, datasetů, blokace tisku a štítků.
 user-invocable: true
 ---
 
-# BC/AL — Layouty reportů: Word, RDLC, štítky (sekce 12.1f–12.1k, 12.5)
+# BC/AL — Layouty reportů: Word, RDLC, štítky (sekce 12.1f–12.1l, 12.5)
 
 **Zdroj pravdy:** `bc-al-layouts.md` ve stejném adresáři jako tenhle `SKILL.md`
 (adresář skillu = „Base directory" hlášený při načtení; cestu skládej odtud, ne přes `..`). Tenhle skill je jen wrapper —
