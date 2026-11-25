@@ -702,3 +702,45 @@ Když setup dovolí vybrat **libovolné pole** tabulky (osa cenové matice, klí
   lookupu) uživatel v panelu filtrů zruší a vybere i pole, které lookup „nenabízel" (ověřeno v UI: dedikovaná pole 65503/65504
   vybraná jako osa) — upgrade s takovými hodnotami počítej, nejen s konfiguračním balíčkem. (2026-11-04, Zlomek BC-DEV2.)
 (2026-11-03, prod-epb-pricingMatrix-bc PBI 67458 — Parametr A/B jako Code[50], osa = libovolné pole Item Unit of Measure.)
+
+### 2.13 Pole jen pro čtení v UI, plněné konfiguračním balíčkem (RapidStart) — i na zaúčtovaných dokladech
+
+- **`Editable = false` na poli tabulky platí jen pro UI** (všechny stránky, i pole přidané personalizací). Kód i konfigurační
+  balíček zapisují dál: `Config. Package Management.ModifyRecordDataField` píše přes `FieldRef` (`ConfigValidateMgt.
+  EvaluateTextToFieldRef`, s `Validate` podle *Validate Field*) a uloží `RecRef.Modify(not "Skip Table Triggers")`. Existující
+  záznam dohledá podle PK (`InsertPrimaryKeyFields` → `Find`, nic nevkládá) a mění jen pole se *Include Field*. Sestavení polí
+  balíčku (`InitPackageFields`) filtruje jen `Class = Normal`, `Enabled`, ne `Removed` a bez `System*` polí, na `Editable` nehledí.
+- **Import jde i do zaúčtovaných dokladů.** `IsImportAllowed` blokuje jen systémové tabulky a entity agregáty API (`Sales Invoice
+  Entity Aggregate`, `Sales Order/Quote/Cr. Memo Entity Buffer`, `Purch. Inv. Entity Aggregate`, `Purch. Cr. Memo Entity Buffer`,
+  `Integration Table/Field Mapping`), takže `Purch. Inv. Header` (122) a `Purch. Cr. Memo Hdr.` (124) projdou. `Config. Package
+  Data.Value` je `Text[2048]`. Kdo balíček použije, potřebuje právo měnit cílovou tabulku.
+- **Postup pro konzultanta:** v balíčku nech zahrnutá jen pole PK a plněné pole. Ostatní zahrnutá pole se při použití přepíšou
+  hodnotami z Excelu a u nezaúčtovaných dokladů znovu validují. Z exportovaného Excelu smaž řádky, které se nemají měnit, protože
+  prázdná buňka zapíše prázdnou hodnotu.
+- Proklik: `ExtendedDatatype = URL` + `Editable = false` na poli tabulky. Podle poznámky v cust-itmr-bc (`GLImportHeaderCard`) se URL
+  jako odkaz kreslí jen na needitovatelném controlu; v klientu jsem to neověřoval.
+- **Test** (`Library - Rapid Start`, v BC 28 v *Application Test Library*): `CreatePackage` → `CreatePackageTable(…, Database::X)` (OnInsert
+  založí všechna pole jako zahrnutá) → `SetIncludeAllFields(Code, TableID, false)` (PK zůstanou) → `SetIncludeOneField(…, FieldNo,
+  true)` → `CreatePackageData(Code, TableID, 1, FieldNo("No."), No)` + totéž pro plněné pole (parametr `Value` je `Text[250]`) →
+  `ApplyPackage(ConfigPackage, true)` (bez dialogů) → `Get` a assert hodnoty i toho, že se jiné pole nezměnilo. Needitovatelnost:
+  `TestPage.<control>.Editable()` = false.
+
+(2026-11-25, cust-itmr-bc PBI 67999, `Purch. TAS Link Tests ITMR` prošly v kontejneru `bc28` 28.2; zdroje w1-28
+`ConfigPackageManagement.Codeunit.al`, `ConfigPackageTable.Table.al`, `ConfigPackageField.Table.al`.)
+
+### 2.14 Odkazy (Record Links) místo vlastního URL pole — co umí standard
+
+- Tabulka `Record Link` (2000000068, System): `DataPerCompany = false` + pole `Company`, vazba `Record ID` typu RecordId, `Type`
+  Link / Note (v téže tabulce leží i Poznámky). Factbox *Odkazy* (`systempart(…; Links)`) mají karty nákupních dokladů
+  standardně s `Visible = false`, uživatel ho zapne personalizací.
+- Na zaúčtovaný doklad je `Purch.-Post` kopíruje (`RecordLinkManagement.CopyLinks`) **jen se zapnutým nastavením**
+  `Purchases & Payables Setup."Copy Comments Order to Invoice"`, a to i u faktury, nejen u objednávky (event
+  `OnInsertInvoiceHeaderOnBeforeCopyLinks`). U dobropisu rozhoduje `"Copy Cmts Ret.Ord. to Cr. Memo"`, u příjemky a dodávky vratky
+  obdobné volby. Stejná volba kopíruje i komentáře.
+- Standardní API v2.0 entitu pro odkazy nemá: `attachments` / `documentAttachments` jsou soubory (`Attachment Entity Buffer`).
+  `purchaseInvoices`, `purchaseCreditMemos` i `attachments` mají `Extensible = false`. Vlastní API nestav přímo nad `Record Link`
+  (data napříč firmami, poznámky, RecordId), ale nad dočasnou entitou (typ + číslo dokladu, URL), která doklad dohledá a zavolá
+  `Doc.AddLink(Url, Popis)` s kontrolou duplicity.
+- Odkazy nejdou filtrovat, dát do sloupce seznamu ani zamknout proti úpravám. Když to zákazník chce, je potřeba vlastní pole (2.13).
+
+(2026-11-19 a 2026-11-25, cust-itmr-bc PBI 67999; zdroje w1-28 `PurchPost.Codeunit.al`, `PurchaseInvoice.Page.al`, APIV2.)
