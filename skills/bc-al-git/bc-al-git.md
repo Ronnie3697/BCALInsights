@@ -234,6 +234,13 @@ Platí pro všechno, co uživatel do ADO vkládá ručně (PR, PBI, Task, Bug, k
   Read ho nepřečte. Repo + cestu vytáhni pythonem regexem (`"path":"..."`, `"repository":{"name"`),
   pak soubor stáhni `repo_file get_content`. Hledá jen indexovaná repa — když CUEBS/… objekt
   nenajde, ověř `repo_repository list` s `repoNameFilter`. (2026-09-01)
+- **Přejmenované repo → `TF401019 … does not exist` / `repository … not found` při fetch.** Repa se v ADO
+  přejmenovávají (např. `prod-ef-documentAttachments-bc` → `prod-ess-documentAttachments-bc`). Nové jméno najdi
+  přes `repo_repository list` s `repoNameFilter` (kus jména, který zůstal), pak `git remote set-url origin <nová URL>`
+  a `git fetch`; že je to totéž repo, ověř `git merge-base --is-ancestor <starší sha z lokálního masteru> origin/master`.
+  Tracking větví funguje dál (jméno remotu se nemění). Spolu s repem se často přejmenovává i `*.code-workspace` na
+  masteru → lokálně upravený starý workspace soubor zablokuje merge masteru (7.7b, nestashovat). Lokální složka
+  může nést staré jméno, gitu to nevadí. (prod-ess-documentAttachments-bc, 2026-11-24)
 
 **Gotcha — IPv6 reset (ECONNRESET):** Některé MS endpointy (`aex.dev.azure.com`)
 resolvují primárně na IPv6 a corp síť/firewall jejich spojení **resetuje**

@@ -22,6 +22,7 @@ Obsahuje:
 - **3.6p** Částka DPH z externího systému na prodejním / nákupním dokladu z kódu = rozdíl DPH přes `VAT Amount Line` (jako Statistika); CZL `Sales/Purchase Line Handler CZL` ho smaže při každém `Insert/Modify/Delete(true)` řádku; u nákupu pojistka `Check Doc. Total Amounts`
 - **3.6q** Ke kterým fakturám se účtovaný dobropis vztahuje — řádky + aktuální vyrovnání
 - **3.6r** Vlastní pole řádku plánování projektu na generovaný prodejní řádek: IMEBS objednávka (dva eventy), standardní faktura z řádků plánování (`Job Create-Invoice.OnBeforeInsertSalesLine`) a vlastní cesty zakládání řádků
+- **3.6s** Bankovní účet dodavatele na nákupním dokladu: W1 / AT ho nemají, CZL jen z kmenových dat; vlastní pole + kontrola proti účtům plátce (razítko při účtování `OnBeforePurchInvHeaderInsert` / `OnBeforePurchCrMemoHeaderInsert`, přepočet po změně bankovních účtů, kopie dokladu) a cesta k platbě (Recipient Bank Account, On Hold, Suggest Vendor Payments, deník plateb, SEPA check — CZB IsHandled)
 
 ## 3. Event Subscribery — propagace polí (3.5–3.6f)
 
@@ -860,6 +861,28 @@ vytvoření dokladu z OCR / Data Exchange a porovnává částku ze souboru. Na 
 `PurchasesPayablesSetup.Table.al` `ShouldDocumentTotalAmountsBeChecked`, `PurchPost.Codeunit.al` ř. ~736 a ~900, `PurchaseLine.Table.al`
 `UpdateVATOnLines`; cz-28 CZL `PurchaseLineHandlerCZL.Codeunit.al`. Jen ze zdrojů.)
 
+**Ověřeno na živých datech (2026-11-25, BC 29.0 cz, kontejner `bctest29`, nákupní faktura 3 × 12,50 při 21 %, DPH 7,88 → 7,89):**
+- Implementace: cust-itmr-bc codeunit `Purch. VAT Difference ITMR.ApplyVATAmount` (postup Statistiky výš) a kopie API stránky
+  `API_PurchaseInvoicesITMR` s poli `documentAmountIncludingTax` / `documentTaxAmount` a akcí `applyTaxAmount`. Autotesty 7/7.
+- **CZL mazání potvrzené:** změna popisu jednoho řádku (stránka, `Modify(true)`) vrátila DPH celé faktury na 7,88. Neúspěšný první pokus
+  byl jen kvůli kartě v režimu zobrazení (12.3 v `bc-al-workflow.md`). Odchylku 0,01 standard rozpočítal na druhý řádek. Na čtení `VAT
+  Difference` řádku nespoléhej, kontroluj součty dokladu.
+- **Karta faktury po zavření Statistiky součty nepřekreslí** (dál 7,88), uložené už jsou. Po novém otevření ukáže 7,89.
+- **Pole `Doc. Amount*` na kartě uložené faktury otevřené přes URL nejsou vidět**, ani pod *Zobrazit více*. `Purchase Invoice` vyhodnotí
+  `DocAmountEnable := PurchSetup.ShouldDocumentTotalAmountsBeChecked(Rec)` v `OnOpenPage` i v `SetControlAppearance` dřív, než
+  `SetExtDocNoMandatoryCondition` udělá `PurchSetup.GetRecordOnce()`, takže čte prázdný setup. Při zakládání faktury a při otevření ze
+  seznamu *Nákupní faktury* se pole ukážou (víc průchodů `OnAfterGetCurrRecord`). Uživatele se to netýká, focení přes URL ano.
+- **Neúspěšné účtování (kontrola součtů) potvrdí `Posting No.`** a smazání takového konceptu pak podle standardu založí prázdnou účtovanou
+  fakturu s tímto číslem (v API `status: Paid`, nulové částky, doklad 108040). Integrace má fakturu s chybou opravit, ne smazat a založit znovu.
+- **E-Document Core dělá totéž:** `E-Doc. Purch. Doc. Helper.FinalizeCreatedDocument` přiřadí `Doc. Amount Incl. VAT` / `VAT` bez `Validate`,
+  `ApplyVATDifferenceToLines` rozpočítá rozdíl na řádky přes `Validate("VAT Difference")` + `Modify(true)`, řízeno `Purchases & Payables
+  Setup."Apply VAT Diff. For Purch EDoc"` (*Uplatnit rozdíl DPH pro nákup. elektronický dokument.*, `GetAppliedVATAmountDiff`). Kvůli
+  `Modify(true)` po řádcích ale CZL při každém dalším řádku smaže odchylku předchozích, v CZ tak nejspíš zůstane jen podíl posledního
+  řádku. To je vyvozeno ze zdroje w1-28, s e-dokumentem jsem to neověřoval.
+- České popisky (cs-CZ Base App 29): *Povolit odchylku DPH*, *Zkontrolovat celkové částky dokladu* (Nastavení nákupu a závazků),
+  *Max.povolená odchylka DPH* (Nastavení financí), *Částka dokladu včetně DPH*, *Částka DPH dokladu*, *Odchylka DPH*, *Statistika*.
+  Hláška při účtování: *Částka dokladu včetně DPH (45,39) se nerovná součtu na řádcích (45,38)*.
+
 (2026-11-19, cust-itmr-bc, dotaz na převzetí DPH z externího systému do faktury z G/L Importu; zdroje StefanMaron w1-28 @ c0cbed01,
 cz-28 @ e253af7f: `VATAmountLine.Table.al`, `VATSpecificationSubform.Page.al`, `SalesStatistics.Page.al`, `SalesLine.Table.al`,
 `ReleaseSalesDocument.Codeunit.al`, `SalesPost(Invoice).Codeunit.al`, CZL `SalesLineHandlerCZL.Codeunit.al`. Jen ze zdrojů,
@@ -923,3 +946,53 @@ Ověřeno 17 testy v `bc28`. Recept testů bez UI (G/L řádek — bez zásob a 
   opravdu vznikl znovu, ověř změnou `SystemId` (číslo řádku zůstane 10000).
 Pageextension s názvem `"Posted S. Cr. Memo Subf. SOI"` v souboru `PostedSalesCrMemoSubf.PageExt.al` = CodeCop **AA0215** (CI fail) —
 název souboru se odvozuje z názvu objektu bez teček a mezer, zkratky musí sedět s názvem souboru.
+
+### 3.6s Bankovní účet dodavatele na nákupním dokladu — W1 / AT ho nemá, CZL jen z kmenových dat; vlastní pole + kontrola
+
+- **W1 i rakouská lokalizace (BC 28 AT)** nemají na nákupní hlavičce bankovní účet dodavatele (AT přidává jen `Registration No.`,
+  `Remit-to Code` je adresa). Účtování faktury účet do položky dodavatele nepřenáší, platba bere `Vendor."Preferred Bank Account Code"`
+  až v deníku (`Gen. Journal Line."Recipient Bank Account"`). IBAN z došlého dokladu umí jen `Incoming Document` (`Vendor IBAN`,
+  `Vendor Bank Account No.`, plní OCR). **CZL** má `Bank Account Code CZL` (11720, výběr z účtů plátce, výchozí preferovaný) + needitovatelné
+  kopie (11721–11726) na hlavičce, účtované faktuře i dobropisu; číslo, které na dodavateli není, uložit nejde a s účty dodavatele ho nic
+  neporovnává (kontrola jen proti zveřejněným účtům plátců DPH). AppSource: kontrolu účtu z došlé faktury proti kmenovým datům dělá jen
+  Continia Document Capture. (Rešerše ve zdrojích at-28 / cz-28, 2026-11-25.)
+- Vlastní řešení bez závislosti na CZL (cust-itmr-bc `Vendor Bank Acc. Check ITMR`): pole čísla a výsledku na `Purchase Header`,
+  `Purch. Inv. Header`, `Purch. Cr. Memo Hdr.` (+ API agregát, 11.7a v `bc-al-integrations.md`) se stejnými ID. Háčky:
+  - výsledek na účtovaný doklad **`Purch.-Post.OnBeforePurchInvHeaderInsert` / `OnBeforePurchCrMemoHeaderInsert(var Hdr; var PurchHeader;
+    CommitIsSupressed)`** — po `TransferFields`, před `Insert`; změna hlavičky v `OnBeforePostPurchaseDoc` se může ztratit (Purch.-Post
+    hlavičku při výpočtu fakturační slevy načítá znovu);
+  - přepočet otevřených dokladů po změně bankovních dat: `Vendor.OnAfterModifyEvent` (bez diffu xRec) + `Vendor Bank Account.OnAfter
+    Insert/Modify/DeleteEvent`. **`Vendor Bank Account.OnDelete` maže `Preferred Bank Account Code` dodavatele přes `Vendor.Modify()`**,
+    takže Vendor subscriber zachytí i smazání preferovaného účtu. Číst bez zámku, `UpdLock` + `Get` + `Modify(false)` jen u dokladů, kterým
+    se výsledek mění;
+  - kopie dokladu: `Copy Document Mgt.OnAfterCopyPurchHeaderDone(var ToPurchaseHeader; OldPurchaseHeader; …; FromPurchInvHeader;
+    …; FromPurchCrMemoHdr; …)` — `From*` jsou **lokální** proměnné `CopyPurchDoc`, takže `FromPurchInvHeader."No." <> ''` spolehlivě
+    říká „zdroj je účtovaná faktura“ (Correct / Cancel / opravný dobropis jdou touto cestou s `IncludeHeader`). Za eventem base volá
+    `Modify`, stačí přiřazení do `ToPurchaseHeader`.
+  - Porovnání: IBAN bez všech ne-alfanumerických znaků a bez ohledu na velikost, tuzemské číslo jen bez mezer (předčíslí, kód banky a
+    úvodní nuly jsou součást čísla) — falešná shoda by poslala peníze jinam. `foreach` přes `Text` na runtime 16 = `AL0421` → smyčka
+    `for` + `Text[i]`.
+(2026-11-25, cust-itmr-bc, rakouská společnost zákazníka, import faktur přes API; 20 testů `Vendor Bank Acc. Tests ITMR` v `bc28` 28.2.)
+- **Účet z dokladu až k platbě ve W1 / AT (SEPA export z deníku plateb), ověřeno ve zdrojích w1-28 a 194 testy v `bc28`:**
+  - Platit jde jen na **kód** bankovního účtu dodavatele: `Gen. Journal Line` / `Vendor Ledger Entry."Recipient Bank Account"`
+    (pole 288, Code[20]), SEPA export (`SEPA CT-Fill Export Buffer`) podle něj dělá `VendorBankAccount.Get(Vendor, kód)` → IBAN.
+    Volné číslo z dokladu proto nejdřív přelož na kód účtu dodavatele; účet z faktury automaticky nezakládat (kontrola podvodu).
+  - Účtování faktury příjemce **nevyplní** (`Purch. Post Invoice` plní řádek deníku přiřazením `Account No.`, bez `Validate`) →
+    doplnit v `Purch. Post Invoice Events.OnPostLedgerEntryOnBeforeGenJnlPostLine(var GenJnlLine; var PurchHeader; …)` (stejný event
+    jako CZL); na položku ho i `On Hold` přenese standard (`Vendor Ledger Entry.CopyFromGenJnlLine`). `On Hold` hlavičky jde na
+    řádek deníku už v `CopyFromPurchHeader`, takže pozastavení platby stačí nastavit na dokladu.
+  - *Suggest Vendor Payments* (393) dá každému řádku **preferovaný** účet (`Validate("Account No.")` → `GetVendorAccount`), účet
+    položky ignoruje; položky s `On Hold` vynechá. Háček `OnBeforeUpdateGnlJnlLineDimensionsFromVendorPaymentBuffer(var GenJnlLine;
+    TempVendorPaymentBuffer; SummarizePerVend; …)` (před `Insert`): bez sumarizace má buffer `Vendor Ledg. Entry No.`; se sumarizací
+    0 a položky mají `Applies-to ID` = `Document No.` bufferu (zapsané přes `Vend. Entry-Edit`). Klíč bufferu (`Vendor No.`, měna,
+    `Vendor Ledg. Entry No.`, `Dimension Entry No.`, `Remit-to Code`) rozšířit nejde → různé účty v jedné platbě = `Error`.
+  - Ruční řádek deníku: `Validate("Applies-to Doc. No." / "Applies-to ID")` → `SetJournalLineFieldsFromApplication` → eventy
+    `OnSetJournalLineFieldsFromApplicationOnAfterFindFirstVendLedgEntryWithAppliesToDocNo` / `…WithAppliesToID(var GenJournalLine;
+    VendLedgEntry)`; standard sám příjemce z položky nebere.
+  - Pozastavenou zaúčtovanou položku uvolnit přes `Codeunit.Run(Codeunit::"Vend. Entry-Edit", VLE)` (kopíruje `On Hold` i
+    `Recipient Bank Account` jako úprava na stránce); čísla položek nejdřív posbírat, uvolnění mění filtrované pole.
+  - ⚠️ **Kontrola před SEPA exportem: `SEPA CT-Check Line.OnAfterCheckGenJnlLine` se v CZ prostředí NEZAVOLÁ** — CZB
+    (`SEPACTHandlerCZB`) přebírá `OnBeforeCheckGenJnlLine` s `IsHandled := true`. Vlastní kontrolu (`InsertPaymentFileError`) věšet na
+    `OnBeforeCheckCustVendEmpl` (`OnRun` ho volá pro každý řádek, CZB nastaví `IsHandled` jen bez `Account No.`), `IsHandled` neměnit.
+    Test v CZ kontejneru navíc potřebuje protiúčet typu bankovní účet (LM CZK ≠ EUR → `BankAccount.Get("Bal. Account No.")`).
+(2026-11-25, cust-itmr-bc `Vendor Bank Acc. Payment ITMR`; volba zákazníka: neznámý účet = zaúčtovat s On Hold `BNK`.)

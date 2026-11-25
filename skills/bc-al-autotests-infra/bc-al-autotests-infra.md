@@ -194,6 +194,11 @@ Dvě verze téže appky v jedné cache (stará `.alpackages` + nový build) = ne
   musí ležet složka **`app/`** s logem (jinak `AL1001 Source file '..\app\essence.png' could not be found`). A test `app.json`
   musí deklarovat **explicitní dependency na každou appku, jejíž tabulku test čte** — `Record "External Time Sheet Line TSEBS"`
   bez `Essence Project TimeSheets` v deps = `AL0185 Table ... is missing`, i když hlavní appka na ní závisí. (2026-10-02)
+- **Build hlavní appky pro test cache překládej jen s analyzery CI (CodeCop, UICop, PTE), ne s ALCops.** ALCops nález
+  se severitou `error` (např. `PC0013 Invalid arguments in call to 'Get(...)'` ze staršího kódu masteru) zastaví zápis
+  `/out` — log skončí `EXIT=1`, `.app` nevznikne a kompilace test appky pak hlásí `AL1022 … Essence … could not be found`,
+  což vypadá jako problém cache. CI ALCops nespouští (12.1b v `bc-al-workflow.md`), takže ten nález build neshodí; ALCops
+  pusť zvlášť jen na kontrolu warningů. (2026-11-25, prod-ef-documentAttachments-bc 67984, první test appka repa.)
 
 ### MS test knihovny v temp cache drž v JEDNÉ minor řadě; testy za `#IF TESTS` ověř kopií projektu
 
@@ -393,6 +398,12 @@ Když smažeš dependency v `test/app.json` (např. `Tests-TestLibraries`), VS C
   Tests-TestLibraries a SysApp Test Library; `Library Assert` zvlášť jen když používáš codeunit `Library Assert`). Pozor při upgradu
   repa na 28: PR „Prevod BC28" u cust-londonPharma-bc z test `app.json` vyhodil Tests-TestLibraries i SysApp Test Library a nechal jen
   `Library Assert` → test appka od té doby nekompilovala a nikdo si nevšiml (CI `runTests: false`). (2026-10-15)
+- **BC 29 na MSSymbols (stav 2026-11-24): CZ country symboly test knihoven, Subcontracting a EU 3-Party Trade Purchase jsou jen
+  ve verzi 29.0.54011.55644, žádná 29.1.** S MS 29.1 symboly z dev endpointu prostředí (`AL: Download Symbols` → `.alpackages`)
+  se hlavní i test appka přeložily bez `AL1022` (29.0 balíčky chtějí jen ≥ 29.0). Sada: Test Runner, Tests-TestLibraries, SysApp
+  Test Library, Application Test Library, Permissions Mock, Library Assert, Library Variable Storage, Any, BF Test Libraries, ID
+  `Microsoft.<Název>.CZ.symbols.<guid>`, verzi ber z `flat2/<id>/index.json` (`grep '"29\.'`, ne `29.1`). Stažené v `%TEMP%\ms29`.
+  (cust-alumistr-bc 68073, nová test appka `cds/test`, alc 18.1.)
 - **MSSymbols 28.4 balíčky jsou malé** (Application Test Library 77 KB, Tests-TestLibraries 57 KB, Library Assert 2,5 KB) —
   je to jen `SymbolReference.json` v zipu, není to pahýl; nehledej „plnou" verzi. Feed vrací **303 redirect** → `curl -sL`
   (bez `-L` 0 bajtů a `End-of-central-directory signature not found`); PowerShell `Invoke-WebRequest` redirect sleduje sám.

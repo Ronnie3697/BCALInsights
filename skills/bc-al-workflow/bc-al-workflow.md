@@ -904,6 +904,26 @@ export cen tam neotestuješ; feature nezapínej, vyber firmu, kde běží. (2026
   instancí nejde smazat → nejdřív `ApprovalsMgmt.OnCancelPurchaseApprovalRequest` na čekajících dokladech. Mazání kroků workflow se ptá
   (Confirm), stačí workflow vypnout. Ověř to celým během testů.
 
+**Doplněk: zakládání a úprava dokladů přes UI skriptem jdou** (2026-11-25, cust-itmr-bc, kontejner `bctest29` BC 29.0 cz, nákupní faktury):
+- **`&mode=Edit` v URL** (`?tenant=default&page=51&mode=Edit&filter='No.' IS '1002'`) otevře uložený doklad rovnou v režimu úprav a změny
+  v mřížce se uloží. Tím padá omezení „karta přes URL jen pro čtení“ výš. Novou kartu otevře `&mode=Create`. V režimu zobrazení se psaní do
+  buňky „povede“ (input hodnotu ukáže), ale nic se neuloží.
+- **Buňka řádku podle popisku sloupce:** hlavička i tělo mřížky jsou dvě sousední `<table>`, index sloupce = pozice `th` s captionem v první,
+  buňka = `td[index]` řádku ve druhé (`querySelector('input')`). Pak `scrollIntoViewIfNeeded` + `click` + `Ctrl+A` + `type` + `Tab` + 3,5 s.
+  Typ řádku jde napsat textem (*Finanční účet*). Řádek se uloží až po přechodu na jiný řádek: klik do buňky jiného řádku, počkat na *Uloženo*.
+- **Relace prohlížeče mezi voláními:** malý Node server (Playwright `launchPersistentContext`, jen `127.0.0.1`), který vykoná JS snippet
+  poslaný POSTem. Přihlášení zůstává a kroky jdou ladit po jednom. `new Function` nemá `require`, sdílené helpery se k snippetu přidávají `cat`.
+- **Moje nastavení (9204):** změna *Jazyka* se projeví hned (stránka se načte znovu), *Oblast* se uloží až tlačítkem **Ok** stránky. Výběr
+  v lookup dialogu: řádek v `.spa-task-dialog`, ne text stejné hodnoty na stránce pod ním (Playwright klik pak „intercepts pointer events“).
+  Na konci vrátit jazyk i oblast (testy jiných rep v kontejneru čekají angličtinu).
+- **Seznam (List) přes `&mode=Edit` editovatelný není** — psaní do buňky nic neuloží. Zapni akci *Upravit seznam*: BC otevře **nový `.spa-view` přes původní**
+  a stará tabulka zůstane v DOM pod ním (klik do ní skončí „element intercepts pointer events“). Buňky hledej jen ve vrchním pohledu
+  `.spa-view:not(.spa-not-top-most)` a v dialogu (`.spa-task-dialog`) zvlášť. Tlačítko lookup / AssistEdit buňky má `aria-label` *Vyberte hodnotu pro <sloupec>* /
+  *Zkontrolujte nebo aktualizujte hodnotu pro <sloupec>*. České tlačítko dialogů je „Ok“ (ne „OK“), `/^OK$/` ho mine. (2026-11-25, prod-ef-documentAttachments-bc 67984,
+  `bctest29`, příručka k definicím příloh.)
+- **Souřadnice tlačítek se mění se šířkou okna** (tužka *Upravit* na 627 px při 1440, na 807 px při 1800). Volání s pevnými souřadnicemi
+  po změně viewportu přepočítej, jinak klik trefí šipku zpět a karta se zavře.
+
 ### 12.4 Essence build — ruleset per projekt konvencí
 
 Essence BC build (`azure-pipelines.yml` → template `ALBuildPipeline2.yml` →

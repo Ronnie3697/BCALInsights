@@ -71,6 +71,11 @@ spadne na *„Cannot install the extension … 28.0.11.0 … because an earlier 
 (2026-10-20, cust-sonnentor-bc: `bctest28` měl po včerejším „son“ běhu nainstalované Essence Shopify Connector 28.0.6.0, Essence
 Distribution Base a ED Item Sales Disponibility; v `bctest28b` 321/321. 2026-10-23 znovu v obou kontejnerech — `bctest28` tytéž tři,
 `bctest28b` navíc Warehouse Mobile Base 28.0.4.0 a EM Kiosk; holý uninstall → chyba Start-NAVAppDataUpgrade, po `Mode Clean` 346/346.)
+⚠️ **Šablona do 2026-11-25 vynechávala při kopírování repa KAŽDOU složku jménem `output`** (`robocopy … /XD … output`, bez ohledu na
+velikost písmen a hloubku). Repo se zdrojovou složkou `src/…/Output` pak v kontejneru spadlo na `AL0185 Codeunit '…' is missing` u všech
+objektů z ní, i když lokální `alc` prošel. Teď se vynechává jen `output` v kořeni appky. Šablona taky vyžadovala PAT (`DevOpsPAT.txt`)
+i u repa bez závislostí z feedu (*„PAT file … not found“* hned na startu) a teď ho chce až pro první závislost z feedu.
+Kdo má kopii starší, zkopíruje `Test-Repo.ps1` znovu. (cust-itmr-bc, `src/GLImport/Output`, `bctest29`, 161/161 po opravě.)
 
 **Předpoklady a pasti (Windows 11, uživatel bez admina):**
 
