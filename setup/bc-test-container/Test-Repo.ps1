@@ -98,6 +98,7 @@ function Resolve-NuGetDependency([string] $packageId, [version] $minimum) {
     # it only when a new version came out) and resolves the dependencies of its .nuspec first
     $appId = ($packageId -split '\.')[-1].ToLowerInvariant()
     if ($dependencyFiles.Contains($appId)) { return }
+    if (-not $nuGetToken) { throw "PAT file $($TestContainerSettings.patFile) not found (settings.json, patFile) - needed for the dependency $packageId from the feed." }
     $range = Get-MajorMinorRange $minimum
     $found = @(Find-BcNuGetPackage -nuGetServerUrl $TestContainerSettings.nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageId -version $range -select Latest)
     if ($found.Count -lt 3 -or -not $found[1]) { throw "Package $packageId $range is not on $($TestContainerSettings.nuGetServerUrl)" }
@@ -149,8 +150,9 @@ try {
     # Only after the start - Get-BcContainerPath reads the shared folders of the container from the Docker engine
     $containerSide = Get-BcContainerPath -containerName $ContainerName -path (Join-Path $runFolder 'ContainerSide.ps1')
     $credential = Get-TestContainerCredential
-    if (-not (Test-Path $TestContainerSettings.patFile)) { throw "PAT file $($TestContainerSettings.patFile) not found (settings.json, patFile)." }
-    $nuGetToken = (Get-Content -Path $TestContainerSettings.patFile -Raw).Trim()
+    # The PAT is needed only for dependencies from the feed - Resolve-NuGetDependency asks for it when it is missing
+    $nuGetToken = ""
+    if (Test-Path $TestContainerSettings.patFile) { $nuGetToken = (Get-Content -Path $TestContainerSettings.patFile -Raw).Trim() }
     $phaseSeconds['start'] += $phaseTimer.Elapsed.TotalSeconds
     $phaseTimer.Restart()
 
@@ -202,7 +204,7 @@ try {
         $target = Join-Path $srcFolder $app.Folder
         New-Item -ItemType Directory -Path $target -Force | Out-Null
         # robocopy: exit codes below 8 are success
-        robocopy $source $target /E /NFL /NDL /NJH /NJS /NP /XD .alpackages .output output .snapshots .git /XF *.app | Out-Null
+        robocopy $source $target /E /NFL /NDL /NJH /NJS /NP /XD .alpackages .output (Join-Path $source "output") .snapshots .git /XF *.app | Out-Null
         if ($LASTEXITCODE -ge 8) { throw "Copying $source failed (robocopy $LASTEXITCODE)" }
     }
     $compiledFiles = @()
