@@ -216,6 +216,22 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
 
   (cust-sonnentor-bc PBI 63637 uplatnění dárkových poukazů z objednávek Shopify, `Shpfy Voucher Redemption SON`, 2026-10-20, konektor
   28.5, stejné i v 29.0.)
+- **Nový produkt z konektoru je v Shopify vždycky zdanitelný a fyzický; sledování zásob jde podle obchodu. Vypnout to jde jen
+  vlastní mutací po založení** (28.5, `Shpfy Variant API.GetVariantGraphQuery` pro `productVariantsBulkCreate` z
+  `Product API.CreateProduct`):
+  - `taxable` posílá jen jako `true`. Když ho subscriber `OnBeforeSendAddShopifyProductVariant` vynuluje, pole chybí a Shopify
+    dá default, tedy *Charge tax = Yes*.
+  - `inventoryItem.tracked` jde vždy z `Shop."Inventory Tracked"`. `requiresShipping` nepošle nikdy, takže *Physical product*
+    zůstane default.
+  - Update (`UpdateProductVariants`) posílá `taxable: true` jen při `Taxable` a jen když se mění jiné pole (`HasChange`).
+    `tracked` z obchodu posílá jen při změně `Unit Cost` / `Weight` / `SKU`. Hodnoty nastavené vlastní mutací tak běžný sync
+    produktů nepřepíše.
+  - Event „po založení produktu“ v 28.5 není: `Shpfy Product Events` má jen `OnBeforeSendCreateShopifyProduct` a
+    `OnBeforeSendAddShopifyProductVariant`. Opravu po založení dělá vlastní úloha fronty, takže do jejího běhu má nový produkt
+    defaulty Shopify. Bez opakované položky fronty se neopraví vůbec.
+  - Ověřeno živě na dev shopu 25. 11. 2026: produkt poukazu založený přes Add Item v 16:12 měl *Charge tax Yes*, *Inventory tracked*
+    a *Physical product*. Ruční běh úlohy fronty `productVariantsBulkUpdate` vše vypnul a plná *Synch. produktů Shopify* to
+    nevrátila. (cust-sonnentor-bc 63637, PR 10019.)
 - **Co export produktu z BC do Shopify reálně pošle u metapolí a značek** (BC 28.4, `Shpfy Product Export` / `Shpfy Metafield API`):
   metapole jen při `Shop."Product Metafields To Shopify"` (pole 130; zákazník 131, společnost 132) přes
   `SyncMetafieldsToShopify` → `CollectMetafieldsInBC` bere jen `Type <> string & <> integer` (legacy typy se **nikdy** nepošlou),
