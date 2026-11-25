@@ -916,6 +916,11 @@ export cen tam neotestuješ; feature nezapínej, vyber firmu, kde běží. (2026
 - **Moje nastavení (9204):** změna *Jazyka* se projeví hned (stránka se načte znovu), *Oblast* se uloží až tlačítkem **Ok** stránky. Výběr
   v lookup dialogu: řádek v `.spa-task-dialog`, ne text stejné hodnoty na stránce pod ním (Playwright klik pak „intercepts pointer events“).
   Na konci vrátit jazyk i oblast (testy jiných rep v kontejneru čekají angličtinu).
+- **Seznam (List) přes `&mode=Edit` editovatelný není** — psaní do buňky nic neuloží. Zapni akci *Upravit seznam*: BC otevře **nový `.spa-view` přes původní**
+  a stará tabulka zůstane v DOM pod ním (klik do ní skončí „element intercepts pointer events“). Buňky hledej jen ve vrchním pohledu
+  `.spa-view:not(.spa-not-top-most)` a v dialogu (`.spa-task-dialog`) zvlášť. Tlačítko lookup / AssistEdit buňky má `aria-label` *Vyberte hodnotu pro <sloupec>* /
+  *Zkontrolujte nebo aktualizujte hodnotu pro <sloupec>*. České tlačítko dialogů je „Ok“ (ne „OK“), `/^OK$/` ho mine. (2026-11-25, prod-ef-documentAttachments-bc 67984,
+  `bctest29`, příručka k definicím příloh.)
 - **Souřadnice tlačítek se mění se šířkou okna** (tužka *Upravit* na 627 px při 1440, na 807 px při 1800). Volání s pevnými souřadnicemi
   po změně viewportu přepočítej, jinak klik trefí šipku zpět a karta se zavře.
 
