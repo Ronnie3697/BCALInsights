@@ -375,14 +375,14 @@ podmínku zavolá `AddRoutingLines`. Pasti pro rozšíření, které na řádek 
   spotřebovanými komponentami):** výstup i automatické odvedení OOEBS fungují stejně, *Vypočítat spotřebu* podle skutečného výstupu
   dá stejná množství (komponenta bez operace bere dokončené množství), ale **Deník výroby** nabídne komponentu cílového kódu pod
   každou operací s tím kódem (3 operace = 3× plné množství) a komponenty osiřelých kódů bez operace nahoře. Standard při ruční změně
-  kódu vazby na operaci VZ varuje „použito více než jednou“. COALU 52005 proto po validaci vrací kód vazby z řádku akce (prázdný
-  převezme cíl).
+  kódu vazby na operaci VZ varuje „použito více než jednou“. COALU 52005 proto po validaci vrací kód vazby z řádku akce (i prázdný,
+  kód cíle se nepřebírá – rozhodnutí uživatele „nechat, co je v konfiguraci“).
 - **Vzor COALU 52005 `Routing Reg. Together COALU` (task 68019, po code review):** codeunit `SingleInstance`; `OnAfterInsertRoutingLine`
   si do dočasné kopie `Routing Action Line COEBS` + slovníků zapíše „řádek akce → generované číslo operace + `SystemId` řádku TNG“;
   `Alternative Routing ATEBS.OnAfterInsertEvent` jen pro TNG z probíhajícího běhu odkazy přeloží (řádek akce **stejné podmínky**
   s tím *Operation No.*, jinak jediný v ostatních podmínkách běhu, jinak `Error` s číslem řádku a podmínky), nejdřív všechny přiřadí,
   pak `Validate` + `Modify(true)` (validace OOEBS celá: bez odkazu na sebe, bez řetězení; *Routing Link Code*, který OOEBS přepíše
-kódem cíle, se od 2026-11-25 vrací na kód z řádku akce, prázdný převezme cíl), a stav smaže.
+kódem cíle, se od 2026-11-25 vrací na kód z řádku akce, i prázdný), a stav smaže.
   Stav SingleInstance přežije `Error` (3.10 v `bc-al-data.md`) → běh platí, jen dokud existuje první vygenerovaný řádek
   (`GetBySystemId`); rollback ho zneplatní sám. Ruční registrace alternativního TNG se nekontroluje. Hledání jen mezi operacemi
   běhu zároveň chrání před ořezem čísla TNG níže (odkaz se nechytí operace jiné varianty).
