@@ -861,6 +861,28 @@ vytvoření dokladu z OCR / Data Exchange a porovnává částku ze souboru. Na 
 `PurchasesPayablesSetup.Table.al` `ShouldDocumentTotalAmountsBeChecked`, `PurchPost.Codeunit.al` ř. ~736 a ~900, `PurchaseLine.Table.al`
 `UpdateVATOnLines`; cz-28 CZL `PurchaseLineHandlerCZL.Codeunit.al`. Jen ze zdrojů.)
 
+**Ověřeno na živých datech (2026-11-25, BC 29.0 cz, kontejner `bctest29`, nákupní faktura 3 × 12,50 při 21 %, DPH 7,88 → 7,89):**
+- Implementace: cust-itmr-bc codeunit `Purch. VAT Difference ITMR.ApplyVATAmount` (postup Statistiky výš) a kopie API stránky
+  `API_PurchaseInvoicesITMR` s poli `documentAmountIncludingTax` / `documentTaxAmount` a akcí `applyTaxAmount`. Autotesty 7/7.
+- **CZL mazání potvrzené:** změna popisu jednoho řádku (stránka, `Modify(true)`) vrátila DPH celé faktury na 7,88. Neúspěšný první pokus
+  byl jen kvůli kartě v režimu zobrazení (12.3 v `bc-al-workflow.md`). Odchylku 0,01 standard rozpočítal na druhý řádek. Na čtení `VAT
+  Difference` řádku nespoléhej, kontroluj součty dokladu.
+- **Karta faktury po zavření Statistiky součty nepřekreslí** (dál 7,88), uložené už jsou. Po novém otevření ukáže 7,89.
+- **Pole `Doc. Amount*` na kartě uložené faktury otevřené přes URL nejsou vidět**, ani pod *Zobrazit více*. `Purchase Invoice` vyhodnotí
+  `DocAmountEnable := PurchSetup.ShouldDocumentTotalAmountsBeChecked(Rec)` v `OnOpenPage` i v `SetControlAppearance` dřív, než
+  `SetExtDocNoMandatoryCondition` udělá `PurchSetup.GetRecordOnce()`, takže čte prázdný setup. Při zakládání faktury a při otevření ze
+  seznamu *Nákupní faktury* se pole ukážou (víc průchodů `OnAfterGetCurrRecord`). Uživatele se to netýká, focení přes URL ano.
+- **Neúspěšné účtování (kontrola součtů) potvrdí `Posting No.`** a smazání takového konceptu pak podle standardu založí prázdnou účtovanou
+  fakturu s tímto číslem (v API `status: Paid`, nulové částky, doklad 108040). Integrace má fakturu s chybou opravit, ne smazat a založit znovu.
+- **E-Document Core dělá totéž:** `E-Doc. Purch. Doc. Helper.FinalizeCreatedDocument` přiřadí `Doc. Amount Incl. VAT` / `VAT` bez `Validate`,
+  `ApplyVATDifferenceToLines` rozpočítá rozdíl na řádky přes `Validate("VAT Difference")` + `Modify(true)`, řízeno `Purchases & Payables
+  Setup."Apply VAT Diff. For Purch EDoc"` (*Uplatnit rozdíl DPH pro nákup. elektronický dokument.*, `GetAppliedVATAmountDiff`). Kvůli
+  `Modify(true)` po řádcích ale CZL při každém dalším řádku smaže odchylku předchozích, v CZ tak nejspíš zůstane jen podíl posledního
+  řádku. To je vyvozeno ze zdroje w1-28, s e-dokumentem jsem to neověřoval.
+- České popisky (cs-CZ Base App 29): *Povolit odchylku DPH*, *Zkontrolovat celkové částky dokladu* (Nastavení nákupu a závazků),
+  *Max.povolená odchylka DPH* (Nastavení financí), *Částka dokladu včetně DPH*, *Částka DPH dokladu*, *Odchylka DPH*, *Statistika*.
+  Hláška při účtování: *Částka dokladu včetně DPH (45,39) se nerovná součtu na řádcích (45,38)*.
+
 (2026-11-19, cust-itmr-bc, dotaz na převzetí DPH z externího systému do faktury z G/L Importu; zdroje StefanMaron w1-28 @ c0cbed01,
 cz-28 @ e253af7f: `VATAmountLine.Table.al`, `VATSpecificationSubform.Page.al`, `SalesStatistics.Page.al`, `SalesLine.Table.al`,
 `ReleaseSalesDocument.Codeunit.al`, `SalesPost(Invoice).Codeunit.al`, CZL `SalesLineHandlerCZL.Codeunit.al`. Jen ze zdrojů,

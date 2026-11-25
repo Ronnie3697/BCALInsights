@@ -509,6 +509,24 @@ s polem se stejným ID a typem** jako na `Purchase Header` a `Purch. Inv. Header
 (2026-11-25, cust-itmr-bc, `API_PurchaseInvoicesITMR` + `Vendor Bank Acc. Check ITMR`, číslo účtu dodavatele z faktury; test
 `PurchaseInvoiceApiAggregatorWritesAndReadsTheAccount` prošel v lokálním kontejneru `bc28` 28.2, pole zapsané PŘED dodavatelem.)
 
+**Vlastní kopie standardní API stránky dokladu (2026-11-25, cust-itmr-bc `API_PurchaseInvoicesITMR` / `…LinesITMR`, ověřeno v BC 29.0 cz):**
+- Kopie `APIV2 - Purchase Invoices` / `…Lines` (30042 / 30047) **nepotřebuje závislost na appce API v2**: `Purch. Inv. Aggregator`,
+  `Graph Mgt - General Tools`, `Graph Mgt - Sales Inv. Lines`, `Lines Instruction Mgt.` a agregační tabulky jsou v Base App. Party
+  `APIV2 - Dimension Set Lines` / `PDF Document` / `Attachments` / `Locations` jsou v API v2, takže z kopie vypadnou. Odstraň `namespace`
+  a `using` (appka bez namespaces), `[Caption]` / `[Scope('Cloud')]` u akce není potřeba. ALCops hlásí `PC0025` (error, `ODataKeyFields =
+  Id` místo `SystemId`) a `PC0026`. Klíčem musí zůstat `Id` agregátu (SystemId konceptu i účtované faktury), proto pragma kolem objektu.
+- Pole, která agregát nemá (`Purchase Header."Doc. Amount Incl. VAT"`), = proměnná stránky + uložení na hlavičku v `OnInsertRecord` /
+  `OnModifyRecord` po `PropagateOnInsert/Modify` (hlavička je pak dohledatelná přes `Get(Invoice, Rec."No.")`), načtení v `OnAfterGetRecord`.
+  Totály agregátu (`totalTaxAmount`) se po změně řádků přepočítají samy: `Purch. Inv. Aggregator` odebírá `Purchase Line.OnAfterModifyEvent`
+  i bez `RunTrigger`.
+- **`POST …/purchaseInvoices?$expand=purchaseInvoiceLines` s vnořenými řádky se zasekne:** záznam vznikne, odpověď nepřijde (timeout 100 s
+  i 5 min). Stejně standardní API v2, bez `$expand` 1 s. Řádky čti samostatným `GET`.
+- Bound action s parametry: `procedure applyTaxAmount(taxAmount: Decimal; vatIdentifier: Text; var ActionContext: WebServiceActionContext)`,
+  tělo `{"taxAmount": 7.89, "vatIdentifier": ""}`, `SetResultCode(Get)` vrací **200 bez těla**. `Error` = 400 `Application_DialogException`,
+  `message` česky s `Accept-Language: cs-CZ` (nebo podle jazyka API uživatele).
+- **PowerShell 5.1 `Invoke-WebRequest` u 400 ztratí tělo chyby**, ani `$_.Exception.Response.GetResponseStream()` ho nevrátí. Použij
+  `System.Net.Http.HttpClient` (`SendAsync`, nevyhazuje na 4xx) nebo curl.
+
 ### 11.7b API POST, které v cíli synchronně zpracovává data = timeout 100 s ve zdroji a ztracená odpověď (ID záznamu)
 
 - **Příznak:** zdroj loguje *„The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing"*, cíl ale data má
