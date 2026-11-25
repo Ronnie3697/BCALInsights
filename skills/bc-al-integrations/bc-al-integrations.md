@@ -210,6 +210,11 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
       odečtenou a alokovanou částku.
     - Import (`OnAfterImportShopifyOrderHeader` / `OnAfterCreateShopifyOrderAndLines`) JSON nepředává. Pád HTTP tam vrátí import
       celé objednávky.
+  - **Atributy objednávky** (`customAttributes`, např. výdejní místo `PickupPointId` / `PickupPointCourier` z widgetu v pokladně)
+    ukládá import do `Shpfy Order Attribute` (30116, public, klíč `Order Id` + `Key`, hodnota `Attribute Value` Text[2048]).
+    Při vytváření dokladu jsou tedy v BC bez vlastního HTTP. `OnAfterCreateSalesHeader` běží až po `SalesHeader.Modify(true)`
+    a po `Validate` přepravce / služby z mapování způsobu dopravy, takže subscriber, který mění hlavičku, musí sám `Modify`.
+    (28.5, `Shpfy Process Order.CreateHeaderFromShopifyOrder`; cust-sonnentor-bc 63076 analýza výdejního místa, 2026-11-25.)
   - Automatické vytvoření dokladu v *Sync Orders From Shopify* běží jen pro **nově** naimportované objednávky. Objednávku, která
     spadla do chyby, zpracuje znovu akce *Create Sales Document(s)* nebo report **30103 `Shpfy Create Sales Orders`** (všechny
     nezpracované objednávky obchodu, jde do fronty úloh).
