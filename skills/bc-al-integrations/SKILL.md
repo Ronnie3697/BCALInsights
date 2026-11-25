@@ -10,7 +10,7 @@ description: >-
   BC29: tokeny expirují 1.1.2027, GQL → .graphql, HttpClientHandler),
   HttpClient SaaS (Allow HttpClient Requests, Win auth OnPrem), Isolated Storage, SecretText
   (Unwrap AL0296, HMAC, SecretStrSubstNo), Power Automate; API page
-  zápis (POST validace, temp OnFindRecord, $filter); Dotykačka (stockQuantityStatus, display, priceWithVat,
+  zápis (POST validace, temp OnFindRecord, $filter, vlastní pole přes agregát dokladu); Dotykačka (stockQuantityStatus, display, priceWithVat,
   EAN filtr); Jira/Tempo (user search, worklog→parent); Email modul z PTE (Sent Email Internal pole).
   Dataverse/CDS sync → skill bc-al-dataverse. Načti u Shopify, HTTP, API, Jira, Dotykačky.
 user-invocable: true

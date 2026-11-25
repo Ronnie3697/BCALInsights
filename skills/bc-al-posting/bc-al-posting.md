@@ -22,6 +22,7 @@ Obsahuje:
 - **3.6p** Částka DPH z externího systému na prodejním / nákupním dokladu z kódu = rozdíl DPH přes `VAT Amount Line` (jako Statistika); CZL `Sales/Purchase Line Handler CZL` ho smaže při každém `Insert/Modify/Delete(true)` řádku; u nákupu pojistka `Check Doc. Total Amounts`
 - **3.6q** Ke kterým fakturám se účtovaný dobropis vztahuje — řádky + aktuální vyrovnání
 - **3.6r** Vlastní pole řádku plánování projektu na generovaný prodejní řádek: IMEBS objednávka (dva eventy), standardní faktura z řádků plánování (`Job Create-Invoice.OnBeforeInsertSalesLine`) a vlastní cesty zakládání řádků
+- **3.6s** Bankovní účet dodavatele na nákupním dokladu: W1 / AT ho nemají, CZL jen z kmenových dat; vlastní pole + kontrola proti účtům plátce (razítko při účtování `OnBeforePurchInvHeaderInsert` / `OnBeforePurchCrMemoHeaderInsert`, přepočet po změně bankovních účtů, kopie dokladu)
 
 ## 3. Event Subscribery — propagace polí (3.5–3.6f)
 
@@ -923,3 +924,30 @@ Ověřeno 17 testy v `bc28`. Recept testů bez UI (G/L řádek — bez zásob a 
   opravdu vznikl znovu, ověř změnou `SystemId` (číslo řádku zůstane 10000).
 Pageextension s názvem `"Posted S. Cr. Memo Subf. SOI"` v souboru `PostedSalesCrMemoSubf.PageExt.al` = CodeCop **AA0215** (CI fail) —
 název souboru se odvozuje z názvu objektu bez teček a mezer, zkratky musí sedět s názvem souboru.
+
+### 3.6s Bankovní účet dodavatele na nákupním dokladu — W1 / AT ho nemá, CZL jen z kmenových dat; vlastní pole + kontrola
+
+- **W1 i rakouská lokalizace (BC 28 AT)** nemají na nákupní hlavičce bankovní účet dodavatele (AT přidává jen `Registration No.`,
+  `Remit-to Code` je adresa). Účtování faktury účet do položky dodavatele nepřenáší, platba bere `Vendor."Preferred Bank Account Code"`
+  až v deníku (`Gen. Journal Line."Recipient Bank Account"`). IBAN z došlého dokladu umí jen `Incoming Document` (`Vendor IBAN`,
+  `Vendor Bank Account No.`, plní OCR). **CZL** má `Bank Account Code CZL` (11720, výběr z účtů plátce, výchozí preferovaný) + needitovatelné
+  kopie (11721–11726) na hlavičce, účtované faktuře i dobropisu; číslo, které na dodavateli není, uložit nejde a s účty dodavatele ho nic
+  neporovnává (kontrola jen proti zveřejněným účtům plátců DPH). AppSource: kontrolu účtu z došlé faktury proti kmenovým datům dělá jen
+  Continia Document Capture. (Rešerše ve zdrojích at-28 / cz-28, 2026-11-25.)
+- Vlastní řešení bez závislosti na CZL (cust-itmr-bc `Vendor Bank Acc. Check ITMR`): pole čísla a výsledku na `Purchase Header`,
+  `Purch. Inv. Header`, `Purch. Cr. Memo Hdr.` (+ API agregát, 11.7a v `bc-al-integrations.md`) se stejnými ID. Háčky:
+  - výsledek na účtovaný doklad **`Purch.-Post.OnBeforePurchInvHeaderInsert` / `OnBeforePurchCrMemoHeaderInsert(var Hdr; var PurchHeader;
+    CommitIsSupressed)`** — po `TransferFields`, před `Insert`; změna hlavičky v `OnBeforePostPurchaseDoc` se může ztratit (Purch.-Post
+    hlavičku při výpočtu fakturační slevy načítá znovu);
+  - přepočet otevřených dokladů po změně bankovních dat: `Vendor.OnAfterModifyEvent` (bez diffu xRec) + `Vendor Bank Account.OnAfter
+    Insert/Modify/DeleteEvent`. **`Vendor Bank Account.OnDelete` maže `Preferred Bank Account Code` dodavatele přes `Vendor.Modify()`**,
+    takže Vendor subscriber zachytí i smazání preferovaného účtu. Číst bez zámku, `UpdLock` + `Get` + `Modify(false)` jen u dokladů, kterým
+    se výsledek mění;
+  - kopie dokladu: `Copy Document Mgt.OnAfterCopyPurchHeaderDone(var ToPurchaseHeader; OldPurchaseHeader; …; FromPurchInvHeader;
+    …; FromPurchCrMemoHdr; …)` — `From*` jsou **lokální** proměnné `CopyPurchDoc`, takže `FromPurchInvHeader."No." <> ''` spolehlivě
+    říká „zdroj je účtovaná faktura“ (Correct / Cancel / opravný dobropis jdou touto cestou s `IncludeHeader`). Za eventem base volá
+    `Modify`, stačí přiřazení do `ToPurchaseHeader`.
+  - Porovnání: IBAN bez všech ne-alfanumerických znaků a bez ohledu na velikost, tuzemské číslo jen bez mezer (předčíslí, kód banky a
+    úvodní nuly jsou součást čísla) — falešná shoda by poslala peníze jinam. `foreach` přes `Text` na runtime 16 = `AL0421` → smyčka
+    `for` + `Text[i]`.
+(2026-11-25, cust-itmr-bc, rakouská společnost zákazníka, import faktur přes API; 20 testů `Vendor Bank Acc. Tests ITMR` v `bc28` 28.2.)

@@ -486,6 +486,29 @@ Z code review API konfigurátoru (COEBS task 66387, stránky `configurationSessi
   `-SkipHttpErrorCheck`, `Invoke-WebRequest` nemá `-StatusCodeVariable`). PATCH potřebuje `If-Match` s `@odata.etag`.
   Tenant ID z domény: `GET https://login.microsoftonline.com/<domena>.onmicrosoft.com/v2.0/.well-known/openid-configuration` → `issuer`.
 
+### 11.7a Vlastní pole na kopii standardní API stránky dokladu (`purchaseInvoices` / `salesInvoices`) = tableextension agregátu se stejným ID
+
+API v2 stránky dokladů stojí nad agregátem (`Purch. Inv. Entity Aggregate` 5477, obdobně `Sales Invoice Entity Aggregate`), ne nad
+hlavičkou. Vlastní pole hlavičky na kopii té stránky nepotřebuje proměnné stránky ani vlastní zápis: stačí **tableextension agregátu
+s polem se stejným ID a typem** jako na `Purchase Header` a `Purch. Inv. Header` (w1-28 `Purch. Inv. Aggregator`):
+- čtení: `InsertOrModifyFromPurchaseHeader` / `…FromPurchaseInvoiceHeader` plní agregát `TransferFields(…, true)` (subscribery na
+  `OnAfterInsert/ModifyEvent` hlavičky i účtované faktury), takže GET vrací hodnotu draftu i účtované faktury;
+- zápis: pole na stránce s `RegisterFieldSet(Rec.FieldNo(pole))` → `PropagateOnInsert/OnModify` → `TransferFieldsWithValidate`
+  udělá na hlavičce `FieldRef.Validate` **v pořadí registrace** (= pořadí polí na stránce), takže `OnValidate` pole na
+  `Purchase Header` běží. U insertu se validuje na RecordRef **před** `Insert(true)` (hlavička ještě nemá `No.`, `Buy-from` dělá
+  `InitRecord`, ne `Init`). Logika závislá na dodavateli proto patří i na `OnAfterValidateEvent "Pay-to Vendor No."`, jinak záleží na
+  pořadí polí;
+- pole tabulky jdou filtrovat (`$filter`), proměnné stránky ne (11.7). Nesoulad typu / délky mezi tabulkami je chyba za běhu při
+  každém uložení dokladu, ne při kompilaci — drž stejné typy (PC0020 hlídá jen dvojice TransferFields mezi doklady).
+- Aggregátor i `PropagateOn*` končí na `GraphMgtGeneralTools.IsApiEnabled()`; v testu ho zapne manuální subscriber
+  `Graph Mgt - General Tools.OnGetIsAPIEnabled(var Handled; var IsAPIEnabled)` (IntegrationEvent) v test codeunitě s
+  `EventSubscriberInstance = Manual` + `BindSubscription` lokální instance, pak `PurchInvAggregator.PropagateOnInsert(Aggregate,
+  TempFieldBuffer)` s `Field Buffer` naplněným jako `RegisterFieldSet` stránky.
+- Enum hodnoty jdou do OData jménem: mezera = `_x0020_` (`Different_x0020_Account`, prázdná hodnota `_x0020_`). Hodnoty, na které
+  bude filtrovat externí systém, pojmenuj bez mezer (caption zůstane čitelný).
+(2026-11-25, cust-itmr-bc, `API_PurchaseInvoicesITMR` + `Vendor Bank Acc. Check ITMR`, číslo účtu dodavatele z faktury; test
+`PurchaseInvoiceApiAggregatorWritesAndReadsTheAccount` prošel v lokálním kontejneru `bc28` 28.2, pole zapsané PŘED dodavatelem.)
+
 ### 11.7b API POST, které v cíli synchronně zpracovává data = timeout 100 s ve zdroji a ztracená odpověď (ID záznamu)
 
 - **Příznak:** zdroj loguje *„The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing"*, cíl ale data má
