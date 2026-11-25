@@ -371,7 +371,12 @@ podmínku zavolá `AddRoutingLines`. Pasti pro rozšíření, které na řádek 
   (OOEBS docs 63647 a README jen konstatují, ADO 63639/63647 o vazbě mlčí). Předloha EDP (`cust-edp-bc`, `Reg. Toget. With Op. No.
   EDP`) kopíruje jen na *Prod. Order* / *Planning Routing Line* (ruční změna, propagace jde `:=`) a na kmenové `Routing Line` ne —
   tam ji přidal až port do OOEBS (PR 9406, 2026-09-02). Propagace OOEBS z TNG do plánování a VZ je holé `:=` a kód vazby nečte, takže
-  vlastní kód vazby nastavený po validaci přežije.
+  vlastní kód vazby nastavený po validaci přežije. **Praktický dopad duplicitního kódu vazby (BC-DEV 2026-11-25, VZ s ručně
+  spotřebovanými komponentami):** výstup i automatické odvedení OOEBS fungují stejně, *Vypočítat spotřebu* podle skutečného výstupu
+  dá stejná množství (komponenta bez operace bere dokončené množství), ale **Deník výroby** nabídne komponentu cílového kódu pod
+  každou operací s tím kódem (3 operace = 3× plné množství) a komponenty osiřelých kódů bez operace nahoře. Standard při ruční změně
+  kódu vazby na operaci VZ varuje „použito více než jednou“. COALU 52005 proto po validaci vrací kód vazby z řádku akce (prázdný
+  převezme cíl).
 - **Vzor COALU 52005 `Routing Reg. Together COALU` (task 68019, po code review):** codeunit `SingleInstance`; `OnAfterInsertRoutingLine`
   si do dočasné kopie `Routing Action Line COEBS` + slovníků zapíše „řádek akce → generované číslo operace + `SystemId` řádku TNG“;
   `Alternative Routing ATEBS.OnAfterInsertEvent` jen pro TNG z probíhajícího běhu odkazy přeloží (řádek akce **stejné podmínky**
