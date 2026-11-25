@@ -8,9 +8,9 @@ description: >-
   TableRelation mimo PK (Validate za běhu spadne), tableextension triggery vs subscribery, modify() ve fields,
   klíč jen vlastní pole (AL0423), var guard vs CurrFieldNo, CurrFieldNo z codeunity (getter, kopie recordu =
   0), příznak v SingleInstance po Error (SystemRowVersion), xRec = Rec při Modify z kódu, IsTemporary, init
-  detection OnAfterValidateEvent, SkipOnMissingLicense/Permission, LC0028, AL0432. Propagace vlastních polí do
-  posted / archive / kopie dokladu (3.5–3.6f) je ve skillu bc-al-posting. Načti u recordů, subscriberů,
-  tableextension a relací polí.
+  detection OnAfterValidateEvent, SkipOnMissingLicense/Permission, LC0028, AL0432, needitovatelné pole
+  z konfiguračního balíčku (RapidStart, i účtované doklady), Record Link (odkazy). Pole dokladů → posted /
+  archiv / kopie: bc-al-posting. Načti u recordů, subscriberů, tableextension a relací polí.
 user-invocable: true
 ---
 

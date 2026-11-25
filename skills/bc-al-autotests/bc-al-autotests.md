@@ -350,6 +350,12 @@ Assert.ExpectedErrorCode('Dialog');
   length. Tag: 25.0`) — text záznamu z `LogMessage` / `LogSimpleMessage` čti z pole **`Message`** (Text[2048]). Na stránce
   *Error Messages* se control pořád jmenuje `Description` (TestPage `ErrorMessages.Description.Value()` funguje).
   (2026-11-23, cust-soitron-bc 66672.)
+- **`Purch. Inv. Aggregator.PropagateOnInsert` nechá na temp `Field Buffer` filtr** (na konci `SetRange("Table ID", …)` +
+  `SetFilter("Field ID", …)` na pár polí agregátu, w1-28; `PropagateOnModify` nechá `SetRange("Table ID", …)`). Test, který
+  týž buffer použije znovu pro `PropagateOnModify` (simulace PATCH), musí udělat **`Reset()` před `DeleteAll`**. Jinak smaže jen
+  část záznamů, helper `RegisterFieldSet` (`FindLast` + 1) pod filtrem nic nenajde a `Insert` spadne na *The record in table Field
+  Buffer already exists. Order='1'*. (2026-11-25, cust-itmr-bc PBI 67999,
+  `Purch. TAS Link Tests ITMR`, kontejner `bc28`.)
 - **Seznam, jehož `OnDrillDown` otevře přes `Page.RunModal` jinou stránku nad týmž záznamem a ta ho uloží: samotné
   `CurrPage.Update(false)` po `RunModal` výrazový sloupec seznamu na TestPage neobnoví** (`AssertEquals … Actual = ''`, i když
   v DB hodnota je). Pomohlo `if Rec.Find('=') then CurrPage.Update(false);` — stejně jako po stromovém seznamu v 4.17
@@ -360,6 +366,18 @@ Assert.ExpectedErrorCode('Dialog');
   page instead"*) — hlásí to i jen `.Visible()`. Buď přes part hostitelské stránky (`SalesInvoice."<part control>".<akce>`), nebo
   logiku akce vytáhnout do veřejné procedury a testovat tu (viditelnost akce je kosmetika, test netřeba). (2026-11-25,
   prod-ef-documentAttachments-bc 67984, akce *Otevřít složku na SharePointu*.)
+- **Povinné pole StandardDialogu kontrolované v `OnQueryClosePage` (`if CloseAction in [OK, LookupOK] then Error(…)`) jde testovat
+  přes akci, která dialog otevírá:** `[ModalPageHandler]` nastaví prázdnou hodnotu a zavolá `Dialog.OK().Invoke()`, chyba z
+  `OnQueryClosePage` doběhne až na `asserterror Card."<akce>".Invoke()` + `Assert.ExpectedError(text)`; `Commit()` po GIVEN,
+  `Card.Close()` po chybě nevolat. **Filtry stránky v kódu akce:** `Rec` předaný z akce `var` do codeunity nese filtry všech filter
+  groups stránky; `Filtered.Copy(Rec)` + `SetRange("No.", Rec."No.")` + `IsEmpty()` po zápisu řekne, že záznam z filtru stránky
+  vypadl (karta otevřená ze seznamu filtrovaného na stav se po `CurrPage.Update(false)` přepne na jiný záznam). V testu filtr
+  stránky = `Card.OpenEdit(); Card.Filter.SetFilter(Status, Format(Job.Status::Open)); Card.GoToRecord(Job)`. Oboje prošlo
+  v `bctest29` (BC 29.0). **Ověřeno i v klientu** (Playwright, `bctest29`, česká relace): karta otevřená klikem ze seznamu
+  *Projekty* s filtrem *Stav = Otevřené* nese filtr v `Rec`, `IsEmpty` po stornu vrátí true a po `CurrPage.Update(false)` karta
+  přeskočí na jiný otevřený projekt. ⚠️ **URL filtr na hodnotu výčtu chce v české relaci caption** (`'Status' IS 'Otevřené'` nebo
+  ordinal `'2'`); `'Status' IS 'Open'` se tiše neuplatní (seznam ukáže i dokončené), na rozdíl od Booleanu `'Yes'`.
+  (2026-11-25, cust-soitron-bc Task 68084, `Job Cancel Test SOI`, příručka `docs/66504_Storno-projektu-uzivatelska-prirucka.html`.)
 - **Změna textu Labelu = projdi `Assert.ExpectedError` v testech** — ExpectedError hledá podřetězec, přepsaná hláška shodí test
   až v CI (build 28636: `its check did not pass` → `its check ended with the status`). Po úpravě labelu grepni test appku na
   jeho klíčová slova.

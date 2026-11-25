@@ -45,13 +45,25 @@ Obsahuje:
   sám — druhý zápis by skončil „záznam změnil jiný uživatel“ (vzor 3.9 v `bc-al-data.md`). Dál `Job.OnAfterOnInsert` a `Job
   Task.OnAfterOnInsert` (běží v insert triggeru po `InitGlobalDimFromDefalutDim` / `InsertJobTaskDim`, pole do `var` recordu bez
   `Modify`), `Copy Job.OnAfterCopyJobDimensions(SourceJob; var TargetJob)` (dimenze kopíruje `Insert()` bez triggerů, `TargetJob`
-  uloží `Modify()` na konci kopie), `Job.OnAfterUpdateJobTaskDimension` (pole projektu → úlohy po dotazu). Úlohu ukládej
-  `Modify(false)`: `Job Task.OnModify` volá `Job.UpdateOverBudgetValue` = zápis projektu. Změna zkratky v *Nastavení financí*:
-  `OnBeforeValidateEvent "Shortcut Dimension n Code"` (dotaz, `xRec` = stará dimenze) + `OnAfterUpdateDimValueGlobalDimNo(ShortCutDimNo,
-  Old, New)` (běží před `Modify` setupu, nová dimenze v parametru) → `ModifyAll(pole, '', false)` + naplnit z dimenzí. Stará data
-  jednou opravit upgrade codeunitou s upgrade tagem (5.2 v `bc-al-objects.md`). **Test:** izolace testů je po codeunitu → projekty
-  předchozích testů mají pole vyplněná a změna zkratky v setupu helperu se začne ptát („Unhandled UI: Confirm“) → helper nejdřív
-  `ModifyAll` pole na `''`. (2026-11-23, cust-soitron-bc Task 67915, `Job Shortcut Dim. Mgt. SOI`, testy 54503.)
+  uloží `Modify()` na konci kopie), `Job.OnAfterUpdateJobTaskDimension` (pole projektu → úlohy po dotazu). **Snadno přehlédnuté
+  (w1-29):** změna plátce projektu → `Job.CopyDefaultDimensionsFromCustomer` dimenze projektu smaže a vloží zákaznické **bez
+  triggerů** → `Job.OnCopyDefaultDimensionsFromCustomerOnBeforeUpdateDefaultDim(var Job)` (pole z dimenzí do `var`, uloží volající);
+  plátce úlohy → `Job Task.CreateDefaultJobTaskDimensionsFromCustomer` → `Job Task.OnAfterBillToCustomerNoUpdated(var JobTask)`;
+  přímé volání `ValidateShortcutDimCode(3..8)` cizím kódem → `Job/Job Task.OnAfterValidateShortcutDimCode` (standard už record
+  uložil, pole nastav a `Modify(false)` na téže proměnné; úlohu jen když je v DB, jinak standard drží dimenzi v bufferu do insertu).
+  Úlohu ukládej `Modify(false)`: `Job Task.OnModify` volá `Job.UpdateOverBudgetValue` = zápis projektu. Změna zkratky v *Nastavení
+  financí*: `OnBeforeValidateEvent "Shortcut Dimension n Code"` (dotaz; starou dimenzi ber z **uloženého setupu**, ne z `xRec` —
+  „přiřadit a pak `Validate(pole)`“ má `xRec = Rec`; dotaz vynech, když ji standard hned odmítne:
+  `Dimension.CheckIfDimUsed(Nová, Enum::"Dim Type Checked".FromInteger(n), '', '', 0)` — v BC 29 enum, v BC 28 Option) +
+  `OnAfterUpdateDimValueGlobalDimNo(ShortCutDimNo, Old, New)` (běží před `Modify` setupu, nová dimenze v parametru; Old/New
+  neporovnávej, ze stejného důvodu). **Přepočet zapisuj jen rozdílné záznamy** (projekty s vyplněným polem → cíl z dimenze; pak
+  dimenze → doplnit), ne `ModifyAll('')` + plnění: každý zápis projektu zachytí replikace (globální trigger) i sledování změn pro
+  Dataverse a v replikované firmě s omezenými tabulkami by plošný zápis shodil upgrade. Stará data jednou opravit upgrade
+  codeunitou s upgrade tagem (5.2 v `bc-al-objects.md`; pozor, `Install` IMEBS volá `SetAllUpgradeTags()` = nastaví tagy všech appek).
+  Nepokryje zápisy dimenzí bez triggerů z cizího kódu / balíčku / replikace (datová sada bez triggerů) — stejně jako globální 1/2.
+  **Test:** izolace testů je po codeunitu → projekty předchozích testů mají pole vyplněná a změna zkratky v setupu helperu se začne
+  ptát („Unhandled UI: Confirm“) → helper nejdřív `ModifyAll` pole na `''`; „nic nezapsáno“ ověř přes `SystemRowVersion`.
+  (2026-11-23/25, cust-soitron-bc Task 67915, `Job Shortcut Dim. Mgt. SOI`, testy 54503; díry 25. 11. našla revize Fable 5.2.)
 - **Přemapování účto skupiny existujících řádků = vždy z KARTY (Item / Resource / G/L Account `Gen. Prod. Posting Group`), ne
   zpětným překladem přes setup.** První verze (alt skupina starého typu → default → alt nového typu) selhávala při řetězení typů
   (typ bez mapování, dvě default skupiny se stejnou alt, změněný setup nebo karta mezi změnami) a při smazání typu řádky
