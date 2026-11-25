@@ -366,6 +366,15 @@ Assert.ExpectedErrorCode('Dialog');
   page instead"*) — hlásí to i jen `.Visible()`. Buď přes part hostitelské stránky (`SalesInvoice."<part control>".<akce>`), nebo
   logiku akce vytáhnout do veřejné procedury a testovat tu (viditelnost akce je kosmetika, test netřeba). (2026-11-25,
   prod-ef-documentAttachments-bc 67984, akce *Otevřít složku na SharePointu*.)
+- **Povinné pole StandardDialogu kontrolované v `OnQueryClosePage` (`if CloseAction in [OK, LookupOK] then Error(…)`) jde testovat
+  přes akci, která dialog otevírá:** `[ModalPageHandler]` nastaví prázdnou hodnotu a zavolá `Dialog.OK().Invoke()`, chyba z
+  `OnQueryClosePage` doběhne až na `asserterror Card."<akce>".Invoke()` + `Assert.ExpectedError(text)`; `Commit()` po GIVEN,
+  `Card.Close()` po chybě nevolat. **Filtry stránky v kódu akce:** `Rec` předaný z akce `var` do codeunity nese filtry všech filter
+  groups stránky; `Filtered.Copy(Rec)` + `SetRange("No.", Rec."No.")` + `IsEmpty()` po zápisu řekne, že záznam z filtru stránky
+  vypadl (karta otevřená ze seznamu filtrovaného na stav se po `CurrPage.Update(false)` přepne na jiný záznam). V testu filtr
+  stránky = `Card.OpenEdit(); Card.Filter.SetFilter(Status, Format(Job.Status::Open)); Card.GoToRecord(Job)`. Oboje prošlo
+  v `bctest29` (BC 29.0); že karta otevřená z `CardPageId` seznamu dostane jeho filtry, plyne z hlášení uživatelů (karta po
+  stornu přeskočila na jiný projekt), v klientu jsem neověřoval. (2026-11-25, cust-soitron-bc Task 68084, `Job Cancel Test SOI`.)
 - **Změna textu Labelu = projdi `Assert.ExpectedError` v testech** — ExpectedError hledá podřetězec, přepsaná hláška shodí test
   až v CI (build 28636: `its check did not pass` → `its check ended with the status`). Po úpravě labelu grepni test appku na
   jeho klíčová slova.
