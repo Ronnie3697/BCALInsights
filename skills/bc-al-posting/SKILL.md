@@ -10,7 +10,7 @@ description: >-
   zmetky, tiché Item Jnl.-Post), způsob platby bez Validate (protiúčet, pokladna CZP), podmínka
   schvalovacího workflow (OnBeforeIsPurchaseApprovalsWorkflowEnabled), DPH z integrace přes VAT Amount
   Line, faktury dobropisu (DCLE), pole řádku plánování → prodejní řádek
-  (OnBeforeInsertSalesLine), bank. účet dodavatele na nákupu (AT/CZL). Načti u polí dokladů, postingu, archivu, kopie, emailu, schvalování,
+  (OnBeforeInsertSalesLine), bank. účet dodavatele → platba/SEPA (AT/CZL). Načti u polí dokladů, postingu, archivu, kopie, emailu, schvalování,
   DPH.
 user-invocable: true
 ---

@@ -22,7 +22,7 @@ Obsahuje:
 - **3.6p** Částka DPH z externího systému na prodejním / nákupním dokladu z kódu = rozdíl DPH přes `VAT Amount Line` (jako Statistika); CZL `Sales/Purchase Line Handler CZL` ho smaže při každém `Insert/Modify/Delete(true)` řádku; u nákupu pojistka `Check Doc. Total Amounts`
 - **3.6q** Ke kterým fakturám se účtovaný dobropis vztahuje — řádky + aktuální vyrovnání
 - **3.6r** Vlastní pole řádku plánování projektu na generovaný prodejní řádek: IMEBS objednávka (dva eventy), standardní faktura z řádků plánování (`Job Create-Invoice.OnBeforeInsertSalesLine`) a vlastní cesty zakládání řádků
-- **3.6s** Bankovní účet dodavatele na nákupním dokladu: W1 / AT ho nemají, CZL jen z kmenových dat; vlastní pole + kontrola proti účtům plátce (razítko při účtování `OnBeforePurchInvHeaderInsert` / `OnBeforePurchCrMemoHeaderInsert`, přepočet po změně bankovních účtů, kopie dokladu)
+- **3.6s** Bankovní účet dodavatele na nákupním dokladu: W1 / AT ho nemají, CZL jen z kmenových dat; vlastní pole + kontrola proti účtům plátce (razítko při účtování `OnBeforePurchInvHeaderInsert` / `OnBeforePurchCrMemoHeaderInsert`, přepočet po změně bankovních účtů, kopie dokladu) a cesta k platbě (Recipient Bank Account, On Hold, Suggest Vendor Payments, deník plateb, SEPA check — CZB IsHandled)
 
 ## 3. Event Subscribery — propagace polí (3.5–3.6f)
 
@@ -973,3 +973,26 @@ název souboru se odvozuje z názvu objektu bez teček a mezer, zkratky musí se
     úvodní nuly jsou součást čísla) — falešná shoda by poslala peníze jinam. `foreach` přes `Text` na runtime 16 = `AL0421` → smyčka
     `for` + `Text[i]`.
 (2026-11-25, cust-itmr-bc, rakouská společnost zákazníka, import faktur přes API; 20 testů `Vendor Bank Acc. Tests ITMR` v `bc28` 28.2.)
+- **Účet z dokladu až k platbě ve W1 / AT (SEPA export z deníku plateb), ověřeno ve zdrojích w1-28 a 194 testy v `bc28`:**
+  - Platit jde jen na **kód** bankovního účtu dodavatele: `Gen. Journal Line` / `Vendor Ledger Entry."Recipient Bank Account"`
+    (pole 288, Code[20]), SEPA export (`SEPA CT-Fill Export Buffer`) podle něj dělá `VendorBankAccount.Get(Vendor, kód)` → IBAN.
+    Volné číslo z dokladu proto nejdřív přelož na kód účtu dodavatele; účet z faktury automaticky nezakládat (kontrola podvodu).
+  - Účtování faktury příjemce **nevyplní** (`Purch. Post Invoice` plní řádek deníku přiřazením `Account No.`, bez `Validate`) →
+    doplnit v `Purch. Post Invoice Events.OnPostLedgerEntryOnBeforeGenJnlPostLine(var GenJnlLine; var PurchHeader; …)` (stejný event
+    jako CZL); na položku ho i `On Hold` přenese standard (`Vendor Ledger Entry.CopyFromGenJnlLine`). `On Hold` hlavičky jde na
+    řádek deníku už v `CopyFromPurchHeader`, takže pozastavení platby stačí nastavit na dokladu.
+  - *Suggest Vendor Payments* (393) dá každému řádku **preferovaný** účet (`Validate("Account No.")` → `GetVendorAccount`), účet
+    položky ignoruje; položky s `On Hold` vynechá. Háček `OnBeforeUpdateGnlJnlLineDimensionsFromVendorPaymentBuffer(var GenJnlLine;
+    TempVendorPaymentBuffer; SummarizePerVend; …)` (před `Insert`): bez sumarizace má buffer `Vendor Ledg. Entry No.`; se sumarizací
+    0 a položky mají `Applies-to ID` = `Document No.` bufferu (zapsané přes `Vend. Entry-Edit`). Klíč bufferu (`Vendor No.`, měna,
+    `Vendor Ledg. Entry No.`, `Dimension Entry No.`, `Remit-to Code`) rozšířit nejde → různé účty v jedné platbě = `Error`.
+  - Ruční řádek deníku: `Validate("Applies-to Doc. No." / "Applies-to ID")` → `SetJournalLineFieldsFromApplication` → eventy
+    `OnSetJournalLineFieldsFromApplicationOnAfterFindFirstVendLedgEntryWithAppliesToDocNo` / `…WithAppliesToID(var GenJournalLine;
+    VendLedgEntry)`; standard sám příjemce z položky nebere.
+  - Pozastavenou zaúčtovanou položku uvolnit přes `Codeunit.Run(Codeunit::"Vend. Entry-Edit", VLE)` (kopíruje `On Hold` i
+    `Recipient Bank Account` jako úprava na stránce); čísla položek nejdřív posbírat, uvolnění mění filtrované pole.
+  - ⚠️ **Kontrola před SEPA exportem: `SEPA CT-Check Line.OnAfterCheckGenJnlLine` se v CZ prostředí NEZAVOLÁ** — CZB
+    (`SEPACTHandlerCZB`) přebírá `OnBeforeCheckGenJnlLine` s `IsHandled := true`. Vlastní kontrolu (`InsertPaymentFileError`) věšet na
+    `OnBeforeCheckCustVendEmpl` (`OnRun` ho volá pro každý řádek, CZB nastaví `IsHandled` jen bez `Account No.`), `IsHandled` neměnit.
+    Test v CZ kontejneru navíc potřebuje protiúčet typu bankovní účet (LM CZK ≠ EUR → `BankAccount.Get("Bal. Account No.")`).
+(2026-11-25, cust-itmr-bc `Vendor Bank Acc. Payment ITMR`; volba zákazníka: neznámý účet = zaúčtovat s On Hold `BNK`.)
