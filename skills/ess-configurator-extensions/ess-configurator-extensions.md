@@ -377,6 +377,9 @@ podmínku zavolá `AddRoutingLines`. Pasti pro rozšíření, které na řádek 
   každou operací s tím kódem (3 operace = 3× plné množství) a komponenty osiřelých kódů bez operace nahoře. Standard při ruční změně
   kódu vazby na operaci VZ varuje „použito více než jednou“. COALU 52005 proto po validaci vrací kód vazby z řádku akce (i prázdný,
   kód cíle se nepřebírá – rozhodnutí uživatele „nechat, co je v konfiguraci“).
+  Spotřebu u Alumistra dělá Cutting Plan (profily) a **EM Automated Order Closing** (komponenta *Automatická spotřeba* = *Dle
+  normy* = `Full Consumption`; sestava 64103 *Návrh/účtování automatické spotřeby* volá standardní *Calc. Consumption* podle
+  skutečného výstupu, kód vazby sama nečte – repo `prod-em-automatedOrderClosing-bc`, affix CLEBS).
 - **Vzor COALU 52005 `Routing Reg. Together COALU` (task 68019, po code review):** codeunit `SingleInstance`; `OnAfterInsertRoutingLine`
   si do dočasné kopie `Routing Action Line COEBS` + slovníků zapíše „řádek akce → generované číslo operace + `SystemId` řádku TNG“;
   `Alternative Routing ATEBS.OnAfterInsertEvent` jen pro TNG z probíhajícího běhu odkazy přeloží (řádek akce **stejné podmínky**
