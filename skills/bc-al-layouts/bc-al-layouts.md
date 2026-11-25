@@ -237,6 +237,30 @@ v kontejneru `bctest29` a proklikem):
   `CreateSalesLine`. Stav *Pending Approval* v testu stačí přiřadit (`Status :=` + `Modify(false)`), workflow netřeba.
 (2026-11-25, cust-londonPharma-bc 67750, `Document Print LPC`, test codeunit 51899.)
 
+**Totéž u CZZ prodejní zálohy (`Sales Adv. Letter Header CZZ`, sestava 31014 `Sales - Advance Letter CZZ`)** — „tisk a e-mail
+zálohové faktury jen ve stavu Vydaná“ (BC 28.5, ověřeno proklikem na Zlomek BC-DEV):
+- **Stav „Vydaná“ CZZ nemá.** Akce *Release* je česky **Vydat** (Nové → **K úhradě**), po platbě **K použití**, po vyúčtování
+  **Uzavřeno**; dál *Čeká na schválení*. Zákazník chtěl tisk povolit pro **K úhradě + K použití** (od *K použití* by nezaplacená
+  zálohovka nešla poslat k úhradě; *Uzavřeno* zahrnuje i ručně uzavřenou = zrušenou). Výčet je rozšiřitelný → povolené hodnoty
+  vyjmenuj (whitelist), ne zakázané.
+- **Vstupní body na tabulce:** `PrintRecords` → `OnBeforePrintRecords`, `EmailRecords` → `OnBeforeEmailRecords` (obojí s `var`
+  výběrem ze `CurrPage.SetSelectionFilter` — kontrola ve vlastní filter group přes `Count()` + `FindFirst` respektuje označení víc
+  řádků seznamu), `PrintToDocumentAttachment` → per záloha `OnBeforeDoPrintToDocumentAttachment`. ⚠️ **Záznam v tom eventu nenese
+  filtry výběru** (`DoPrintToDocumentAttachment` dostává kopii hodnotou): kontrola „celého výběru“ v něm prošla celou tabulku a na
+  kartě ZPT2500005 hlásila cizí zálohu ZPT2500002. Tam jen kontrola samotné zálohy.
+- **Celý výběr pro *Připojit jako PDF* předem = pageextension na kartu 31171 i seznam 31170**: `modify(PrintToAttachment) { trigger
+  OnBeforeAction() … CurrPage.SetSelectionFilter(X); Check(X); }` — chyba přišla dřív než první příloha (v klientu: výběr K úhradě +
+  Nové, příloha u K úhradě nevznikla). Bez toho standard přikládá zálohu po záloze: sestava u každé commitne *Počet tisků*
+  (`Sales Adv. Letter-Printed CZZ`), příloha se vloží až po commitu, takže chyba u další zálohy přílohu předchozí odroluje a zvýšený
+  *Počet tisků* nechá (nález code review).
+- **Pojistka v sestavě** `reportextension` → `modify("Sales Advance Letter Header") { trigger OnAfterPreDataItem }` (base dataitem
+  vlastní `OnPreDataItem` nemá) s filtrem stavu ve filter group 51 a `Error`, když nic nezbude: zabrala i v *Náhledu* z request page
+  s filtrem přepsaným na uzavřenou zálohu. Daňový doklad k platbě (`Sales Adv. Letter Entry CZZ`, usage *Sales Advance VAT
+  Document*) je jiná sestava, kontrola se ho netýká.
+- Testy bez tisku: test codeunit s `EventSubscriberInstance = Manual` jako spy na tytéž eventy (`IsHandled := true`, počítadla) a
+  lokální proměnná + `BindSubscription` (vzor „subscriber v samotné test codeunitě“ v `bc-al-autotests.md`).
+(2026-11-25, cust-zlomek-bc PBI 66322, `Adv. Letter Print Check ZLK` 52316, pageext 52343 / 52344, reportext 52300, testy 52326.)
+
 ### 12.5 Word layout štítků generovaný skriptem + barcode fonty / GS1-128 (BC online)
 
 Štítky 100×100 / 100×50 mm s EAN a GS1-128 pro Sonnentor (PBI 65662, 2026-10-02) — Word layout

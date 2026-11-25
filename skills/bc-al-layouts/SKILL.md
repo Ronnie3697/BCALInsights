@@ -8,7 +8,7 @@ description: >-
   skriptem (namespace = název reportu, WordMergeDataItem, #Nav, hRule exact), obrázek z Blob / Document Attachments
   (SharePoint Drive Item ID → „image stream"), IDAutomation, GS1-128 / FNC1, kontrolní číslice EAN, úkolový list VZ
   (Job Card, CZ captiony), zákaz tisku / náhledu / e-mailu podle stavu (Pending Approval: filtr v OnAfterPreDataItem
-  reportextension, Document-Print eventy, Attach as PDF, Enabled akcí). Načti u layoutů, datasetů, blokace tisku a štítků.
+  reportextension, Document-Print eventy, Attach as PDF, Enabled akcí; CZZ záloha „Vydaná“ = K úhradě / K použití). Načti u layoutů, datasetů, blokace tisku a štítků.
 user-invocable: true
 ---
 
