@@ -194,6 +194,11 @@ Dvě verze téže appky v jedné cache (stará `.alpackages` + nový build) = ne
   musí ležet složka **`app/`** s logem (jinak `AL1001 Source file '..\app\essence.png' could not be found`). A test `app.json`
   musí deklarovat **explicitní dependency na každou appku, jejíž tabulku test čte** — `Record "External Time Sheet Line TSEBS"`
   bez `Essence Project TimeSheets` v deps = `AL0185 Table ... is missing`, i když hlavní appka na ní závisí. (2026-10-02)
+- **Build hlavní appky pro test cache překládej jen s analyzery CI (CodeCop, UICop, PTE), ne s ALCops.** ALCops nález
+  se severitou `error` (např. `PC0013 Invalid arguments in call to 'Get(...)'` ze staršího kódu masteru) zastaví zápis
+  `/out` — log skončí `EXIT=1`, `.app` nevznikne a kompilace test appky pak hlásí `AL1022 … Essence … could not be found`,
+  což vypadá jako problém cache. CI ALCops nespouští (12.1b v `bc-al-workflow.md`), takže ten nález build neshodí; ALCops
+  pusť zvlášť jen na kontrolu warningů. (2026-11-25, prod-ef-documentAttachments-bc 67984, první test appka repa.)
 
 ### MS test knihovny v temp cache drž v JEDNÉ minor řadě; testy za `#IF TESTS` ověř kopií projektu
 
