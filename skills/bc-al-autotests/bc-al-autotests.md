@@ -355,6 +355,11 @@ Assert.ExpectedErrorCode('Dialog');
   v DB hodnota je). Pomohlo `if Rec.Find('=') then CurrPage.Update(false);` — stejně jako po stromovém seznamu v 4.17
   `bc-al-ui.md`. V klientu neověřeno, test teď hlídá obojí. (2026-11-25, prod-ef-documentAttachments-bc 67984, sloupec *Prefix
   souboru* na *Definici příloh*, kontejner `bctest29`.)
+- **Akce `ListPart` stránky (factbox) z TestPage otevřené napřímo = ALCops `TA0002`** (*„Action … cannot be invoked on page
+  'Doc. Attachment List Factbox' opened directly because its PageType is ListPart; invoke it through the part control of the hosting
+  page instead"*) — hlásí to i jen `.Visible()`. Buď přes part hostitelské stránky (`SalesInvoice."<part control>".<akce>`), nebo
+  logiku akce vytáhnout do veřejné procedury a testovat tu (viditelnost akce je kosmetika, test netřeba). (2026-11-25,
+  prod-ef-documentAttachments-bc 67984, akce *Otevřít složku na SharePointu*.)
 - **Změna textu Labelu = projdi `Assert.ExpectedError` v testech** — ExpectedError hledá podřetězec, přepsaná hláška shodí test
   až v CI (build 28636: `its check did not pass` → `its check ended with the status`). Po úpravě labelu grepni test appku na
   jeho klíčová slova.
