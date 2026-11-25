@@ -364,6 +364,14 @@ podmínku zavolá `AddRoutingLines`. Pasti pro rozšíření, které na řádek 
   (odkaz dopředu 10 → 20 spadne na „does not exist“) a zákaz řetězení čte z DB odkazující řádky (ty vložené později nevidí). Odkaz
   na neexistující operaci by OOEBS tiše nikdy neodvedl: operace s vlastním odkazem není spouštěcí (`ItemJournalLineIsPossibleForPostDependedOps`)
   a s `NoAddDepOpsToOutJnl` vypadne i z rozpadu postupu.
+- ⚠️ **Validace `Reg. Toget. With Op. No. OOEBS` přepíše *Routing Link Code* operace kódem cílové operace** (když ho cíl má) — na
+  `Routing Line`, `Planning Routing Line` i `Prod. Order Routing Line`. Konfigurátor tak zahodí kód vazby z řádku akce a komponenty
+  kusovníku navázané na původní kód nemají v TNG operaci (Alumistr BC-TEST 2026-11-25: konfigurace 0114, akce REZANI / KOMPLETACE →
+  30 s PRIBAL, TNG 101001-COEBS0349 má PRIBAL na všech třech operacích, kusovník profily na REZANI). Důvod kopie není zapsaný nikde
+  (OOEBS docs 63647 a README jen konstatují, ADO 63639/63647 o vazbě mlčí). Předloha EDP (`cust-edp-bc`, `Reg. Toget. With Op. No.
+  EDP`) kopíruje jen na *Prod. Order* / *Planning Routing Line* (ruční změna, propagace jde `:=`) a na kmenové `Routing Line` ne —
+  tam ji přidal až port do OOEBS (PR 9406, 2026-09-02). Propagace OOEBS z TNG do plánování a VZ je holé `:=` a kód vazby nečte, takže
+  vlastní kód vazby nastavený po validaci přežije.
 - **Vzor COALU 52005 `Routing Reg. Together COALU` (task 68019, po code review):** codeunit `SingleInstance`; `OnAfterInsertRoutingLine`
   si do dočasné kopie `Routing Action Line COEBS` + slovníků zapíše „řádek akce → generované číslo operace + `SystemId` řádku TNG“;
   `Alternative Routing ATEBS.OnAfterInsertEvent` jen pro TNG z probíhajícího běhu odkazy přeloží (řádek akce **stejné podmínky**
