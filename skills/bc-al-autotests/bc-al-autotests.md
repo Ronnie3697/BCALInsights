@@ -373,8 +373,11 @@ Assert.ExpectedErrorCode('Dialog');
   groups stránky; `Filtered.Copy(Rec)` + `SetRange("No.", Rec."No.")` + `IsEmpty()` po zápisu řekne, že záznam z filtru stránky
   vypadl (karta otevřená ze seznamu filtrovaného na stav se po `CurrPage.Update(false)` přepne na jiný záznam). V testu filtr
   stránky = `Card.OpenEdit(); Card.Filter.SetFilter(Status, Format(Job.Status::Open)); Card.GoToRecord(Job)`. Oboje prošlo
-  v `bctest29` (BC 29.0); že karta otevřená z `CardPageId` seznamu dostane jeho filtry, plyne z hlášení uživatelů (karta po
-  stornu přeskočila na jiný projekt), v klientu jsem neověřoval. (2026-11-25, cust-soitron-bc Task 68084, `Job Cancel Test SOI`.)
+  v `bctest29` (BC 29.0). **Ověřeno i v klientu** (Playwright, `bctest29`, česká relace): karta otevřená klikem ze seznamu
+  *Projekty* s filtrem *Stav = Otevřené* nese filtr v `Rec`, `IsEmpty` po stornu vrátí true a po `CurrPage.Update(false)` karta
+  přeskočí na jiný otevřený projekt. ⚠️ **URL filtr na hodnotu výčtu chce v české relaci caption** (`'Status' IS 'Otevřené'` nebo
+  ordinal `'2'`); `'Status' IS 'Open'` se tiše neuplatní (seznam ukáže i dokončené), na rozdíl od Booleanu `'Yes'`.
+  (2026-11-25, cust-soitron-bc Task 68084, `Job Cancel Test SOI`, příručka `docs/66504_Storno-projektu-uzivatelska-prirucka.html`.)
 - **Změna textu Labelu = projdi `Assert.ExpectedError` v testech** — ExpectedError hledá podřetězec, přepsaná hláška shodí test
   až v CI (build 28636: `its check did not pass` → `its check ended with the status`). Po úpravě labelu grepni test appku na
   jeho klíčová slova.
