@@ -1,17 +1,17 @@
 ---
 name: bc-al-tracking
 description: >-
-  BC/AL Item Tracking (šarže, SN, Reservation Entry 337, Tracking Specification 336; 5.x–5.x27):
-  Item Tracking Lines (6510) a eventy ručního řádku (OnBeforeOnInsertRecord/OnModifyRecord), Assign
-  Serial No. / Create Customized SN (OnAfterAssignNewTrackingNo), předvyplnění šarže (= číslo projektu),
-  SN zboží bez auto řádku, výběr šarže z akce na 6510, source pole Prod. Order
-  Line, Sales Quote (Prospect/Surplus), Get Shipment Lines (Prospect), PC0013 Get do enum PK, Enter
-  Quantity to Create, FEFO a prošlé šarže (Strict Expiration), Lot Specific vs. prodej do mínusu, Entry
-  No. AutoIncrement, dobropis s Appl.-from Item Entry, Item Jnl.-Check Line po smazání rezervací,
-  převodka bez Order No., SetTrackingFilterFrom… SN+Lot, Item Tracking Setup
-  temp, výběr víc SN v Item Tracking Summary, import SN z Excelu, zápis
-  SN z kódu (RegisterItemTrackingLines), Warranty Date / Package Caption, fyz. inventura (Exp. Invt. Order
-  Tracking). Formát Assign Lot No. (OnBeforeAssignNewLotNo). Načti u šarží, SN, 6510, převodek, inventur.
+  BC/AL Item Tracking (šarže, SN, Reservation Entry 337, Tracking Spec. 336; 5.x–5.x28):
+  6510, eventy ručního řádku (OnBeforeOnInsertRecord/OnModifyRecord), Assign SN / Customized SN
+  (OnAfterAssignNewTrackingNo), předvyplnění šarže (= projekt), SN bez auto řádku, výběr
+  šarže z akce na 6510, source pole Prod. Order Line, Sales Quote (Prospect/Surplus), Get Shipment
+  Lines (Prospect), PC0013 Get do enum PK, Enter Quantity to Create, FEFO a prošlé šarže (Strict
+  Expiration), Lot Specific a prodej do mínusu, Entry No. AutoIncrement, dobropis s Appl.-from Item
+  Entry, Item Jnl.-Check Line po smazání rezervací, převodka bez Order No., SetTrackingFilterFrom…
+  SN+Lot, Item Tracking Setup temp, víc SN v Item Tracking Summary, import SN z Excelu, zápis SN z
+  kódu (RegisterItemTrackingLines), Warranty Date / Package Caption, fyz. inventura (Exp. Invt.
+  Order Tracking), formát Assign Lot No. (OnBeforeAssignNewLotNo), změna Item Tracking Code při
+  otevřené NO (OnBeforeTestNoPurchLinesExist). Načti u šarží, SN, 6510, převodek.
 user-invocable: true
 ---
 
