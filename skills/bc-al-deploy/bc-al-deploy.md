@@ -381,6 +381,21 @@ ED Item Sales Disponibility 28.0.0, Essence Shopify Connector 28.0.6 (závislost
 
 (2026-10-21, cust-zlomek-bc BC-DEV — ověření PBI 65654 / 65649 / 65149.)
 
+- **F5 zákaznické appky padá, protože master zvedl minima Essence závislostí nad dev buildy v sandboxu.** Postup: dev-publish
+  nejnovějších `.app` z feedu (CI build masteru produktového repa, stejné jako v dependency-cache kontejneru, 7.23) v pořadí
+  závislostí, před tím diff schématu proti nainstalovanému dev buildu (symbol z dev endpointu, 7.26 výš). Lokální větve produktových
+  rep obvykle mají jen zvednutou verzi v `app.json` a rozdělanou práci, proto build z feedu, ne z pracovní složky. Závislé dev appky
+  (TimeSheets, zákaznická base, CDS) i PTE (Gantt) zůstaly při stejném schématu nainstalované.
+  ⚠️ **„… nelze nainstalovat, protože jiná služba v současné době mění stav rozšíření na klienta …“ + „Původní rozšíření se
+  nepodařilo obnovit … protože je již nainstalováno“** = souběžný publish téže appky, typicky uživatelův F5 z VS Code ve stejné
+  minutě. Prostředí pak obsahuje vítězný build. Čí build to je, ukáže package ID: `…/extensions` → `packageId` proti GUIDu
+  v hlavičce `.app` (bajty 12–27 za `NAVX` a délkou hlavičky, .NET pořadí bajtů, takže první tři skupiny jsou obrácené). Build
+  z VS Code leží ve složce appky (`<Publisher>_<Name>_<ver>.app`, čas souboru = čas F5).
+  `d365bc-admin` `get_environment_informations` / `get_installed_apps` v cizím tenantu vrátí `[]` / „Unable to retrieve installed
+  apps“, když účet z token cache nemá práva Admin Center (surové admin API 403). Automation API `…/extensions` i dev endpoint
+  s tímtéž tokenem fungují.
+  (2026-11-26, Soitron X-ESSENCE BC 29.1: EPEBS 28.0.0.1 → 28.0.48.0, IMEBS 28.0.18.7 → 28.0.41.0, Soitron Base W1 29.0.0.0.)
+
 - **Vlastní profil (*Vytvořeno uživatelem*) s role centrem z dev appky** po jednom z dev publishů ukazoval na **Blank Role Center
   (8999)** – úvodní stránka prázdná (desktop jen obrázek prázdného role centra, phone jen menu *Stránka / Systém*), stránky appky
   otevřené přes URL fungovaly. Oprava: *Profily (role)* (9171) → profil → *ID centra rolí* zpět na stránku z appky. Po publishi
