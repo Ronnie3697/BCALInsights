@@ -814,8 +814,8 @@ build 28.0.37.67238 na Alumistr BC-DEV spadl, 67239 s `Commit()` funguje.)
 - **`Visible = Proměnná` na poli** platí jen z otevření (po `OnOpenPage`; detail přes `SetTableView` + `SetRecord` + `Run` → v `OnOpenPage`
   `if Rec.Find('=') then <spočítej proměnné>`), pozdější změnu + `CurrPage.Update` nepromítne ani jedním směrem. **`Visible` na skupině**
   bez popisku (`group(X) { ShowCaption = false; Visible = Proměnná; field(…) }`) se přepočítá oběma směry a pole zůstane v toku rodiče →
-  pole ukazované podle skenu na už otevřené stránce dej do takové skupiny. `TestPage` skupinu nevidí → „skryto" assertuj nezávisle
-  (např. `StrPos(<pole>.Caption(), <kód>) = 0`).
+  pole ukazované podle skenu na už otevřené stránce dej do takové skupiny. `TestPage` skupinu nezpřístupní a `<pole>.Visible()` se skupinou
+  je v kontejneru neověřené → „skryto" assertuj jinak (např. `StrPos(<pole>.Caption(), <kód>) = 0`, také zatím neověřeno).
 
 (2026-10-22 a 2026-11-26, prod-ew-mobileBase-bc 66453 — množství v MJ naskenovaného odkazu na detailech vyskladnění, pohybů, příjemek,
 dodávek a inventury; BC-DEV, phone klient; s `Visible` na poli se pole po skenu na detailu otevřeném bez MJ neukázalo, se skupinou ano.)
