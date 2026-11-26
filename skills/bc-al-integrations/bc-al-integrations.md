@@ -601,6 +601,20 @@ podstránky fungují** (2026-11-26, cust-itmr-bc `API_PurchaseInvoicesITMR`, BC 
   bez placeholderů a URL skládej konkatenací. GUID do OData filtru bez složených závorek (`DelChr(Format(Guid), '=', '{}')`).
   (2026-11-05, prod-ef-replications-bc, větev features/replications: `Replicat. Communication ACEBS`, report *Refresh Repl. Status* pro Job Queue.)
 
+### 11.7c API stránku nejde rozšířit vůbec (`AL0454`) — ani bez `Extensible = false`
+
+`pageextension` na stránku `PageType = API` kompilátor odmítne **`AL0454` *The Page '…' of type API cannot be extended***, i když
+stránka `Extensible` vůbec nemá (výchozí `true`) — ověřeno sondou alc 18.1 nad vlastní API stránkou bez `Extensible` (2026-11-26,
+cust-itmr-bc). `Extensible = false` na API stránce tedy nic nemění. Důsledky pro návrh:
+- **Závislá appka nemůže přidat pole do API stránky jiné appky.** Pole pro API musí být v appce, která stránku vlastní, nebo závislá
+  appka udělá vlastní API stránku: buď kopii celé stránky (jiný `EntitySetName` nebo verze), nebo samostatnou entitu nad stejným
+  záznamem (klíč = `Id` / `SystemId` dokladu) — integrace pak posílá druhé volání (PATCH na druhou entitu).
+- Party (`part`) na stránce může přidat jen vlastník stránky; samostatná entita závislé appky není navigační vlastnost rodiče.
+- Tableextension pole se stejným ID na agregátu (11.7a) jde přidat ze závislé appky (`TransferFields` jde po ID), ale bez pole na
+  API stránce ho API nevidí.
+- Rozhodnutí „lokalizační pole do samostatné appky" proto u dokladů s vlastním API znamená i rozhodnutí o API (přesunout stránku do
+  té appky, nebo druhé volání). (cust-itmr-bc, kontrola bankovního účtu dodavatele jen pro AT, 2026-11-26.)
+
 ### 11.8 → vyčleněno do `bc-al-dataverse.md`
 
 Dataverse (CDS) synchronizace — filtry mapování obou stran, Enum → Choice, testy bez Dataverse, reset a vlastní mapování,
