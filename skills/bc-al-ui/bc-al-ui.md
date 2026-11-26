@@ -10,7 +10,7 @@
 > Původní číslování sekcí zachováno kvůli cross-referencím „viz X.Y".
 
 Obsahuje:
-- **4.** UI patterny (4.1–4.31)
+- **4.** UI patterny (4.1–4.34)
 
 ## 4. UI patterny
 
@@ -998,3 +998,30 @@ Když má čtečka umět „totéž co akce *Vytvořit zásilku a vytisknout št
   příznak (getter `ReturnsToStartPage()`); modální karta na telefonu nemá šipku zpět, kostka *Zpět* je nutná.
 
 (2026-11-14, cust-sonnentor-bc PBI 65206, MKSON 28.0.181.3 na BC-TEST: zásilky ZAS26_00018 / 00019 proti ZAS26_00013 ze standardu.)
+
+### 4.34 Malý dialog nad jedním záznamem: `StandardDialog` nad temp kopií, ne karta + `SetRecFilter`
+
+Karta (`PageType = Card`) spuštěná `Page.RunModal(Page::X, Rec)` s `SetRecFilter` na jeden záznam má v liště záložku
+**„Stránka“ s akcemi „Předchozí“ / „Další“** (navigace mezi záznamy karty). Nad jedním záznamem nedělají nic, tester se ptá,
+k čemu jsou. Hodnoty se navíc ukládají hned po opuštění pole, dialog má jen „Zavřít“ a zrušit nejde.
+
+- **Vzor:** `PageType = StandardDialog` + `SourceTableTemporary = true`. Před `RunModal` `internal procedure SetX(Source)`
+  (`Rec := Source; Rec.Insert(false);`), po `Action::OK` getter, který pole přenese přes `Validate` na skutečný záznam;
+  volající pak `Modify(true)` a `CurrPage.Update(false)`. Tabulkové `OnValidate` běží i nad temp záznamem, kontroly v dialogu
+  tedy fungují. `CurrPage.SaveRecord()` + `Commit()` před `RunModal` zůstává (4.25).
+- **Jak to vykreslí webový klient** (BC 29.1 cz): tlačítka **„Ok“ a „Storno“** (do dokumentace a příruček přesně takhle, ne
+  „OK / Zrušit“), nadpis skupiny (`Caption = 'General'` → „Obecné“) se nekreslí, pole jsou v jednom sloupci a popisky se vejdou
+  celé (na kartě se „Textová konstanta prefixu“ uřízla na „Textová konstanta pref…“).
+- **Pole skákající mezi sloupci:** karta rozděluje pole FastTabu do dvou sloupců sama. Podle připomínky z testu se zlom posouval
+  s hodnotou, tedy zřejmě s tím, které pole je zrovna editovatelné (`Editable = proměnná`, datumový formát jen u data).
+  *Hodnota prefixu* byla jednou vlevo, jednou vpravo. Příčinu jsem neměřil, jen odvodil. Pevné pořadí dají podskupiny
+  `group(X) { ShowCaption = false; … }`. StandardDialog je kreslí pod sebou: souřadnice polí byly stejné při hodnotě *No.*,
+  *Posting Date* i prázdné. Na širší kartě se kreslí vedle sebe (vzor Customer Card, Adresa / Kontakt), pro kartu jsem to
+  neověřoval. Podskupiny bez `Caption` nepřidávají trans-unity, ID controlů polí zůstávají.
+- TestPage: `OK().Invoke()` a `Cancel().Invoke()` v `ModalPageHandler` fungují. Test na Storno: handler změní hodnoty a dá
+  `Cancel()`, test pak ověří, že se sloupec ani záznam nezměnily.
+- Vstupy dialogu mají popisek přes `aria-labelledby`, ne `aria-label`. V Playwright je hledej přes
+  `getByRole('textbox', { name: 'Hodnota prefixu', exact: true })`.
+
+(2026-11-26, prod-ess-documentAttachments-bc 67984, dialog *Prefix souboru* 63080: dvě připomínky z testu. Ověřeno v bctest29
+BC 29.1 cz přes Playwright a 43 testy.)

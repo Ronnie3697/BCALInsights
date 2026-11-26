@@ -9,7 +9,8 @@ description: >-
   klepnutí = náhled, CardPageId jen zobrazení, ListPart s CardPageId (SubPageView), chyba OnValidate
   jen křížek, InstructionalText, \ v Message, add-in mezera; Rec prázdného listu z filtrů; prázdný výčet (HideValue);
   kostky (User ID Filter, drill-down, pořadí); víc DownloadFromStream = jen poslední (ZIP);
-  čtečka místo akce cizí stránky (Parcels API), TileTeal. Načti u page, partů a kostek.
+  čtečka místo akce cizí stránky (Parcels API), TileTeal; malý dialog nad jedním záznamem = StandardDialog nad
+  temp kopií (karta: Předchozí/Další, Ok/Storno, pole skáčou mezi sloupci). Načti u page, partů a kostek.
 user-invocable: true
 ---
 
