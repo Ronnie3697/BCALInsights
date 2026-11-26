@@ -268,9 +268,11 @@ zdrojáku w1-28 a z kompilace, testy zatím neběžely:
   `Price Helper - V16` dělá sám, pro nový typ nic. ⚠️ `RenameAssetInPrices` (w1-28) u `Price List Line` přečísluje `Product No.` i
   `Asset No.`, u `Price Worksheet Line` **jen `Asset No.`** → sešit dál ukazuje staré *Číslo produktu* (bug standardu, i u Service Cost).
   Po volání doplň `ModifyAll("Product No.", Rec."No.", false)` na řádcích sešitu s `Asset No.` = nové a `Product No.` = staré číslo.
-- Změna *Skupiny slev zákazníka* / *Cenové skupiny zákazníka* v hlavičce přepočítá jen řádky **zboží** (`OnValidate` těch polí na řádku
-  má `if Type = Type::Item`), poplatek ani jiný typ ne. Chceš-li to, `OnAfterValidateEvent` obou polí na `Sales Line` →
-  `PlanPriceCalcByField` + `UpdateUnitPriceByField`.
+- Změna *Skupiny slev zákazníka* / *Cenové skupiny zákazníka* v hlavičce **nepřepočítá ani zboží**: `OnValidate` v hlavičce volá jen
+  `MessageIfSalesLinesExist` (hláška „řádky aktualizujte ručně"), na řádky nesahá. Řádek si skupiny vezme z hlavičky jen
+  v `InitHeaderDefaults` (zadání čísla) a výpočet čte skupiny z **řádku** (`Sales Line - Price`) → i po změně množství platí stará
+  skupina. `if Type = Type::Item` v `OnValidate` těch polí na **řádku** se uplatní jen při `Validate` z kódu. Code review to hlásilo
+  jako rozdíl zboží vs. poplatek — planý poplach, trigger na řádku ≠ chování z hlavičky.
 - Lokální eventy kolem výpočtu (`OnUpdateUnitPriceOnBeforeFindPrice` s `IsHandled`, `OnUpdateUnitPriceByFieldOnAfterFindPrice`, eventy
   `BlanketOrderIsRelated`) z vlastního hooku vyvolat nejde → pro nový typ neběží (subscribery v závislostech nejsou vidět ani v symbolech).
 - `Price Calculation Mgt.FindSetup` hledá výchozí nastavení pro typ produktu, jinak řádek *(Vše)* → nový typ netřeba registrovat.
