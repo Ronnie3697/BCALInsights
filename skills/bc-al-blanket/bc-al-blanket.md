@@ -251,7 +251,9 @@ Ověřeno ve zdrojích w1-28 (`SalesLine.Table.al`, `SalesLinePrice.Codeunit.al`
   hláška); změna měny jde přes `RecreateSalesLines` (`Validate("No.")` + `Quantity`) → přecení i poplatek. Karta poplatku ve standardu
   není, jen editovatelný seznam *Poplatky za zboží* (page 5800).
 
-**Implementace (cust-zlomek-bc PBI 67628, 2026-11-26, alc 18.1, ověřeno na BC-DEV 28.5):**
+**Implementace (cust-zlomek-bc PBI 67628, 2026-11-26, alc 18.1).** V klientu BC-DEV 28.5 ověřeno: lookup *Čísla produktu*, akce na 5800,
+Návrh / Kopírovat řádky, blokace nákupu, cena na objednávce a řádek ceníku bez čísla produktu (= všechny poplatky). Ostatní body jsou ze
+zdrojáku w1-28 a z kompilace, testy zatím neběžely:
 - `modify("Product No.") { TableRelation = if ("Asset Type" = const("<hodnota z enumextension>")) "Item Charge"; }` v PTE tableextension
   na `Price List Line` i `Price Worksheet Line` se zkompiluje a lookup *Čísla produktu* pak nabízí jen poplatky.
 - Smazání / přejmenování produktu: veřejné `Price Helper - V16.DeletePriceLines(AssetType, No, '')` / `RenameAssetInPrices(AssetType,
