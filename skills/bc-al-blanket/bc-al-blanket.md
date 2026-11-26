@@ -242,9 +242,13 @@ Ověřeno ve zdrojích w1-28 (`SalesLine.Table.al`, `SalesLinePrice.Codeunit.al`
 - ⚠️ **`SetPrice` přepíše `Allow Invoice Disc.`** hodnotou z řádku ceníku (výchozí z hlavičky, typicky Ano), přitom `CopyFromItemCharge`
   dává poplatku záměrně `false` → bez `OnAfterSetPrice` začne poplatek nést fakturační slevu.
 - **Bez ceníku:** `FillBuffer` plní `Unit Price` jen u Item/Resource (`Line Discount %` u všech) a vlastní `FillBestLine` nemá z čeho vzít
-  výchozí cenu → cena 0 při přepočtu z jiného pole než Quantity / Variant Code. U poplatku ale přepočet spouští jen `No.` a `Quantity`
-  (MJ a skupiny zákazníka ho plánují jen pro Item / Resource, varianta u poplatku není) → cena se chová jako dnes (nový řádek 0, ruční cena
-  změnu množství přežije), liší se jen sleva: `ApplyDiscount` → 0 vždy (5.x21). Dnes poplatek
+  výchozí cenu → cena 0 při přepočtu z jiného pole než Quantity / Variant Code. ⚠️ Přepočet u poplatku nespouští jen `No.` a `Quantity`
+  (MJ a skupiny zákazníka ho na řádku plánují jen pro Item / Resource, varianta u poplatku není): **`Campaign No.` hlavičky** volá
+  `SalesLine.UpdateUnitPrice(0)` na všech řádcích (`UpdateSalesLinesByFieldNo`) a smazání *Kódu důvodu vrácení* `ValidateReturnReasonCode`
+  → `PlanPriceCalcByField` bez ohledu na typ. `IsPriceUpdateNeeded` chrání cenu jen pro Quantity / Variant Code → ruční cena poplatku bez
+  ceníku spadne na 0 (zboží dostane cenu z karty). Oprava = `Sales Line - Price.OnAfterIsPriceUpdateNeeded`: řádek poplatku,
+  `AmountType::Price`, `not FoundPrice` → `Result := false` (po `Validate("No.")` je cena 0 z `Init()` stejně). Našel code review, ne
+  kompilace ani UI. Sleva: `ApplyDiscount` → 0 vždy (5.x21). Dnes poplatek
   cenotvorbou neprochází, takže ruční cena / sleva přežijí cokoli — „bez ceníku jako dosud" je rozhodnutí, ne default. Výchozí řádek
   z aktuálních hodnot (`OnAfterFillBuffer` + `FillBestLine`) zase podrží slevu, která po změně množství pod *Minimum Quantity* platit nemá.
 - Změna *Datum objednávky* / *Zúčtovací datum* hlavičky ceny řádků **nepřepočítá ani u zboží** (`PriceMessageIfSalesLinesExist` = jen
@@ -258,7 +262,14 @@ zdrojáku w1-28 a z kompilace, testy zatím neběžely:
   na `Price List Line` i `Price Worksheet Line` se zkompiluje a lookup *Čísla produktu* pak nabízí jen poplatky.
 - Smazání / přejmenování produktu: veřejné `Price Helper - V16.DeletePriceLines(AssetType, No, '')` / `RenameAssetInPrices(AssetType,
   xNo, No)` ze subscriberů `OnAfterDeleteEvent` / `OnAfterRenameEvent` (vzor `Serv. Price Helper V16`). Pro standardní typy to
-  `Price Helper - V16` dělá sám, pro nový typ nic.
+  `Price Helper - V16` dělá sám, pro nový typ nic. ⚠️ `RenameAssetInPrices` (w1-28) u `Price List Line` přečísluje `Product No.` i
+  `Asset No.`, u `Price Worksheet Line` **jen `Asset No.`** → sešit dál ukazuje staré *Číslo produktu* (bug standardu, i u Service Cost).
+  Po volání doplň `ModifyAll("Product No.", Rec."No.", false)` na řádcích sešitu s `Asset No.` = nové a `Product No.` = staré číslo.
+- Změna *Skupiny slev zákazníka* / *Cenové skupiny zákazníka* v hlavičce přepočítá jen řádky **zboží** (`OnValidate` těch polí na řádku
+  má `if Type = Type::Item`), poplatek ani jiný typ ne. Chceš-li to, `OnAfterValidateEvent` obou polí na `Sales Line` →
+  `PlanPriceCalcByField` + `UpdateUnitPriceByField`.
+- Lokální eventy kolem výpočtu (`OnUpdateUnitPriceOnBeforeFindPrice` s `IsHandled`, `OnUpdateUnitPriceByFieldOnAfterFindPrice`, eventy
+  `BlanketOrderIsRelated`) z vlastního hooku vyvolat nejde → pro nový typ neběží (subscribery v závislostech nejsou vidět ani v symbolech).
 - `Price Calculation Mgt.FindSetup` hledá výchozí nastavení pro typ produktu, jinak řádek *(Vše)* → nový typ netřeba registrovat.
 - Hlavička do `GetPriceCalculationHandler` = `SalesLine.GetSalesHeader()` (držená řádkem): `RecreateSalesLines` ji nastaví s novou
   měnou dřív, než je v DB.
