@@ -548,6 +548,32 @@ s polem se stejným ID a typem** jako na `Purchase Header` a `Purch. Inv. Header
 - **PowerShell 5.1 `Invoke-WebRequest` u 400 ztratí tělo chyby**, ani `$_.Exception.Response.GetResponseStream()` ho nevrátí. Použij
   `System.Net.Http.HttpClient` (`SendAsync`, nevyhazuje na 4xx) nebo curl.
 
+**Party kopie API stránky (dimenze, PDF, lokace) = taky kopie; standardní podstránky API v2 jako part nejdou** (2026-11-26, cust-itmr-bc
+`API_PurchaseInvoicesITMR`, BC 28.2 cz, kontejner `bc28`):
+- **`AL0531`: part API stránky musí mít stejné `APIPublisher` / `APIGroup` / `APIVersion` jako hostitel.** `APIV2 - Dimension Set Lines`
+  / `PDF Document` / `Attachments` / `Locations` pod `essence/purchase/v1.0` neprojdou ani se závislostí na appce API v2 (`_Exclude_APIV2_`),
+  projdou jen s hostitelem na `v2.0` (= jiná adresa). Ověřeno sondou alc 18.1. Řešení: kopie podstránek v téže cestě, se standardními
+  `EntityName` / `EntitySetName` a poli, ať klient jen změní základní adresu. Pomocné objekty (`Dimension Set Entry Buffer` a výčet
+  typu rodiče, `Attachment Entity Buffer`, `PDF Document Management`) jsou v Base App.
+- **Kopie `APIV2 - Dimension Set Lines` (993 řádků, ~50 typů rodiče) jde zkrátit na typy, které potřebuješ** — ostatní spadnou na
+  standardní chybu „Parent with ID … does not exist". Rodič se bere **jen z filtrů** `Parent Id` + `Parent Type` (`SubPageLink`
+  `"Parent Id" = field(Id), "Parent Type" = const("Purchase Invoice")`, u řádku `field(SystemId)` + `"Purchase Invoice Line"`): špatný
+  const nebo `field(SystemId)` na hlavičce = prázdný GET bez chyby. Faktura se hledá přes agregát (`Posted`), zaúčtovaná přes
+  `Purch. Inv. Header."Draft Invoice SystemId"`. Standard dovoluje přes API **měnit dimenze zaúčtované faktury a jejích řádků** —
+  změní se jen doklad, položky dodavatele / hlavní knihy si nechají dimenze z účtování.
+- **Zaúčtovaná faktura i její řádky mají v API stejná `id` jako koncept** (ověřeno HTTP: `purchaseInvoiceLines(id)` řádku konceptu
+  po `Microsoft.NAV.post` vrátil zaúčtovaný řádek s dimenzemi a lokací).
+- PDF: `PDF Document Management.GeneratePdfBlobWithDocumentType`; u konceptu standardní 400 *You must post purchase invoice …
+  before generating the PDF document.*, po zaúčtování `pdfDocumentContent@odata.mediaReadLink` → `%PDF-` (24 kB).
+- **`GET …?$expand=dimensionSetLines` se v kontejneru `bc28` zasekl u standardního API i u kopie** (stejně `dimensions?$expand=
+  dimensionValues` a pak i holé `dimensions`); event log *Request was throttled. It either timed-out or was cancelled.* a služba přestala
+  odpovídat i na `companies`. `Set-NAVServerInstance -Restart` skončil ve `StopPending`, `Restart-BcContainer` hláškou *tried to kill
+  container, but did not receive an exit event* a kontejner zůstal `exited` → `Start-BcContainer`, po ~1 min `healthy` a API odpovídá.
+  Smoke test proto čte vnořené entity samostatnými GET (každý do 1 s) a `$expand` dává až úplně na konec. `$metadata` po restartu
+  kontejneru (generuje se) netrpělivě nečekej, trvá i přes 4 min. Kódy dimenzí pro skript ber z DB (`Invoke-Sqlcmd` v kontejneru),
+  ne ze standardního API; diakritiku v PS 5.1 skriptu bez BOM skládej přes `[char]0xC1`.
+- Testy těch stránek přes TestPage mají limity (viz `bc-al-autotests.md`, gotcha „TestPage a API stránky") — zápis a vnoření ověř HTTP.
+
 ### 11.7b API POST, které v cíli synchronně zpracovává data = timeout 100 s ve zdroji a ztracená odpověď (ID záznamu)
 
 - **Příznak:** zdroj loguje *„The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing"*, cíl ale data má
