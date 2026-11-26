@@ -946,6 +946,13 @@ export cen tam neotestuješ; feature nezapínej, vyber firmu, kde běží. (2026
 - **Souřadnice tlačítek se mění se šířkou okna** (tužka *Upravit* na 627 px při 1440, na 807 px při 1800). Volání s pevnými souřadnicemi
   po změně viewportu přepočítej, jinak klik trefí šipku zpět a karta se zavře.
 
+**Příručka k bankovnímu účtu dodavatele (2026-11-26, cust-itmr-bc, `bctest29` CRONUS CZ):**
+- `page=425&mode=Create&filter='Vendor No.' IS 'X'` založí bankovní účet **bez** *Vendor No.* (filtr v URL nový záznam nevyplní, ani pole klíče); chyba se ukáže až při výběru preferovaného účtu. Podřízený záznam zakládej z akce nadřízené karty (*Dodavatel → Bankovní účty → Nový*), tam ho dosadí `RunPageLink`. IBAN a SWIFT na kartě jsou maskované tečkami, pro snímek klik na poslední tlačítko v controlu (oko).
+- Bublina nápovědy karty se zavírá tlačítkem s aria-label *Zamítnout*, banner „Začněte ověřovat data…“ odkazem s aria-label *Skončit*. *Vyčkat* (On Hold) a *Číslo kreditora* jsou na nákupní faktuře až pod *Zobrazit více*.
+- *Navrhnout platby dodavateli* v listu `BANK CONV` (protiúčet WWB-TRANSFERS v GBP) tiše nenavrhne nic za faktury v Kč, bere jen položky v měně banky protiúčtu; list `BANKA` (CSB-PROVOZ, CZK) funguje. SEPA export v CRONUS CZ nastavený není (banka bez formátu exportu a IBAN), jeho kontrolu nafotit nejde.
+- Šířka sloupce listu se mění tažením pravého okraje hlavičky (`mouse.down`, `move` po krocích, `up`), BC ji uloží do personalizace. Řádky deníku plateb se uklidí rychleji přes API v2 `DELETE …/vendorPaymentJournals({id})/vendorPayments({id})`.
+- Bez `python` (`python -m http.server` skončí kódem 49) kontroluj HTML přes `http.createServer` v Node přímo ve skriptu s Playwrightem; chybějící soubor (`favicon.ico`) vrať jako 404, jinak `createReadStream` shodí proces.
+
 ### 12.4 Essence build — ruleset per projekt konvencí
 
 Essence BC build (`azure-pipelines.yml` → template `ALBuildPipeline2.yml` →
