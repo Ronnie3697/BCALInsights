@@ -548,13 +548,23 @@ s polem se stejným ID a typem** jako na `Purchase Header` a `Purch. Inv. Header
 - **PowerShell 5.1 `Invoke-WebRequest` u 400 ztratí tělo chyby**, ani `$_.Exception.Response.GetResponseStream()` ho nevrátí. Použij
   `System.Net.Http.HttpClient` (`SendAsync`, nevyhazuje na 4xx) nebo curl.
 
-**Party kopie API stránky (dimenze, PDF, lokace) = taky kopie; standardní podstránky API v2 jako part nejdou** (2026-11-26, cust-itmr-bc
-`API_PurchaseInvoicesITMR`, BC 28.2 cz, kontejner `bc28`):
-- **`AL0531`: part API stránky musí mít stejné `APIPublisher` / `APIGroup` / `APIVersion` jako hostitel.** `APIV2 - Dimension Set Lines`
-  / `PDF Document` / `Attachments` / `Locations` pod `essence/purchase/v1.0` neprojdou ani se závislostí na appce API v2 (`_Exclude_APIV2_`),
-  projdou jen s hostitelem na `v2.0` (= jiná adresa). Ověřeno sondou alc 18.1. Řešení: kopie podstránek v téže cestě, se standardními
-  `EntityName` / `EntitySetName` a poli, ať klient jen změní základní adresu. Pomocné objekty (`Dimension Set Entry Buffer` a výčet
-  typu rodiče, `Attachment Entity Buffer`, `PDF Document Management`) jsou v Base App.
+**Party kopie API stránky (dimenze, přílohy, PDF, lokace): hostitel na `APIVersion = 'v2.0'` + závislost na API v2 = standardní
+podstránky fungují** (2026-11-26, cust-itmr-bc `API_PurchaseInvoicesITMR`, BC 28.2 cz, kontejner `bc28`):
+- **`AL0531`: part API stránky musí mít stejné `APIVersion` jako hostitel** (a stejné `APIPublisher` / `APIGroup`, pokud je podstránka
+  vyplňuje — stránky Microsoftu je mají prázdné). `APIV2 - Dimension Set Lines` / `PDF Document` / `Attachments` / `Document
+  Attachments` / `Locations` pod `essence/purchase/v1.0` neprojdou ani se závislostí na appce API v2.
+- **Řešení, které jsme nasadili: vlastní cesta `essence/purchase/v2.0` + závislost `_Exclude_APIV2_`** (id
+  `10cb69d9-bc8a-4d27-970a-9e110e9db2a5`, publisher Microsoft, `28.0.0.0`) a party přímo na stránky API v2 se `SubPageLink` jako na
+  standardní stránce. PerTenantExtensionCop závislost přijme, kompilace v kontejneru si symbol stáhne sama (`-UpdateSymbols`); CI
+  (NuGet / artifact) zatím neověřeno. **Za běhu ověřeno HTTP:** dimenze hlavičky i řádku (GET / POST / PATCH / DELETE), oba druhy příloh
+  (`documentAttachments`, `attachments`: POST `fileName` + PATCH `…/attachmentContent`), PDF, lokace řádku, vše i po zaúčtování přes
+  stejná id. Standardní podstránky najdou rodiče podle `Id` agregátu, který je v kopii i ve standardu stejný. Nulový kód navíc, opravy MS
+  přijdou samy. Číslo verze vlastní API je jen konvence, dokud API nikdo nepoužívá, přechod nic nestojí (`v1.0` pak vrací 404).
+- `documentAttachments` vrací `byteSize` 0 i po nahrání obsahu, obsah se přesto uloží (GET `attachmentContent` = celá délka) — stejně ve
+  standardním API.
+- **Varianta „vlastní kopie podstránek" (zkoušeno, pak nahrazeno)** — jen když musí zůstat jiná verze než `v2.0`. Kopie se standardními
+  `EntityName` / `EntitySetName`; pomocné objekty (`Dimension Set Entry Buffer`, `Attachment Entity Buffer`, `PDF Document Management`)
+  jsou v Base App. Poznatky z ní:
 - **Kopie `APIV2 - Dimension Set Lines` (993 řádků, ~50 typů rodiče) jde zkrátit na typy, které potřebuješ** — ostatní spadnou na
   standardní chybu „Parent with ID … does not exist". Rodič se bere **jen z filtrů** `Parent Id` + `Parent Type` (`SubPageLink`
   `"Parent Id" = field(Id), "Parent Type" = const("Purchase Invoice")`, u řádku `field(SystemId)` + `"Purchase Invoice Line"`): špatný

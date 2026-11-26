@@ -365,7 +365,9 @@ Assert.ExpectedErrorCode('Dialog');
   - Zápis ne: `Page.Run` otevře API stránku jen pro čtení → `New()` skončí *„New method failed because Insert is not allowed."*
   - Recept: logiku zápisu (najdi / ulož data rodiče) dej do codeunity, kterou stránka volá a test volá přímo; stránku testuj jen čtením
     a zápis i vnoření ověř voláním API v kontejneru (`bc-al-integrations.md` 11.7a). (2026-11-26, cust-itmr-bc `Purch Inv API Parts
-    Tests ITMR`, 211/211 v `bc28` 28.2 — první verze s TestPage přes party a `New()` měla 5 červených testů.)
+    Tests ITMR`, 211/211 v `bc28` 28.2 — první verze s TestPage přes party a `New()` měla 5 červených testů.) Když jsou party přímo
+    standardní stránky API v2 (hostitel na `v2.0`, 11.7a), vlastní logika k testu nezbývá — test codeunitu jsme zrušili a propojení
+    ověřilo jen HTTP.
 - **Seznam, jehož `OnDrillDown` otevře přes `Page.RunModal` jinou stránku nad týmž záznamem a ta ho uloží: samotné
   `CurrPage.Update(false)` po `RunModal` výrazový sloupec seznamu na TestPage neobnoví** (`AssertEquals … Actual = ''`, i když
   v DB hodnota je). Pomohlo `if Rec.Find('=') then CurrPage.Update(false);` — stejně jako po stromovém seznamu v 4.17
