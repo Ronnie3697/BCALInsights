@@ -525,6 +525,11 @@ s polem se stejným ID a typem** jako na `Purchase Header` a `Purch. Inv. Header
   `Graph Mgt - General Tools.OnGetIsAPIEnabled(var Handled; var IsAPIEnabled)` (IntegrationEvent) v test codeunitě s
   `EventSubscriberInstance = Manual` + `BindSubscription` lokální instance, pak `PurchInvAggregator.PropagateOnInsert(Aggregate,
   TempFieldBuffer)` s `Field Buffer` naplněným jako `RegisterFieldSet` stránky.
+- **Pole, které na stránkách nemá jít měnit, ale API ho zapisuje:** `Editable = false` dej jen na `Purchase Header` (a účtované
+  hlavičky), na agregátu ne. Agregátor zapisuje hlavičku přes `FieldRef.Validate`, na kterou `Editable` nepůsobí (platí jen pro
+  stránky); API stránka váže pole agregátu, takže zůstane zapisovatelné. `xRec` v `OnValidate` pole při tomto zápisu (i při
+  `Rec.Validate(pole, hodnota)` z kódu) drží původní hodnotu — „jiné číslo než xRec" spolehlivě odliší nové číslo od stejného
+  čísla poslaného znovu v PATCH celé faktury. (Ověřeno testy v `bc28` 28.2, 2026-11-26, cust-itmr-bc.)
 - Enum hodnoty jdou do OData jménem: mezera = `_x0020_` (`Different_x0020_Account`, prázdná hodnota `_x0020_`). Hodnoty, na které
   bude filtrovat externí systém, pojmenuj bez mezer (caption zůstane čitelný).
 (2026-11-25, cust-itmr-bc, `API_PurchaseInvoicesITMR` + `Vendor Bank Acc. Check ITMR`, číslo účtu dodavatele z faktury; test
