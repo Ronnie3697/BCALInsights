@@ -748,3 +748,15 @@ Když setup dovolí vybrat **libovolné pole** tabulky (osa cenové matice, klí
 - Odkazy nejdou filtrovat, dát do sloupce seznamu ani zamknout proti úpravám. Když to zákazník chce, je potřeba vlastní pole (2.13).
 
 (2026-11-19 a 2026-11-25, cust-itmr-bc PBI 67999; zdroje w1-28 `PurchPost.Codeunit.al`, `PurchaseInvoice.Page.al`, APIV2.)
+
+### 3.12 `Document Attachment`: název souboru nastavený v `OnInsertAttachmentOnBeforeImportStream` přepíše standardní `OnInsert`
+
+Nahrání přílohy přes factbox (*Nahrát soubory* → `SaveAttachment(Files, RecRef)` → `SaveAttachmentFromStream` → `InsertAttachment`)
+si uloží původní název do globální proměnné záznamu `IncomingFileName` a po eventu `OnInsertAttachmentOnBeforeImportStream` volá
+`Insert(true)`. Trigger `OnInsert` (w1-28 `DocumentAttachment.Table.al`) pak **znovu** dělá `Validate("File Name", GetFileNameWithoutExtension(IncomingFileName))`
+a `Validate("File Extension", …)`. Každá úprava *File Name* v eventech před vložením (prefix, přejmenování) tím tiše zmizí; čtení jen
+`InsertAttachment` to neukáže, je to až v triggeru. Kód se dá opravit v eventu `OnInsertOnBeforeCheckDocRefID(var Rec, var IsHandled)`:
+běží v `OnInsert` **po** tomto přepsání a před zápisem, takže přiřazení do `Rec` se uloží. Cesty, které vkládají přes `Insert(false)`,
+trigger nespouští a problém nemají, proto chyba vypadá „jen někdy“. Test bez externí služby: předvyplnit `Rec` + `SaveAttachmentFromStream`
+a ověřit *File Name* z DB. (2026-11-26, prod-ess-documentAttachments-bc 67984 – prefix souboru na SharePointu ano, v BC ne; název
+se bere ze záznamu `Online Drive Item ABEBS` podle *Drive Item ID*.)
