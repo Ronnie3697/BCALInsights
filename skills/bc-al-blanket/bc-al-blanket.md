@@ -246,9 +246,12 @@ Ověřeno ve zdrojích w1-28 (`SalesLine.Table.al`, `SalesLinePrice.Codeunit.al`
   (MJ a skupiny zákazníka ho na řádku plánují jen pro Item / Resource, varianta u poplatku není): **`Campaign No.` hlavičky** volá
   `SalesLine.UpdateUnitPrice(0)` na všech řádcích (`UpdateSalesLinesByFieldNo`) a smazání *Kódu důvodu vrácení* `ValidateReturnReasonCode`
   → `PlanPriceCalcByField` bez ohledu na typ. `IsPriceUpdateNeeded` chrání cenu jen pro Quantity / Variant Code → ruční cena poplatku bez
-  ceníku spadne na 0 (zboží dostane cenu z karty). Oprava = `Sales Line - Price.OnAfterIsPriceUpdateNeeded`: řádek poplatku,
-  `AmountType::Price`, `not FoundPrice` → `Result := false` (po `Validate("No.")` je cena 0 z `Init()` stejně). Našel code review, ne
-  kompilace ani UI. Sleva: `ApplyDiscount` → 0 vždy (5.x21). Dnes poplatek
+  ceníku spadne na 0 (zboží dostane cenu z karty). ⚠️ `OnAfterIsPriceUpdateNeeded` **nestačí**: `Price Calculation - V16.ApplyPrice`
+  do něj posílá `FoundLines` (z `FindLines`, který minimální množství nefiltruje — to dělá až `CalcBestAmount` přes `IsInMinQty`), takže
+  jediný řádek ceníku „od 10 ks" při 2 ks projde jako nalezený a `SetPrice` zapíše výchozí 0. Oprava = `Sales Line - Price.OnBeforeSetPrice`:
+  řádek poplatku, `AmountType::Price`, `CurrPriceType::Sale`, `not PriceListLine.IsRealLine()` → `IsHandled := true` (`FillBestLine` dělá
+  `Clear` → `Line No.` 0; `PriceCalculated` čte jen `IsDiscountAllowed` v `ApplyDiscount`, které běží dřív). Po `Validate("No.")` je cena
+  0 z `Init()` stejně. Našel code review + advisor, ne kompilace ani UI. Sleva: `ApplyDiscount` → 0 vždy (5.x21). Dnes poplatek
   cenotvorbou neprochází, takže ruční cena / sleva přežijí cokoli — „bez ceníku jako dosud" je rozhodnutí, ne default. Výchozí řádek
   z aktuálních hodnot (`OnAfterFillBuffer` + `FillBestLine`) zase podrží slevu, která po změně množství pod *Minimum Quantity* platit nemá.
 - Změna *Datum objednávky* / *Zúčtovací datum* hlavičky ceny řádků **nepřepočítá ani u zboží** (`PriceMessageIfSalesLinesExist` = jen
