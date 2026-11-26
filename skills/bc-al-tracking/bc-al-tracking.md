@@ -26,6 +26,9 @@ Obsahuje:
   vlastní dělení řádku záznamu podle šarží (přebytek, Essence Warehouse `Expected Quantity (Base) EBS`), test bez knihoven
 - **5.x27** vlastní formát čísla šarže v akci na 6510 — protected `AssignLotNo()` + manuálně bindovaný
   `OnBeforeAssignNewLotNo`; kontext stránky v `protected var`; zdroj příjemky = řádek nákupu, deník zboží = typ šablony
+- **5.x28** změna `Item."Item Tracking Code"` při otevřených dokladech — tři standardní kontroly (BC 29), které obejít
+  manuálně bindovaným subscriberem a které ne; úprava Reservation Entry podle nového kódu; popis zdroje přes
+  `Reservation Engine Mgt.CreateText`
 
 ## 5. Specifické objekty a API — Item Tracking
 
@@ -628,3 +631,45 @@ Požadavek „vlastní tlačítko *Přiřadit č. šarže*, které skládá šar
 (2026-11-12, cust-sonnentor-bc PBI 62835 `Lot No. Assign Mgt. SON`, `Test Lot No. Assign SON`; zdroj w1-28 `ItemTrackingLines.Page.al`,
 `WarehouseReceiptLine.Table.al`, `ItemJnlLineReserve.Codeunit.al`, `ItemJnlPostLine.Codeunit.al`. Testy 9/9 v lokálním kontejneru
 bctest28 (BC 28.4 cz), celé repo 622/622; dev build na Sonnentor BC-DEV2, v klientu zatím neproklikané.)
+
+### 5.x28 Změna `Item."Item Tracking Code"` při otevřených dokladech — co blokuje standard, co obejít a jak srovnat Reservation Entry
+
+Požadavek „zboží založené bez sledování se ukáže jako sériové až při příjmu, ale kód sledování nejde změnit kvůli otevřené
+nákupní objednávce". `Item.Table.al` pole 6500 `OnValidate` (w1-29) má **tři různé kontroly**, zadání typicky zná jen první:
+
+- **`TestNoEntriesExist`** běží jen když se mezi starým a novým kódem liší `SN Specific Tracking` nebo `Lot Specific Tracking`
+  (`ItemTrackingCode.IsSpecificTrackingChanged`), nebo když má zboží *Costing Method = Specific*. Nejdřív položky zboží
+  (Text007, event `OnBeforeTestNoItemLedgEntiesExist`), pak **nákupní objednávky a vratky** (Text008, event
+  `OnBeforeTestNoPurchLinesExist(Item; CurrentFieldName; var IsHandled)`). Prodej, převody, deníky nekontroluje. Kód bez
+  *Specific* příznaků (jen inbound/outbound flagy) tedy jde přepnout i s otevřenou NO bez jakéhokoli kódu.
+- **`TestNoWhseEntriesExist`** při změně `SN/Lot Warehouse Tracking` (zapnutí *SN Specific* zapne i *SN Warehouse*).
+- **`TestNoOpenDocumentsWithTrackingExist`** vždy, když **starý kód není prázdný**: chyba, jakmile pro zboží existuje
+  jakýkoli záznam 336 nebo 337 s `Item Tracking <> None` (event `OnBeforeTestNoOpenDocumentsWithTrackingExist`).
+
+Obejití jen v akci: codeunit s `EventSubscriberInstance = Manual`, lokální instance s číslem zboží (`SetBypassItemNo`),
+`BindSubscription` → `Validate` + `Modify(true)` → `UnbindSubscription`. Subscriber nákupních řádků kontroluje i
+`CurrentFieldName = Item.FieldCaption("Item Tracking Code")` — stejný `TestNoEntriesExist` volá změna *Costing Method* a
+*Unit Cost*. **`OnValidateItemTrackingCodeOnBeforeTestNoEntriesExist` nepoužívat** — přeskočil by i kontrolu položek zboží.
+SingleInstance příznak ne (po `Error` zůstane, 3.10 v `bc-al-data.md`). Test „bypass neprosákne": po změně zboží A
+`asserterror ItemB.Validate(…)` s Text008.
+
+Srovnání 337 **před** `Validate` (jednostranné = *Surplus* / *Prospect*, páry = *Reservation* / *Tracking*):
+- čísla, která nový kód nepoužívá (SN / Lot / Package — „používá" = libovolný příznak skupiny v kódu, i `New …` čísla
+  přeřazení), vymazat na všech položkách; potom `UpdateItemTracking()` (pole `Item Tracking`, Package doplní event),
+- jednostranná položka bez čísel → smazat přes `Reservation Engine Mgt.CloseSurplusTrackingEntry` (akční zprávy),
+- **nový kód začíná sledovat SN → smazat i jednostranné položky bez SN** (šarže na celé množství řádku, u cust-soitron-bc
+  automatická projektová šarže 5.x15) — SN se zadávají po kusech, řádek s množstvím > 1 a bez SN nejde zaúčtovat,
+- páry si nechají množství (nespecifická rezervace bez čísel je pro SN zboží v pořádku, čísla se doplní při příjmu).
+Kontrolu 336 a otevřených dokladů se sledováním pak obejdi taky (ponechané platné SN by ji shodily) a 336 hlídej sám.
+
+Kde dál tracking žije a co blokovat tvrdě: řádky skladových aktivit mají vlastní `Serial No.` / `Lot No.` (reálně
+*Invt. Put-away* k nezaúčtované NO), skladový deník, `Whse. Item Tracking Line`, pole SN / šarže přímo na `Item Journal
+Line`. Skladová příjemka nevadí (sledování na řádku NO). Seznam dotčených řádků libovolného zdroje popíše
+`Reservation Engine Mgt.CreateText(TempReservEntry)` s vyplněnými source poli („Purchase Order 106001", subscribery
+`OnCreateText` v `* Line-Reserve` codeunitách) — funguje i pro řádky bez položek 337.
+
+Testy (`Library - Item Tracking.CreateItemTrackingCode(Code, SN, Lot)`, `CreatePurchOrderItemTracking`; rezervační pár
+ručně: `"Entry No." := 0` + `SetSource` + `Insert(false)`, druhá strana se stejným `Entry No.`, 5.x17); příjem bez SN =
+*You must assign a serial number for item*. (2026-11-26, cust-soitron-bc PBI 68151 `Item Track. Code Change SOI`, zadání
+posoudil i Fable 5.2; zdroj w1-29 `Item.Table.al`, `ItemTrackingCode.Table.al`, `ReservationEntry.Table.al`,
+`ReservationEngineMgt.Codeunit.al`. Testy 15/15 v `bctest29`, v klientu zatím neproklikané.)
