@@ -908,6 +908,12 @@ export cen tam neotestuješ; feature nezapínej, vyber firmu, kde běží. (2026
   (`User Personalization."Language ID"` — česky = anglické `ExpectedError` v testech nesedí) by rozbily další běh. Workflow s aktivní
   instancí nejde smazat → nejdřív `ApprovalsMgmt.OnCancelPurchaseApprovalRequest` na čekajících dokladech. Mazání kroků workflow se ptá
   (Confirm), stačí workflow vypnout. Ověř to celým během testů.
+- **Seznamy (2026-11-26, cust-soitron-bc 68121, `bctest29`):** informační panel (FactBox) Alt+F2 v headless Chrome neschová — tlačítko
+  `[class*=factbox-toggle-control]` (aria *Přepnout informační okno*, title *Sbalit okno s fakty*); stav si BC pamatuje per stránka
+  a uživatel, mačkej ho jen u otevřeného panelu. Bublinu „O zboží" zavři tlačítkem s aria / title *Zavřít* v kontejneru tlačítka
+  *Vydejte se na prohlídku*. Akce z `Category_Process` seznamu jsou v nabídce *Domovská stránka*. Poslední sloupec seznamu:
+  `.freeze-pane-scrollbar` `scrollLeft` po 400 px. Lookup s výběrem více řádků (⋮ → *Vybrat více*) a snímky UI závislého na Dataverse
+  v kontejneru bez Dataverse → 11.8e v `bc-al-dataverse.md`.
 
 **Doplněk: zakládání a úprava dokladů přes UI skriptem jdou** (2026-11-25, cust-itmr-bc, kontejner `bctest29` BC 29.0 cz, nákupní faktury):
 - **`&mode=Edit` v URL** (`?tenant=default&page=51&mode=Edit&filter='No.' IS '1002'`) otevře uložený doklad rovnou v režimu úprav a změny

@@ -13,6 +13,8 @@ Obsahuje:
 - **11.8c** Prodejní objednávky, faktury, ceníky, stav úhrady, Synch. Only Coupled Records (dřív body za 11.11)
 - **11.8d** Zapnutí synchronizace a úlohy fronty, vyřazená mapování, filtr kontaktů podle obchodního vztahu, měna zákazníka
   a příležitosti
+- **11.8e** Filtr seznamu podle GUID pole z Dataverse (obchodní jednotka): akce + lookup *Vybrat více*, cache názvů, `@@test@@`
+  jen v testovací relaci (snímky přes kopii appky)
 
 ## 11. SaaS gotchas — Dataverse (jen 11.8; zbytek sekce 11 v `bc-al-integrations.md`)
 
@@ -415,3 +417,37 @@ Z cust-alumistr-bc task 68073 (Alumistr CDS Sync, BC 29, 2026-11-24; zdroje w1-2
   bere měnu ze zákazníka. Požadavek „měna příležitosti obousměrně" znamená nové pole, které v BC nic neřídí — u Alumistra se proto
   nedělalo (rozhodnutí vývojáře, zadání k doplnění). Když by měna v Dataverse měla sedět k částce nabídky (`ActualValue` z částky
   nabídky v měně zákazníka), posílala by se jednosměrně BC → Dataverse z nabídky přes `OnAfterTransferRecordFields`, ne field mappingem.
+
+### 11.8e Filtr seznamu podle GUID pole z Dataverse bez `TableRelation` (obchodní jednotka) — akce s lookupem, ne FlowField
+
+Z cust-soitron-bc task 68121 (2026-11-26, BC 29.1 cz): seznamy Zboží / Zákazníci / Dodavatelé / Projekty filtrované podle
+`CRM Business Unit SOI` (Guid bez `TableRelation`, protože synchronizace by GUID s relací brala jako spárovaný záznam, viz 11.8):
+
+- **FlowField `lookup("CRM Businessunit".Name …)` na filtrování nestav** — proxy tabulka (TableType CRM) není v SQL, filtr na FlowField
+  potřebuje join (neověřeno do konce, ale nestav na tom); uložené pole s názvem zastará po přejmenování v Dataverse a doplnit existující
+  záznamy jde jen s živým Dataverse. **Funkční vzor:** akce na seznamu → lookup proxy tabulky přes proměnnou stránky `LookupMode(true)` +
+  `RunModal() = Action::LookupOK` → page procedura `CurrPage.SetSelectionFilter(Rec)` → `FindSet` nad výběrem a `Format(Guid)` spojené `|`
+  → `Rec.SetFilter(<Guid pole>, Filtr)` ve filter group 0 + `CurrPage.Update(false)`; druhá akce `Rec.SetRange(<Guid pole>)`. Filtr je
+  v podokně filtrů (s hodnotou GUID), jde zrušit křížkem i uložit do zobrazení. **Nikdy rozsahy `A..B`** (`SelectionFilterManagement.
+  GetSelectionFilter` je skládá) — Dataverse řadí GUID jinak než SQL Server, rozsah by pustil i nevybranou jednotku. `SetFilter` na Guid
+  poli s `{…}|{…}` funguje (test i klient).
+- **Sloupec s názvem:** proměnná stránky plněná v `OnAfterGetRecord` z **globální instance** codeunitu s `Dictionary of [Guid, Text[160]]`
+  — všechny jednotky jedním `FindSet` v `[TryFunction]`, chybějící ID dočíst jednotlivě (`[TryFunction]`, uložit i prázdný výsledek),
+  selhání = prázdný název (výpadek Dataverse nesmí zablokovat seznam zboží). Control nepojmenovat jako Guid pole (`PC0033`, 12.1 v
+  `bc-al-workflow.md`).
+- **Lookup (List v LookupMode) ve webovém klientu:** hodnota prvního sloupce je odkaz — kliknutí řádek vybere a lookup **hned zavře**.
+  Víc řádků jde jen přes **⋮ (*Zobrazit více možností*) → *Vybrat více*** a zaškrtnutí (`role=checkbox`, title *Vyberte řádek*, viditelný
+  až po najetí myší) + **OK**; `SetSelectionFilter` pak vrátí všechny zaškrtnuté (souvislé jako filtr, nesouvislé jako marks). Ctrl+klik
+  na odkaz nefunguje → do uživatelské dokumentace napsat přesně tuhle cestu. (Ověřeno BC 29.1 cz, kontejner `bctest29`.)
+- **Testy:** `@@test@@` + `CRM Businessunit.Insert(false)`; marks nad proxy tabulkou (`Mark` + `MarkedOnly`) fungují; TestPage seznamu +
+  `ModalPageHandler` s `GoToKey` + `OK().Invoke()` vrátí `LookupOK` (List v lookup módu, na rozdíl od ListPartu v 4.18 `bc-al-ui.md`).
+- ⚠️ **`@@test@@` funguje jen v testovací relaci.** Ve webovém klientu (`RegisterTableConnection(CRM, …, '@@test@@')` +
+  `SetDefaultTableConnection` z `System Initialization.OnAfterLogin`) skončí první čtení CRM tabulky *„An error occurred when communicating
+  with Dataverse. … Format of the initialization string does not conform to specification starting at index 0."* Snímky UI závislého na
+  Dataverse v kontejneru bez Dataverse: dočasná **kopie appky** (verze +1 jen v kopii, `Compile-AppInBcContainer` + `Publish-BcContainerApp
+  -upgrade`, závislé appky zůstanou nainstalované) s lokální tabulkou stejných polí místo proxy tabulky (`Record "CRM Businessunit"` →
+  lokální tabulka v codeunitu a `SourceTable` lookupu, `IsIntegrationEnabled` → `true`) + stránka s akcemi „připrav data / ukliď"
+  (ukáže i jazyk uživatele, vrátí ho). Po focení všechny verze appky `Uninstall-NAVApp -DoNotSaveData` + `Sync-NAVApp -Mode Clean` +
+  `Unpublish-NAVApp`, Essence závislosti jen odinstalovat (stav po běžném `Test-Repo`, 7.23 v `bc-al-deploy.md`); běžný `Test-Repo` by
+  narazil na vyšší nainstalovanou verzi. V příručce uvést, že data jsou ukázková. (`IsCRMIntegrationEnabled` w1-29 registruje skutečné
+  připojení jen když výchozí CRM připojení ještě neexistuje — proto stačí registrace při přihlášení, kdyby `@@test@@` fungovalo.)

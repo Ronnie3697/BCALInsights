@@ -1,14 +1,15 @@
 ---
 name: bc-al-dataverse
 description: >-
-  BC/AL Dataverse / CDS synchronizace (Business Central, sekce 11.8): Integration Table Mapping (Filtr tabulky BC → Dataverse,
-  Integration Table Filter jen Dataverse → BC, směry, field mappingy jedním směrem, Synch. Only Coupled Records, konfigurační
-  šablony Table Config Template), reset výchozího nastavení a vlastní mapování (recreate, Man. Integration Table Mapping),
-  CRM proxy tabulky (Option Picklist + OptionOrdinalValues, lookup na nesynchronizovaný číselník, statecode), úlohy synchronizace
-  po zapnutí / resetu (Ready → On Hold, SALESPEOPLE z OnEnableIntegration, úlohy smazaných mapování), filtr kontaktů podle
-  Contact Business Relation, měna (LCY ↔ Dataverse, příležitost bez měny), obousměrné prodejní objednávky (stavy, číslo a název
-  z Power Apps, Bill-to lookup), faktury (write-in produkt, Relationship Type, stav úhrady, CRM Statistics Job), ceníky, testy bez
-  Dataverse (@@test@@, ClearState). Načti u Dataverse, CDS, CRM, Power Apps synchronizace a jejích úloh fronty.
+  BC/AL Dataverse / CDS sync (BC, sekce 11.8–11.8e): Integration Table Mapping (Filtr tabulky BC → Dataverse,
+  Integration Table Filter jen Dataverse → BC, směry, field mapping jedním směrem, Synch. Only Coupled Records, šablony
+  Table Config Template), reset defaultů a vlastní mapování (recreate, Man. Integration Table Mapping), CRM proxy
+  tabulky (Option Picklist + OptionOrdinalValues, lookup na nesynchronizovaný číselník, statecode), úlohy sync po zapnutí /
+  resetu (Ready → On Hold, SALESPEOPLE z OnEnableIntegration, úlohy smaz. mapování), filtr kontaktů dle Contact Business
+  Relation, měna (LCY ↔ Dataverse, příležitost bez měny), obousměrné objednávky (stavy, číslo a název z Power Apps, Bill-to),
+  faktury (write-in produkt, Relationship Type, stav úhrady, CRM Statistics Job), ceníky, testy bez Dataverse (@@test@@ jen
+  v testovací relaci, ClearState), filtr seznamu dle GUID pole bez relace (obchodní jednotka: lookup Vybrat více, cache
+  názvů). Načti u Dataverse / CDS / CRM / Power Apps sync a jejích úloh fronty.
 user-invocable: true
 ---
 
