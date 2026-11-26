@@ -734,6 +734,17 @@ export cen tam neotestuješ; feature nezapínej, vyber firmu, kde běží. (2026
   `<select>` ani `End` + `Return` nic nevybraly a každý pokus založil další prázdný řádek *Zboží* (8 kusů, smazat výběrem řádků
   shift + klik vlevo → *Odstranit řádek*). Nástroj `find` obsah iframu BC nevidí → JS přes `iframe.contentDocument`.
   (2026-11-26, Zlomek BC-DEV, PBI 67628.)
+  Nový řádek ceníku přebírá *Typ produktu* z řádku nad ním (`OnNewRecord` validuje typ z `xRec`), takže `<select>` už hodnotu má
+  a stačí `Tab` do *Čísla produktu*. Řádek přidaný do **aktivního** ceníku je červený a výpočet cen ho nebere, dokud neproběhne
+  *Ověřit řádky* (hláška „Všechny řádky ceníku, které jste upravili, byly ověřeny.“). Po ověření je řádek aktivní a černý.
+  (2026-11-26, Zlomek BC-DEV, PBI 67628.)
+- **Snímek řádků dokladu se sloupci daleko od sebe (*Číslo* … *Množství* … *Jednotková cena*):** JS `style.display = 'none'` na
+  buňkách nepotřebných sloupců v obou tabulkách mřížky (hlavička `thead th` i tělo, stejný index) dá čistý statický snímek. Pod
+  obrázek napiš, že sloupce jsou skryté. ⚠️ **Před další editací skrytí vrať** (`style.display = ''`), jinak BC po validaci
+  přerenderuje řádek a hlavička se rozjede proti datům. Zavření informačního banneru nad stránkou posune celou mřížku nahoru: kliky
+  podle starých souřadnic pak založily prázdný řádek *Poznámka* a prázdný řádek poplatku. Smazání: řádek vybrat, `Ctrl+Delete`,
+  dialog „Pokračovat a odstranit?“ → *Ano*. Že v dokladu nic nezůstalo, ověř přes *Prodejní řádky* (`page=516&filter='Document No.'
+  IS '…'`), protože prázdný virtuální řádek na konci subformu vypadá jako uložený. (2026-11-26, Zlomek BC-DEV, příručka 67628.)
 - **Hromadné přepnutí checkboxu v gridu** (2026-11-10, Alumistr BC-TEST, *Ověřit pole* u ~450 polí balíčku, C18 v `ess-configurator`):
   - JS `click()` na checkbox v gridu BC nic nepřepne.
   - Spolehlivě to jde přes *Upravit seznam*: první checkbox klikem myší, pak klávesy `Down space`. Dávka `repeat` 10 s pauzou
