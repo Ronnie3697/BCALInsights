@@ -731,6 +731,16 @@ jen trigger, pole zůstane skryté — lookup i validace se stanou mrtvým kóde
 nemá kde zadat. Při portu porovnej celý `modify` blok, ne jen jeho triggery. (2026-09-15,
 cust-sonnentor-bc build 28270 vs. cust-kalas-bc `SalesOrderSubformKAL`.)
 
+### `SetValue` na poli skenu, které si `OnValidate` vymaže, se na stránce se záznamem zvaliduje podruhé s prázdnou hodnotou
+
+Vzor čteček: `field("Manual Input"; SCAN)` s `OnValidate` → `InterpretScan(SCAN)`, který si `SCAN` hned vymaže
+(`Clear(SCAN)`) a na konci zavolá `CurrPage.Update(false)`. Na stránce **se `SourceTable`** (detail řádku dokladu)
+`TestPage."Manual Input".SetValue(kód)` sken zpracuje a pak pole zvaliduje **znovu s vymazanou hodnotou** → chyba
+*„Validation error for Field: Manual Input, Message = 'Wrong barcode scanned .'“* (prázdný kód v hlášce). Na kartě bez
+`SourceTable` (Přesun zboží) stejný vzor projde. Ani `asserterror` + `GetLastErrorCallStack()` stack stránky neukáže
+(jen řádek testu). Fix v appce: `if SCAN = '' then exit;` před `InterpretScan` (prázdný vstup stejně nemá co
+interpretovat), test pak prošel. (2026-11-26, prod-ew-mobileBase-bc 66453, `Whse.ShipmentLineDetail EXEBS`, kontejner `bctest28`.)
+
 ### Placeholdery v testech jsou škodlivější než žádné testy
 
 `Assert.IsTrue(true, ...)` nebo `[Test]` procedura, která ve skutečnosti nic neověří, **dělá test suite zelenou bez regresní ochrany**. Pokud nemůžeš testovaný scénář spolehlivě postavit (např. `OnBeforeActionEvent` subscribery vyžadují TestPage + nestabilní action names), je správné nechat soubor bez `[Test]` procedur a zaznamenat blokátor v `plan.md`/issue, ne psát fake testy.
