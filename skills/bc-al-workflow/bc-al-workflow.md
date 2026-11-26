@@ -729,6 +729,11 @@ export cen tam neotestuješ; feature nezapínej, vyber firmu, kde běží. (2026
   Spolehlivě: `const a = iframe.contentDocument.activeElement; a.value = '<index>'; a.dispatchEvent(new Event('input',
   {bubbles:true})); a.dispatchEvent(new Event('change',{bubbles:true}))` → `Tab` → klik mimo řádek (uložení),
   hodnoty `<option>` jsou indexy enumu. Výsledek ověř screenshotem listu po zavření editace. (2026-10-16, BC-DEV Sonnentor.)
+  Upřesnění: `value` je **ordinal** hodnoty enumu, ne pořadí v seznamu (hodnota z enumextension `52300`), proto vybírej
+  `[...s.options].find(o => o.text === '<caption>')`. Na řádcích **ceníku prodeje** (7016) klik na položku rozbaleného
+  `<select>` ani `End` + `Return` nic nevybraly a každý pokus založil další prázdný řádek *Zboží* (8 kusů, smazat výběrem řádků
+  shift + klik vlevo → *Odstranit řádek*). Nástroj `find` obsah iframu BC nevidí → JS přes `iframe.contentDocument`.
+  (2026-11-26, Zlomek BC-DEV, PBI 67628.)
 - **Hromadné přepnutí checkboxu v gridu** (2026-11-10, Alumistr BC-TEST, *Ověřit pole* u ~450 polí balíčku, C18 v `ess-configurator`):
   - JS `click()` na checkbox v gridu BC nic nepřepne.
   - Spolehlivě to jde přes *Upravit seznam*: první checkbox klikem myší, pak klávesy `Down space`. Dávka `repeat` 10 s pauzou

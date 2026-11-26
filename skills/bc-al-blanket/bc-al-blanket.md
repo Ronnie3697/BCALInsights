@@ -250,3 +250,19 @@ Ověřeno ve zdrojích w1-28 (`SalesLine.Table.al`, `SalesLinePrice.Codeunit.al`
 - Změna *Datum objednávky* / *Zúčtovací datum* hlavičky ceny řádků **nepřepočítá ani u zboží** (`PriceMessageIfSalesLinesExist` = jen
   hláška); změna měny jde přes `RecreateSalesLines` (`Validate("No.")` + `Quantity`) → přecení i poplatek. Karta poplatku ve standardu
   není, jen editovatelný seznam *Poplatky za zboží* (page 5800).
+
+**Implementace (cust-zlomek-bc PBI 67628, 2026-11-26, alc 18.1, ověřeno na BC-DEV 28.5):**
+- `modify("Product No.") { TableRelation = if ("Asset Type" = const("<hodnota z enumextension>")) "Item Charge"; }` v PTE tableextension
+  na `Price List Line` i `Price Worksheet Line` se zkompiluje a lookup *Čísla produktu* pak nabízí jen poplatky.
+- Smazání / přejmenování produktu: veřejné `Price Helper - V16.DeletePriceLines(AssetType, No, '')` / `RenameAssetInPrices(AssetType,
+  xNo, No)` ze subscriberů `OnAfterDeleteEvent` / `OnAfterRenameEvent` (vzor `Serv. Price Helper V16`). Pro standardní typy to
+  `Price Helper - V16` dělá sám, pro nový typ nic.
+- `Price Calculation Mgt.FindSetup` hledá výchozí nastavení pro typ produktu, jinak řádek *(Vše)* → nový typ netřeba registrovat.
+- Hlavička do `GetPriceCalculationHandler` = `SalesLine.GetSalesHeader()` (držená řádkem): `RecreateSalesLines` ji nastaví s novou
+  měnou dřív, než je v DB.
+- `Allow Invoice Disc.` vracet v `Sales Line - Price.OnAfterSetPrice` jen pro `PriceListLine.IsRealLine()` (`Line No. <> 0`). Výchozí řádek
+  z `FillBestLine` nese hodnotu řádku dokladu. Pokryje i akci *Získat cenu* (`PickPrice` jde přes `SetPrice`).
+- `Price Asset` i `Price Line Filters` mají `TableType = Temporary` → lokální proměnné `Temp…` (AA0073). ALCops `/// <inheritdoc/>` na
+  metodách implementace interface nebere (DC0005 na každý parametr), lepší nechat DC0004 (info).
+- `Price List Line.CopyRecTo` bere `xRec`, když řádek není z `OnNewRecord` stránky → `Price Type` musí být na řádku před `Validate("Asset
+  Type")` (knihovna `CreatePriceListLine` to dělá), jinak blokace typu ceny v `OnBeforeVerifyConsistentAssetType` nevidí Nákup.
