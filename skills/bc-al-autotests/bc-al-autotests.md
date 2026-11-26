@@ -356,6 +356,16 @@ Assert.ExpectedErrorCode('Dialog');
   část záznamů, helper `RegisterFieldSet` (`FindLast` + 1) pod filtrem nic nenajde a `Insert` spadne na *The record in table Field
   Buffer already exists. Order='1'*. (2026-11-25, cust-itmr-bc PBI 67999,
   `Purch. TAS Link Tests ITMR`, kontejner `bc28`.)
+- **TestPage a API stránky (`PageType = API`):** kompilace projde vždy, běh ne:
+  - API stránka **s party** (`part(dimensionSetLines; …)`) → *„Cannot build the page API_PurchaseInvoicesITMR."* už při `OpenView()` /
+    `Trap()` + `Page.Run`. Vnoření (`SubPageLink`) se tak přes TestPage neotestuje.
+  - API stránka **bez partů** otevřená `TestPage.Trap()` + `Page.Run(Page::X, TempRec)` jde **číst**: filtry `SetRange` z dočasného
+    záznamu dorazí do skupiny 0, stejně jako filtry rodiče při vnořeném volání API (`OnFindRecord` stránky, která bez filtru rodiče hází
+    chybu, tak projde). `OpenView()` / `OpenEdit()` + `Filter.SetFilter` nejde — `OnFindRecord` spadne dřív, než filtr nastavíš.
+  - Zápis ne: `Page.Run` otevře API stránku jen pro čtení → `New()` skončí *„New method failed because Insert is not allowed."*
+  - Recept: logiku zápisu (najdi / ulož data rodiče) dej do codeunity, kterou stránka volá a test volá přímo; stránku testuj jen čtením
+    a zápis i vnoření ověř voláním API v kontejneru (`bc-al-integrations.md` 11.7a). (2026-11-26, cust-itmr-bc `Purch Inv API Parts
+    Tests ITMR`, 211/211 v `bc28` 28.2 — první verze s TestPage přes party a `New()` měla 5 červených testů.)
 - **Seznam, jehož `OnDrillDown` otevře přes `Page.RunModal` jinou stránku nad týmž záznamem a ta ho uloží: samotné
   `CurrPage.Update(false)` po `RunModal` výrazový sloupec seznamu na TestPage neobnoví** (`AssertEquals … Actual = ''`, i když
   v DB hodnota je). Pomohlo `if Rec.Find('=') then CurrPage.Update(false);` — stejně jako po stromovém seznamu v 4.17
