@@ -806,18 +806,19 @@ build 28.0.37.67238 na Alumistr BC-DEV spadl, 67239 s `Commit()` funguje.)
 
 ---
 
-### 4.26 Phone klient: popisek pole podle hodnoty přes `CaptionClass = '3,' + výraz`; `Visible` pole nastav už v `OnOpenPage`
+### 4.26 Phone klient: popisek pole podle hodnoty přes `CaptionClass = '3,' + výraz`; `Visible` pole platí jen z otevření, `Visible` skupiny se přepočítá
 
 - **Dynamický popisek:** pole nad proměnnou stránky s `CaptionClass = '3,' + ScanUoMMgt.GetScannedQtyCaption(ScannedUoM)` (oblast 3 =
   text bez resolveru, label `Qty. in %1` → „Množství v %1") phone klient vykreslí jako „Množství v KS". `Caption` nech jako fallback
-  (a kvůli XLIFF). Čtečka 600 px má v polovičním sloupci gridu na popisek jen ~14 znaků: dvojice „Množství v naskenované MJ" +
-  „Naskenovaná MJ" vedle sebe se ořízla na „Množství v nas…" / „Naskenovaná…". Jedno pole s MJ v popisku je čitelné a nic nezabírá.
-- **`Visible = Proměnná` na poli** (ne na gridu/skupině) se vyhodnotí po `OnOpenPage`. Proměnná nastavená až v `OnAfterGetCurrRecord`
-  nechala pole skryté (dokud byla tatáž proměnná na `grid`, ukázal se). Detail otevřený přes `SetTableView` + `SetRecord` + `Run`:
-  v `OnOpenPage` udělej `if Rec.Find('=') then <spočítej proměnné>`.
+  (a kvůli XLIFF). Na 600 px má popisek v polovičním sloupci gridu ~14 znaků („Množství v nas…") → jedno pole s MJ v popisku.
+- **`Visible = Proměnná` na poli** platí jen z otevření (po `OnOpenPage`; detail přes `SetTableView` + `SetRecord` + `Run` → v `OnOpenPage`
+  `if Rec.Find('=') then <spočítej proměnné>`), pozdější změnu + `CurrPage.Update` nepromítne ani jedním směrem. **`Visible` na skupině**
+  bez popisku (`group(X) { ShowCaption = false; Visible = Proměnná; field(…) }`) se přepočítá oběma směry a pole zůstane v toku rodiče →
+  pole ukazované podle skenu na už otevřené stránce dej do takové skupiny. `TestPage` skupinu nevidí → „skryto" assertuj nezávisle
+  (např. `StrPos(<pole>.Caption(), <kód>) = 0`).
 
-(2026-10-22, prod-ew-mobileBase-bc 66453 — množství v MJ naskenovaného odkazu na detailech vyskladnění, pohybů, příjemek a inventury;
-BC-DEV 28.5, phone klient.)
+(2026-10-22 a 2026-11-26, prod-ew-mobileBase-bc 66453 — množství v MJ naskenovaného odkazu na detailech vyskladnění, pohybů, příjemek,
+dodávek a inventury; BC-DEV, phone klient; s `Visible` na poli se pole po skenu na detailu otevřeném bez MJ neukázalo, se skupinou ano.)
 
 ### 4.27 Phone klient: klepnutí na řádek = náhled, karta z `CardPageId` v režimu zobrazení, chyba pole jen křížek, `InstructionalText`
 
