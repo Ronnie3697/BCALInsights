@@ -122,6 +122,10 @@ krok „Download Dependencies from NuGet" v témže build logu klidně ukazuje
   `essencebusinesssolutions.alumistrseextension.f83a70cc-…`). Verze balíčku
   vypíše flat2 `index.json`; hledání podle GUID funguje přes `query2?q=<guid>`.
   Ověřeno 2026-08-06 (cust-alumistr-bc, lokální ověření merge).
+  ⚠️ **flat2 `index.json` na BCNugetPackages vrací verze SESTUPNĚ** (`["29.0.1","29.0.0","28.0.20",…,"28.0.1","25.0.0"]`),
+  takže skript s `versions[-1]` vezme **nejstarší**. Essence EDI Communication 28.0.1 neměla v symbolech žádné tabulky a base
+  `alc` hlásil desítky `AL0185 Table 'EDI … EDEBS' is missing`. Nejnovější verzi řady vyber podle čísla (`max` přes parsované verze),
+  ne podle pozice. (2026-11-27, cust-sonnentor-bc 63076.)
 - **Změna `publisher` produktové appky = NOVÉ package ID na feedu → u konzumentů změň i `publisher` v dependency.**
   Starší verze zůstanou pod starým ID, nové jdou pod novým (Essence Configurator po PR 9695: `EssenceInternationalsro.…`
   končí 28.0.34, `EssenceBusinessSolutions.…` od 28.0.35). BcContainerHelper (`Get-BcNuGetPackageId` + `Find-BcNuGetPackage`,

@@ -215,6 +215,16 @@ Poznatky z rozšiřování product/variant syncu (cust-sonnentor-bc, PBI 63076, 
     Při vytváření dokladu jsou tedy v BC bez vlastního HTTP. `OnAfterCreateSalesHeader` běží až po `SalesHeader.Modify(true)`
     a po `Validate` přepravce / služby z mapování způsobu dopravy, takže subscriber, který mění hlavičku, musí sám `Modify`.
     (28.5, `Shpfy Process Order.CreateHeaderFromShopifyOrder`; cust-sonnentor-bc 63076 analýza výdejního místa, 2026-11-25.)
+    Výdejní místo → AC Parcels: `PickupPointId` je přímo *Kód* pobočky (`ShippingAgentBranch_aci`, klíč přepravce + kód), takže
+    stačí `Get(SalesHeader."Shipping Agent Code", PickupPointId)` a `Validate("Shipping Agent Branch Code_aci")`. Pole má
+    `TableRelation` na pobočku přepravce dokladu, proto `Get` předem (neznámá pobočka by jinak shodila celý doklad), a dodací adresu
+    Parcels při té validaci nemění. Ověřeno na BC-TEST: T50025003202 dostal KM17760200 (cust-sonnentor-bc 63076, 2026-11-27).
+  - **End-to-end test vytvoření dokladu bez nové objednávky:** na zpracované objednávce *Akce → Funkce → Odpojení zpracovaných
+    dokumentů* (Processed = ne, starý doklad zůstane jako samostatný) a pak *Vytvořit prodejní doklad*, takže proběhnou všechny
+    eventy `Shpfy Order Events`. Vhodná je objednávka bez slev a poukazů a s nevydaným dokladem, ať nerozbiješ rozpracovaná data.
+    Nová objednávka přes storefront dev storu: po určitém počtu objednávek s ruční platbou (Dobírka) Shopify hlásí „Dosáhli jste
+    limitu objednávek vývojářského obchodu přes tohoto zpracovatele plateb“ a pustí jen testovací platební bránu (kartu). Storefront
+    chráněný heslem jde otevřít bez hesla přes admin *Online Store → View your online store*.
   - Automatické vytvoření dokladu v *Sync Orders From Shopify* běží jen pro **nově** naimportované objednávky. Objednávku, která
     spadla do chyby, zpracuje znovu akce *Create Sales Document(s)* nebo report **30103 `Shpfy Create Sales Orders`** (všechny
     nezpracované objednávky obchodu, jde do fronty úloh).
