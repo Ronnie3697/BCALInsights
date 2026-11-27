@@ -200,10 +200,13 @@ Configurator Ext 28.0.50.
   **celý text chyby** v `error.message`.
 - **Upload `Failed` do ~20 s a appka není ani publikovaná = jiný build téže verze už prostředí kdysi dostalo.** Detail na 2509:
   *„A different .app file with the same App ID … and version (28.0.10.0) has already been uploaded to our service … increment the
-  version number“*. Typicky ruční build kolegy se stejnou verzí jako release, pak už ten release z feedu nejde, i když appka
-  v prostředí dávno není. Feed balíček s jiným package ID než stejná verze na TEST odhalíš předem: GUID v hlavičce `.app` (bajty 12–27,
-  `uuid.UUID(bytes_le=…)`) proti `packageId` z `…/extensions` zdrojového prostředí. Kontrola je podle všeho per prostředí, ne tenant:
-  EM Operation Output Chaining 28.0.4.0 z feedu na TEST2 prošel, přestože na BC-TEST téhož tenantu leží jiný build 28.0.4.0.
+  version number“*. Prostředí dřív dostalo jiný build se stejnou verzí jako release (PTE upload, nebo nejspíš i dev publish, ten
+  v `extensionDeploymentStatus` nevidíš), a pak už release z feedu nejde, i když appka v prostředí dávno není. Configurator CZ
+  28.0.35.0 tam byl jako PTE z jiného buildu (historie uploadů), u Opticutteru 28.0.10.0 historie PTE nic neukázala.
+  Feed balíček s jiným package ID než stejná verze na TEST odhalíš předem: GUID v hlavičce `.app` (bajty 12–27,
+  `uuid.UUID(bytes_le=…)`) proti `packageId` z `…/extensions` zdrojového prostředí. Kontrola je asi per prostředí, ne tenant
+  (jediný případ): EM Operation Output Chaining 28.0.4.0 z feedu na TEST2 prošel, přestože na BC-TEST téhož tenantu leží jiný build
+  28.0.4.0. Vlastní build ověř diffem `SymbolReference.json` proti feedu (ID interface se mění s každou kompilací, zbytek 0/0).
   Fix: zdroják z `origin/master` (`git archive origin/master <složka appky> | tar -x`) do scratchpadu, v kopii `app.json` verze
   s revizí +1, `alc` proti 28.x symbolům, PTE upload. (2026-11-27, Alumistr BC-TEST2: Opticutter Connector 28.0.10.0 a Essence
   Configurator CZ 28.0.35.0 → builds 28.1.0.1 a 28.0.35.1.)
