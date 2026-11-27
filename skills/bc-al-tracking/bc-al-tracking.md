@@ -556,9 +556,14 @@ na prostředí neproklikané.
   očekávaného sledování dostane manko jen bez šarže (`''`), a to jen když na něm není zaznamenaná žádná šarže. Důsledek: **bez
   skladového sledování šarží** (očekávané sledování po přihrádkách nevzniká) přesun u šaržového zboží nenavrhne nic („navrženo 0
   přesunů"); **se skladovým sledováním** jen když přebytek v jiné přihrádce dostal tutéž šarži, která chybí — automatické přidělení
-  šarží z položek zboží (FIFO za celou lokaci) přihrádky nezná a může vybrat jinou. Totéž přidělení v deníku přeřazení (zdrojová
-  přihrádka) vede při skladovém sledování na *„Množství (základ) nesmí být -X v Obsah přihrádky"* — `Bin Content."Quantity (Base)"`
-  se při registraci filtruje i šarží. Šarže pro konkrétní přihrádku ber ze skladových položek / obsahu přihrádky.
+  šarží z položek zboží (FIFO za celou lokaci) přihrádky nezná a může vybrat jinou (s jedinou šarží zboží v lokaci se spáruje
+  vždy, 0 přesunů = šarže manka a přebytku se liší). Totéž přidělení v deníku přeřazení (zdrojová přihrádka) vede na *„Množství
+  (základ) nesmí být -X v Obsah přihrádky"* = `WMS Management.CheckLotNo` (z `CheckWhseJnlLineTracking`): `FieldError("Quantity
+  (Base)", 'must not be %1')`, kde číslo = množství **té šarže** v přihrádce − množství řádku → `-<celé množství řádku>` znamená,
+  že šarže řádku v přihrádce není vůbec. Kontrola běží jen se šarží na řádku skladového deníku, tedy **jen se skladovým sledováním
+  šarží** (`SplitWhseJnlLine` → `CopyTrackingFromItemTrackingSetupIfRequired`) — hláška sama tak prozradí nastavení kódu sledování;
+  bez něj by nedostatek v přihrádce hlásil `Whse. Jnl.-Register Line` (*„is not sufficient to complete this action…"*). Šarže pro
+  konkrétní přihrádku ber ze skladových položek / obsahu přihrádky.
 - **`ExpInvtOrderTracking.InsertLine(Doc, Line, ItemTrackingSetup, Qty)` je holé `Insert()`** (PK `Order No`, `Order Line No.`,
   `Serial No.`, `Lot No.`, `Package No.`). Kontrolu existence dělej podle celého PK (i Package) — pořadí parametrů vlastního
   `Exists…(…, LotNo, SerialNo)` hlídej, prohozené SN/šarže filtrují `Serial No. = šarže` a nenajdou nic. Víc řádků záznamu jednoho
