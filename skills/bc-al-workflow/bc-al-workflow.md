@@ -817,6 +817,19 @@ export cen tam neotestuješ; feature nezapínej, vyber firmu, kde běží. (2026
 - **Role a jazyk pro focení:** URL parametr `?profile=ORDER%20PROCESSOR` přestal platit po změně Mého nastavení (přesměroval na roli
   uživatele) → roli dočasně změň v **Moje nastavení** (page 9204, *Role*), tamtéž *Jazyk* (Czech kvůli českým screenshotům); na konci
   vrať původní. Lookup v Moje nastavení: ikona hledání → klik do pole *Hledat* → psát. (2026-10-21, BC-DEV Zlomek.)
+- **Úzký informační panel (FactBox) a citlivé údaje na snímku — jen CSS v DOM, data beze změny** (2026-11-27, BC-TEST Sonnentor,
+  příručka 63076, *Atributy objednávky* na Objednávce Shopify):
+  - Panel má ~290 px a hodnoty v mřížce partu jsou useknuté. Rozšíříš ho stylem v `iframe.contentDocument`:
+    `.ms-nav-layout-aside-right` → `width`, `max-width` a `flex: 0 0 760px`, `.ms-nav-layout-factbox-pane-container` a
+    `.ms-nav-layout-factbox-details-pane, .ms-nav-cardfactbox` taky na šířku. BC panel přeskládá a hodnoty jsou celé. Výšku mřížky
+    partu takhle nezvětšíš, řádky pod okrajem přečti z DOM (`tbody tr` téže karty) a dej do příručky jako tabulku.
+  - Telefon a e-mail testovacího zákazníka na kartě skryješ přes `display: none` na `.ms-nav-edit-control-container` podle textu
+    `label`. Pozor na stejně pojmenovaná pole ve více skupinách (*Kód* adresy i *Kód* způsobu dodávky), hledej jen mezi kontejnery
+    dané záložky. Sloupce listu skryješ po indexu `thead th` v hlavičkové i datové tabulce (vzor výš).
+  - Po takové úpravě DOM hlásí navigace pryč „Leave site?“ i na vydaném dokladu otevřeném jen pro čtení. Neuložená data tam nejsou,
+    stačí `onbeforeunload = null` v hlavním okně i v iframu.
+  - URL filtr umí **OR hodnot jednoho pole**: `&filter='Code' IS 'KM17760200|60276'` vrátí oba řádky (*Pobočky přepravců* 52068437).
+    OR mezi dvěma poli dál nejde (výš).
 - **Chyba z `OnValidate` pole na kartě** se ve web klientu ukáže inline: červený × u pole, banner *„Stránka obsahuje chybu. Aktualizovat
   (F5) pro vrácení změny zpět nebo opravu chyby."*, stav *Neuloženo*; text chyby až po kliknutí na ×. *Aktualizovat (F5)* změnu vrátí
   (ověř z DOM, že pole je zpátky). (2026-10-21, cust-zlomek-bc 65649.)
