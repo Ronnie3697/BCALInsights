@@ -8,7 +8,8 @@
 > Configuration COEBS` (63143) a ListPart `Variant Config Params COEBS` (63147) — OK chce všechny parametry,
 > `RefreshAfterExternalValueChange`, varianta založená mimo dialog = výrobní akce, rozdělení řádku a sleva, kontrola
 > hodnoty Table Lookup a filter groups —, API konfigurace varianty (66387) a `Variant Config. Engine COEBS`,
-> `Effective Hidden`, *Kopírovat hodnotu z* mezi typy a filtr Vyhledání hodnotou jiného parametru.
+> `Effective Hidden`, *Kopírovat hodnotu z* mezi typy, filtr Vyhledání hodnotou jiného parametru a parametry pro tisk
+> (`Print Parameters Mgt.`, čtení hodnot varianty pro vlastní sestavu, C20).
 >
 > **Obecná AL pravidla platí dál** — `bc-al-style`, `bc-al-data`, `bc-al-ui`, u netriviální funkčnosti `bc-al-autotests`.
 
@@ -19,6 +20,7 @@
 - [C13. `Effective Hidden` na `Variant Configuration COEBS` JE persistovaný](#c13-effective-hidden-na-variant-configuration-coebs-je-persistovaný)
 - [C14. „najdi nebo vytvoř variantu" je `local` v dialogu 63143 — z jiné appky ji nezavoláš](#c14-najdi-nebo-vytvoř-variantu-je-local-v-dialogu-63143--z-jiné-appky-ji-nezavoláš)
 - [C16. Kopírovat hodnotu z parametru jiného typu a filtr Vyhledání hodnotou parametru](#c16-kopírovat-hodnotu-z-parametru-jiného-typu-a-filtr-vyhledání-hodnotou-parametru)
+- [C20. Parametry pro tisk (65726) a čtení hodnot varianty pro vlastní sestavu](#c20-parametry-pro-tisk-65726-a-čtení-hodnot-varianty-pro-vlastní-sestavu)
 
 ---
 
@@ -332,3 +334,30 @@ zdroje prod-ess-configurator-bc master, COEBS 28.0.22.0.)
 - Ověřeno na Alumistr BC-DEV (dev 28.0.37.67239, A00005 / nabídka 1006): duplicita v obou směrech, PROFIL → CENA a znovu
   po změně, filtr atributů `Barva = {BARVA_TXT:Value}` (Červený / Modrý / `Červený|Modrý`), odmítnutí hodnoty mimo filtr.
   Editor potřeboval `Commit()` před `RunModal` (4.25 v `bc-al-ui.md`).
+
+## C20. Parametry pro tisk (65726) a čtení hodnot varianty pro vlastní sestavu
+
+> Analýza 2026-11-27 nad COEBS master 9c40c1f (28.0.43), cust-zlomek-bc: revize zadání výrobního listu z vydané VZ
+> s parametry konfigurace (Copilot zadání chtělo filtrovat přes *Parametr pro tisk*). Nic neimplementováno.
+
+- **Příznak `Configuration Parameter COEBS."Print Parameter"` je zákaznický, ne výrobní.** `Print Parameters Mgt. COEBS` (63157)
+  z něj staví text „Název: Hodnota“ (oddělovač *Print Parameter Separator* v *Nastavení konfigurátoru*), ukládá ho na variantu
+  (`Item Variant."Print Parameters COEBS"`, Text[2048], `UpdatePrintParameters` při vzniku / znovupoužití varianty, akce
+  *Aktualizovat parametry pro tisk* na definici) a tiskne ho appka **Essence Configurator CZ** (`appCZ`, reportextension
+  *Sales Quote CZL* a *Sales Order Conf. CZL*). Příznak jde měnit v každém stavu definice (*Vybrat parametry pro tisk*).
+  Navázat na něj výrobní tisk = výrobní parametry na nabídce pro zákazníka → vlastní příznak nebo mapování v rozšíření.
+- **`GetPrintParameters(ItemNo; VariantCode; var TempNameValueBuffer)` vrací jen název parametru (`Name`, kód jen při prázdném
+  názvu) a popis hodnoty (`Value Long`), ne kód.** Pro mapování podle kódu parametru se nehodí. Event `OnAfterGetPrintParameters`
+  (ItemNo, VariantCode, ConfigNo, buffer) umožní řádky upravit.
+- **Pravidlo skrytí pro tisk** (`local IsHiddenByCondition`): parametr se statickým `Hidden` se tiskne **vždy** (vypočtené
+  hodnoty), ostatní se vynechá, když má uložený řádek varianty `Effective Hidden`. Z rozšíření stejně: `Parameter Hidden`
+  (FlowField) = tisknout, jinak `Effective Hidden` = vynechat (C13).
+- **`Sales Line Config Mgt. COEBS.LoadVariantParameterValues` skryté parametry nefiltruje** (slovník kód → hodnota jen
+  z vyplněných řádků, čísla invariantně s tečkou, `ConfigNo` z prvního řádku). Vlastní sestava nad ním vytiskne i parametry
+  skryté podmínkou. Popis hodnoty: public `Text Formula Eval. Mgt. COEBS.GetParameterValueDisplayText(ConfigNo; ParamLineNo;
+  ParamValue[; var ParameterValues])` = totéž co `{KOD:ValueName}`.
+- **Mapování do sestavy neklíčuj číslem konfigurace.** Varianta drží `Configuration No.` definice, ze které vznikla; nová verze
+  definice je kopie s novým číslem a aktivní definice je jen pro čtení. Starší varianty v otevřených VZ tak ukazují na
+  archivované definice. Klíč = kód parametru (+ případně číslo zboží), ne `Parameter Line No.` ani textový vzorec COEBS (ten
+  odkazuje čísla řádků jedné definice a vlastní `Source Type` kopie konfigurace nepřenese, C4 / C10).
+- Čísla z hodnot varianty do výrobního tisku formátuj **bez oddělovače tisíců** (`Format(1970)` v cs-CZ dá `1 970` s NBSP).

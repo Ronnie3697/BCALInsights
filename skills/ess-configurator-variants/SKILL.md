@@ -1,15 +1,16 @@
 ---
 name: ess-configurator-variants
 description: >-
-  Essence Configurator (COEBS, prod-ess-configurator-bc) — varianty (BC/AL): identita varianty = množina hodnot
-  parametrů (FindExistingVariantWithSameValues, CompareParameterValues), dialog Variant Configuration 63143 a ListPart
+  Essence Configurator (COEBS) — varianty (BC/AL): identita varianty = množina hodnot parametrů
+  (FindExistingVariantWithSameValues, CompareParameterValues), dialog Variant Configuration 63143 a ListPart
   63147 (OK chce všechny parametry, RefreshAfterExternalValueChange, výrobní akce u varianty založené mimo dialog),
   rozdělení řádku a sleva (Sales Line Split Mgt., OnAfterProcessSplitLine), kontrola hodnoty Table Lookup a filter
-  groups (ValidateTableLookupValue, GetConditionTableFilter, Item Attr. Filter Mgt.), API konfigurace varianty 66387
+  groups (ValidateTableLookupValue, GetConditionTableFilter), API konfigurace varianty 66387
   (configurationSessions, applyConfiguration) a Variant Config. Engine COEBS (FindOrCreateVariant, CreateVariant,
-  RefreshReusedVariant), Effective Hidden persistovaný, find-or-create local v dialogu do 28.0.29, Kopírovat hodnotu
+  RefreshReusedVariant), Effective Hidden persistovaný, find-or-create local do 28.0.29, Kopírovat hodnotu
   z mezi typy (převod polyká chyby), filtr Vyhledání v tabulce dle parametrů (67238, FilterPageBuilder nejde
-  rozšířit). Načti u dialogu konfigurace, variant, API konfigurátoru a lookupů parametrů.
+  rozšířit), parametry pro tisk (Print Parameters Mgt. = nabídka, ne výroba), hodnoty varianty do sestavy. Načti u
+  dialogu, variant, API konfigurátoru, lookupů a tisku parametrů.
 user-invocable: true
 ---
 
@@ -19,7 +20,7 @@ user-invocable: true
 (adresář skillu = „Base directory" hlášený při načtení; cestu skládej odtud, ne přes `..`).
 Tenhle skill je jen wrapper — níže je výcuc stabilních pravidel, detaily, signatury
 a diagnostické postupy jsou v souboru. Vyčleněno z `ess-configurator-notes.md` 2026-11-04,
-číslování C5, C11, C13, C14, C16 je původní.
+číslování C5, C11, C13, C14, C16 je původní, C20 nová.
 
 ## Co udělat
 
