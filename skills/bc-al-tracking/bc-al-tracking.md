@@ -550,6 +550,15 @@ na prostředí neproklikané.
   chybí sledování → zaúčtování spadne na `DifferenceErr`. Essence Warehouse tabulku čte v *Make Phys. Invt. Recording* (řádky
   záznamu po šaržích) a v návrhu přesunů po dokončení (`FillTmpCompensationBufferNeg/Pos`; nalezené šarže mimo očekávané si
   doplní s očekávaným 0) — falešné „očekávané" řádky mu rozdíl šarže schovají.
+- **Essence Warehouse *Navrhni korektní vyrovnání v rámci lokace* / *přes inventurní přihrádku* páruje manko s přebytkem podle
+  zboží + varianty + SN + šarže** (`SuggestLegalCompensationBuffers`, předtím `CalcExpectedQtyForAllLines` = Reopen, standardní
+  přepočet očekávaného sledování, Finish). Manko po šarži = očekávané sledování řádku − zaznamenané té šarže; řádek bez
+  očekávaného sledování dostane manko jen bez šarže (`''`), a to jen když na něm není zaznamenaná žádná šarže. Důsledek: **bez
+  skladového sledování šarží** (očekávané sledování po přihrádkách nevzniká) přesun u šaržového zboží nenavrhne nic („navrženo 0
+  přesunů"); **se skladovým sledováním** jen když přebytek v jiné přihrádce dostal tutéž šarži, která chybí — automatické přidělení
+  šarží z položek zboží (FIFO za celou lokaci) přihrádky nezná a může vybrat jinou. Totéž přidělení v deníku přeřazení (zdrojová
+  přihrádka) vede při skladovém sledování na *„Množství (základ) nesmí být -X v Obsah přihrádky"* — `Bin Content."Quantity (Base)"`
+  se při registraci filtruje i šarží. Šarže pro konkrétní přihrádku ber ze skladových položek / obsahu přihrádky.
 - **`ExpInvtOrderTracking.InsertLine(Doc, Line, ItemTrackingSetup, Qty)` je holé `Insert()`** (PK `Order No`, `Order Line No.`,
   `Serial No.`, `Lot No.`, `Package No.`). Kontrolu existence dělej podle celého PK (i Package) — pořadí parametrů vlastního
   `Exists…(…, LotNo, SerialNo)` hlídej, prohozené SN/šarže filtrují `Serial No. = šarže` a nenajdou nic. Víc řádků záznamu jednoho
