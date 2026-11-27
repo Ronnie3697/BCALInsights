@@ -4,13 +4,13 @@ description: >-
   BC/AL DB operace a subscribery (Business Central): FindSet, ReadIsolation::UpdLock vs LockTable,
   Insert/Modify/Delete(true|false) (LC0040), Temp Blob, SetLoadFields, SetFilter wildcard + %1 (LC0050),
   SetCurrentKey bez klíče (SystemCreatedAt), TransferFields + PK v copy smyčce, Mark/MarkedOnly vs Copy,
-  trvalý filtr ve FilterGroup, SetView neznámé pole bez chyby (TrySetView), field-by-field kopie,
+  trvalý filtr ve FilterGroup, SetView neznámé pole (TrySetView), field-by-field kopie,
   TableRelation mimo PK (Validate za běhu spadne), tableextension triggery vs subscribery, modify() ve fields,
   klíč jen vlastní pole (AL0423), var guard vs CurrFieldNo, CurrFieldNo z codeunity (getter, kopie recordu =
   0), příznak v SingleInstance po Error (SystemRowVersion), xRec = Rec při Modify z kódu, IsTemporary, init
   detection OnAfterValidateEvent, SkipOnMissingLicense/Permission, LC0028, AL0432, needitovatelné pole
-  z konfiguračního balíčku (RapidStart, i účtované doklady), Record Link (odkazy). Pole dokladů → posted /
-  archiv / kopie: bc-al-posting. Načti u recordů, subscriberů, tableextension a relací polí.
+  z konfiguračního balíčku (RapidStart, i účtované doklady), Record Link (odkazy), Document Attachment
+  OnInsert (File Name). Doklady → bc-al-posting. Načti u recordů, subscriberů, tableextension a relací polí.
 user-invocable: true
 ---
 
