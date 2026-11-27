@@ -400,6 +400,7 @@ ED Item Sales Disponibility 28.0.0, Essence Shopify Connector 28.0.6 (závislost
   (8999)** – úvodní stránka prázdná (desktop jen obrázek prázdného role centra, phone jen menu *Stránka / Systém*), stránky appky
   otevřené přes URL fungovaly. Oprava: *Profily (role)* (9171) → profil → *ID centra rolí* zpět na stránku z appky. Po publishi
   kontroluj úvodní stránku. (2026-10-23, prod-ew-mobileBase-bc BC-DEV, profil EW-MOBILE → 62202.)
-  **Totéž po výměně dev buildu za PTE (7.24: uninstall dev → PTE upload):** uninstall appky s role centrem přepne vlastní profil na
-  8999 a instalace PTE ho nevrátí. Data appky (setup) přežijí, profil ne. Po výměně v 9171 zkontroluj *ID centra rolí* všech
-  vlastních profilů nad appkou. (2026-11-27, Alumistr BC-DEV, Mobile Base dev 28.0.17.66453 → PTE 28.0.17.66454, EW-MOBILE 8999 → 62202.)
+  **Po výměně dev buildu za PTE (7.24: uninstall dev → PTE upload) byl profil taky na 8999.** Stav před uninstallem neověřen;
+  KIOSEK (EM Kiosk, appka se neměnila) byl na 8999 taky, takže profily tam padají i z jiné příčiny. Data appky (setup) přežila.
+  *ID centra rolí* vlastních profilů v 9171 zkontroluj před výměnou i po ní. (2026-11-27, Alumistr BC-DEV, Mobile Base dev
+  28.0.17.66453 → PTE 28.0.17.66454, EW-MOBILE vrácen z 8999 na 62202.)
