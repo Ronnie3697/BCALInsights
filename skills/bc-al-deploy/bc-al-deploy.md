@@ -198,6 +198,15 @@ Configurator Ext 28.0.50.
   Rychlejší: když upload skončí `Failed`, ale appka je v `…/extensions` jako `publishedAs: PTE`, `isInstalled: false`
   (publish prošel, spadla instalace), zavolej `POST …/extensions(<packageId>)/Microsoft.NAV.install` — 400 vrátí
   **celý text chyby** v `error.message`.
+- **Upload `Failed` do ~20 s a appka není ani publikovaná = jiný build téže verze už prostředí kdysi dostalo.** Detail na 2509:
+  *„A different .app file with the same App ID … and version (28.0.10.0) has already been uploaded to our service … increment the
+  version number“*. Typicky ruční build kolegy se stejnou verzí jako release, pak už ten release z feedu nejde, i když appka
+  v prostředí dávno není. Feed balíček s jiným package ID než stejná verze na TEST odhalíš předem: GUID v hlavičce `.app` (bajty 12–27,
+  `uuid.UUID(bytes_le=…)`) proti `packageId` z `…/extensions` zdrojového prostředí. Kontrola je podle všeho per prostředí, ne tenant:
+  EM Operation Output Chaining 28.0.4.0 z feedu na TEST2 prošel, přestože na BC-TEST téhož tenantu leží jiný build 28.0.4.0.
+  Fix: zdroják z `origin/master` (`git archive origin/master <složka appky> | tar -x`) do scratchpadu, v kopii `app.json` verze
+  s revizí +1, `alc` proti 28.x symbolům, PTE upload. (2026-11-27, Alumistr BC-TEST2: Opticutter Connector 28.0.10.0 a Essence
+  Configurator CZ 28.0.35.0 → builds 28.1.0.1 a 28.0.35.1.)
 - **`Could not upgrade the extension … The field 'X' cannot be located. Removing fields is not allowed.` u appky, která
   v prostředí není nainstalovaná** = v DB zůstalo schéma **starší odinstalované verze** (odinstalace bez smazání dat), a nová
   verze pole odebrala. Fix (jen se svolením, maže data těch polí): nový `POST extensionUpload` s
@@ -332,6 +341,12 @@ ED Item Sales Disponibility 28.0.0, Essence Shopify Connector 28.0.6 (závislost
   appky celá (Extension Management → orphaned data) a pak release. Vyšší verze v datech (COZLK 28.0.99.0) zablokuje i budoucí PTE
   release z pipeline → do té doby jen dev buildy `28.0.99.<n>`. Na prostředí, kde se dev buildy „ztratily“, se nejdřív podívej do
   `extensionDeploymentStatus` (historie PTE uploadů) a starších snímků `…/extensions`. (2026-11-05, Zlomek BC-DEV2, 67632.)
+  **Třetí cesta, data zůstanou a appka je PTE:** master produktového repa přeložit s verzí nad verzí dat (`28.1.0.0` v datech →
+  `28.1.0.1` v kopii `app.json`, viz 7.24 výš) a nahrát jako PTE se `schemaSyncMode: Add`. Upgrade z dat dev buildu prošel bez ForceSync
+  a závislé PTE z feedu (minimum 28.0.10) se na 28.1.0.1 nainstalovaly. Daň: release 28.0.x z pipeline do toho prostředí už neprojde,
+  dokud produkt nedosáhne 28.1, a pipeline verzi z `app.json` přebíjí (`Version.Major` + číslo buildu). Řekni to uživateli. Varování,
+  že prostředí má data novější verze, nikde nevyskočí: upload z feedu skončí `Failed` a text chyby ukáže až `Microsoft.NAV.install`.
+  (2026-11-27, Alumistr BC-TEST2 po updatu na 29.1: EM Cutting Plan, Opticutter a EPB Pricing Matrix 28.1.0.1, nad nimi Alumistr 29.0.x.)
 - **Token z `d365bc-admin get_microsoft_entra_id_token` platí ~1 h** — dlouhá série PTE uploadů (5–8 min / appka) ho přežije těžko;
   `401 Unauthorized … credentials provided are incorrect` uprostřed = vzít nový token, ne hledat chybu v appce.
 - **Na sdíleném DEV leží dev build rozpracované (necommitnuté) větve kolegy / tvé jiné seance → publikuj „combo“, ne čistou
