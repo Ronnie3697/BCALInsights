@@ -804,5 +804,8 @@ jinak postavil z `TableRelation` pole tabulky. Není to doplněk, který by v n�
 (2026-11-27, cust-sonnentor-bc: pageextension 54823 *Sales Order Subform SON* a 54825 *Sales Cr.Memo Subform SON* volají
 `Voucher Management SON.LookupForSaleVoucherVariant` (poukazy, PR 9504), který u zboží bez příznaku poukazu vrací `exit(false)`.
 Na nabídce měl *Kód varianty* šipku, na objednávce „…“ bez reakce (BC-DEV, screenshoty uživatele). Příčina dohledaná v kódu
-(base stránky ani pageextension CZL a Shopify pole nemění). Oprava přeložená a nasazená na BC-DEV jako dev build; chování
-v klientu a autotest zatím neověřené.)
+(base stránky ani pageextension CZL a Shopify pole nemění). Oprava přeložená a nasazená na BC-DEV jako dev build, chování
+v klientu neověřené. Autotest ověřený (BC 28.4 cz, `Test Vouchers SON` 50123): `TestPage."Sales Order".SalesLines."Variant
+Code".Lookup()` + `[ModalPageHandler]` na `TestPage "Item Variants"` projde nabídku `First()` / `Next()`, vybere `GoToKey` +
+`OK().Invoke()`, hodnota z `Text` se na řádek zapíše a `Close()` ji uloží. Se starým tělem procedury spadly 4 z 5 testů.
+Recept v `bc-al-autotests.md`, bullet „Test vlastního `OnLookup`“.)

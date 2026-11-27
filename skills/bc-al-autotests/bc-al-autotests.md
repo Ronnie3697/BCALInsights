@@ -445,6 +445,16 @@ Assert.ExpectedErrorCode('Dialog');
   does not use the queried record") — oba warning → s `failOn warning` CI fail. Existenci záznamu assertuj `Rec.SetRecFilter()` +
   `Assert.RecordIsNotEmpty(Rec)` / `RecordIsEmpty(Rec)` (funguje i po `Delete`, PK v proměnné zůstává), refresh hodnot přes
   `Get(PK)`. (2026-10-02, cust-soitron-bc)
+- **Test vlastního `OnLookup` pole (page / pageextension) přes TestPage:** `Page.Part."Pole".Lookup()` spustí trigger a když vrátí
+  `true`, TestPage hodnotu z `Text` do pole zapíše a zvaliduje jako klient; `Close()` řádek subformu uloží. Nabízenou stránku obslouží
+  `[ModalPageHandler]` nad její TestPage (stránka je v lookup módu, takže má `OK()` i `Cancel()`): řádky projdi `First()` / `Next()`
+  a kódy si ulož do globální proměnné test codeunitu (filtr stránky nesahej), výběr `GoToKey(<PK>)` + `OK().Invoke()`, Storno
+  `Cancel().Invoke()`. Řízení handleru (co vybrat / zrušit) přes globální proměnné, resetované v každém testu. ⚠️ **Návrat `false`
+  po Stornu TestPage nerozliší** — `exit(true)` s nezměněným `Text` hodnotu jen znovu zvaliduje a test přes stránku projde dál. Na
+  návratovou hodnotu proto zvlášť test, který proceduru triggeru volá **napřímo** (`Assert.IsFalse(Mgt.LookupX(Rec, LookupText))`
+  s handlerem, který zruší). Mutant se starým tělem: kopie repa (`git archive HEAD`) s vráceným tělem a `Test-Repo.ps1
+  -TestCodeunit <id> -TestFunction 'Prefix*'` ve druhém kontejneru poolu souběžně s celým během. (2026-11-27, cust-sonnentor-bc,
+  `Test Vouchers SON` `VariantLookup*`, 4 z 5 červené na starém těle, celé repo 700/700; souvisí 4.35 v `bc-al-ui.md`.)
 - **`Item.Validate("Expiration Calculation", <vzorec>)` bez Item Tracking Code s *Use Expiration Dates* spadne** —
   `Item.Table.al` pole 6502 `OnValidate` (w1-28): neprázdný vzorec → `ItemTrackingCodeUseExpirationDates()` → jinak
   `Error(ItemTrackingCodeIgnoresExpirationDateErr)`. Test, který potřebuje jen hodnotu pole (výpočet trvanlivosti do reportu),
