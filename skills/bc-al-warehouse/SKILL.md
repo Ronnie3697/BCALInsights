@@ -30,7 +30,7 @@ a `bc-al-projects.md` s jiným obsahem — odkazuj i se jménem souboru).
    `bc-al`).
 3. Sousední témata: `VerifyOnInventory`, qty-per na Item Journal Line (5.x6), CZ ↔ EN termíny skladu (5.z4) a ostatní objekty →
    `bc-al-objects`; fyzická inventura se šaržemi, tracking na příjemce → `bc-al-tracking`; vlastní pole Sales Line → Whse.
-   Shipment → `bc-al-posting`; stránky phone klientu a čtečky (dlaždice, sken ze schované stránky) → `bc-al-ui`; signatury
+   Shipment → `bc-al-posting`; stránky phone klientu a čtečky (dlaždice, sken ze schované stránky) → `bc-al-ui-phone`; signatury
    eventů ze zdroje `.app` → `bc-al-tools` (7.6).
 
 ## TL;DR — nejtvrdší pravidla (čísla = sekce v souboru)

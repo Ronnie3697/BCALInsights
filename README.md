@@ -16,7 +16,8 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
 | Soubor (ve `skills/<název>/`, pokud není uvedeno jinak) | Obsah |
 |---|---|
 | `bc-al-style.md` | konvence, naming, ToolTipy, přidělování ID, locale pasti, moderní patterny (sekce 1, 10) |
-| `bc-al-ui.md` | UI patterny stránek — RunModal/RoleCenter, ConfirmManagement, factbox, CaptionClass, Visible, MultiLine/RichContent (sekce 4) |
+| `bc-al-ui.md` | UI patterny stránek — RunModal/RoleCenter, ConfirmManagement, factbox, CaptionClass, Visible, MultiLine/RichContent, stránkový OnLookup vs. TableRelation (sekce 4) |
+| `bc-al-ui-phone.md` | UI na phone klientu a čtečkách — dlaždice, sken ze zakryté stránky, `CaptionClass '3,'` a `Visible`, `CardPageId` a náhled, seznam → řádky → detail, čtečka místo akce cizí appky (AC Parcels), barvy kostek (4.22, 4.23, 4.26–4.29, 4.33; vyčleněno 2026-11-27) |
 | `bc-al-data.md` | database operace, event subscribery (sekce 2, 3.1–3.4, 3.7–3.10) |
 | `bc-al-posting.md` | propagace vlastních polí do účtovaných dokladů, archivu a kopií — stejné field ID, částečné účtování, Blob + CalcFields, `Validate("No.")` → `Init()` (sekce 3.5–3.6f) |
 | `bc-al-objects.md` | specifické objekty/API — No. Series, Attached to Line No., Job Queue… (sekce 5) |
@@ -69,6 +70,7 @@ V kořeni zůstává README, průvodce prvotním nastavením `SETUP.md` (+ jeho 
   Sekce 6 (lokalizace, XLIFF) → `bc-al-xliff.md` (2026-10-22, `bc-al-workflow.md` přesáhl 1000 řádků).
   12.1f–12.1i + 12.5 (layouty reportů: Word, RDLC, štítky) → `bc-al-layouts.md` (2026-11-12, `bc-al-workflow.md` znovu přesáhl 1000 řádků).
   7.23–7.26 (testovací kontejner, ruční nasazení do sandboxu / kontejneru, dev publish) → `bc-al-deploy.md` (2026-11-13, `bc-al-build.md` měl 997 řádků).
+  4.22, 4.23, 4.26–4.29, 4.33 (phone klient a čtečky) → `bc-al-ui-phone.md` (2026-11-27, `bc-al-ui.md` měl 1027 řádků).
   5.z3, 5.z5 (+ nová 5.z7, CZZ zálohy) → `bc-al-advance-cz.md` (2026-11-03, `bc-al-objects.md` by přesáhl 1000 řádků).
   5.x22, 5.x26–5.x28 (+ nová 5.x34, sklad: přihrádky, skladové aktivity, MJ ve skladu) → `bc-al-warehouse.md` (2026-11-19, `bc-al-objects.md` měl 1000 řádků).
   7.7–7.10 (git, PR, verzování app.json, Azure DevOps) → `bc-al-git.md` (2026-11-20, `bc-al-tools.md` měl 1006 řádků).
@@ -328,7 +330,8 @@ stabilních pravidel. **Notes soubory zůstávají zdrojem pravdy.**
 |---|---|---|
 | `bc-al` (`/bc-al`) | rozcestník = Router + startup checklist + pravidla údržby | první akce každé AL/BC seance |
 | `bc-al-style` | `bc-al-style.md` | konvence, naming, ToolTipy, ID, moderní patterny |
-| `bc-al-ui` | `bc-al-ui.md` | chování page/pageextension, RoleCenter, factbox, Visible, MultiLine |
+| `bc-al-ui` | `bc-al-ui.md` | chování page/pageextension, RoleCenter, factbox, Visible, MultiLine, OnLookup vs. TableRelation |
+| `bc-al-ui-phone` | `bc-al-ui-phone.md` | phone klient, čtečky a kiosky — dlaždice, sken ze zakryté stránky, CardPageId, AC Parcels |
 | `bc-al-data` | `bc-al-data.md` | DB operace, event subscribery |
 | `bc-al-posting` | `bc-al-posting.md` | vlastní pole na dokladech → archiv, účtované doklady, kopie |
 | `bc-al-objects` | `bc-al-objects.md` | No. Series, Attached to Line No., Job Queue… |

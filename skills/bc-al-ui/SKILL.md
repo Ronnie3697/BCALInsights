@@ -1,16 +1,14 @@
 ---
 name: bc-al-ui
 description: >-
-  BC/AL UI patterny stránek (sekce 4): RunModal vs Run, výběr na RoleCenter, OnDrillDown vs OnLookup, ConfirmManagement, factbox Reset maže SubPageLink, CaptionClass cache/'3,', expression control (AL0270), modify()
-  cizí pageextension, smyčka OnAfterGet*Record, Visible = Rec.pole, MultiLine / RichContent /
-  add-in, procedura = metoda Rec (AL0604), LookupMode jen pro čtení, filtr partu z OnOpenPage, DelayedInsert =
-  prázdné SystemId, Update(false) v OnValidate, ListPart RunModal pod TestPage, stránka bez SourceTable;
-  phone klient: dlaždice (Brick / DropDown / 5 controlů, sloty), sken ze schované stránky (aria-hidden/inert),
-  klepnutí = náhled, CardPageId jen zobrazení, ListPart s CardPageId (SubPageView), chyba OnValidate
-  jen křížek, InstructionalText, \ v Message, add-in mezera; Rec prázdného listu z filtrů; prázdný výčet (HideValue);
-  kostky (User ID Filter, drill-down, pořadí); víc DownloadFromStream = jen poslední (ZIP);
-  čtečka místo akce cizí stránky (Parcels API), TileTeal; malý dialog nad jedním záznamem = StandardDialog nad
-  temp kopií (karta: Předchozí/Další, Ok/Storno, pole skáčou mezi sloupci). Načti u page, partů a kostek.
+  BC/AL UI patterny stránek (sekce 4): RunModal vs Run, výběr na RoleCenter, OnDrillDown vs OnLookup, stránkový
+  OnLookup nahradí TableRelation (šipka → „…“, exit(false) nic neotevře), ConfirmManagement, factbox Reset maže
+  SubPageLink, CaptionClass cache, expression control (AL0270), modify() cizí pageextension, smyčka OnAfterGet*Record,
+  Visible = Rec.pole, MultiLine / RichContent / add-in, procedura = metoda Rec (AL0604), LookupMode jen pro čtení, filtr
+  partu z OnOpenPage, DelayedInsert = prázdné SystemId, Update(false) v OnValidate, SaveRecord + RunModal (Commit),
+  ListPart RunModal pod TestPage, Lookup + AssistEdit, stránka bez SourceTable; prázdný výčet (HideValue); kostky (User
+  ID Filter, drill-down, pořadí); víc DownloadFromStream = jen poslední (ZIP); malý dialog nad jedním záznamem =
+  StandardDialog nad temp kopií. Phone klient, čtečky, kiosky → bc-al-ui-phone. Načti u page, partů a kostek.
 user-invocable: true
 ---
 
@@ -19,19 +17,21 @@ user-invocable: true
 **Zdroj pravdy:** `bc-al-ui.md` ve stejném adresáři jako tenhle `SKILL.md`
 (adresář skillu = „Base directory" hlášený při načtení; cestu skládej odtud, ne přes `..`). Tenhle skill je jen wrapper —
 pravidla níže jsou výcuc; detail, příklady kódu a odůvodnění jsou v souboru.
-Vyčleněno z `bc-al-style.md` 2026-09-08, číslování 4.x je původní.
+Vyčleněno z `bc-al-style.md` 2026-09-08, číslování 4.x je původní. Phone klient a čtečky (4.22, 4.23, 4.26–4.29,
+4.33) vyčleněny 2026-11-27 do skillu `bc-al-ui-phone`.
 
 ## Co udělat
 
-1. **Přečti `bc-al-ui.md` z adresáře tohoto skillu celý.** Vejde se do jednoho Read; když se
-   výstup ořízne, okamžitě dočti přes `offset`. Bez přečtení nejednej.
+1. **Přečti `bc-al-ui.md` z adresáře tohoto skillu celý.** Má ~810 řádků, Read ho ořízne →
+   okamžitě dočti přes `offset`. Bez přečtení nejednej.
 2. Pravidla ber jako závazná; rozpor s tvou expertizou → řekni uživateli,
    nepřepisuj potichu. Nový poznatek → do souboru + commit + push (viz skill
    `bc-al`).
 3. Sousední témata: konvence, naming, ToolTipy, formát page fieldů → `bc-al-style`
    (1, 10); propagace Blob/Text polí do posted dokladů → `bc-al-posting` (3.6c);
    Confirm + `CurrFieldNo` chování Sales Line a testy → `bc-al-objects` (5.x4) /
-   `bc-al-autotests`.
+   `bc-al-autotests`; phone klient, čtečky a kiosky (dlaždice, sken ze zakryté stránky,
+   `CardPageId`, AC Parcels) → `bc-al-ui-phone`.
 
 ## TL;DR — nejtvrdší pravidla (čísla = sekce v souboru)
 
@@ -60,3 +60,6 @@ Vyčleněno z `bc-al-style.md` 2026-09-08, číslování 4.x je původní.
   dlouhý text = `ExtendedDatatype = RichContent` na Text proměnné v root group
   (hodnota HTML → Blob, 3.6c v `bc-al-posting`) nebo vlastní control add-in
   (u zákaznických rep počítej s odmítnutím jako obcházení standardu).
+- **4.35** Stránkový `OnLookup` nahradí lookup z `TableRelation` celý (šipka → „…“);
+  `exit(false)` standardní seznam neotevře → větev „ostatní“ otevře seznam sama se stejným
+  filtrem jako `TableRelation`.
